@@ -73,6 +73,24 @@ def load_default_stylesheet() -> str:
     QWidget#Sidebar * {
         background: transparent; /* avoid lighter blocks under title or icons */
     }
+    QLabel#UserName {
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
+        margin-top: 4px;
+    }
+    QLabel#AvatarCircle {
+        min-width: 72px;
+        min-height: 72px;
+        max-width: 72px;
+        max-height: 72px;
+        border-radius: 36px; /* perfect circle */
+        background: #bfdbfe; /* light blue circle */
+        border: 2px solid #93c5fd;
+        color: #0f172a;
+        font-size: 26px;
+        font-weight: 800;
+    }
     /* Page wrapper */
     QWidget#PageCard {
         background: #dbeafe; /* light blue */

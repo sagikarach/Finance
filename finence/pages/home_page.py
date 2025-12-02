@@ -2,14 +2,26 @@ from __future__ import annotations
 
 from typing import Dict, Optional, List
 
-from ..qt import QLabel, QVBoxLayout, QHBoxLayout, QWidget, Qt, QColor, QGraphicsDropShadowEffect, QSizePolicy
+from ..qt import (
+    QLabel,
+    QVBoxLayout,
+    QHBoxLayout,
+    QWidget,
+    Qt,
+    QColor,
+    QGraphicsDropShadowEffect,
+    QSizePolicy,
+)
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
+from ..data.user_profile_store import UserProfileStore
 from ..models.accounts import (
     MoneyAccount,
     compute_total_amount,
     compute_total_liquid_amount,
 )
+from ..models.user import UserProfile
 from ..widgets.accounts_pie_chart import AccountsPieChart
+from ..widgets.sidebar import Sidebar
 
 
 class HomePage(QWidget):
@@ -23,6 +35,11 @@ class HomePage(QWidget):
         self._app_context = app_context or {}
         self._provider: AccountsProvider = provider or JsonFileAccountsProvider()
         self._accounts: List[MoneyAccount] = self._provider.list_accounts()
+        self._user_store = UserProfileStore()
+        self._user: UserProfile = self._user_store.load(
+            default_full_name=self._app_context.get("userName", "אורח"),
+            accounts=self._accounts,
+        )
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -104,7 +121,7 @@ class HomePage(QWidget):
                 card.setGraphicsEffect(shadow)
         except Exception:
             pass
-        # Header row with title and icon buttons
+        # Header row with title and icon buttons (no extra background)
         from ..qt import QToolButton  # local import to avoid circular at top
         header_row = QHBoxLayout()
         header_row.setSpacing(12)
@@ -179,19 +196,8 @@ class HomePage(QWidget):
 
         main_col.addLayout(chart_row, 1)
 
-        # Sidebar placeholder
-        sidebar = QWidget(self)
-        sidebar.setObjectName("Sidebar")
-        try:
-            sidebar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        try:
-            sidebar.setMinimumWidth(220)
-        except Exception:
-            pass
+        sidebar = Sidebar(self._user, self._user_store, self)
 
-        # Two-column layout: main area (left) and sidebar (right)
         split_row = QHBoxLayout()
         split_row.setSpacing(16)
         split_row.addWidget(main_area, 3)
@@ -199,7 +205,6 @@ class HomePage(QWidget):
 
         layout.addLayout(split_row)
         self.setLayout(layout)
-
 
 def format_currency(value: float) -> str:
     try:
