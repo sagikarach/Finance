@@ -52,7 +52,7 @@ class Sidebar(QWidget):
         except Exception:
             pass
 
-        self._name_label = QLabel(self._user.full_name, self)
+        self._name_label = QLabel(f"שלום, {self._user.full_name}", self)
         self._name_label.setObjectName("UserName")
         try:
             self._name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -214,7 +214,7 @@ class Sidebar(QWidget):
 
     def refresh_profile(self) -> None:
         """Refresh displayed name (and placeholder avatar if no image) from the user object."""
-        self._name_label.setText(self._user.full_name)
+        self._name_label.setText(f"שלום, {self._user.full_name}")
         if not self._user.avatar_path:
             # Update initial letter if user changed their name
             initial = (self._user.full_name or " ")[0]
