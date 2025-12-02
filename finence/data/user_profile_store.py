@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from pathlib import Path
 from typing import List, Optional
 
@@ -16,6 +15,8 @@ class UserProfileStore:
     def load(self, default_full_name: str, accounts: List[MoneyAccount]) -> UserProfile:
         full_name = default_full_name
         avatar_path: Optional[str] = None
+        password: Optional[str] = None
+        lock_enabled: bool = False
 
         if self._path.exists():
             try:
@@ -25,6 +26,10 @@ class UserProfileStore:
                     full_name = str(data.get("full_name", default_full_name))
                     raw_avatar = data.get("avatar_path")
                     avatar_path = str(raw_avatar) if raw_avatar else None
+                    raw_password = data.get("password")
+                    password = str(raw_password) if raw_password is not None else None
+                    raw_lock = data.get("lock_enabled")
+                    lock_enabled = bool(raw_lock) if raw_lock is not None else False
             except Exception:
                 pass
         else:
@@ -33,7 +38,13 @@ class UserProfileStore:
             except Exception:
                 pass
 
-        profile = UserProfile(full_name=full_name, avatar_path=avatar_path, accounts=list(accounts))
+        profile = UserProfile(
+            full_name=full_name,
+            avatar_path=avatar_path,
+            password=password,
+            lock_enabled=lock_enabled,
+            accounts=list(accounts),
+        )
         self.save(profile)
         return profile
 
@@ -41,6 +52,8 @@ class UserProfileStore:
         data = {
             "full_name": profile.full_name,
             "avatar_path": profile.avatar_path,
+            "password": profile.password,
+            "lock_enabled": profile.lock_enabled,
         }
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -49,5 +62,3 @@ class UserProfileStore:
         except Exception:
             # Failing to save the profile should not crash the app.
             pass
-
-

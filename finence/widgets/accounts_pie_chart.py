@@ -19,7 +19,6 @@ from ..qt import (
     QPieSeries,
     QPieSlice,
     QFrame,
-    QFont,
     QToolTip,
     QCursor,
 )
@@ -62,7 +61,9 @@ class AccountsPieChart(QWidget):
                 self._chart_view.setStyleSheet("background: transparent;")
                 self._chart_view.setFrameShape(QFrame.NoFrame)
                 try:
-                    self._chart_view.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+                    self._chart_view.setAttribute(
+                        Qt.WidgetAttribute.WA_TranslucentBackground, True
+                    )
                 except Exception:
                     pass
             except Exception:
@@ -271,17 +272,20 @@ class AccountsPieChart(QWidget):
         except Exception:
             pass
 
+
 def format_currency(value: float) -> str:
     try:
         return f"₪{value:,.0f}" if abs(value) >= 1000 else f"₪{value:,.2f}"
     except Exception:
         return f"₪{value}"
 
+
 def _qcolor_to_hex(c: QColor) -> str:
     try:
         return "#{:02x}{:02x}{:02x}".format(c.red(), c.green(), c.blue())
     except Exception:
         return "#000000"
+
 
 def _interpolate_qcolor(c1: QColor, c2: QColor, t: float) -> QColor:
     """

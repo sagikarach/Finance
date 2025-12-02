@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict
 
 from ..pages.home_page import HomePage
+from ..pages.settings_page import SettingsPage
 from ..qt import QAction, QMainWindow, QStackedWidget
 from .router import Router
 
@@ -26,7 +27,20 @@ class MainWindow(QMainWindow):
 
     def _register_pages(self) -> None:
         self.router.register(
-            "home", lambda: HomePage(app_context=self._app_context, parent=self._stack)
+            "home",
+            lambda: HomePage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
+            "settings",
+            lambda: SettingsPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
         )
 
     def _build_menu(self) -> None:

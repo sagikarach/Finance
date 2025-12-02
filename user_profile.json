@@ -1,4 +1,6 @@
 {
-  "full_name": "אורח",
-  "avatar_path": "/Users/sagikarach/private/Finence/data/avatars/user_avatar.png"
+  "full_name": "שגיא קארח",
+  "avatar_path": "/Users/sagikarach/private/Finence/data/avatars/user_avatar.png",
+  "password": null,
+  "lock_enabled": false
 }

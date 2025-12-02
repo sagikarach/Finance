@@ -15,12 +15,24 @@ try:
         QLabel,
         QToolButton,
         QPushButton,
+        QLineEdit,
+        QCheckBox,
+        QDialog,
         QMenu,
         QMenuBar,
         QGraphicsDropShadowEffect,
-         QToolTip,
+        QToolTip,
     )
-    from PySide6.QtGui import QAction, QPainter, QColor, QFont, QCursor  # type: ignore
+    from PySide6.QtGui import (
+        QAction,
+        QPainter,
+        QColor,
+        QFont,
+        QCursor,
+        QIcon,
+        QPixmap,
+        QImage,
+    )  # type: ignore
     from PySide6.QtCore import Signal, Slot, Qt, QMarginsF  # type: ignore
 
     backend = "PySide6"
@@ -51,12 +63,24 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
         QLabel,
         QToolButton,
         QPushButton,
+        QLineEdit,
+        QCheckBox,
+        QDialog,
         QMenu,
         QMenuBar,
         QGraphicsDropShadowEffect,
         QToolTip,
     )
-    from PyQt6.QtGui import QAction, QPainter, QColor, QFont, QCursor  # type: ignore
+    from PyQt6.QtGui import (
+        QAction,
+        QPainter,
+        QColor,
+        QFont,
+        QCursor,
+        QIcon,
+        QPixmap,
+        QImage,
+    )  # type: ignore
     from PyQt6.QtCore import pyqtSignal as Signal, pyqtSlot as Slot, Qt, QMarginsF  # type: ignore
 
     backend = "PyQt6"
@@ -88,6 +112,9 @@ __all__ = [
     "QLabel",
     "QToolButton",
     "QPushButton",
+    "QLineEdit",
+    "QCheckBox",
+    "QDialog",
     "QMenu",
     "QMenuBar",
     "QAction",
@@ -101,6 +128,9 @@ __all__ = [
     "QFont",
     "QToolTip",
     "QCursor",
+    "QIcon",
+    "QPixmap",
+    "QImage",
     # Charts
     "charts_available",
     "QChart",

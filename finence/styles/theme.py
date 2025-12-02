@@ -8,7 +8,7 @@ def load_default_stylesheet() -> str:
         background: #dbeafe; /* light blue app background */
         color: #111827; /* near-black */
         font-size: 14px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        font-family: "Varela Round", "Arial Hebrew", ".SF Hebrew", Arial, sans-serif;
     }
     QMainWindow {
         background: #dbeafe; /* match app background */
@@ -91,6 +91,30 @@ def load_default_stylesheet() -> str:
         font-size: 26px;
         font-weight: 800;
     }
+    QPushButton#SidebarNavButton {
+        background: #bfdbfe; /* Same as Sidebar background */
+        color: #0f172a;
+        padding: 10px 16px;
+        border-radius: 0px; /* No border radius to match sidebar edges */
+        border: none;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+    }
+    QPushButton#SidebarNavButton:hover {
+        background: #93c5fd; /* Lighter blue for hover, between normal and pressed */
+    }
+    QPushButton#SidebarNavButton:checked,
+    QPushButton#SidebarNavButton:pressed {
+        background: #dcecff; /* Darker blue for pressed effect */
+        color: #0f172a;
+        padding: 8px 14px; /* Adjusted padding to account for borders */
+    }
+    QPushButton#SidebarNavButton:disabled {
+        background: #dbeafe;
+        color: #0f172a;
+        padding: 8px 14px;
+    }
     /* Page wrapper */
     QWidget#PageCard {
         background: #dbeafe; /* light blue */
@@ -105,12 +129,14 @@ def load_default_stylesheet() -> str:
         font-weight: 600;
         color: #0b1220;
         letter-spacing: .2px;
+        background: transparent;
     }
     QLabel#StatValueLarge {
         font-size: 56px;
         font-weight: 900;
         color: #0b1220;
         padding: 6px 8px;
+        background: transparent;
     }
     /* Colored stat cards */
     QWidget#StatCardGreen {
@@ -138,13 +164,36 @@ def load_default_stylesheet() -> str:
         border-radius: 8px;
         border: 1px solid #1d4ed8;
     }
+    QPushButton#SaveButton {
+        background: #a3baed; /* slightly lighter blue */
+        border-color: #c9d5f5;
+        font-weight: 600;
+        min-width: 96px;
+        color: #111827;
+    }
     QToolButton#IconButton {
         background: transparent;
         border: none;
         padding: 6px;
         font-size: 18px;
+        min-width: 32px;
+        max-width: 32px;
+        min-height: 32px;
+        max-height: 32px;
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Varela Round", "Arial Hebrew", Arial, sans-serif;
     }
     QToolButton#IconButton:hover {
+        background: rgba(0,0,0,0.05);
+        border-radius: 8px;
+    }
+    QToolButton#PasswordEye {
+        background: transparent;
+        border: none;
+        padding: 4px;
+        font-size: 16px;
+        color: #111827;
+    }
+    QToolButton#PasswordEye:hover {
         background: rgba(0,0,0,0.05);
         border-radius: 8px;
     }
@@ -153,5 +202,167 @@ def load_default_stylesheet() -> str:
     }
     QPushButton:pressed {
         background: #1e40af;
+    }
+    QPushButton#SaveButton:hover {
+        background: #8aa7f7;
+    }
+    QPushButton#SaveButton:pressed {
+        background: #576db5;
+    }
+    """
+
+
+def load_dark_stylesheet() -> str:
+    return """
+    QWidget {
+        background: #020617;
+        color: #e5e7eb;
+        font-size: 14px;
+        font-family: "Varela Round", "Arial Hebrew", ".SF Hebrew", Arial, sans-serif;
+    }
+    QMainWindow {
+        background: #020617;
+    }
+    QMenuBar {
+        background: #020617;
+        color: #e5e7eb;
+        padding: 4px 8px;
+        border-bottom: 1px solid #1f2937;
+    }
+    QMenuBar::item:selected {
+        background: #1f2937;
+        border-radius: 6px;
+    }
+    QMenu {
+        background: #020617;
+        color: #e5e7eb;
+        border: 1px solid #1f2937;
+    }
+    QMenu::item:selected {
+        background: #111827;
+    }
+    QLabel#HeaderTitle, QLabel#Title {
+        font-size: 28px;
+        font-weight: 800;
+        color: #e5e7eb;
+    }
+    QLabel#Subtitle {
+        font-size: 16px;
+        color: #9ca3af;
+    }
+    QWidget#Sidebar {
+        background: #111827;
+        border-radius: 12px;
+    }
+    QWidget#Sidebar * {
+        background: transparent;
+        color: #e5e7eb;
+    }
+    QLabel#AvatarCircle {
+        border: 2px solid #4b5563;
+        color: #e5e7eb;
+    }
+    QPushButton#SidebarNavButton {
+        background: #111827; /* Same as Sidebar background */
+        color: #e5e7eb;
+        padding: 10px 16px;
+        border-radius: 0px; /* No border radius to match sidebar edges */
+        border: none;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+    }
+    QPushButton#SidebarNavButton:hover {
+        background: #1f2937; /* Lighter gray for hover, between normal and pressed */
+    }
+    QPushButton#SidebarNavButton:checked,
+    QPushButton#SidebarNavButton:pressed {
+        background: #020617; /* App background color for pressed effect */
+        color: #e5e7eb;
+        padding: 8px 14px;
+    }
+    QPushButton#SidebarNavButton:disabled {
+        background: #020617; /* App background color */
+        color: #e5e7eb;
+        padding: 8px 14px;
+    }
+    QWidget#StatCardGreen {
+        background: #16a34a;
+        border-radius: 20px;
+    }
+    QWidget#StatCardPurple {
+        background: #4f46e5;
+        border-radius: 20px;
+    }
+    QWidget#StatCardGreen QLabel, QWidget#StatCardPurple QLabel {
+        color: #e5e7eb;
+    }
+    QLabel#StatTitle {
+        font-size: 18px;
+        font-weight: 600;
+        color: #e5e7eb;
+        letter-spacing: .2px;
+        background: transparent;
+    }
+    QLabel#StatValueLarge {
+        font-size: 56px;
+        font-weight: 900;
+        color: #e5e7eb;
+        padding: 6px 8px;
+        background: transparent;
+    }
+    QLabel#StatValue {
+        font-size: 18px;
+        font-weight: 700;
+        color: #e5e7eb;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #1f2937;
+        border: 1px solid #374151;
+    }
+    QLabel#UserName {
+        font-size: 16px;
+        font-weight: 600;
+        color: #e5e7eb;
+        margin-top: 4px;
+    }
+    QPushButton {
+        background: #1d4ed8;
+        color: #e5e7eb;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid #1e3a8a;
+    }
+    QPushButton#SaveButton {
+        background: #1d4ed8;
+        border-color: #1e3a8a;
+        font-weight: 600;
+        min-width: 96px;
+        color: #e5e7eb;
+    }
+    QPushButton:hover {
+        background: #2563eb;
+    }
+    QPushButton:pressed {
+        background: #1e40af;
+    }
+    QToolButton#IconButton,
+    QToolButton#PasswordEye {
+        background: transparent;
+        border: none;
+        padding: 6px;
+        font-size: 18px;
+        color: #e5e7eb;
+    }
+    QToolButton#IconButton {
+        min-width: 32px;
+        max-width: 32px;
+        min-height: 32px;
+        max-height: 32px;
+    }
+    QToolButton#IconButton:hover,
+    QToolButton#PasswordEye:hover {
+        background: rgba(255,255,255,0.06);
+        border-radius: 8px;
     }
     """
