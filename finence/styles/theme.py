@@ -5,13 +5,13 @@ def load_default_stylesheet() -> str:
     return """
     /* Base */
     QWidget {
-        background: #ffffff;
+        background: #dbeafe; /* light blue app background */
         color: #111827; /* near-black */
         font-size: 14px;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     }
     QMainWindow {
-        background: #ffffff;
+        background: #dbeafe; /* match app background */
     }
 
     /* Menus */
@@ -41,6 +41,11 @@ def load_default_stylesheet() -> str:
         color: #0b1220;
         padding-bottom: 2px;
     }
+    QLabel#HeaderTitle {
+        font-size: 28px;
+        font-weight: 800;
+        color: #0b1220;
+    }
     QLabel#Subtitle {
         font-size: 16px;
         color: #475569;
@@ -60,6 +65,13 @@ def load_default_stylesheet() -> str:
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
+    }
+    QWidget#Sidebar {
+        background: #bfdbfe; /* slightly brighter, still darker than background */
+        border-radius: 12px;
+    }
+    QWidget#Sidebar * {
+        background: transparent; /* avoid lighter blocks under title or icons */
     }
     /* Page wrapper */
     QWidget#PageCard {
@@ -107,6 +119,16 @@ def load_default_stylesheet() -> str:
         padding: 8px 14px;
         border-radius: 8px;
         border: 1px solid #1d4ed8;
+    }
+    QToolButton#IconButton {
+        background: transparent;
+        border: none;
+        padding: 6px;
+        font-size: 18px;
+    }
+    QToolButton#IconButton:hover {
+        background: rgba(0,0,0,0.05);
+        border-radius: 8px;
     }
     QPushButton:hover {
         background: #1d4ed8;

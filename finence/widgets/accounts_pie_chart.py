@@ -11,6 +11,7 @@ from ..qt import (
     QPainter,
     QColor,
     QMarginsF,
+    QSizePolicy,
     charts_available,
     QChart,
     QChartView,
@@ -40,7 +41,16 @@ class AccountsPieChart(QWidget):
 
         if charts_available:
             self._chart_view = QChartView(self)
-            self._chart_view.setMinimumHeight(320)
+            # Let layout control the size; expand within parents instead of forcing window size
+            try:
+                self._chart_view.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+                )
+                self.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+                )
+            except Exception:
+                pass
             try:
                 self._chart_view.setRenderHint(
                     QPainter.RenderHint.Antialiasing, True
@@ -82,6 +92,8 @@ class AccountsPieChart(QWidget):
             pass
         try:
             series.setHoleSize(0.38)
+            # Make the donut radius as large as possible inside the view
+            series.setPieSize(0.92)
         except Exception:
             pass
 
@@ -127,7 +139,7 @@ class AccountsPieChart(QWidget):
 
         chart = QChart()
         chart.addSeries(series)
-        chart.legend().setVisible(True)
+        chart.legend().setVisible(False)
         try:
             chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
         except Exception:
@@ -136,9 +148,9 @@ class AccountsPieChart(QWidget):
             except Exception:
                 pass
         try:
-            alignment = Qt.AlignmentFlag.AlignTop  # place legend above
+            alignment = Qt.AlignmentFlag.AlignBottom  # place legend at bottom
         except AttributeError:  # pragma: no cover - PySide/PyQt variant
-            alignment = Qt.AlignTop  # fallback for older enums
+            alignment = Qt.AlignBottom  # fallback for older enums
         chart.legend().setAlignment(alignment)
         # Pull legend closer to the plot by tightening margins/padding
         try:
@@ -163,11 +175,7 @@ class AccountsPieChart(QWidget):
         except Exception:
             pass
         try:
-            chart.setTitle("התפלגות פיננסית")
-            title_font = QFont()
-            title_font.setPointSize(50)
-            title_font.setBold(True)
-            chart.setTitleFont(title_font)
+            chart.setTitle("")
         except Exception:
             pass
         # Visuals

@@ -27,7 +27,8 @@ class HomePage(QWidget):
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout()
-        layout.setContentsMargins(40, 40, 40, 40)
+        # Bring the sidebar (right) closer to the edge by reducing the right margin
+        layout.setContentsMargins(40, 40, 16, 40)
         layout.setSpacing(12)
 
         total_all = compute_total_amount(self._accounts)
@@ -45,34 +46,8 @@ class HomePage(QWidget):
 
         chart = AccountsPieChart(accounts=self._accounts, parent=self)
 
-        page_card = QWidget(self)
-        page_card.setObjectName("PageCard")
-        try:
-            page_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        page_layout = QVBoxLayout(page_card)
-        page_layout.setContentsMargins(16, 16, 16, 16)
-        page_layout.setSpacing(16)
-
-        content_row = QHBoxLayout()
-        content_row.setSpacing(16)
-        content_row.addWidget(chart, stretch=2)
-
-        totals_panel = QWidget(self)
-        try:
-            totals_panel.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-        except Exception:
-            pass
-        totals_layout = QVBoxLayout(totals_panel)
-        totals_layout.setContentsMargins(0, 0, 0, 0)
-        totals_layout.setSpacing(24)
-        try:
-            totals_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
-            pass
-
-        total_all_card = QWidget(totals_panel)
+        # Build total cards (reused below)
+        total_all_card = QWidget(self)
         total_all_card.setObjectName("StatCardGreen")
         try:
             total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -96,7 +71,7 @@ class HomePage(QWidget):
         total_all_card_layout.addWidget(total_all_label, 0, Qt.AlignmentFlag.AlignHCenter)
         total_all_card_layout.addStretch(1)
 
-        total_liquid_card = QWidget(totals_panel)
+        total_liquid_card = QWidget(self)
         total_liquid_card.setObjectName("StatCardPurple")
         try:
             total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -129,29 +104,100 @@ class HomePage(QWidget):
                 card.setGraphicsEffect(shadow)
         except Exception:
             pass
-
-        totals_layout.addStretch(1)
-        totals_layout.addWidget(total_all_card)
-        totals_layout.addSpacing(16)
-        totals_layout.addWidget(total_liquid_card)
-        totals_layout.addStretch(1)
+        # Header row with title and icon buttons
+        from ..qt import QToolButton  # local import to avoid circular at top
+        header_row = QHBoxLayout()
+        header_row.setSpacing(12)
+        header_title = QLabel("לוח בקרה", self)
+        header_title.setObjectName("HeaderTitle")
+        bell_btn = QToolButton(self)
+        bell_btn.setObjectName("IconButton")
+        bell_btn.setText("🔔")
+        bell_btn.setToolTip("התראות")
+        settings_btn = QToolButton(self)
+        settings_btn.setObjectName("IconButton")
+        settings_btn.setText("⚙")
+        settings_btn.setToolTip("הגדרות")
+        # Wrap header in a background container with the Sidebar color
+        header_container = QWidget(self)
+        header_container.setObjectName("Sidebar")
         try:
-            idx_a = totals_layout.indexOf(total_all_card)
-            idx_b = totals_layout.indexOf(total_liquid_card)
-            totals_layout.setStretch(idx_a, 1)
-            totals_layout.setStretch(idx_b, 1)
+            header_container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        header_container_layout = QHBoxLayout(header_container)
+        header_container_layout.setContentsMargins(12, 8, 12, 8)
+        header_container_layout.setSpacing(12)
+        # Place both settings and bell on the left, title on the right
+        header_container_layout.addWidget(settings_btn)
+        header_container_layout.addWidget(bell_btn)
+        header_container_layout.addStretch(1)
+        header_container_layout.addWidget(header_title)
+
+        # Cards row (side by side)
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(16)
+        cards_row.addWidget(total_all_card, 1)
+        cards_row.addWidget(total_liquid_card, 1)
+
+        # Main content column (header, cards, chart)
+        main_area = QWidget(self)
+        main_col = QVBoxLayout(main_area)
+        main_col.setContentsMargins(0, 0, 0, 0)
+        main_col.setSpacing(16)
+        main_col.addWidget(header_container, 0)
+        main_col.addLayout(cards_row, 0)
+
+        # Chart card background (same color as sidebar) taking ~2/3 of width
+        chart_card = QWidget(main_area)
+        chart_card.setObjectName("Sidebar")
+        try:
+            chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        chart_card_layout = QVBoxLayout(chart_card)
+        # Let the chart fill almost the entire background square
+        chart_card_layout.setContentsMargins(4, 4, 4, 4)
+        chart_card_layout.setSpacing(0)
+        chart_card_layout.addWidget(chart, 1)
+
+        # Empty rectangle on the right with the same color, occupying the other 1/3
+        chart_side_card = QWidget(main_area)
+        chart_side_card.setObjectName("Sidebar")
+        try:
+            chart_side_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        chart_side_layout = QVBoxLayout(chart_side_card)
+        chart_side_layout.setContentsMargins(12, 12, 12, 12)
+        chart_side_layout.setSpacing(0)
+
+        chart_row = QHBoxLayout()
+        chart_row.setSpacing(16)  # visual separation between the two rectangles
+        chart_row.addWidget(chart_card, 2)
+        chart_row.addWidget(chart_side_card, 1)
+
+        main_col.addLayout(chart_row, 1)
+
+        # Sidebar placeholder
+        sidebar = QWidget(self)
+        sidebar.setObjectName("Sidebar")
+        try:
+            sidebar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        try:
+            sidebar.setMinimumWidth(220)
         except Exception:
             pass
 
-        content_row.addWidget(totals_panel, stretch=1)
+        # Two-column layout: main area (left) and sidebar (right)
+        split_row = QHBoxLayout()
+        split_row.setSpacing(16)
+        split_row.addWidget(main_area, 3)
+        split_row.addWidget(sidebar, 1)
 
-        page_layout.addLayout(content_row)
-        try:
-            content_row.setStretch(0, 2)
-            content_row.setStretch(1, 1)
-        except Exception:
-            pass
-        layout.addWidget(page_card)
+        layout.addLayout(split_row)
         self.setLayout(layout)
 
 
