@@ -93,6 +93,19 @@ def load_savings_page_light_styles() -> str:
     QPushButton#DeleteButton:pressed {
         background: #e06666; /* darker red */
     }
+
+    QPushButton#MoveButton {
+        background: #a3baed;
+        font-weight: 600;
+        color: #111827;
+        border-color: #c9d5f5;
+    }
+    QPushButton#MoveButton:hover {
+        background: #d5a6bd; /* stronger purple */
+    }
+    QPushButton#MoveButton:pressed {
+        background: #c27ba0; /* darker purple */
+    }
     """
 
 
@@ -187,5 +200,18 @@ def load_savings_page_dark_styles() -> str:
     }
     QPushButton#DeleteButton:pressed {
         background: #b91c1c; /* darker red */
+    }
+
+    QPushButton#MoveButton {
+        background: #1d4ed8; /* base purple */
+        border-color: #1e3a8a;
+        font-weight: 600;
+        color: #e5e7eb;
+    }
+    QPushButton#MoveButton:hover {
+        background: #7c3aed; /* brighter purple */
+    }
+    QPushButton#MoveButton:pressed {
+        background: #5b21b6; /* darker purple */
     }
     """

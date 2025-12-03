@@ -168,6 +168,35 @@ class HomePage(BasePage):
 
         main_col.addLayout(chart_row, 1)
 
+    def on_route_activated(self) -> None:
+        """Refresh accounts and rebuild content when returning to home.
+
+        This ensures the totals and pie chart reflect transfers or edits that
+        happened on other pages (like the savings page) before navigating back.
+        """
+        # Reload accounts from provider so we pick up any saved changes.
+        try:
+            self._accounts = self._provider.list_accounts()
+        except Exception:
+            pass
+
+        # Keep sidebar in sync with latest accounts, if it exists.
+        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
+            try:
+                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+            except Exception:
+                pass
+
+        # Rebuild the main content (summary cards + pie chart).
+        if isinstance(self._content_col, QVBoxLayout):
+            layout = self._content_col
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+            self._build_content(layout)
+
 
 def format_currency(value: float) -> str:
     try:

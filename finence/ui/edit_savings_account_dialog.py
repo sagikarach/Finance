@@ -41,10 +41,7 @@ class EditSavingsAccountDialog(QDialog):
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
-            try:
-                self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
-                pass
+            pass
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 24, 32, 24)
@@ -57,20 +54,17 @@ class EditSavingsAccountDialog(QDialog):
         try:
             account_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
-            try:
-                account_label.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
-                pass
+            pass
 
         self._account_combo = QComboBox(self)
-        self._account_combo.setObjectName("AccountComboBox")
+        # Use default combo styling like the transfer dialog (avoid the
+        # Savings page's special AccountComboBox theme).
+        self._account_combo.setObjectName("DialogAccountCombo")
+        # Match transfer dialog: combo text flows RTL.
         try:
-            self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+            self._account_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
-            try:
-                self._account_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
-                pass
+            pass
         for account in accounts:
             self._account_combo.addItem(
                 account.name, account
@@ -96,15 +90,13 @@ class EditSavingsAccountDialog(QDialog):
         name_label.setMinimumWidth(60)
 
         self._name_edit = QLineEdit(self)
+        # Match transfer dialog: text typed RTL and right-aligned.
         try:
-            self._name_edit.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+            self._name_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
-            try:
-                self._name_edit.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
-                pass
+            pass
         try:
-            self._name_edit.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            self._name_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
         except Exception:
             pass
         if self._selected_account:
@@ -156,11 +148,12 @@ class EditSavingsAccountDialog(QDialog):
         cancel_btn = QPushButton("ביטול", self)
         save_btn = QPushButton("שמור", self)
         save_btn.setDefault(True)
-        save_btn.setObjectName("SaveButton")
 
-        buttons_row.addWidget(save_btn)
-        buttons_row.addStretch(1)
+        # Match transfer dialog: cancel on the right, primary action on the left,
+        # both using the default QPushButton styling.
         buttons_row.addWidget(cancel_btn)
+        buttons_row.addStretch(1)
+        buttons_row.addWidget(save_btn)
 
         layout.addLayout(account_row)
         layout.addLayout(name_row)

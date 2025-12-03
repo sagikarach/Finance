@@ -59,8 +59,16 @@ class SidebarSavingsList:
         if not self._savings_accounts_container or not self._savings_accounts_layout:
             return
 
-        for btn in self._savings_account_buttons:
-            btn.deleteLater()
+        # Clear out any existing rows (including arrows and spacers) so we
+        # don't accumulate invisible empty rows in the layout when accounts are
+        # reloaded (for example after editing a savings account).
+        layout = self._savings_accounts_layout
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
         self._savings_account_buttons.clear()
         self._savings_account_arrows.clear()
 
@@ -123,7 +131,6 @@ class SidebarSavingsList:
             self._savings_account_arrows.append(arrow)
 
         self._refresh_selected_state()
-        self.update_visibility()
 
     def _format_button_text(self, name: str) -> str:
         """Return the label text for a savings account button."""
@@ -365,5 +372,28 @@ class SidebarSavingsList:
         return self._savings_accounts_container
 
     def update_accounts(self, accounts: List[MoneyAccount]) -> None:
+        """Replace current accounts while preserving expanded/collapsed state.
+
+        When accounts are edited from the savings page we don't want the
+        sidebar list to visibly close and re-open. Instead we rebuild the
+        rows in-place and keep the current visual state without re-running
+        the expand/collapse animation.
+        """
         self._accounts = accounts
+        was_expanded = self._savings_expanded
         self._load_accounts()
+
+        if not self._savings_accounts_container:
+            return
+
+        if was_expanded:
+            # Keep the list open without animation.
+            container = self._savings_accounts_container
+            container.show()
+            container.setMaximumHeight(16777215)
+            container.setMinimumHeight(0)
+            self._apply_pressed_style(container)
+            self._savings_expanded = True
+        else:
+            self._savings_accounts_container.hide()
+            self._savings_expanded = False

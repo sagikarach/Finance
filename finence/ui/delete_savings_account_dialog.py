@@ -37,10 +37,7 @@ class DeleteSavingsAccountDialog(QDialog):
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
-            try:
-                self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
-                pass
+            pass
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(32, 24, 32, 24)
@@ -53,20 +50,17 @@ class DeleteSavingsAccountDialog(QDialog):
         try:
             account_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
-            try:
-                account_label.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
-                pass
+            pass
 
         self._account_combo = QComboBox(self)
-        self._account_combo.setObjectName("AccountComboBox")
+        # Use default combo styling like the transfer dialog (avoid the
+        # Savings page's special AccountComboBox theme).
+        self._account_combo.setObjectName("DialogAccountCombo")
+        # Match transfer dialog: combo uses RTL text flow.
         try:
-            self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+            self._account_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
-            try:
-                self._account_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
-                pass
+            pass
         for account in accounts:
             self._account_combo.addItem(account.name, account)
         if accounts:
@@ -108,12 +102,13 @@ class DeleteSavingsAccountDialog(QDialog):
 
         cancel_btn = QPushButton("ביטול", self)
         delete_btn = QPushButton("מחק", self)
-        delete_btn.setObjectName("DeleteButton")
         delete_btn.setDefault(True)
 
-        buttons_row.addWidget(delete_btn)
-        buttons_row.addStretch(1)
+        # Match transfer dialog: cancel on the right, primary action on the left,
+        # both using the default QPushButton styling (no special Delete style).
         buttons_row.addWidget(cancel_btn)
+        buttons_row.addStretch(1)
+        buttons_row.addWidget(delete_btn)
 
         layout.addLayout(account_row)
         layout.addWidget(self._message_label)

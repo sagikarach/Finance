@@ -221,3 +221,24 @@ class JsonFileAccountsProvider(AccountsProvider):
         # Write to file
         with self._savings_accounts_path.open("w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
+
+    def save_bank_accounts(self, accounts: List[BankAccount]) -> None:
+        """Save BankAccount list to bank_accounts.json."""
+        # Ensure directory exists
+        self._bank_accounts_path.parent.mkdir(parents=True, exist_ok=True)
+
+        json_data = []
+        for account in accounts:
+            account_dict = {
+                "name": account.name,
+                "is_liquid": account.is_liquid,
+                "total_amount": account.total_amount,
+                "history": [
+                    {"date": snap.date, "amount": snap.amount}
+                    for snap in account.history
+                ],
+            }
+            json_data.append(account_dict)
+
+        with self._bank_accounts_path.open("w", encoding="utf-8") as f:
+            json.dump(json_data, f, ensure_ascii=False, indent=2)

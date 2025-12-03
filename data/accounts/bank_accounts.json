@@ -1,20 +1,48 @@
 [
   {
-    "name": "bankAccount",
+    "name": "בנק",
     "is_liquid": false,
-    "total_amount": 500.75,
+    "total_amount": 1500.75,
     "history": [
-      { "date": "2025-01-01", "amount": 39500.75 },
-      { "date": "2025-02-01", "amount": 500.75 }
+      {
+        "date": "2025-01-01",
+        "amount": 39500.75
+      },
+      {
+        "date": "2025-02-01",
+        "amount": 500.75
+      },
+      {
+        "date": "2025-12-04",
+        "amount": 1500.75
+      },
+      {
+        "date": "2025-12-04",
+        "amount": 1300.75
+      },
+      {
+        "date": "2025-12-04",
+        "amount": 1500.75
+      }
     ]
   },
   {
-    "name": "cash",
+    "name": "מזומן",
     "is_liquid": true,
-    "total_amount": 5000.0,
+    "total_amount": 4000.0,
     "history": [
-      { "date": "2025-01-01", "amount": 4500.0 },
-      { "date": "2025-02-01", "amount": 5000.0 }
+      {
+        "date": "2025-01-01",
+        "amount": 4500.0
+      },
+      {
+        "date": "2025-02-01",
+        "amount": 5000.0
+      },
+      {
+        "date": "2025-12-04",
+        "amount": 4000.0
+      }
     ]
   }
 ]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional
+from datetime import date as _date
 
 from ..qt import (
     QLabel,
@@ -14,12 +15,18 @@ from ..qt import (
     QApplication,
     QToolButton,
     QPushButton,
+    QDialog,
+    QComboBox,
+    QLineEdit,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..models.accounts import (
     compute_savings_account_total_amount,
     compute_savings_account_liquid_amount,
     SavingsAccount,
+    BankAccount,
+    Savings,
+    MoneySnapshot,
 )
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..ui.savings_account_dialog import SavingsAccountDialog
@@ -199,11 +206,22 @@ class SavingsPage(BasePage):
         except Exception:
             pass
 
+        move_button = QPushButton("העבר כסף בין חסכונות", chart_side_card)
+        move_button.setObjectName("MoveButton")
+        try:
+            move_button.setMinimumHeight(move_button.sizeHint().height() * 2)
+        except Exception:
+            pass
+
         # Connect button handlers
         add_button.clicked.connect(lambda: self._handle_add_account())  # type: ignore[arg-type]
         edit_button.clicked.connect(lambda: self._handle_edit_account())  # type: ignore[arg-type]
         delete_button.clicked.connect(lambda: self._handle_delete_account())  # type: ignore[arg-type]
+        move_button.clicked.connect(lambda: self._handle_move_between_accounts())  # type: ignore[arg-type]
 
+        chart_side_layout.addStretch(1)
+        # Order: move money, add, edit, delete.
+        chart_side_layout.addWidget(move_button, 0)
         chart_side_layout.addStretch(1)
         chart_side_layout.addWidget(add_button, 0)
         chart_side_layout.addStretch(1)
@@ -223,43 +241,49 @@ class SavingsPage(BasePage):
         """Get list of SavingsAccount instances from current accounts."""
         return [acc for acc in self._accounts if isinstance(acc, SavingsAccount)]
 
+    def _get_bank_accounts(self) -> List[BankAccount]:
+        """Get list of BankAccount instances from current accounts."""
+        return [acc for acc in self._accounts if isinstance(acc, BankAccount)]
+
     def _save_and_refresh(self) -> None:
         """Save savings accounts to JSON and refresh the page."""
         if not isinstance(self._provider, JsonFileAccountsProvider):
             return
 
         savings_accounts = self._get_savings_accounts()
+        bank_accounts = self._get_bank_accounts()
         try:
             self._provider.save_savings_accounts(savings_accounts)
+        except Exception:
+            pass
+        try:
+            # JsonFileAccountsProvider also knows how to persist bank accounts.
+            self._provider.save_bank_accounts(bank_accounts)  # type: ignore[attr-defined]
         except Exception:
             pass
 
         # Reload accounts from provider
         self._accounts = self._provider.list_accounts()
 
-        # Update sidebar with new accounts
+        # Update sidebar with new accounts while preserving the current
+        # expanded/collapsed state of the savings list.
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
                 self._sidebar.update_accounts(self._accounts)
             except Exception:
                 pass
 
-        # Reload the page by navigating away and back
-        if self._navigate is not None:
-            # Use a timer to navigate away and back to refresh
-            try:
-                from PySide6.QtCore import QTimer  # type: ignore
-
-                QTimer.singleShot(50, lambda: self._navigate("home"))  # type: ignore[arg-type]
-                QTimer.singleShot(150, lambda: self._navigate("savings"))  # type: ignore[arg-type]
-            except Exception:
-                try:
-                    from PyQt6.QtCore import QTimer  # type: ignore
-
-                    QTimer.singleShot(50, lambda: self._navigate("home"))  # type: ignore[arg-type]
-                    QTimer.singleShot(150, lambda: self._navigate("savings"))  # type: ignore[arg-type]
-                except Exception:
-                    pass
+        # Refresh this page's content in-place instead of navigating away and
+        # back. This avoids the sidebar savings list visibly closing/re-opening
+        # when editing an account.
+        if isinstance(self._content_col, QVBoxLayout):
+            layout = self._content_col
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+            self._build_content(layout)
 
     def _handle_add_account(self) -> None:
         """Handle add button click - open dialog to create new SavingsAccount."""
@@ -392,6 +416,320 @@ class SavingsPage(BasePage):
             if account_to_remove in self._accounts:
                 self._accounts.remove(account_to_remove)
             self._save_and_refresh()
+
+    def _handle_move_between_accounts(self) -> None:
+        """Move money between individual Savings AND bank accounts.
+
+        The user can choose any source and target from:
+        - Bank accounts (label: "חשבון בנק — <account name>")
+        - Savings inside savings accounts (label: "<account name> — <saving name>")
+        """
+        if not self._accounts:
+            return
+
+        # Build a flat list of endpoints: (label, kind, account_index, saving_index)
+        # kind is "bank" or "saving". For bank accounts saving_index is -1.
+        endpoints: List[tuple[str, str, int, int]] = []
+        for acc_idx, acc in enumerate(self._accounts):
+            if isinstance(acc, BankAccount):
+                # For bank accounts show only the account name (no parent
+                # prefix), as requested.
+                label = acc.name
+                endpoints.append((label, "bank", acc_idx, -1))
+            elif isinstance(acc, SavingsAccount):
+                # For savings, show "account name — saving name".
+                for s_idx, s in enumerate(acc.savings):
+                    label = f"{acc.name} — {s.name}"
+                    endpoints.append((label, "saving", acc_idx, s_idx))
+
+        if len(endpoints) < 2:
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("העבר כסף בין חסכונות")
+        dlg.setModal(True)
+        try:
+            dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+        except Exception:
+            pass
+
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                dlg.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        # Source endpoint
+        src_row = QHBoxLayout()
+        src_label = QLabel("העבר מ:", dlg)
+        src_combo = QComboBox(dlg)
+        try:
+            src_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                src_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        for label, _, _, _ in endpoints:
+            src_combo.addItem(label)
+        # Option B: label on the right, field to its left (text inside field is RTL).
+        src_row.addWidget(src_label, 0)
+        src_row.addWidget(src_combo, 1)
+        src_balance_label = QLabel("", dlg)
+
+        # Target endpoint
+        dst_row = QHBoxLayout()
+        dst_label = QLabel("אל:", dlg)
+        dst_combo = QComboBox(dlg)
+        try:
+            dst_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                dst_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        for label, _, _, _ in endpoints:
+            dst_combo.addItem(label)
+        dst_row.addWidget(dst_label, 0)
+        dst_row.addWidget(dst_combo, 1)
+        dst_balance_label = QLabel("", dlg)
+
+        # Amount
+        amount_row = QHBoxLayout()
+        amount_label = QLabel("סכום להעברה:", dlg)
+        amount_edit = QLineEdit(dlg)
+        try:
+            amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                amount_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        try:
+            amount_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+        except Exception:
+            pass
+        amount_row.addWidget(amount_label, 0)
+        amount_row.addWidget(amount_edit, 1)
+
+        error_label = QLabel("", dlg)
+        error_label.setStyleSheet("color: #b91c1c;")
+        error_label.setWordWrap(True)
+        error_label.hide()
+
+        buttons_row = QHBoxLayout()
+        ok_btn = QPushButton("בצע העברה", dlg)
+        cancel_btn = QPushButton("ביטול", dlg)
+        # In RTL: cancel on the right, action on the left.
+        buttons_row.addWidget(cancel_btn)
+        buttons_row.addStretch(1)
+        buttons_row.addWidget(ok_btn)
+
+        layout.addLayout(src_row)
+        layout.addWidget(src_balance_label)
+        layout.addLayout(dst_row)
+        layout.addWidget(dst_balance_label)
+        layout.addLayout(amount_row)
+        layout.addWidget(error_label)
+        layout.addLayout(buttons_row)
+
+        def _update_balances() -> None:
+            src_idx = src_combo.currentIndex()
+            dst_idx = dst_combo.currentIndex()
+            src_balance_label.setText("")
+            dst_balance_label.setText("")
+            if 0 <= src_idx < len(endpoints):
+                _, kind, acc_i, s_i = endpoints[src_idx]
+                acc = self._accounts[acc_i]
+                if kind == "bank" and isinstance(acc, BankAccount):
+                    src_balance_label.setText(
+                        f"סכום בחשבון זה: {format_currency(acc.total_amount)}"
+                    )
+                elif kind == "saving" and isinstance(acc, SavingsAccount):
+                    try:
+                        s_src = acc.savings[s_i]
+                        src_balance_label.setText(
+                            f"סכום בחסכון זה: {format_currency(s_src.amount)}"
+                        )
+                    except Exception:
+                        pass
+            if 0 <= dst_idx < len(endpoints):
+                _, kind, acc_i, s_i = endpoints[dst_idx]
+                acc = self._accounts[acc_i]
+                if kind == "bank" and isinstance(acc, BankAccount):
+                    dst_balance_label.setText(
+                        f"סכום בחשבון זה: {format_currency(acc.total_amount)}"
+                    )
+                elif kind == "saving" and isinstance(acc, SavingsAccount):
+                    try:
+                        s_dst = acc.savings[s_i]
+                        dst_balance_label.setText(
+                            f"סכום בחסכון זה: {format_currency(s_dst.amount)}"
+                        )
+                    except Exception:
+                        pass
+
+        try:
+            src_combo.currentIndexChanged.connect(lambda: _update_balances())  # type: ignore[arg-type]
+            dst_combo.currentIndexChanged.connect(lambda: _update_balances())  # type: ignore[arg-type]
+        except Exception:
+            pass
+
+        _update_balances()
+
+        def on_accept() -> None:
+            src_idx = src_combo.currentIndex()
+            dst_idx = dst_combo.currentIndex()
+            if src_idx < 0 or dst_idx < 0:
+                return
+            if src_idx == dst_idx:
+                error_label.setText("יש לבחור מקורות יעד שונים להעברה.")
+                error_label.show()
+                return
+
+            _, src_kind, src_acc_i, src_s_i = endpoints[src_idx]
+            _, dst_kind, dst_acc_i, dst_s_i = endpoints[dst_idx]
+
+            text = amount_edit.text().replace(",", "").strip()
+            if not text:
+                error_label.setText("סכום לא יכול להיות ריק.")
+                error_label.show()
+                return
+            try:
+                amount = float(text)
+            except Exception:
+                error_label.setText("סכום לא חוקי.")
+                error_label.show()
+                return
+            if amount <= 0:
+                error_label.setText("סכום ההעברה חייב להיות גדול מאפס.")
+                error_label.show()
+                return
+            # Check available balance on source endpoint.
+            src_acc = self._accounts[src_acc_i]
+            if src_kind == "bank" and isinstance(src_acc, BankAccount):
+                if amount > src_acc.total_amount:
+                    error_label.setText("אין מספיק כסף בחשבון המקור לביצוע ההעברה.")
+                    error_label.show()
+                    return
+            elif src_kind == "saving" and isinstance(src_acc, SavingsAccount):
+                try:
+                    src_saving = src_acc.savings[src_s_i]
+                except Exception:
+                    return
+                if amount > src_saving.amount:
+                    error_label.setText("אין מספיק כסף בחסכון המקור לביצוע ההעברה.")
+                    error_label.show()
+                    return
+
+            # Accumulate balance deltas for bank accounts and savings.
+            bank_deltas: dict[int, float] = {}
+            saving_deltas: dict[tuple[int, int], float] = {}
+
+            if src_kind == "bank":
+                bank_deltas[src_acc_i] = bank_deltas.get(src_acc_i, 0.0) - amount
+            else:
+                saving_deltas[(src_acc_i, src_s_i)] = (
+                    saving_deltas.get((src_acc_i, src_s_i), 0.0) - amount
+                )
+
+            if dst_kind == "bank":
+                bank_deltas[dst_acc_i] = bank_deltas.get(dst_acc_i, 0.0) + amount
+            else:
+                saving_deltas[(dst_acc_i, dst_s_i)] = (
+                    saving_deltas.get((dst_acc_i, dst_s_i), 0.0) + amount
+                )
+
+            # Use today's date for new history snapshots so transfers are
+            # timestamped correctly.
+            today_str = ""
+            try:
+                today_str = _date.today().isoformat()
+            except Exception:
+                today_str = ""
+
+            updated_accounts: List = []
+            for acc_idx, acc in enumerate(self._accounts):
+                # Bank accounts
+                if isinstance(acc, BankAccount):
+                    delta = bank_deltas.get(acc_idx, 0.0)
+                    if delta != 0.0:
+                        new_total = acc.total_amount + delta
+                        new_history = list(acc.history)
+                        try:
+                            new_history.append(
+                                MoneySnapshot(date=today_str, amount=new_total)
+                            )
+                        except Exception:
+                            pass
+                        updated_accounts.append(
+                            BankAccount(
+                                name=acc.name,
+                                total_amount=new_total,
+                                is_liquid=acc.is_liquid,
+                                history=new_history,
+                            )
+                        )
+                    else:
+                        updated_accounts.append(acc)
+                    continue
+
+                # Savings accounts
+                if isinstance(acc, SavingsAccount):
+                    # If no savings in this account are affected, keep as is.
+                    has_delta = any(key[0] == acc_idx for key in saving_deltas.keys())
+                    if not has_delta:
+                        updated_accounts.append(acc)
+                        continue
+
+                    new_savings: List[Savings] = []
+                    for s_idx, s in enumerate(acc.savings):
+                        delta = saving_deltas.get((acc_idx, s_idx), 0.0)
+                        if delta != 0.0:
+                            new_amount = s.amount + delta
+                            new_history = list(s.history)
+                            try:
+                                new_history.append(
+                                    MoneySnapshot(date=today_str, amount=new_amount)
+                                )
+                            except Exception:
+                                pass
+                            new_savings.append(
+                                Savings(
+                                    name=s.name,
+                                    amount=new_amount,
+                                    history=new_history,
+                                )
+                            )
+                        else:
+                            new_savings.append(s)
+
+                    updated_accounts.append(
+                        SavingsAccount(
+                            name=acc.name,
+                            total_amount=0.0,  # recomputed from savings
+                            is_liquid=acc.is_liquid,
+                            savings=new_savings,
+                        )
+                    )
+                    continue
+
+                # Any other account types (if ever added)
+                updated_accounts.append(acc)
+
+            self._accounts = updated_accounts
+            dlg.accept()
+            self._save_and_refresh()
+
+        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
+        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        dlg.exec()
 
 
 def format_currency(value: float) -> str:

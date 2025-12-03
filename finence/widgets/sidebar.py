@@ -279,10 +279,12 @@ class Sidebar(QWidget):
             return
 
         is_home = route == "home"
-        # Treat both the main savings page and the per-account page as part of
-        # the "savings" section so the savings button + arrow stay pressed and
-        # the savings accounts list is not auto-collapsed when navigating
-        # between them.
+        # Distinguish between the main savings page (where the savings button
+        # itself should be disabled, like the dashboard button on home) and the
+        # per-account page, which should still allow clicking the savings
+        # button to return to the overview. For styling, we still treat both as
+        # part of the "savings" section so the button and list remain pressed.
+        is_savings = route == "savings"
         is_savings_section = route in ("savings", "savings_account")
 
         dashboard_btn.blockSignals(True)
@@ -294,7 +296,9 @@ class Sidebar(QWidget):
         if savings_btn:
             savings_btn.blockSignals(True)
             savings_btn.setChecked(is_savings_section)
-            savings_btn.setEnabled(not is_savings_section)
+            # Disable only on the main savings page; keep it enabled on the
+            # per-account page so clicking it navigates back to the overview.
+            savings_btn.setEnabled(not is_savings)
             savings_btn.blockSignals(False)
             self._update_button_width()
 

@@ -13,7 +13,13 @@ from ..qt import (
     QSizePolicy,
     QToolButton,
     QPushButton,
+    QLineEdit,
+    QComboBox,
+    QDateEdit,
+    QDate,
+    QLocale,
     QFrame,
+    QDialog,
     QChart,
     QChartView,
     QLineSeries,
@@ -25,8 +31,8 @@ from ..qt import (
     QCursor,
     charts_available,
 )
-from ..data.provider import AccountsProvider
-from ..models.accounts import SavingsAccount, MoneySnapshot, parse_iso_date
+from ..data.provider import AccountsProvider, JsonFileAccountsProvider
+from ..models.accounts import SavingsAccount, Savings, MoneySnapshot, parse_iso_date
 from .base_page import BasePage
 from .savings_page import format_currency
 
@@ -111,26 +117,62 @@ class SavingsAccountPage(BasePage):
         liquid_label = QLabel(liquid_text, top_card)
         liquid_label.setObjectName("StatTitle")
 
-        summary_col.addWidget(name_label, 0, Qt.AlignmentFlag.AlignLeft)
-        summary_col.addWidget(total_label, 0, Qt.AlignmentFlag.AlignLeft)
-        summary_col.addWidget(liquid_label, 0, Qt.AlignmentFlag.AlignLeft)
+        # First row: name and liquid status on the same line, on opposite
+        # sides, with the total amount displayed on its own row below.
+        name_liquid_row = QHBoxLayout()
+        name_liquid_row.setSpacing(8)
+        # Swap positions: liquid label on the side where the name was, and the
+        # name on the opposite side.
+        name_liquid_row.addWidget(liquid_label, 0, Qt.AlignmentFlag.AlignRight)
+        name_liquid_row.addStretch(1)
+        name_liquid_row.addWidget(name_label, 0, Qt.AlignmentFlag.AlignLeft)
 
-        buttons_col = QVBoxLayout()
-        buttons_col.setSpacing(8)
+        summary_col.addLayout(name_liquid_row)
+        summary_col.addWidget(total_label, 0, Qt.AlignmentFlag.AlignRight)
 
-        add_point_btn = QPushButton("הוסף נתון היסטוריה", top_card)
-        edit_account_btn = QPushButton("ערוך חשבון", top_card)
-        refresh_btn = QPushButton("רענן", top_card)
-        for b in (add_point_btn, edit_account_btn, refresh_btn):
+        # Buttons row: three actions in a single horizontal line, anchored to
+        # the bottom of the top card rather than vertically centered.
+        buttons_row = QHBoxLayout()
+        buttons_row.setSpacing(8)
+
+        add_saving_btn = QPushButton("הוסף חסכון", top_card)
+        add_saving_btn.setObjectName("AddButton")
+        update_saving_btn = QPushButton("עדכן חסכון", top_card)
+        update_saving_btn.setObjectName("EditButton")
+        delete_saving_btn = QPushButton("מחק חסכון", top_card)
+        delete_saving_btn.setObjectName("DeleteButton")
+
+        # Switch positions of add and delete in the row: delete, update, add.
+        for b in (delete_saving_btn, update_saving_btn, add_saving_btn):
             try:
                 b.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             except Exception:
                 pass
-            buttons_col.addWidget(b, 0, Qt.AlignmentFlag.AlignRight)
+            buttons_row.addWidget(b, 0, Qt.AlignmentFlag.AlignLeft)
 
-        top_layout.addLayout(summary_col, 1)
-        top_layout.addStretch(1)
+        # Wrap the buttons row in a vertical layout with a stretch above so the
+        # buttons sit at the bottom of the top card.
+        buttons_col = QVBoxLayout()
+        buttons_col.setSpacing(0)
+        buttons_col.addStretch(1)
+        buttons_col.addLayout(buttons_row)
+
+        # Put buttons on one side and the summary on the other.
         top_layout.addLayout(buttons_col, 0)
+        top_layout.addStretch(1)
+        top_layout.addLayout(summary_col, 1)
+
+        # Connect buttons to dialogs that actually modify savings in this
+        # account and then refresh the page + chart.
+        add_saving_btn.clicked.connect(  # type: ignore[arg-type]
+            lambda: self._handle_add_saving(target)
+        )
+        update_saving_btn.clicked.connect(  # type: ignore[arg-type]
+            lambda: self._handle_update_saving(target)
+        )
+        delete_saving_btn.clicked.connect(  # type: ignore[arg-type]
+            lambda: self._handle_delete_saving(target)
+        )
 
         # --- Bottom 2/3: rectangle with line chart of savings history ---
         chart_card = QWidget(self)
@@ -234,7 +276,6 @@ class SavingsAccountPage(BasePage):
                         if idx < 0 or idx >= len(values):
                             return
                         amount_val = values[idx]
-                        label_idx = 0
                         if 0 <= idx < len(month_keys):
                             year, month = month_keys[idx]
                             month_label = f"{month:02d}/{year % 100:02d}"
@@ -320,15 +361,15 @@ class SavingsAccountPage(BasePage):
             chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
             chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
 
-            for series in chart.series():
+            for s_obj in chart.series():
                 try:
-                    series.attachAxis(axis_x)  # type: ignore[arg-type]
-                    series.attachAxis(axis_y)  # type: ignore[arg-type]
+                    s_obj.attachAxis(axis_x)  # type: ignore[arg-type]
+                    s_obj.attachAxis(axis_y)  # type: ignore[arg-type]
                 except Exception:
                     pass
 
             chart_view = QChartView(chart, chart_card)
-            chart_view.setRenderHint(QPainter.Antialiasing)  # type: ignore[name-defined]
+            chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)  # type: ignore[attr-defined]
             chart_view.setFrameShape(QFrame.Shape.NoFrame)  # type: ignore[name-defined]
             chart_view.setStyleSheet("background: transparent;")
             chart_layout.addWidget(chart_view, 1)
@@ -355,3 +396,399 @@ class SavingsAccountPage(BasePage):
         # the current theme.
         if isinstance(self._content_col, QVBoxLayout):
             self._build_content(self._content_col)
+
+    # --- Helpers for modifying savings inside the current account ---
+
+    def _get_savings_accounts(self) -> List[SavingsAccount]:
+        return [acc for acc in self._accounts if isinstance(acc, SavingsAccount)]
+
+    def _replace_savings_account(
+        self, original: SavingsAccount, updated: SavingsAccount
+    ) -> None:
+        """Replace one SavingsAccount instance inside self._accounts."""
+        for i, acc in enumerate(self._accounts):
+            if acc is original:
+                self._accounts[i] = updated
+                return
+        # Fallback: replace by name if identity didn't match (e.g. reloaded)
+        for i, acc in enumerate(self._accounts):
+            if isinstance(acc, SavingsAccount) and acc.name == original.name:
+                self._accounts[i] = updated
+                return
+
+    def _save_savings_accounts_and_refresh(self, selected_name: str) -> None:
+        """Persist savings accounts to JSON, refresh sidebar + this page."""
+        if not isinstance(self._provider, JsonFileAccountsProvider):
+            return
+
+        savings_accounts = self._get_savings_accounts()
+        try:
+            self._provider.save_savings_accounts(savings_accounts)
+        except Exception:
+            return
+
+        # Reload all accounts from provider
+        try:
+            self._accounts = self._provider.list_accounts()
+        except Exception:
+            pass
+
+        # Update sidebar with latest accounts
+        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
+            try:
+                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+            except Exception:
+                pass
+
+        # Ensure the same account remains selected
+        try:
+            self._app_context["selected_savings_account"] = selected_name
+        except Exception:
+            pass
+
+        # Rebuild this page's content
+        if isinstance(self._content_col, QVBoxLayout):
+            self._build_content(self._content_col)
+
+    def _handle_add_saving(self, account: SavingsAccount) -> None:
+        dlg = QDialog(self)
+        dlg.setWindowTitle("הוסף חסכון")
+        dlg.setModal(True)
+        try:
+            dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+        except Exception:
+            pass
+
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+
+        # Use RTL layout so labels appear on the right and fields on the left.
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                dlg.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        name_row = QHBoxLayout()
+        name_label = QLabel("שם חסכון:", dlg)
+        name_edit = QLineEdit(dlg)
+        name_row.addWidget(name_label, 0)
+        name_row.addWidget(name_edit, 1)
+
+        amount_row = QHBoxLayout()
+        amount_label = QLabel("סכום התחלתי:", dlg)
+        amount_edit = QLineEdit(dlg)
+        amount_row.addWidget(amount_label, 0)
+        amount_row.addWidget(amount_edit, 1)
+
+        # Date picker for the initial history record, defaulting to today.
+        date_row = QHBoxLayout()
+        date_label = QLabel("תאריך:", dlg)
+        date_edit = QDateEdit(dlg)
+        # Default to today; visual arrow indicator is provided via QSS. Also
+        # flip the calendar popup to Right-To-Left so it opens aligned for
+        # Hebrew layout (days and navigation appear RTL).
+        try:
+            date_edit.setCalendarPopup(True)
+            date_edit.setDisplayFormat("dd/MM/yyyy")
+            date_edit.setMinimumWidth(130)
+            date_edit.setObjectName("DateEdit")
+            date_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            date_edit.setDate(QDate.currentDate())
+            # Use Hebrew/Israel locale and RTL for both the edit and popup so
+            # the whole calendar (month name, days) is right-to-left.
+            try:
+                try:
+                    heb = QLocale(QLocale.Language.Hebrew, QLocale.Country.Israel)  # type: ignore[attr-defined]
+                except Exception:
+                    heb = QLocale(QLocale.Hebrew, QLocale.Israel)  # type: ignore[attr-defined]
+                date_edit.setLocale(heb)
+                date_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                cal = date_edit.calendarWidget()
+                if cal is not None:
+                    cal.setLocale(heb)
+                    cal.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            except Exception:
+                pass
+        except Exception:
+            pass
+        date_row.addWidget(date_label, 0)
+        date_row.addWidget(date_edit, 1)
+
+        error_label = QLabel("", dlg)
+        error_label.setStyleSheet("color: #b91c1c;")
+        error_label.setWordWrap(True)
+        error_label.hide()
+
+        buttons_row = QHBoxLayout()
+        ok_btn = QPushButton("שמור", dlg)
+        cancel_btn = QPushButton("ביטול", dlg)
+        # In RTL, add cancel first so it appears on the right, and "שמור" on
+        # the left as the primary action.
+        buttons_row.addWidget(cancel_btn)
+        buttons_row.addStretch(1)
+        buttons_row.addWidget(ok_btn)
+
+        layout.addLayout(name_row)
+        layout.addLayout(amount_row)
+        layout.addLayout(date_row)
+        layout.addWidget(error_label)
+        layout.addLayout(buttons_row)
+
+        def on_accept() -> None:
+            name = name_edit.text().strip()
+            amount_text = amount_edit.text().replace(",", "").strip()
+            if not name or not amount_text:
+                error_label.setText("חובה למלא שם וסכום.")
+                error_label.show()
+                return
+            try:
+                amount_val = float(amount_text)
+            except Exception:
+                error_label.setText("סכום לא חוקי.")
+                error_label.show()
+                return
+
+            # Date for the first history entry
+            try:
+                date_qt = date_edit.date()
+                date_str = date_qt.toString("yyyy-MM-dd")
+            except Exception:
+                date_str = ""
+
+            # Prevent duplicate saving names inside this account
+            if any(s.name == name for s in account.savings):
+                error_label.setText("קיים חסכון עם שם זהה בחשבון.")
+                error_label.show()
+                return
+
+            snap = MoneySnapshot(date=date_str, amount=amount_val)
+            new_savings = list(account.savings) + [
+                Savings(name=name, amount=amount_val, history=[snap])
+            ]
+            updated_account = SavingsAccount(
+                name=account.name,
+                total_amount=0.0,
+                is_liquid=account.is_liquid,
+                savings=new_savings,
+            )
+            self._replace_savings_account(account, updated_account)
+            dlg.accept()
+            self._save_savings_accounts_and_refresh(account.name)
+
+        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
+        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        dlg.exec()
+
+    def _handle_update_saving(self, account: SavingsAccount) -> None:
+        if not account.savings:
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("עדכן חסכון")
+        dlg.setModal(True)
+        try:
+            dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+        except Exception:
+            pass
+
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+
+        # RTL layout so each label is on the right of its input field.
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                dlg.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        select_row = QHBoxLayout()
+        select_label = QLabel("בחר חסכון:", dlg)
+        savings_combo = QComboBox(dlg)
+        for s in account.savings:
+            savings_combo.addItem(s.name, s)
+        select_row.addWidget(select_label, 0)
+        select_row.addWidget(savings_combo, 1)
+
+        amount_row = QHBoxLayout()
+        amount_label = QLabel("סכום חדש:", dlg)
+        amount_edit = QLineEdit(dlg)
+        # Pre-fill with current amount of first saving
+        try:
+            first = account.savings[0]
+            amount_edit.setText(str(first.amount))
+        except Exception:
+            pass
+        amount_row.addWidget(amount_label, 0)
+        amount_row.addWidget(amount_edit, 1)
+
+        # Date picker for the new history record
+        date_row = QHBoxLayout()
+        date_label = QLabel("תאריך:", dlg)
+        date_edit = QDateEdit(dlg)
+        # Same RTL calendar behavior for the edit dialog.
+        try:
+            date_edit.setCalendarPopup(True)
+            date_edit.setDisplayFormat("dd/MM/yyyy")
+            date_edit.setMinimumWidth(130)
+            date_edit.setObjectName("DateEdit")
+            date_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            date_edit.setDate(QDate.currentDate())
+            # Same Hebrew/RTL locale behavior for the edit dialog.
+            try:
+                try:
+                    heb = QLocale(QLocale.Language.Hebrew, QLocale.Country.Israel)  # type: ignore[attr-defined]
+                except Exception:
+                    heb = QLocale(QLocale.Hebrew, QLocale.Israel)  # type: ignore[attr-defined]
+                date_edit.setLocale(heb)
+                date_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                cal = date_edit.calendarWidget()
+                if cal is not None:
+                    cal.setLocale(heb)
+                    cal.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            except Exception:
+                pass
+        except Exception:
+            pass
+        date_row.addWidget(date_label, 0)
+        date_row.addWidget(date_edit, 1)
+
+        error_label = QLabel("", dlg)
+        error_label.setStyleSheet("color: #b91c1c;")
+        error_label.setWordWrap(True)
+        error_label.hide()
+
+        buttons_row = QHBoxLayout()
+        ok_btn = QPushButton("שמור", dlg)
+        cancel_btn = QPushButton("ביטול", dlg)
+        buttons_row.addWidget(cancel_btn)
+        buttons_row.addStretch(1)
+        buttons_row.addWidget(ok_btn)
+
+        layout.addLayout(select_row)
+        layout.addLayout(amount_row)
+        layout.addLayout(date_row)
+        layout.addWidget(error_label)
+        layout.addLayout(buttons_row)
+
+        def on_accept() -> None:
+            idx = savings_combo.currentIndex()
+            if idx < 0 or idx >= len(account.savings):
+                return
+            target_saving = account.savings[idx]
+            amount_text = amount_edit.text().replace(",", "").strip()
+            if not amount_text:
+                error_label.setText("סכום לא יכול להיות ריק.")
+                error_label.show()
+                return
+            try:
+                amount_val = float(amount_text)
+            except Exception:
+                error_label.setText("סכום לא חוקי.")
+                error_label.show()
+                return
+
+            # Use the chosen date for the new history entry
+            try:
+                date_qt = date_edit.date()
+                date_str = date_qt.toString("yyyy-MM-dd")
+            except Exception:
+                date_str = ""
+
+            # Append a new snapshot for this saving and update its current amount
+            new_history = list(target_saving.history) + [
+                MoneySnapshot(date=date_str, amount=amount_val)
+            ]
+            updated_saving = Savings(
+                name=target_saving.name, amount=amount_val, history=new_history
+            )
+            new_savings = list(account.savings)
+            new_savings[idx] = updated_saving
+            updated_account = SavingsAccount(
+                name=account.name,
+                total_amount=0.0,
+                is_liquid=account.is_liquid,
+                savings=new_savings,
+            )
+            self._replace_savings_account(account, updated_account)
+            dlg.accept()
+            self._save_savings_accounts_and_refresh(account.name)
+
+        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
+        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        dlg.exec()
+
+    def _handle_delete_saving(self, account: SavingsAccount) -> None:
+        if not account.savings:
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("מחק חסכון")
+        dlg.setModal(True)
+        try:
+            dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+        except Exception:
+            pass
+
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+
+        # RTL layout so label and combo/date read correctly in Hebrew.
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                dlg.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        select_row = QHBoxLayout()
+        select_label = QLabel("בחר חסכון למחיקה:", dlg)
+        savings_combo = QComboBox(dlg)
+        for s in account.savings:
+            savings_combo.addItem(s.name, s)
+        select_row.addWidget(select_label, 0)
+        select_row.addWidget(savings_combo, 1)
+
+        warning = QLabel("האם אתה בטוח שברצונך למחוק חסכון זה?", dlg)
+        warning.setWordWrap(True)
+
+        buttons_row = QHBoxLayout()
+        delete_btn = QPushButton("מחק", dlg)
+        delete_btn.setObjectName("DeleteButton")
+        cancel_btn = QPushButton("ביטול", dlg)
+        # Cancel on the right, delete on the left.
+        buttons_row.addWidget(cancel_btn)
+        buttons_row.addStretch(1)
+        buttons_row.addWidget(delete_btn)
+
+        layout.addLayout(select_row)
+        layout.addWidget(warning)
+        layout.addLayout(buttons_row)
+
+        def on_delete() -> None:
+            idx = savings_combo.currentIndex()
+            if idx < 0 or idx >= len(account.savings):
+                return
+            new_savings = list(account.savings)
+            del new_savings[idx]
+            updated_account = SavingsAccount(
+                name=account.name,
+                total_amount=0.0,
+                is_liquid=account.is_liquid,
+                savings=new_savings,
+            )
+            self._replace_savings_account(account, updated_account)
+            dlg.accept()
+            self._save_savings_accounts_and_refresh(account.name)
+
+        delete_btn.clicked.connect(on_delete)  # type: ignore[arg-type]
+        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        dlg.exec()

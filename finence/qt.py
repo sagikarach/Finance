@@ -24,6 +24,7 @@ try:
         QMenuBar,
         QGraphicsDropShadowEffect,
         QToolTip,
+        QDateEdit,
     )
     from PySide6.QtGui import (
         QAction,
@@ -35,7 +36,7 @@ try:
         QPixmap,
         QImage,
     )  # type: ignore
-    from PySide6.QtCore import Signal, Slot, Qt, QMarginsF  # type: ignore
+    from PySide6.QtCore import Signal, Slot, Qt, QMarginsF, QDate, QLocale  # type: ignore
 
     backend = "PySide6"
     # QtCharts (available in modern PySide6 wheels)
@@ -77,6 +78,7 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
         QMenuBar,
         QGraphicsDropShadowEffect,
         QToolTip,
+        QDateEdit,
     )
     from PyQt6.QtGui import (
         QAction,
@@ -88,7 +90,14 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
         QPixmap,
         QImage,
     )  # type: ignore
-    from PyQt6.QtCore import pyqtSignal as Signal, pyqtSlot as Slot, Qt, QMarginsF  # type: ignore
+    from PyQt6.QtCore import (
+        pyqtSignal as Signal,
+        pyqtSlot as Slot,
+        Qt,
+        QMarginsF,
+        QDate,
+        QLocale,
+    )  # type: ignore
 
     backend = "PyQt6"
     # QtCharts (may require separate wheel in PyQt6)
@@ -143,6 +152,9 @@ __all__ = [
     "QIcon",
     "QPixmap",
     "QImage",
+    "QDate",
+    "QDateEdit",
+    "QLocale",
     # Charts
     "charts_available",
     "QChart",
