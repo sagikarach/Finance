@@ -72,7 +72,9 @@ class EditSavingsAccountDialog(QDialog):
             except Exception:
                 pass
         for account in accounts:
-            self._account_combo.addItem(account.name, account)  # Store account object as data
+            self._account_combo.addItem(
+                account.name, account
+            )  # Store account object as data
         if accounts:
             self._account_combo.setCurrentIndex(0)
             self._selected_account = accounts[0]
@@ -137,7 +139,9 @@ class EditSavingsAccountDialog(QDialog):
             except Exception:
                 pass
         try:
-            self._error_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            self._error_label.setAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+            )
         except Exception:
             try:
                 self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # type: ignore[attr-defined]
@@ -176,7 +180,9 @@ class EditSavingsAccountDialog(QDialog):
             # Check for duplicate names (excluding current account)
             current_account = self.get_selected_account()
             if current_account:
-                other_names = [n for n in self._existing_names if n != current_account.name]
+                other_names = [
+                    n for n in self._existing_names if n != current_account.name
+                ]
             else:
                 other_names = self._existing_names
 
@@ -220,4 +226,3 @@ class EditSavingsAccountDialog(QDialog):
     def get_is_liquid(self) -> bool:
         """Get the is_liquid value."""
         return self._is_liquid_checkbox.isChecked()
-

@@ -92,7 +92,9 @@ class DeleteSavingsAccountDialog(QDialog):
             except Exception:
                 pass
         try:
-            self._message_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            self._message_label.setAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+            )
         except Exception:
             try:
                 self._message_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # type: ignore[attr-defined]
@@ -138,4 +140,3 @@ class DeleteSavingsAccountDialog(QDialog):
     def get_selected_account(self) -> Optional[SavingsAccount]:
         """Get the currently selected account."""
         return self._selected_account
-

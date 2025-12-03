@@ -61,7 +61,9 @@ class SidebarNavigation:
         """Setup the savings navigation button with expand/collapse toggle."""
         savings_button_container = QWidget(self._parent)
         try:
-            savings_button_container.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+            savings_button_container.setAttribute(
+                Qt.WidgetAttribute.WA_NoSystemBackground, True
+            )
         except Exception:
             pass
 
@@ -136,4 +138,3 @@ class SidebarNavigation:
         if self._savings_btn:
             self._savings_btn.clicked.connect(on_savings_click)  # type: ignore[arg-type]
             self._savings_btn.toggled.connect(lambda checked: on_toggle_style())  # type: ignore[arg-type]
-

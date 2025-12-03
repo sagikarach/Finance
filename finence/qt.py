@@ -47,6 +47,9 @@ try:
             QPieSlice,
             QLegend,
             QLegendMarker,
+            QLineSeries,
+            QValueAxis,
+            QCategoryAxis,
         )
 
         charts_available = True  # type: ignore[assignment]
@@ -97,6 +100,9 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
             QPieSlice,
             QLegend,
             QLegendMarker,
+            QLineSeries,
+            QValueAxis,
+            QCategoryAxis,
         )
 
         charts_available = True  # type: ignore[assignment]
@@ -145,4 +151,7 @@ __all__ = [
     "QLegend",
     "QLegendMarker",
     "QPieSlice",
+    "QLineSeries",
+    "QValueAxis",
+    "QCategoryAxis",
 ]

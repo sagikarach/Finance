@@ -57,4 +57,3 @@ class DeleteConfirmDialog(QDialog):
 
         delete_btn.clicked.connect(self.accept)  # type: ignore[arg-type]
         cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
-

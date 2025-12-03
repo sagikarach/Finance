@@ -24,8 +24,12 @@ def _load_defaults() -> dict:
                 if isinstance(data, dict):
                     user_defaults = data.get("user", {})
                     app_defaults = data.get("app", {})
-                    default_full_name = str(user_defaults.get("default_full_name", default_full_name))
-                    default_theme = str(app_defaults.get("default_theme", default_theme))
+                    default_full_name = str(
+                        user_defaults.get("default_full_name", default_full_name)
+                    )
+                    default_theme = str(
+                        app_defaults.get("default_theme", default_theme)
+                    )
         except Exception:
             pass
 
@@ -55,7 +59,9 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     # Optional lock screen: if a password is configured, ask for it before opening
     try:
         store = UserProfileStore()
-        profile = store.load(default_full_name=defaults["default_full_name"], accounts=[])
+        profile = store.load(
+            default_full_name=defaults["default_full_name"], accounts=[]
+        )
         expected_password = profile.password or ""
         lock_enabled = bool(getattr(profile, "lock_enabled", False))
     except Exception:

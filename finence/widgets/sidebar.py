@@ -4,7 +4,7 @@ from typing import Optional, Callable, List
 
 from ..qt import QWidget, QVBoxLayout, Qt
 from ..models.user import UserProfile
-from ..models.accounts import MoneyAccount
+from ..models.accounts import MoneyAccount, SavingsAccount
 from ..data.user_profile_store import UserProfileStore
 
 from .sidebar_avatar import SidebarAvatar
@@ -19,7 +19,6 @@ from .sidebar_positioning import (
 
 
 class Sidebar(QWidget):
-
     def __init__(
         self,
         user: UserProfile,
@@ -28,6 +27,7 @@ class Sidebar(QWidget):
         navigate: Optional[Callable[[str], None]] = None,
         current_route: Optional[str] = None,
         accounts: Optional[List[MoneyAccount]] = None,
+        selected_savings_account: Optional[str] = None,
     ) -> None:
         super().__init__(parent)
         self._user = user
@@ -35,14 +35,35 @@ class Sidebar(QWidget):
         self._navigate = navigate
         self._current_route = current_route
         self._accounts = accounts or []
+        self._selected_savings_account = selected_savings_account
         self._setup_sidebar()
         layout = self._create_layout()
         self._avatar = SidebarAvatar(self, user, store, layout)
         self._navigation = SidebarNavigation(self, layout, navigate, current_route)
-        self._savings_list = SidebarSavingsList(self, layout, accounts or [], navigate)
+        self._savings_list = SidebarSavingsList(
+            self,
+            layout,
+            accounts or [],
+            self._on_savings_account_clicked,
+            selected_name=self._selected_savings_account,
+            selection_enabled=current_route == "savings_account",
+        )
         self._connect_handlers()
         self._setup_event_handlers()
         self.update_route(current_route)
+
+        # For all "savings" section pages (main savings page and per-account
+        # page), start with the savings accounts list expanded so that moving
+        # between them does not look like the list closes on first click.
+        if current_route in ("savings", "savings_account"):
+            try:
+                self._savings_list.expand_immediate()
+                toggle_btn = self._navigation.get_savings_toggle_button()
+                if toggle_btn:
+                    toggle_btn.setChecked(True)
+                    toggle_btn.setText("▲")
+            except Exception:
+                pass
 
     def _setup_sidebar(self) -> None:
         self.setObjectName("Sidebar")
@@ -81,10 +102,12 @@ class Sidebar(QWidget):
 
             try:
                 from PySide6.QtCore import QTimer  # type: ignore
+
                 QTimer.singleShot(320, self._apply_toggle_button_style)
             except Exception:
                 try:
                     from PyQt6.QtCore import QTimer  # type: ignore
+
                     QTimer.singleShot(320, self._apply_toggle_button_style)
                 except Exception:
                     self._apply_toggle_button_style()
@@ -95,6 +118,28 @@ class Sidebar(QWidget):
     def _on_savings_clicked(self) -> None:
         if self._navigate is not None:
             self._navigate("savings")  # type: ignore[arg-type]
+
+    def _on_savings_account_clicked(self, account: SavingsAccount) -> None:
+        """Handle click on a specific savings account button in the sidebar."""
+        if self._navigate is None:
+            return
+
+        # Propagate selected account name up to the closest BasePage so it can
+        # be read by the savings-account detail page via the shared app_context.
+        parent = self.parent()
+        while parent is not None and not hasattr(
+            parent, "set_selected_savings_account"
+        ):
+            parent = parent.parent()
+
+        if parent is not None and hasattr(parent, "set_selected_savings_account"):
+            try:
+                parent.set_selected_savings_account(account.name)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        # Navigate to the savings-account detail page.
+        self._navigate("savings_account")  # type: ignore[arg-type]
 
     def _apply_toggle_button_style(self) -> None:
         toggle_btn = self._navigation.get_savings_toggle_button()
@@ -122,10 +167,12 @@ class Sidebar(QWidget):
                     pass
             try:
                 from PySide6.QtCore import QTimer  # type: ignore
+
                 QTimer.singleShot(10, self._update_button_width)
             except Exception:
                 try:
                     from PyQt6.QtCore import QTimer  # type: ignore
+
                     QTimer.singleShot(10, self._update_button_width)
                 except Exception:
                     self._update_button_width()
@@ -145,10 +192,12 @@ class Sidebar(QWidget):
                 self.update_route(self._current_route)
             try:
                 from PySide6.QtCore import QTimer  # type: ignore
+
                 QTimer.singleShot(10, self._update_button_width)
             except Exception:
                 try:
                     from PyQt6.QtCore import QTimer  # type: ignore
+
                     QTimer.singleShot(10, self._update_button_width)
                 except Exception:
                     self._update_button_width()
@@ -166,15 +215,28 @@ class Sidebar(QWidget):
                     pass
             try:
                 from PySide6.QtCore import QEvent, QTimer  # type: ignore
+
                 if event.type() == QEvent.Type.StyleChange:  # type: ignore
                     QTimer.singleShot(50, self._update_button_width)
                     self._apply_toggle_button_style()
+                    # Also refresh the savings accounts list background so its
+                    # blue rectangle updates to match the new theme without
+                    # needing to collapse / re-open the list.
+                    try:
+                        self._savings_list.refresh_theme()
+                    except Exception:
+                        pass
             except Exception:
                 try:
                     from PyQt6.QtCore import QEvent, QTimer  # type: ignore
+
                     if event.type() == QEvent.Type.StyleChange:  # type: ignore
                         QTimer.singleShot(50, self._update_button_width)
                         self._apply_toggle_button_style()
+                        try:
+                            self._savings_list.refresh_theme()
+                        except Exception:
+                            pass
                 except Exception:
                     pass
 
@@ -217,7 +279,11 @@ class Sidebar(QWidget):
             return
 
         is_home = route == "home"
-        is_savings = route == "savings"
+        # Treat both the main savings page and the per-account page as part of
+        # the "savings" section so the savings button + arrow stay pressed and
+        # the savings accounts list is not auto-collapsed when navigating
+        # between them.
+        is_savings_section = route in ("savings", "savings_account")
 
         dashboard_btn.blockSignals(True)
         dashboard_btn.setChecked(is_home)
@@ -227,22 +293,23 @@ class Sidebar(QWidget):
         savings_btn = self._navigation.get_savings_button()
         if savings_btn:
             savings_btn.blockSignals(True)
-            savings_btn.setChecked(is_savings)
-            savings_btn.setEnabled(not is_savings)
+            savings_btn.setChecked(is_savings_section)
+            savings_btn.setEnabled(not is_savings_section)
             savings_btn.blockSignals(False)
             self._update_button_width()
 
         toggle_btn = self._navigation.get_savings_toggle_button()
         if toggle_btn:
-            toggle_btn.setVisible(is_savings)
-            if not is_savings:
+            toggle_btn.setVisible(is_savings_section)
+            if not is_savings_section:
                 self._savings_list.set_expanded(False)
                 toggle_btn.setChecked(False)
                 toggle_btn.setText("▼")
                 self._savings_list.update_visibility()
             self._apply_toggle_button_style()
 
-            if is_savings:
+            if is_savings_section:
+
                 def position_toggle() -> None:
                     savings_container = self._navigation.get_savings_container()
                     if savings_container and savings_container.isVisible():
@@ -258,10 +325,12 @@ class Sidebar(QWidget):
 
                 try:
                     from PySide6.QtCore import QTimer  # type: ignore
+
                     QTimer.singleShot(10, position_toggle)
                 except Exception:
                     try:
                         from PyQt6.QtCore import QTimer  # type: ignore
+
                         QTimer.singleShot(10, position_toggle)
                     except Exception:
                         pass

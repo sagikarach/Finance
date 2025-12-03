@@ -88,4 +88,3 @@ class AccountSelectionDialog(QDialog):
     def get_selected_account(self) -> Optional[SavingsAccount]:
         """Get the selected account."""
         return self._selected_account
-

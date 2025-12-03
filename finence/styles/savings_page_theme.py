@@ -189,4 +189,3 @@ def load_savings_page_dark_styles() -> str:
         background: #b91c1c; /* darker red */
     }
     """
-

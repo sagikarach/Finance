@@ -34,6 +34,7 @@ class MoneyAccount:
 @dataclass(frozen=True)
 class BankAccount(MoneyAccount):
     """Account with history tracking at the account level."""
+
     history: List[MoneySnapshot] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -69,7 +70,13 @@ def compute_savings_account_total_amount(accounts: Iterable[MoneyAccount]) -> fl
 
 def compute_savings_account_liquid_amount(accounts: Iterable[MoneyAccount]) -> float:
     """Compute total liquid amount from SavingsAccount only."""
-    return float(sum(a.total_amount for a in accounts if isinstance(a, SavingsAccount) and a.is_liquid))
+    return float(
+        sum(
+            a.total_amount
+            for a in accounts
+            if isinstance(a, SavingsAccount) and a.is_liquid
+        )
+    )
 
 
 def parse_iso_date(value: str) -> datetime:

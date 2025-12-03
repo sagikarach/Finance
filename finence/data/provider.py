@@ -5,7 +5,14 @@ from pathlib import Path
 from typing import List, Optional, Union
 import json
 
-from ..models.accounts import MoneyAccount, MoneySnapshot, Savings, SavingsAccount, BankAccount, latest_amount_from_history
+from ..models.accounts import (
+    MoneyAccount,
+    MoneySnapshot,
+    Savings,
+    SavingsAccount,
+    BankAccount,
+    latest_amount_from_history,
+)
 
 
 class AccountsProvider(ABC):
@@ -23,12 +30,16 @@ class JsonFileAccountsProvider(AccountsProvider):
         if bank_accounts_path:
             self._bank_accounts_path = Path(bank_accounts_path)
         else:
-            self._bank_accounts_path = Path.cwd() / "data" / "accounts" / "bank_accounts.json"
+            self._bank_accounts_path = (
+                Path.cwd() / "data" / "accounts" / "bank_accounts.json"
+            )
 
         if savings_accounts_path:
             self._savings_accounts_path = Path(savings_accounts_path)
         else:
-            self._savings_accounts_path = Path.cwd() / "data" / "accounts" / "savings_accounts.json"
+            self._savings_accounts_path = (
+                Path.cwd() / "data" / "accounts" / "savings_accounts.json"
+            )
 
     def list_accounts(self) -> List[MoneyAccount]:
         accounts: List[MoneyAccount] = []
@@ -147,7 +158,9 @@ class JsonFileAccountsProvider(AccountsProvider):
 
                             amount = float(savings_item.get("amount", 0.0))
                             if savings_history_list:
-                                latest = latest_amount_from_history(savings_history_list)
+                                latest = latest_amount_from_history(
+                                    savings_history_list
+                                )
                                 if latest is not None:
                                     amount = float(latest)
 

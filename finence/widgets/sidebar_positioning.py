@@ -78,4 +78,3 @@ def update_savings_accounts_container_width(
         savings_accounts_container.setGeometry(
             -16, accounts_rect.y(), sidebar_width + 32, accounts_rect.height()
         )
-

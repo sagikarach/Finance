@@ -149,7 +149,10 @@ class SavingsPage(BasePage):
 
         # Filter to only SavingsAccount for the pie chart
         from ..models.accounts import MoneyAccount
-        savings_accounts: List[MoneyAccount] = [acc for acc in self._accounts if isinstance(acc, SavingsAccount)]
+
+        savings_accounts: List[MoneyAccount] = [
+            acc for acc in self._accounts if isinstance(acc, SavingsAccount)
+        ]
         chart = AccountsPieChart(accounts=savings_accounts, parent=self)
 
         chart_card = QWidget(self)
@@ -246,11 +249,13 @@ class SavingsPage(BasePage):
             # Use a timer to navigate away and back to refresh
             try:
                 from PySide6.QtCore import QTimer  # type: ignore
+
                 QTimer.singleShot(50, lambda: self._navigate("home"))  # type: ignore[arg-type]
                 QTimer.singleShot(150, lambda: self._navigate("savings"))  # type: ignore[arg-type]
             except Exception:
                 try:
                     from PyQt6.QtCore import QTimer  # type: ignore
+
                     QTimer.singleShot(50, lambda: self._navigate("home"))  # type: ignore[arg-type]
                     QTimer.singleShot(150, lambda: self._navigate("savings"))  # type: ignore[arg-type]
                 except Exception:
@@ -315,7 +320,10 @@ class SavingsPage(BasePage):
             if account_to_edit is None:
                 # Fallback: find by name
                 for account in self._accounts:
-                    if isinstance(account, SavingsAccount) and account.name == selected_account.name:
+                    if (
+                        isinstance(account, SavingsAccount)
+                        and account.name == selected_account.name
+                    ):
                         account_to_edit = account
                         break
 
@@ -339,7 +347,10 @@ class SavingsPage(BasePage):
                 # Fallback: find by name
                 original_name = account_to_edit.name
                 for i, account in enumerate(self._accounts):
-                    if isinstance(account, SavingsAccount) and account.name == original_name:
+                    if (
+                        isinstance(account, SavingsAccount)
+                        and account.name == original_name
+                    ):
                         self._accounts[i] = updated_account
                         break
 
@@ -367,7 +378,10 @@ class SavingsPage(BasePage):
             if account_to_remove is None:
                 # Fallback: find by name
                 for account in self._accounts:
-                    if isinstance(account, SavingsAccount) and account.name == selected_account.name:
+                    if (
+                        isinstance(account, SavingsAccount)
+                        and account.name == selected_account.name
+                    ):
                         account_to_remove = account
                         break
 
@@ -385,5 +399,3 @@ def format_currency(value: float) -> str:
         return f"₪{value:,.2f}"
     except Exception:
         return f"₪{value}"
-
-

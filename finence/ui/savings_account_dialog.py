@@ -30,7 +30,9 @@ class SavingsAccountDialog(QDialog):
         self._existing_names = existing_names or []
         # For edit mode, exclude the current account's name from validation
         if account and account.name in self._existing_names:
-            self._existing_names = [n for n in self._existing_names if n != account.name]
+            self._existing_names = [
+                n for n in self._existing_names if n != account.name
+            ]
 
         title_text = "ערוך סוג חסכון" if self._is_edit_mode else "הוסף סוג חסכון"
         self.setWindowTitle(title_text)
@@ -119,7 +121,9 @@ class SavingsAccountDialog(QDialog):
             except Exception:
                 pass
         try:
-            self._error_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            self._error_label.setAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+            )
         except Exception:
             try:
                 self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # type: ignore[attr-defined]
@@ -166,4 +170,3 @@ class SavingsAccountDialog(QDialog):
     def get_is_liquid(self) -> bool:
         """Get the is_liquid value."""
         return self._is_liquid_checkbox.isChecked()
-

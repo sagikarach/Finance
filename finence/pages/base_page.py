@@ -32,7 +32,9 @@ def _load_default_full_name() -> str:
                 data = json.load(f)
                 if isinstance(data, dict):
                     user_defaults = data.get("user", {})
-                    default_full_name = str(user_defaults.get("default_full_name", default_full_name))
+                    default_full_name = str(
+                        user_defaults.get("default_full_name", default_full_name)
+                    )
         except Exception:
             pass
 
@@ -65,6 +67,7 @@ class BasePage(QWidget):
         self._current_route = current_route
         self._sidebar: Optional[Sidebar] = None
         self._theme_btn: Optional[QToolButton] = None
+        self._content_col: Optional[QVBoxLayout] = None
 
         self._build_ui()
 
@@ -93,8 +96,18 @@ class BasePage(QWidget):
         content_col.setContentsMargins(0, 0, 0, 0)
         content_col.setSpacing(16)
 
+        self._content_col = content_col
+
         self._build_content(content_col)
         main_col.addWidget(content_area, 1)
+
+        selected_name = None
+        try:
+            value = self._app_context.get("selected_savings_account")
+            if isinstance(value, str) and value:
+                selected_name = value
+        except Exception:
+            selected_name = None
 
         self._sidebar = Sidebar(
             self._user,
@@ -103,6 +116,7 @@ class BasePage(QWidget):
             navigate=self._navigate,
             current_route=self._current_route,
             accounts=self._accounts,
+            selected_savings_account=selected_name,
         )
 
         try:
@@ -115,7 +129,9 @@ class BasePage(QWidget):
 
         sidebar_container = QWidget(self)
         sidebar_layout = QVBoxLayout(sidebar_container)
-        sidebar_layout.setContentsMargins(0, 40, 16, 40)  # Larger top and bottom margins
+        sidebar_layout.setContentsMargins(
+            0, 40, 16, 40
+        )  # Larger top and bottom margins
         sidebar_layout.setSpacing(16)
         sidebar_layout.addWidget(self._sidebar, 1)  # Expand to fill available space
 
@@ -202,16 +218,32 @@ class BasePage(QWidget):
             self._theme_btn.setChecked(is_dark)
             self._theme_btn.setText("🌙" if is_dark else "☀")
 
-        if self._sidebar is not None and hasattr(self._sidebar, "_update_button_width"):
-            try:
-                from PySide6.QtCore import QTimer  # type: ignore
-
-                QTimer.singleShot(100, self._sidebar._update_button_width)
-            except Exception:
+        if self._sidebar is not None:
+            # Re-run sidebar width logic so buttons/list fill correctly in the
+            # new theme, and refresh the savings list background if present.
+            if hasattr(self._sidebar, "_update_button_width"):
                 try:
-                    from PyQt6.QtCore import QTimer  # type: ignore
+                    from PySide6.QtCore import QTimer  # type: ignore
 
                     QTimer.singleShot(100, self._sidebar._update_button_width)
+                except Exception:
+                    try:
+                        from PyQt6.QtCore import QTimer  # type: ignore
+
+                        QTimer.singleShot(100, self._sidebar._update_button_width)
+                    except Exception:
+                        pass
+
+            # Ensure the toggle arrow background is recalculated for the new theme.
+            if hasattr(self._sidebar, "_apply_toggle_button_style"):
+                try:
+                    self._sidebar._apply_toggle_button_style()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+
+            if hasattr(self._sidebar, "_savings_list"):
+                try:
+                    self._sidebar._savings_list.refresh_theme()  # type: ignore[attr-defined]
                 except Exception:
                     pass
 
@@ -233,3 +265,9 @@ class BasePage(QWidget):
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         raise NotImplementedError("Subclasses must implement _build_content()")
+
+    def set_selected_savings_account(self, account_name: str) -> None:
+        try:
+            self._app_context["selected_savings_account"] = account_name
+        except Exception:
+            pass

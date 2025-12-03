@@ -157,4 +157,3 @@ class SidebarAvatar:
         if not self._user.avatar_path:
             initial = (self._user.full_name or " ")[0]
             self._avatar_label.setText(initial)
-

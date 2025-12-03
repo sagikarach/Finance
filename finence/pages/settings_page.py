@@ -53,11 +53,13 @@ class SettingsPage(BasePage):
         back_btn.setText("←")
         back_btn.setToolTip("חזרה")
         if self._navigate is not None:
+
             def go_back():
                 previous = "home"
                 if self._get_previous_route is not None:
                     previous = self._get_previous_route()
                 self._navigate(previous)
+
             back_btn.clicked.connect(go_back)
         buttons.append(back_btn)
         return buttons

@@ -222,7 +222,7 @@ def load_base_light_styles() -> str:
         max-width: 32px;
         min-height: 32px;
         max-height: 32px;
-        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Varela Round", "Arial Hebrew", Arial;
+        font-family: "Apple Color Emoji", "Varela Round", "Arial Hebrew", Arial;
     }
     QToolButton#IconButton:hover {
         background: rgba(0,0,0,0.05);
