@@ -12,21 +12,18 @@ from ..qt import (
     QGraphicsDropShadowEffect,
     QSizePolicy,
     QApplication,
+    QToolButton,
 )
-from ..data.provider import AccountsProvider, JsonFileAccountsProvider
-from ..data.user_profile_store import UserProfileStore
+from ..data.provider import AccountsProvider
 from ..models.accounts import (
-    MoneyAccount,
     compute_total_amount,
     compute_total_liquid_amount,
 )
-from ..models.user import UserProfile
 from ..widgets.accounts_pie_chart import AccountsPieChart
-from ..widgets.sidebar import Sidebar
-from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
+from .base_page import BasePage
 
 
-class HomePage(QWidget):
+class HomePage(BasePage):
     def __init__(
         self,
         app_context: Optional[Dict[str, str]] = None,
@@ -34,40 +31,30 @@ class HomePage(QWidget):
         provider: Optional[AccountsProvider] = None,
         navigate: Optional[Callable[[str], None]] = None,
     ) -> None:
-        super().__init__(parent)
-        self._app_context = app_context or {}
-        self._provider: AccountsProvider = provider or JsonFileAccountsProvider()
-        self._accounts: List[MoneyAccount] = self._provider.list_accounts()
-        self._navigate = navigate
-        self._user_store = UserProfileStore()
-        self._user: UserProfile = self._user_store.load(
-            default_full_name=self._app_context.get("userName", "אורח"),
-            accounts=self._accounts,
+        super().__init__(
+            app_context=app_context,
+            parent=parent,
+            provider=provider,
+            navigate=navigate,
+            page_title="לוח בקרה",
+            current_route="home",
         )
-        self._build_ui()
 
-    def _build_ui(self) -> None:
-        layout = QVBoxLayout()
-        # Bring the sidebar (right) closer to the edge by reducing the right margin
-        layout.setContentsMargins(40, 40, 16, 40)
-        layout.setSpacing(12)
+    def _build_header_left_buttons(self) -> List[QToolButton]:
+        buttons = []
+        settings_btn = QToolButton(self)
+        settings_btn.setObjectName("IconButton")
+        settings_btn.setText("⚙")
+        settings_btn.setToolTip("הגדרות")
+        if self._navigate is not None:
+            settings_btn.clicked.connect(lambda: self._navigate("settings"))  # type: ignore[arg-type]
+        buttons.append(settings_btn)
+        return buttons
 
+    def _build_content(self, main_col: QVBoxLayout) -> None:
         total_all = compute_total_amount(self._accounts)
         total_liquid = compute_total_liquid_amount(self._accounts)
 
-        total_all_label = QLabel(f"{format_currency(total_all)}")
-        total_liquid_label = QLabel(f"{format_currency(total_liquid)}")
-        total_all_label.setObjectName("StatValueLarge")
-        total_liquid_label.setObjectName("StatValueLarge")
-        try:
-            total_all_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            total_liquid_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
-            pass
-
-        chart = AccountsPieChart(accounts=self._accounts, parent=self)
-
-        # Build total cards (reused below)
         total_all_card = QWidget(self)
         total_all_card.setObjectName("StatCardGreen")
         try:
@@ -83,12 +70,10 @@ class HomePage(QWidget):
             )
         except Exception:
             pass
-        total_all_title = QLabel("סך הכל כסף", total_all_card)
+        total_all_title = QLabel("סה״כ כסף", total_all_card)
         total_all_title.setObjectName("StatTitle")
-        try:
-            total_all_title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
-            pass
+        total_all_label = QLabel(format_currency(total_all), total_all_card)
+        total_all_label.setObjectName("StatValueLarge")
         total_all_card_layout.addStretch(1)
         total_all_card_layout.addWidget(
             total_all_title, 0, Qt.AlignmentFlag.AlignHCenter
@@ -113,12 +98,10 @@ class HomePage(QWidget):
             )
         except Exception:
             pass
-        total_liquid_title = QLabel("כסף נזיל", total_liquid_card)
+        total_liquid_title = QLabel("סכום נזיל", total_liquid_card)
         total_liquid_title.setObjectName("StatTitle")
-        try:
-            total_liquid_title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
-            pass
+        total_liquid_label = QLabel(format_currency(total_liquid), total_liquid_card)
+        total_liquid_label.setObjectName("StatValueLarge")
         total_liquid_card_layout.addStretch(1)
         total_liquid_card_layout.addWidget(
             total_liquid_title, 0, Qt.AlignmentFlag.AlignHCenter
@@ -132,7 +115,6 @@ class HomePage(QWidget):
             for card in (total_all_card, total_liquid_card):
                 shadow = QGraphicsDropShadowEffect(card)
                 shadow.setBlurRadius(36)
-                # Adjust shadow color based on theme
                 app = QApplication.instance()
                 is_dark = False
                 if app is not None:
@@ -141,129 +123,35 @@ class HomePage(QWidget):
                         is_dark = current_theme == "dark"
                     except Exception:
                         pass
-                # Lighter shadow for dark mode, darker for light mode
                 if is_dark:
-                    shadow.setColor(QColor(0, 0, 0, 120))  # More visible in dark mode
+                    shadow.setColor(QColor(0, 0, 0, 120))
                 else:
                     shadow.setColor(QColor(0, 0, 0, 60))
                 shadow.setOffset(0, 10)
                 card.setGraphicsEffect(shadow)
         except Exception:
             pass
-        # Header row with title and icon buttons (no extra background)
-        from ..qt import QToolButton  # local import to avoid circular at top
 
-        header_row = QHBoxLayout()
-        header_row.setSpacing(12)
-        header_title = QLabel("לוח בקרה", self)
-        header_title.setObjectName("HeaderTitle")
-
-        bell_btn = QToolButton(self)
-        bell_btn.setObjectName("IconButton")
-        bell_btn.setText("🔔")
-        bell_btn.setToolTip("התראות")
-
-        settings_btn = QToolButton(self)
-        settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
-        settings_btn.setToolTip("הגדרות")
-        if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))  # type: ignore[arg-type]
-
-        # Theme toggle button (sun/moon) shared with Settings page
-        theme_btn = QToolButton(self)
-        theme_btn.setObjectName("IconButton")
-        theme_btn.setCheckable(True)
-        app = QApplication.instance()
-        current_theme = "light"
-        if app is not None:
-            try:
-                current_theme = str(app.property("theme") or "light")
-            except Exception:
-                current_theme = "light"
-        is_dark = current_theme == "dark"
-        theme_btn.setChecked(is_dark)
-        theme_btn.setText("🌙" if is_dark else "☀")
-        theme_btn.setToolTip("מצב כהה / מצב בהיר")
-
-        def on_theme_toggled(checked: bool) -> None:
-            app_ = QApplication.instance()
-            if app_ is None:
-                return
-            try:
-                if checked:
-                    app_.setStyleSheet(load_dark_stylesheet())
-                    app_.setProperty("theme", "dark")
-                    theme_btn.setText("🌙")
-                else:
-                    app_.setStyleSheet(load_default_stylesheet())
-                    app_.setProperty("theme", "light")
-                    theme_btn.setText("☀")
-                # Update sidebar button width after theme change
-                if hasattr(self, "_sidebar") and hasattr(
-                    self._sidebar, "_update_button_width"
-                ):
-                    try:
-                        from PySide6.QtCore import QTimer  # type: ignore
-
-                        QTimer.singleShot(100, self._sidebar._update_button_width)
-                    except Exception:
-                        try:
-                            from PyQt6.QtCore import QTimer  # type: ignore
-
-                            QTimer.singleShot(100, self._sidebar._update_button_width)
-                        except Exception:
-                            pass
-            except Exception:
-                pass
-
-        theme_btn.toggled.connect(on_theme_toggled)  # type: ignore[arg-type]
-        # Wrap header in a background container with the Sidebar color
-        header_container = QWidget(self)
-        header_container.setObjectName("Sidebar")
-        try:
-            header_container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        header_container_layout = QHBoxLayout(header_container)
-        header_container_layout.setContentsMargins(12, 8, 12, 8)
-        header_container_layout.setSpacing(12)
-        # Place settings, bell, theme on the left, title on the right
-        header_container_layout.addWidget(settings_btn)
-        header_container_layout.addWidget(bell_btn)
-        header_container_layout.addWidget(theme_btn)
-        header_container_layout.addStretch(1)
-        header_container_layout.addWidget(header_title)
-
-        # Cards row (side by side)
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
         cards_row.addWidget(total_all_card, 1)
         cards_row.addWidget(total_liquid_card, 1)
-
-        # Main content column (header, cards, chart)
-        main_area = QWidget(self)
-        main_col = QVBoxLayout(main_area)
-        main_col.setContentsMargins(0, 0, 0, 0)
-        main_col.setSpacing(16)
-        main_col.addWidget(header_container, 0)
         main_col.addLayout(cards_row, 0)
 
-        # Chart card background (same color as sidebar) taking ~2/3 of width
-        chart_card = QWidget(main_area)
+        chart = AccountsPieChart(accounts=self._accounts, parent=self)
+
+        chart_card = QWidget(self)
         chart_card.setObjectName("Sidebar")
         try:
             chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
         chart_card_layout = QVBoxLayout(chart_card)
-        # Let the chart fill almost the entire background square
         chart_card_layout.setContentsMargins(4, 4, 4, 4)
         chart_card_layout.setSpacing(0)
         chart_card_layout.addWidget(chart, 1)
 
-        # Empty rectangle on the right with the same color, occupying the other 1/3
-        chart_side_card = QWidget(main_area)
+        chart_side_card = QWidget(self)
         chart_side_card.setObjectName("Sidebar")
         try:
             chart_side_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -274,41 +162,15 @@ class HomePage(QWidget):
         chart_side_layout.setSpacing(0)
 
         chart_row = QHBoxLayout()
-        chart_row.setSpacing(16)  # visual separation between the two rectangles
+        chart_row.setSpacing(16)
         chart_row.addWidget(chart_card, 2)
         chart_row.addWidget(chart_side_card, 1)
 
         main_col.addLayout(chart_row, 1)
-
-        sidebar = Sidebar(
-            self._user,
-            self._user_store,
-            self,
-            navigate=self._navigate,
-            current_route="home",
-        )
-        self._sidebar = sidebar  # Store reference for theme toggle
-
-        # Set fixed width for sidebar to ensure consistent sizing across pages
-        try:
-            sidebar.setFixedWidth(240)
-            sidebar.setSizePolicy(
-                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding
-            )
-        except Exception:
-            pass
-
-        split_row = QHBoxLayout()
-        split_row.setSpacing(16)
-        split_row.addWidget(main_area, 1)  # Let main area take remaining space
-        split_row.addWidget(sidebar, 0)  # No stretch for fixed-width sidebar
-
-        layout.addLayout(split_row)
-        self.setLayout(layout)
 
 
 def format_currency(value: float) -> str:
     try:
         return f"₪{value:,.2f}"
     except Exception:
-        return f"₪{value:.2f}"
+        return f"₪{value}"
