@@ -4,6 +4,7 @@ from typing import Dict
 
 from ..pages.home_page import HomePage
 from ..pages.settings_page import SettingsPage
+from ..pages.savings_page import SavingsPage
 from ..qt import QAction, QMainWindow, QStackedWidget
 from .router import Router
 
@@ -37,6 +38,15 @@ class MainWindow(QMainWindow):
         self.router.register(
             "settings",
             lambda: SettingsPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+                get_previous_route=lambda: self.router.previous_route(),
+            ),
+        )
+        self.router.register(
+            "savings",
+            lambda: SavingsPage(
                 app_context=self._app_context,
                 parent=self._stack,
                 navigate=self.router.navigate,

@@ -33,7 +33,7 @@ class AccountsPieChart(QWidget):
         super().__init__(parent)
         self.setObjectName("ChartCard")
         self._accounts: List[MoneyAccount] = list(accounts or [])
-        self._slice_to_marker = {}
+        self._slice_to_marker: dict = {}
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(8)
@@ -98,7 +98,7 @@ class AccountsPieChart(QWidget):
         except Exception:
             pass
 
-        total = sum(max(a.amount, 0.0) for a in self._accounts)
+        total = sum(max(a.total_amount, 0.0) for a in self._accounts)
         if total <= 0:
             # empty chart with a single zero slice
             slice_ = series.append("No Data", 1.0)
@@ -108,9 +108,9 @@ class AccountsPieChart(QWidget):
                 pass
         else:
             valid_accounts = [
-                (acc, max(acc.amount, 0.0))
+                (acc, max(acc.total_amount, 0.0))
                 for acc in self._accounts
-                if max(acc.amount, 0.0) > 0.0
+                if max(acc.total_amount, 0.0) > 0.0
             ]
             valid_accounts.sort(key=lambda item: item[1], reverse=True)
             count = len(valid_accounts)

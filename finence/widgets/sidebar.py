@@ -1,18 +1,24 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, List
 
-from ..qt import QWidget, QVBoxLayout, QHBoxLayout, QLabel, Qt, QPushButton, QSizePolicy
+from ..qt import QWidget, QVBoxLayout, Qt
 from ..models.user import UserProfile
+from ..models.accounts import MoneyAccount
 from ..data.user_profile_store import UserProfileStore
+
+from .sidebar_avatar import SidebarAvatar
+from .sidebar_navigation import SidebarNavigation
+from .sidebar_savings_list import SidebarSavingsList
+from .sidebar_styling import apply_toggle_button_style
+from .sidebar_positioning import (
+    update_dashboard_button_width,
+    update_savings_button_width,
+    update_savings_accounts_container_width,
+)
 
 
 class Sidebar(QWidget):
-    """
-    Right-hand sidebar showing the current user's avatar and name,
-    navigation buttons, and handling avatar upload/update.
-    """
 
     def __init__(
         self,
@@ -21,98 +27,91 @@ class Sidebar(QWidget):
         parent: Optional[QWidget] = None,
         navigate: Optional[Callable[[str], None]] = None,
         current_route: Optional[str] = None,
+        accounts: Optional[List[MoneyAccount]] = None,
     ) -> None:
         super().__init__(parent)
         self._user = user
         self._store = store
         self._navigate = navigate
         self._current_route = current_route
+        self._accounts = accounts or []
+        self._setup_sidebar()
+        layout = self._create_layout()
+        self._avatar = SidebarAvatar(self, user, store, layout)
+        self._navigation = SidebarNavigation(self, layout, navigate, current_route)
+        self._savings_list = SidebarSavingsList(self, layout, accounts or [], navigate)
+        self._connect_handlers()
+        self._setup_event_handlers()
+        self.update_route(current_route)
 
+    def _setup_sidebar(self) -> None:
         self.setObjectName("Sidebar")
-        # Ensure background style for Sidebar is actually painted
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
 
-        self._avatar_label = QLabel(self)
-        self._avatar_label.setObjectName("AvatarCircle")
-
+    def _create_layout(self) -> QVBoxLayout:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(0, 16, 0, 16)
+        layout.setSpacing(0)
+        return layout
 
-        # Initial placeholder (first letter of the user's name)
-        initial = (self._user.full_name or " ")[0]
-        self._avatar_label.setText(initial)
-        try:
-            self._avatar_label.setAlignment(
-                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
-            )
-        except Exception:
-            pass
+    def _connect_handlers(self) -> None:
+        self._navigation.connect_savings_handlers(
+            on_toggle=self._on_toggle_savings_list,
+            on_savings_click=self._on_savings_clicked,
+            on_toggle_style=self._apply_toggle_button_style,
+        )
 
-        self._name_label = QLabel(f"שלום, {self._user.full_name}", self)
-        self._name_label.setObjectName("UserName")
-        try:
-            self._name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
-            pass
+    def _on_toggle_savings_list(self) -> None:
+        was_expanded = self._savings_list.is_expanded()
 
-        layout.addWidget(self._avatar_label, 0, Qt.AlignmentFlag.AlignHCenter)
-        layout.addWidget(self._name_label, 0, Qt.AlignmentFlag.AlignHCenter)
-        layout.addSpacing(24)  # More space between name and button
+        is_expanded = self._savings_list.toggle()
+        toggle_btn = self._navigation.get_savings_toggle_button()
+        if toggle_btn:
+            toggle_btn.setChecked(is_expanded)
+            toggle_btn.setText("▲" if is_expanded else "▼")
 
-        # Navigation button: "לוח בקרה" (Dashboard) - full width of sidebar
-        # Create container that will extend to sidebar edges
-        button_container = QWidget(self)
-        button_container_layout = QHBoxLayout(button_container)
-        button_container_layout.setContentsMargins(0, 0, 0, 0)
-        button_container_layout.setSpacing(0)
+        if is_expanded:
+            self._apply_toggle_button_style()
+        else:
+            if was_expanded:
+                pass
 
-        self._dashboard_btn = QPushButton("לוח בקרה", button_container)
-        self._dashboard_btn.setObjectName("SidebarNavButton")
-        self._dashboard_btn.setCheckable(True)
-        # Always connect the click handler first (before setting state)
+            try:
+                from PySide6.QtCore import QTimer  # type: ignore
+                QTimer.singleShot(320, self._apply_toggle_button_style)
+            except Exception:
+                try:
+                    from PyQt6.QtCore import QTimer  # type: ignore
+                    QTimer.singleShot(320, self._apply_toggle_button_style)
+                except Exception:
+                    self._apply_toggle_button_style()
+
+        # Update geometry
+        self._update_button_width()
+
+    def _on_savings_clicked(self) -> None:
         if self._navigate is not None:
-            # Connect the click handler (button is new, so no need to disconnect)
-            self._dashboard_btn.clicked.connect(lambda: self._navigate("home"))  # type: ignore[arg-type]
-        # Explicitly set initial state based on current route
-        self.update_route(current_route)
-        # Make button full width
-        try:
-            self._dashboard_btn.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            self._navigate("savings")  # type: ignore[arg-type]
+
+    def _apply_toggle_button_style(self) -> None:
+        toggle_btn = self._navigation.get_savings_toggle_button()
+        savings_btn = self._navigation.get_savings_button()
+        if toggle_btn and savings_btn:
+            apply_toggle_button_style(
+                toggle_btn,
+                savings_btn,
+                self._savings_list.is_expanded(),
             )
-        except Exception:
-            pass
-        button_container_layout.addWidget(self._dashboard_btn)
 
-        # Store container reference
-        self._button_container = button_container
+    def _setup_event_handlers(self) -> None:
+        self._setup_resize_handler()
+        self._setup_show_handler()
+        self._setup_change_handler()
 
-        # Add container to main layout (will be positioned by layout initially)
-        layout.addWidget(button_container)
-
-        # Function to update container to span full sidebar width
-        def update_container_width():
-            if (
-                hasattr(self, "_button_container")
-                and self._button_container.isVisible()
-            ):
-                sidebar_width = self.width()
-                # Get current position from layout
-                container_rect = self._button_container.geometry()
-                if container_rect.height() > 0:  # Only if container has been laid out
-                    # Set container to full sidebar width, positioned at x=0
-                    self._button_container.setGeometry(
-                        0, container_rect.y(), sidebar_width, container_rect.height()
-                    )
-
-        # Store update function so it can be called externally
-        self._update_button_width = update_container_width
-
-        # Override resizeEvent to update container width
+    def _setup_resize_handler(self) -> None:
         original_resize = self.resizeEvent
 
         def resizeEvent(event):  # type: ignore
@@ -121,22 +120,19 @@ class Sidebar(QWidget):
                     original_resize(event)
                 except Exception:
                     pass
-            # Small delay to let layout complete, then update
             try:
                 from PySide6.QtCore import QTimer  # type: ignore
-
-                QTimer.singleShot(10, update_container_width)
+                QTimer.singleShot(10, self._update_button_width)
             except Exception:
                 try:
                     from PyQt6.QtCore import QTimer  # type: ignore
-
-                    QTimer.singleShot(10, update_container_width)
+                    QTimer.singleShot(10, self._update_button_width)
                 except Exception:
-                    update_container_width()
+                    self._update_button_width()
 
         self.resizeEvent = resizeEvent  # type: ignore[assignment]
 
-        # Update on show as well
+    def _setup_show_handler(self) -> None:
         original_show = self.showEvent
 
         def showEvent(event):  # type: ignore
@@ -145,24 +141,21 @@ class Sidebar(QWidget):
                     original_show(event)
                 except Exception:
                     pass
-            # Ensure button state is correct when sidebar becomes visible
-            if hasattr(self, "_dashboard_btn") and hasattr(self, "_current_route"):
+            if hasattr(self, "_current_route"):
                 self.update_route(self._current_route)
             try:
                 from PySide6.QtCore import QTimer  # type: ignore
-
-                QTimer.singleShot(10, update_container_width)
+                QTimer.singleShot(10, self._update_button_width)
             except Exception:
                 try:
                     from PyQt6.QtCore import QTimer  # type: ignore
-
-                    QTimer.singleShot(10, update_container_width)
+                    QTimer.singleShot(10, self._update_button_width)
                 except Exception:
-                    update_container_width()
+                    self._update_button_width()
 
         self.showEvent = showEvent  # type: ignore[assignment]
 
-        # Override changeEvent to detect style changes (theme changes)
+    def _setup_change_handler(self) -> None:
         original_change = self.changeEvent
 
         def changeEvent(event):  # type: ignore
@@ -171,152 +164,106 @@ class Sidebar(QWidget):
                     original_change(event)
                 except Exception:
                     pass
-            # When style changes (theme toggle), update button width
             try:
-                from PySide6.QtCore import QEvent  # type: ignore
-
+                from PySide6.QtCore import QEvent, QTimer  # type: ignore
                 if event.type() == QEvent.Type.StyleChange:  # type: ignore
-                    try:
-                        from PySide6.QtCore import QTimer  # type: ignore
-
-                        QTimer.singleShot(50, update_container_width)
-                    except Exception:
-                        try:
-                            from PyQt6.QtCore import QTimer  # type: ignore
-
-                            QTimer.singleShot(50, update_container_width)
-                        except Exception:
-                            update_container_width()
+                    QTimer.singleShot(50, self._update_button_width)
+                    self._apply_toggle_button_style()
             except Exception:
                 try:
-                    from PyQt6.QtCore import QEvent  # type: ignore
-
+                    from PyQt6.QtCore import QEvent, QTimer  # type: ignore
                     if event.type() == QEvent.Type.StyleChange:  # type: ignore
-                        try:
-                            from PyQt6.QtCore import QTimer  # type: ignore
-
-                            QTimer.singleShot(50, update_container_width)
-                        except Exception:
-                            update_container_width()
+                        QTimer.singleShot(50, self._update_button_width)
+                        self._apply_toggle_button_style()
                 except Exception:
                     pass
 
         self.changeEvent = changeEvent  # type: ignore[assignment]
 
-        layout.addStretch(1)
+    def _update_button_width(self) -> None:
+        sidebar_width = self.width()
 
-        # Make avatar clickable
-        self._avatar_label.mousePressEvent = self._on_avatar_clicked  # type: ignore[assignment]
+        update_dashboard_button_width(
+            self,
+            sidebar_width,
+            self._navigation.get_dashboard_container(),
+            self._navigation.get_dashboard_button(),
+        )
 
-        # If we already have an avatar path stored, load it
-        if self._user.avatar_path:
-            self._set_avatar_from_path(self._user.avatar_path)
+        update_savings_button_width(
+            self,
+            sidebar_width,
+            self._navigation.get_savings_container(),
+            self._navigation.get_savings_button(),
+            self._navigation.get_savings_toggle_button(),
+        )
+
+        update_savings_accounts_container_width(
+            self,
+            sidebar_width,
+            self._savings_list.get_container(),
+        )
+
+    def update_accounts(self, accounts: List[MoneyAccount]) -> None:
+        self._accounts = accounts
+        self._savings_list.update_accounts(accounts)
 
     def refresh_profile(self) -> None:
-        """Refresh displayed name (and placeholder avatar if no image) from the user object."""
-        self._name_label.setText(f"שלום, {self._user.full_name}")
-        if not self._user.avatar_path:
-            # Update initial letter if user changed their name
-            initial = (self._user.full_name or " ")[0]
-            self._avatar_label.setText(initial)
+        self._avatar.refresh()
 
     def update_route(self, route: Optional[str]) -> None:
-        """Update the button state based on the current route."""
-        if not hasattr(self, "_dashboard_btn"):
+        dashboard_btn = self._navigation.get_dashboard_button()
+        if not dashboard_btn:
             return
+
         is_home = route == "home"
-        # Block signals temporarily to avoid triggering navigation
-        self._dashboard_btn.blockSignals(True)
-        self._dashboard_btn.setChecked(is_home)
-        self._dashboard_btn.setEnabled(not is_home)
-        self._dashboard_btn.blockSignals(False)
+        is_savings = route == "savings"
+
+        dashboard_btn.blockSignals(True)
+        dashboard_btn.setChecked(is_home)
+        dashboard_btn.setEnabled(not is_home)
+        dashboard_btn.blockSignals(False)
+
+        savings_btn = self._navigation.get_savings_button()
+        if savings_btn:
+            savings_btn.blockSignals(True)
+            savings_btn.setChecked(is_savings)
+            savings_btn.setEnabled(not is_savings)
+            savings_btn.blockSignals(False)
+            self._update_button_width()
+
+        toggle_btn = self._navigation.get_savings_toggle_button()
+        if toggle_btn:
+            toggle_btn.setVisible(is_savings)
+            if not is_savings:
+                self._savings_list.set_expanded(False)
+                toggle_btn.setChecked(False)
+                toggle_btn.setText("▼")
+                self._savings_list.update_visibility()
+            self._apply_toggle_button_style()
+
+            if is_savings:
+                def position_toggle() -> None:
+                    savings_container = self._navigation.get_savings_container()
+                    if savings_container and savings_container.isVisible():
+                        savings_rect = savings_container.geometry()
+                        if savings_rect.height() > 0:
+                            toggle_btn.setGeometry(
+                                0, savings_rect.y(), 32, savings_rect.height()
+                            )
+                            try:
+                                toggle_btn.raise_()
+                            except Exception:
+                                pass
+
+                try:
+                    from PySide6.QtCore import QTimer  # type: ignore
+                    QTimer.singleShot(10, position_toggle)
+                except Exception:
+                    try:
+                        from PyQt6.QtCore import QTimer  # type: ignore
+                        QTimer.singleShot(10, position_toggle)
+                    except Exception:
+                        pass
+
         self._current_route = route
-
-    def _on_avatar_clicked(self, event) -> None:  # type: ignore[override]
-        """Open a file dialog and update the avatar image, saving a copy."""
-        try:
-            from PySide6.QtWidgets import QFileDialog  # type: ignore
-        except Exception:
-            try:
-                from PyQt6.QtWidgets import QFileDialog  # type: ignore
-            except Exception:
-                return
-
-        file_name, _ = QFileDialog.getOpenFileName(
-            self,
-            "בחר תמונת פרופיל",
-            "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.gif)",
-        )
-        if not file_name:
-            return
-
-        if self._set_avatar_from_path(file_name):
-            try:
-                self._store.save(self._user)
-            except Exception:
-                pass
-
-    def _set_avatar_from_path(self, file_name: Optional[str]) -> bool:
-        """Load avatar from disk and apply it as background inside the circle."""
-        if not file_name:
-            return False
-
-        src_path = Path(file_name)
-        if not src_path.exists():
-            return False
-
-        try:
-            from PySide6.QtGui import QPixmap  # type: ignore
-        except Exception:
-            try:
-                from PyQt6.QtGui import QPixmap  # type: ignore
-            except Exception:
-                return False
-
-        pix = QPixmap(str(src_path))
-        if pix.isNull():
-            return False
-
-        size = max(self._avatar_label.width(), self._avatar_label.height(), 72)
-        pix = pix.scaled(
-            size,
-            size,
-            getattr(
-                Qt, "KeepAspectRatioByExpanding", Qt.AspectRatioMode.KeepAspectRatio
-            ),
-            getattr(
-                Qt, "SmoothTransformation", Qt.TransformationMode.SmoothTransformation
-            ),
-        )
-
-        # Save a copy inside the app; the PNG will be shown as circular via CSS
-        try:
-            data_dir = Path.cwd() / "data" / "avatars"
-            data_dir.mkdir(parents=True, exist_ok=True)
-            target_path = data_dir / "user_avatar.png"
-            pix.save(str(target_path), "PNG")
-            self._user.avatar_path = str(target_path)
-        except Exception:
-            target_path = src_path
-
-        url = Path(self._user.avatar_path or str(target_path)).as_posix()
-        radius = size // 2
-        self._avatar_label.setFixedSize(size, size)
-        self._avatar_label.setPixmap(QPixmap())  # ensure no old pixmap border
-        self._avatar_label.setStyleSheet(
-            f"""
-            QLabel#AvatarCircle {{
-                min-width: {size}px;
-                min-height: {size}px;
-                max-width: {size}px;
-                max-height: {size}px;
-                border-radius: {radius}px;
-                background-color: transparent;
-                background-image: url('{url}');
-                background-position: center;
-                background-repeat: no-repeat;
-            }}
-            """
-        )
-        return True

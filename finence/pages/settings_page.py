@@ -32,6 +32,7 @@ class SettingsPage(BasePage):
         parent: Optional[QWidget] = None,
         provider: Optional[AccountsProvider] = None,
         navigate: Optional[Callable[[str], None]] = None,
+        get_previous_route: Optional[Callable[[], str]] = None,
     ) -> None:
         super().__init__(
             app_context=app_context,
@@ -42,6 +43,7 @@ class SettingsPage(BasePage):
             current_route="settings",
         )
         self._update_eye_icon: Optional[Callable[[], None]] = None
+        self._get_previous_route = get_previous_route
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         """Add back button to header."""
@@ -49,9 +51,14 @@ class SettingsPage(BasePage):
         back_btn = QToolButton(self)
         back_btn.setObjectName("IconButton")
         back_btn.setText("←")
-        back_btn.setToolTip("חזרה ללוח הבקרה")
+        back_btn.setToolTip("חזרה")
         if self._navigate is not None:
-            back_btn.clicked.connect(lambda: self._navigate("home"))
+            def go_back():
+                previous = "home"
+                if self._get_previous_route is not None:
+                    previous = self._get_previous_route()
+                self._navigate(previous)
+            back_btn.clicked.connect(go_back)
         buttons.append(back_btn)
         return buttons
 

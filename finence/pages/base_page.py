@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Callable, Optional, Dict, List
 
 from ..qt import (
@@ -19,6 +21,24 @@ from ..widgets.sidebar import Sidebar
 from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
 
 
+def _load_default_full_name() -> str:
+    """Load default full name from defaults.json file."""
+    defaults_path = Path.cwd() / "defaults.json"
+    default_full_name = "אורח"
+
+    if defaults_path.exists():
+        try:
+            with defaults_path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    user_defaults = data.get("user", {})
+                    default_full_name = str(user_defaults.get("default_full_name", default_full_name))
+        except Exception:
+            pass
+
+    return default_full_name
+
+
 class BasePage(QWidget):
     def __init__(
         self,
@@ -35,30 +55,46 @@ class BasePage(QWidget):
         self._accounts: List = self._provider.list_accounts()
         self._navigate = navigate
         self._user_store = UserProfileStore()
+        # Load default name from JSON file, with app_context as fallback
+        default_name = self._app_context.get("userName") or _load_default_full_name()
         self._user: UserProfile = self._user_store.load(
-            default_full_name=self._app_context.get("userName", "אורח"),
+            default_full_name=default_name,
             accounts=self._accounts,
         )
         self._page_title = page_title
         self._current_route = current_route
         self._sidebar: Optional[Sidebar] = None
+        self._theme_btn: Optional[QToolButton] = None
 
         self._build_ui()
 
     def _build_ui(self) -> None:
-        layout = QVBoxLayout()
-        layout.setContentsMargins(40, 40, 16, 40)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-
-        header_container = self._build_header()
 
         main_area = QWidget(self)
         main_col = QVBoxLayout(main_area)
-        main_col.setContentsMargins(0, 0, 0, 0)
+        main_col.setContentsMargins(40, 40, 16, 40)
         main_col.setSpacing(16)
+
+        header_container = self._build_header()
+        try:
+            header_container.setFixedHeight(56)  # Fixed height to match home page
+            header_container.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+        except Exception:
+            pass
         main_col.addWidget(header_container, 0)
 
-        self._build_content(main_col)
+        content_area = QWidget(self)
+        content_col = QVBoxLayout(content_area)
+        content_col.setContentsMargins(0, 0, 0, 0)
+        content_col.setSpacing(16)
+
+        self._build_content(content_col)
+        main_col.addWidget(content_area, 1)
 
         self._sidebar = Sidebar(
             self._user,
@@ -66,6 +102,7 @@ class BasePage(QWidget):
             self,
             navigate=self._navigate,
             current_route=self._current_route,
+            accounts=self._accounts,
         )
 
         try:
@@ -76,12 +113,15 @@ class BasePage(QWidget):
         except Exception:
             pass
 
-        split_row = QHBoxLayout()
-        split_row.setSpacing(16)
-        split_row.addWidget(main_area, 1)
-        split_row.addWidget(self._sidebar, 0)
+        sidebar_container = QWidget(self)
+        sidebar_layout = QVBoxLayout(sidebar_container)
+        sidebar_layout.setContentsMargins(0, 40, 16, 40)  # Larger top and bottom margins
+        sidebar_layout.setSpacing(16)
+        sidebar_layout.addWidget(self._sidebar, 1)  # Expand to fill available space
 
-        layout.addLayout(split_row)
+        layout.addWidget(main_area, 1)
+        layout.addWidget(sidebar_container, 0)
+
         self.setLayout(layout)
 
     def _build_header(self) -> QWidget:
@@ -106,8 +146,8 @@ class BasePage(QWidget):
         bell_btn.setToolTip("התראות")
         header_layout.addWidget(bell_btn)
 
-        theme_btn = self._build_theme_toggle_button()
-        header_layout.addWidget(theme_btn)
+        self._theme_btn = self._build_theme_toggle_button()
+        header_layout.addWidget(self._theme_btn)
 
         header_layout.addStretch(1)
 
@@ -158,6 +198,10 @@ class BasePage(QWidget):
         return theme_btn
 
     def _on_theme_changed(self, is_dark: bool) -> None:
+        if self._theme_btn is not None:
+            self._theme_btn.setChecked(is_dark)
+            self._theme_btn.setText("🌙" if is_dark else "☀")
+
         if self._sidebar is not None and hasattr(self._sidebar, "_update_button_width"):
             try:
                 from PySide6.QtCore import QTimer  # type: ignore
@@ -170,6 +214,22 @@ class BasePage(QWidget):
                     QTimer.singleShot(100, self._sidebar._update_button_width)
                 except Exception:
                     pass
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._theme_btn is not None:
+            app = QApplication.instance()
+            current_theme = "light"
+            if app is not None:
+                try:
+                    current_theme = str(app.property("theme") or "light")
+                except Exception:
+                    current_theme = "light"
+            is_dark = current_theme == "dark"
+            self._theme_btn.blockSignals(True)
+            self._theme_btn.setChecked(is_dark)
+            self._theme_btn.setText("🌙" if is_dark else "☀")
+            self._theme_btn.blockSignals(False)
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         raise NotImplementedError("Subclasses must implement _build_content()")

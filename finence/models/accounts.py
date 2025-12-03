@@ -12,10 +12,9 @@ class MoneySnapshot:
 
 
 @dataclass(frozen=True)
-class MoneyAccount:
+class Savings:
     name: str
     amount: float
-    is_liquid: bool
     history: List[MoneySnapshot] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -25,12 +24,52 @@ class MoneyAccount:
                 object.__setattr__(self, "amount", float(latest))
 
 
+@dataclass(frozen=True)
+class MoneyAccount:
+    name: str
+    total_amount: float
+    is_liquid: bool
+
+
+@dataclass(frozen=True)
+class BankAccount(MoneyAccount):
+    """Account with history tracking at the account level."""
+    history: List[MoneySnapshot] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # Compute total_amount from history if history exists
+        if self.history:
+            latest = latest_amount_from_history(self.history)
+            if latest is not None:
+                object.__setattr__(self, "total_amount", float(latest))
+
+
+@dataclass(frozen=True)
+class SavingsAccount(MoneyAccount):
+    savings: List[Savings] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.savings:
+            total = sum(s.amount for s in self.savings)
+            object.__setattr__(self, "total_amount", float(total))
+
+
 def compute_total_amount(accounts: Iterable[MoneyAccount]) -> float:
-    return float(sum(a.amount for a in accounts))
+    return float(sum(a.total_amount for a in accounts))
 
 
 def compute_total_liquid_amount(accounts: Iterable[MoneyAccount]) -> float:
-    return float(sum(a.amount for a in accounts if a.is_liquid))
+    return float(sum(a.total_amount for a in accounts if a.is_liquid))
+
+
+def compute_savings_account_total_amount(accounts: Iterable[MoneyAccount]) -> float:
+    """Compute total amount from SavingsAccount only."""
+    return float(sum(a.total_amount for a in accounts if isinstance(a, SavingsAccount)))
+
+
+def compute_savings_account_liquid_amount(accounts: Iterable[MoneyAccount]) -> float:
+    """Compute total liquid amount from SavingsAccount only."""
+    return float(sum(a.total_amount for a in accounts if isinstance(a, SavingsAccount) and a.is_liquid))
 
 
 def parse_iso_date(value: str) -> datetime:
