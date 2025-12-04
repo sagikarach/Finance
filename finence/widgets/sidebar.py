@@ -431,7 +431,9 @@ class Sidebar(QWidget):
                     if is_expanded:
                         bank_btn.setStyleSheet("border-bottom-color: transparent;")
                     else:
-                        bank_btn.setStyleSheet("")  # Use default CSS which shows bottom border when checked
+                        bank_btn.setStyleSheet(
+                            ""
+                        )  # Use default CSS which shows bottom border when checked
                 if bank_toggle_btn:
                     bank_toggle_btn.setVisible(True)
                     bank_toggle_btn.setChecked(is_expanded)

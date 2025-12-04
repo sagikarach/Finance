@@ -121,9 +121,7 @@ class BankAccountsPage(BasePage):
             pass
         total_liquid_title = QLabel("סכום נזיל בחשבונות", total_liquid_card)
         total_liquid_title.setObjectName("StatTitle")
-        total_liquid_label = QLabel(
-            format_currency(total_liquid), total_liquid_card
-        )
+        total_liquid_label = QLabel(format_currency(total_liquid), total_liquid_card)
         total_liquid_label.setObjectName("StatValueLarge")
         total_liquid_card_layout.addStretch(1)
         total_liquid_card_layout.addWidget(
@@ -190,5 +188,3 @@ def format_currency(value: float) -> str:
         return f"₪{value:,.2f}"
     except Exception:
         return f"₪{value}"
-
-

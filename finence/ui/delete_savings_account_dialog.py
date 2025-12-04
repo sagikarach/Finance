@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from ..qt import QDialog, QHBoxLayout, QLabel, QPushButton, QComboBox, Qt
+from ..qt import QDialog, QHBoxLayout, QLabel, QComboBox, Qt
 from .dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..models.accounts import SavingsAccount
 

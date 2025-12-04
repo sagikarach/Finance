@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (
-    QApplication,
     QLabel,
     QVBoxLayout,
     QHBoxLayout,

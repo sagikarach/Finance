@@ -68,5 +68,3 @@ def create_standard_buttons_row(
     buttons_row.addWidget(primary_btn)
 
     return buttons_row, primary_btn, cancel_btn
-
-

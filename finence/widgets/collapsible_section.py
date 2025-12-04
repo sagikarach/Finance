@@ -233,14 +233,22 @@ class CollapsibleButtonList(QWidget):
 
             if show_content:
                 # Expanded: insert back into the parent layout if not already there
-                if parent_layout is not None and _QVBoxLayout is not None and isinstance(parent_layout, _QVBoxLayout):
+                if (
+                    parent_layout is not None
+                    and _QVBoxLayout is not None
+                    and isinstance(parent_layout, _QVBoxLayout)
+                ):
                     try:
                         idx_current = parent_layout.indexOf(self)  # type: ignore[arg-type]
                     except Exception:
                         idx_current = -1
                     if idx_current == -1:
                         # Insert at the remembered position, or at the end if not remembered
-                        insert_at = self._layout_index if self._layout_index is not None else parent_layout.count()
+                        insert_at = (
+                            self._layout_index
+                            if self._layout_index is not None
+                            else parent_layout.count()
+                        )
                         try:
                             parent_layout.insertWidget(insert_at, self)  # type: ignore[arg-type]
                         except Exception:
@@ -254,7 +262,11 @@ class CollapsibleButtonList(QWidget):
                 self._apply_pressed_style()
             else:
                 # Collapsed: remember position and remove from layout entirely
-                if parent_layout is not None and _QVBoxLayout is not None and isinstance(parent_layout, _QVBoxLayout):
+                if (
+                    parent_layout is not None
+                    and _QVBoxLayout is not None
+                    and isinstance(parent_layout, _QVBoxLayout)
+                ):
                     try:
                         idx_current = parent_layout.indexOf(self)  # type: ignore[arg-type]
                     except Exception:
@@ -324,4 +336,3 @@ class CollapsibleButtonList(QWidget):
         self._content.setStyleSheet(
             f"QWidget#SidebarSavingsList {{ background: {container_bg}; {border_css}}}"
         )
-

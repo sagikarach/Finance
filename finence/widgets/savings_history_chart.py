@@ -5,6 +5,7 @@ import math
 
 from ..qt import (
     QApplication,
+    QLabel,
     QWidget,
     QVBoxLayout,
     QFrame,
@@ -113,9 +114,7 @@ class ShadowChartView(QChartView):
             # (around min_y) and fades out towards the bottom of the plot.
             gradient = None
             try:
-                gradient = QLinearGradient(
-                    QPointF(0.0, min_y), QPointF(0.0, bottom_y)
-                )
+                gradient = QLinearGradient(QPointF(0.0, min_y), QPointF(0.0, bottom_y))
                 top_col = QColor(base_color)
                 top_col.setAlpha(180)
                 bottom_col = QColor(base_color)
@@ -195,7 +194,8 @@ class ShadowChartView(QChartView):
             amount_val = float(values[idx])
             try:
                 series_pos = chart.mapToPosition(
-                    QPointF(float(idx), amount_val), series  # type: ignore[arg-type]
+                    QPointF(float(idx), amount_val),
+                    series,  # type: ignore[arg-type]
                 )
             except Exception:
                 continue
@@ -481,5 +481,3 @@ def create_savings_history_chart_card(
         chart_layout.addWidget(placeholder, 1)
 
     return chart_card
-
-
