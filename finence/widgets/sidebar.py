@@ -251,9 +251,7 @@ class Sidebar(QWidget):
         # Propagate selected account name up to the closest BasePage so it can
         # be read by the bank-account detail page via the shared app_context.
         parent = self.parent()
-        while parent is not None and not hasattr(
-            parent, "set_selected_bank_account"
-        ):
+        while parent is not None and not hasattr(parent, "set_selected_bank_account"):
             parent = parent.parent()
 
         if parent is not None and hasattr(parent, "set_selected_bank_account"):

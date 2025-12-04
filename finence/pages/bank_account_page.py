@@ -8,7 +8,6 @@ from ..qt import (
     QHBoxLayout,
     QWidget,
     Qt,
-    QSizePolicy,
     QToolButton,
 )
 from ..data.provider import AccountsProvider
@@ -123,4 +122,3 @@ class BankAccountPage(BasePage):
         super()._on_theme_changed(is_dark)
         if isinstance(self._content_col, QVBoxLayout):
             self._build_content(self._content_col)
-

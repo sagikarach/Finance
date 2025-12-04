@@ -347,5 +347,7 @@ class CollapsibleButtonList(QWidget):
         )
 
     def _apply_collapsed_style(self) -> None:
-        self._content.setStyleSheet("QWidget#SidebarSavingsList { background: transparent; }")
+        self._content.setStyleSheet(
+            "QWidget#SidebarSavingsList { background: transparent; }"
+        )
         self.setStyleSheet("background: transparent;")

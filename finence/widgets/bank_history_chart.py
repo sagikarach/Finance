@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Optional
+from typing import Callable, List
 import math
 
 from ..qt import (
@@ -11,15 +11,11 @@ from ..qt import (
     QFrame,
     Qt,
     QChart,
-    QChartView,
     QLineSeries,
     QValueAxis,
     QCategoryAxis,
     QColor,
     QPainter,
-    QPainterPath,
-    QLinearGradient,
-    QPointF,
     charts_available,
 )
 from ..models.accounts import BankAccount, MoneySnapshot, parse_iso_date
@@ -267,4 +263,3 @@ def create_bank_history_chart_card(
         chart_layout.addWidget(placeholder, 1)
 
     return chart_card
-
