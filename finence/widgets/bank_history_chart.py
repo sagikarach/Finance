@@ -18,7 +18,13 @@ from ..qt import (
     QPainter,
     charts_available,
 )
-from ..models.accounts import BankAccount, MoneySnapshot, parse_iso_date
+from ..models.accounts import BankAccount
+from ..models.charts import (
+    build_month_axis_from_history,
+    build_base_values,
+    latest_snapshots_by_month,
+    catmull_rom_spline_samples,
+)
 from .savings_history_chart import ShadowChartView
 
 
@@ -46,55 +52,16 @@ def create_bank_history_chart_card(
         chart.setBackgroundBrush(Qt.GlobalColor.transparent)
         chart.setPlotAreaBackgroundVisible(False)
 
-        # Build ordered list of (year, month) keys from history
-        month_keys: List[tuple[int, int]] = []
-        seen_months: set[tuple[int, int]] = set()
-        for snap in account.history:
-            dt = parse_iso_date(str(snap.date))
-            key = (dt.year, dt.month)
-            if key not in seen_months:
-                seen_months.add(key)
-                month_keys.append(key)
+        axis = build_month_axis_from_history(account.history)
+        month_keys = axis.keys
+        month_to_index = axis.month_to_index
 
-        if not month_keys:
-            # Fallback: single synthetic month if there is no history.
-            month_keys = [(0, 1)]
-
-        month_keys.sort(key=lambda k: (k[0], k[1]))
-        month_to_index = {key: idx for idx, key in enumerate(month_keys)}
-
-        # Group history by month and take the latest snapshot amount within each month
-        latest_by_month: dict[tuple[int, int], MoneySnapshot] = {}
-        for snap in account.history:
-            dt = parse_iso_date(str(snap.date))
-            key = (dt.year, dt.month)
-            existing = latest_by_month.get(key)
-            if existing is None:
-                latest_by_month[key] = snap
-            else:
-                if parse_iso_date(str(existing.date)) < dt:
-                    latest_by_month[key] = snap
-
-        # Build base values for every month, carrying forward the last known amount
-        base_values: List[float] = []
-        last_amount = 0.0
-        max_amount = 0.0
-
-        if not latest_by_month:
-            # If no history, use current total amount
-            last_amount = float(account.total_amount)
-            for _key in month_keys:
-                base_values.append(last_amount)
-                if last_amount > max_amount:
-                    max_amount = last_amount
-        else:
-            for key in month_keys:
-                snap_opt = latest_by_month.get(key)
-                if snap_opt is not None:
-                    last_amount = float(snap_opt.amount)
-                base_values.append(last_amount)
-                if last_amount > max_amount:
-                    max_amount = last_amount
+        latest_by_month = latest_snapshots_by_month(account.history)
+        base_values, max_amount = build_base_values(
+            axis=axis,
+            latest_by_month=latest_by_month,
+            fallback_amount=account.total_amount,
+        )
 
         # Create a single line series for the bank account
         series = QLineSeries()
@@ -104,58 +71,9 @@ def create_bank_history_chart_card(
         except Exception:
             pass
 
-        n_months = len(month_keys)
-        if n_months == 1:
-            series.append(0.0, base_values[0])
-        else:
-            # Smooth the month-to-month knots using a small moving average
-            smooth_knots: List[float] = list(base_values)
-            if n_months >= 3:
-                tmp = list(smooth_knots)
-                for i_k in range(1, n_months - 1):
-                    tmp[i_k] = (
-                        0.25 * smooth_knots[i_k - 1]
-                        + 0.5 * smooth_knots[i_k]
-                        + 0.25 * smooth_knots[i_k + 1]
-                    )
-                smooth_knots = tmp
-
-            # Clamp the smoothed curve to the real data range
-            min_y_val = min(base_values)
-            max_y_val = max(base_values) if base_values else 0.0
-
-            def sample_catmull_rom(i_seg: int, t: float) -> float:
-                """Sample a Catmull-Rom spline between month i_seg and i_seg+1."""
-                i0 = max(0, min(n_months - 1, i_seg - 1))
-                i1 = max(0, min(n_months - 1, i_seg))
-                i2 = max(0, min(n_months - 1, i_seg + 1))
-                i3 = max(0, min(n_months - 1, i_seg + 2))
-                p0 = smooth_knots[i0]
-                p1 = smooth_knots[i1]
-                p2 = smooth_knots[i2]
-                p3 = smooth_knots[i3]
-                t2 = t * t
-                t3 = t2 * t
-                val = 0.5 * (
-                    (2.0 * p1)
-                    + (-p0 + p2) * t
-                    + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
-                    + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
-                )
-                if val < min_y_val:
-                    val = min_y_val
-                if val > max_y_val:
-                    val = max_y_val
-                return val
-
-            series.append(0.0, smooth_knots[0])
-            steps_per_segment = 16
-            for i_seg in range(n_months - 1):
-                for j in range(1, steps_per_segment + 1):
-                    t = float(j) / float(steps_per_segment)
-                    x_val = float(i_seg) + t
-                    y_val = sample_catmull_rom(i_seg, t)
-                    series.append(x_val, y_val)
+        samples = catmull_rom_spline_samples(base_values)
+        for x_val, y_val in samples:
+            series.append(x_val, y_val)
 
         # Choose a color for the line (using a blue tone for bank accounts)
         try:

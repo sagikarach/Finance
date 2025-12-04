@@ -2,7 +2,7 @@
   {
     "name": "בנק",
     "is_liquid": true,
-    "total_amount": 1500.75,
+    "total_amount": 1400.75,
     "active": true,
     "history": [
       {
@@ -24,13 +24,25 @@
       {
         "date": "2025-12-04",
         "amount": 1500.75
+      },
+      {
+        "date": "2025-12-05",
+        "amount": 1505.75
+      },
+      {
+        "date": "2025-12-05",
+        "amount": 1500.75
+      },
+      {
+        "date": "2025-12-05",
+        "amount": 1400.75
       }
     ]
   },
   {
     "name": "מזומן",
     "is_liquid": true,
-    "total_amount": 4000.0,
+    "total_amount": 4100.0,
     "active": true,
     "history": [
       {
@@ -44,6 +56,10 @@
       {
         "date": "2025-12-04",
         "amount": 4000.0
+      },
+      {
+        "date": "2025-12-05",
+        "amount": 4100.0
       }
     ]
   },
@@ -67,6 +83,10 @@
       },
       {
         "date": "2025-12-04",
+        "amount": 500.0
+      },
+      {
+        "date": "2025-12-05",
         "amount": 500.0
       }
     ]

@@ -13,6 +13,11 @@ from ..qt import (
     Qt,
 )
 from ..models.accounts import SavingsAccount
+from ..models.savings_dialogs import (
+    SavingsAccountForm,
+    SavingsAccountValidationContext,
+    validate_savings_account_form,
+)
 
 
 class SavingsAccountDialog(QDialog):
@@ -107,7 +112,6 @@ class SavingsAccountDialog(QDialog):
         buttons_row.addStretch(1)
         buttons_row.addWidget(cancel_btn)  # Cancel on LEFT (secondary action)
 
-        # Error label for validation messages
         self._error_label = QLabel("", self)
         self._error_label.setStyleSheet("color: #b91c1c;")  # red
         self._error_label.setWordWrap(True)
@@ -137,27 +141,26 @@ class SavingsAccountDialog(QDialog):
         layout.addLayout(buttons_row)
 
         def validate_and_accept() -> None:
-            name = self.get_name()
-            if not name:
-                self._error_label.setText("שם לא יכול להיות ריק")
-                self._error_label.setMinimumHeight(40)  # Expand to show error
+            form = SavingsAccountForm(
+                name=self.get_name(),
+                is_liquid=self.get_is_liquid(),
+            )
+            ctx = SavingsAccountValidationContext(
+                existing_names=self._existing_names,
+                current_name=self._account.name if self._account else None,
+            )
+            error = validate_savings_account_form(form, ctx)
+            if error is not None:
+                self._error_label.setText(error.message)
+                self._error_label.setMinimumHeight(40)
                 self._error_label.show()
-                self.adjustSize()  # Resize dialog to fit error message
+                self.adjustSize()
                 return
 
-            # Check for duplicate names
-            if name in self._existing_names:
-                self._error_label.setText(f"שם '{name}' כבר קיים. אנא בחר שם אחר.")
-                self._error_label.setMinimumHeight(40)  # Expand to show error
-                self._error_label.show()
-                self.adjustSize()  # Resize dialog to fit error message
-                return
-
-            # Clear error and shrink dialog back
             self._error_label.setText("")
             self._error_label.setMinimumHeight(0)
             self._error_label.hide()
-            self.adjustSize()  # Resize dialog back to normal
+            self.adjustSize()
             self.accept()
 
         save_btn.clicked.connect(validate_and_accept)  # type: ignore[arg-type]

@@ -13,6 +13,11 @@ from ..qt import (
 )
 from .dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..models.accounts import SavingsAccount
+from ..models.savings_dialogs import (
+    SavingsAccountForm,
+    SavingsAccountValidationContext,
+    validate_savings_account_form,
+)
 
 
 class EditSavingsAccountDialog(QDialog):
@@ -133,7 +138,6 @@ class EditSavingsAccountDialog(QDialog):
                 pass
         self._error_label.hide()
 
-        # Buttons row using the shared helper so order and spacing match other dialogs.
         buttons_row, save_btn, cancel_btn = create_standard_buttons_row(
             self,
             primary_text="שמור",
@@ -146,25 +150,29 @@ class EditSavingsAccountDialog(QDialog):
         layout.addLayout(buttons_row)
 
         def validate_and_accept() -> None:
-            name = self.get_name()
-            if not name:
-                self._error_label.setText("שם לא יכול להיות ריק")
-                self._error_label.setMinimumHeight(40)
-                self._error_label.show()
-                self.adjustSize()
-                return
+            form = SavingsAccountForm(
+                name=self.get_name(),
+                is_liquid=self.get_is_liquid(),
+            )
 
-            # Check for duplicate names (excluding current account)
             current_account = self.get_selected_account()
             if current_account:
                 other_names = [
                     n for n in self._existing_names if n != current_account.name
                 ]
+                ctx = SavingsAccountValidationContext(
+                    existing_names=other_names,
+                    current_name=current_account.name,
+                )
             else:
-                other_names = self._existing_names
+                ctx = SavingsAccountValidationContext(
+                    existing_names=self._existing_names,
+                    current_name=None,
+                )
 
-            if name in other_names:
-                self._error_label.setText(f"שם '{name}' כבר קיים. אנא בחר שם אחר.")
+            error = validate_savings_account_form(form, ctx)
+            if error is not None:
+                self._error_label.setText(error.message)
                 self._error_label.setMinimumHeight(40)
                 self._error_label.show()
                 self.adjustSize()

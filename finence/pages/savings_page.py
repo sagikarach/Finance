@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Callable, Dict, List, Optional
-from datetime import date as _date
 
 from ..qt import (
     QLabel,
@@ -25,8 +24,13 @@ from ..models.accounts import (
     compute_savings_account_liquid_amount,
     SavingsAccount,
     BankAccount,
-    Savings,
-    MoneySnapshot,
+)
+from ..models.transfers import TransferEndpoint, TransferRequest, apply_transfer
+from ..models.savings_dialogs import (
+    SavingsAccountForm,
+    form_to_new_savings_account,
+    form_to_updated_savings_account,
+    remove_savings_account,
 )
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..ui.savings_account_dialog import SavingsAccountDialog
@@ -300,27 +304,19 @@ class SavingsPage(BasePage):
             self._build_content(layout)
 
     def _handle_add_account(self) -> None:
-        """Handle add button click - open dialog to create new SavingsAccount."""
-        # Get existing account names for validation
         savings_accounts = self._get_savings_accounts()
         existing_names = [acc.name for acc in savings_accounts]
 
         dialog = SavingsAccountDialog(existing_names=existing_names, parent=self)
         if dialog.exec():
-            name = dialog.get_name()
-            if not name:
-                return
-            is_liquid = dialog.get_is_liquid()
-
-            # Create new SavingsAccount with empty savings
-            new_account = SavingsAccount(
-                name=name,
-                total_amount=0.0,
-                is_liquid=is_liquid,
-                savings=[],
+            form = SavingsAccountForm(
+                name=dialog.get_name(),
+                is_liquid=dialog.get_is_liquid(),
             )
+            if not form.name.strip():
+                return
 
-            # Add to accounts list
+            new_account = form_to_new_savings_account(form)
             self._accounts.append(new_account)
             self._save_and_refresh()
 
@@ -343,11 +339,6 @@ class SavingsPage(BasePage):
             if selected_account is None:
                 return
 
-            name = dialog.get_name()
-            if not name:
-                return
-            is_liquid = dialog.get_is_liquid()
-
             # Find the actual account object in self._accounts
             account_to_edit = None
             for account in self._accounts:
@@ -368,13 +359,14 @@ class SavingsPage(BasePage):
             if account_to_edit is None:
                 return
 
-            # Create a new instance with updated values (dataclass is frozen)
-            updated_account = SavingsAccount(
-                name=name,
-                total_amount=account_to_edit.total_amount,
-                is_liquid=is_liquid,
-                savings=account_to_edit.savings,
+            form = SavingsAccountForm(
+                name=dialog.get_name(),
+                is_liquid=dialog.get_is_liquid(),
             )
+            if not form.name.strip():
+                return
+
+            updated_account = form_to_updated_savings_account(account_to_edit, form)
 
             # Replace the old account with the new one in the list
             for i, account in enumerate(self._accounts):
@@ -395,7 +387,6 @@ class SavingsPage(BasePage):
             self._save_and_refresh()
 
     def _handle_delete_account(self) -> None:
-        """Handle delete button click - open confirmation dialog and delete selected SavingsAccount."""
         savings_accounts = self._get_savings_accounts()
         if not savings_accounts:
             return
@@ -406,38 +397,14 @@ class SavingsPage(BasePage):
             if selected_account is None:
                 return
 
-            # Find the actual account object in self._accounts
-            account_to_remove = None
-            for account in self._accounts:
-                if account is selected_account:
-                    account_to_remove = account
-                    break
-
-            if account_to_remove is None:
-                # Fallback: find by name
-                for account in self._accounts:
-                    if (
-                        isinstance(account, SavingsAccount)
-                        and account.name == selected_account.name
-                    ):
-                        account_to_remove = account
-                        break
-
-            if account_to_remove is None:
-                return
-
-            # Remove from accounts list
-            if account_to_remove in self._accounts:
-                self._accounts.remove(account_to_remove)
+            self._accounts = remove_savings_account(self._accounts, selected_account)
             self._save_and_refresh()
 
     def _handle_move_between_accounts(self) -> None:
-        """Move money between individual Savings AND bank accounts.
-
-        The user can choose any source and target from:
-        - Bank accounts (label: "חשבון בנק — <account name>")
-        - Savings inside savings accounts (label: "<account name> — <saving name>")
-        """
+        try:
+            self._accounts = self._provider.list_accounts()
+        except Exception:
+            pass
         if not self._accounts:
             return
 
@@ -446,8 +413,8 @@ class SavingsPage(BasePage):
         endpoints: List[tuple[str, str, int, int]] = []
         for acc_idx, acc in enumerate(self._accounts):
             if isinstance(acc, BankAccount):
-                # For bank accounts show only the account name (no parent
-                # prefix), as requested.
+                if not getattr(acc, "active", True):
+                    continue
                 label = acc.name
                 endpoints.append((label, "bank", acc_idx, -1))
             elif isinstance(acc, SavingsAccount):
@@ -609,119 +576,30 @@ class SavingsPage(BasePage):
                 error_label.setText("סכום ההעברה חייב להיות גדול מאפס.")
                 error_label.show()
                 return
-            # Check available balance on source endpoint.
-            src_acc = self._accounts[src_acc_i]
-            if src_kind == "bank" and isinstance(src_acc, BankAccount):
-                if amount > src_acc.total_amount:
-                    error_label.setText("אין מספיק כסף בחשבון המקור לביצוע ההעברה.")
-                    error_label.show()
-                    return
-            elif src_kind == "saving" and isinstance(src_acc, SavingsAccount):
-                try:
-                    src_saving = src_acc.savings[src_s_i]
-                except Exception:
-                    return
-                if amount > src_saving.amount:
-                    error_label.setText("אין מספיק כסף בחסכון המקור לביצוע ההעברה.")
-                    error_label.show()
-                    return
 
-            # Accumulate balance deltas for bank accounts and savings.
-            bank_deltas: dict[int, float] = {}
-            saving_deltas: dict[tuple[int, int], float] = {}
+            src_endpoint = TransferEndpoint(
+                kind="bank" if src_kind == "bank" else "saving",
+                account_index=src_acc_i,
+                savings_index=src_s_i,
+            )
+            dst_endpoint = TransferEndpoint(
+                kind="bank" if dst_kind == "bank" else "saving",
+                account_index=dst_acc_i,
+                savings_index=dst_s_i,
+            )
+            request = TransferRequest(
+                source=src_endpoint,
+                target=dst_endpoint,
+                amount=amount,
+            )
 
-            if src_kind == "bank":
-                bank_deltas[src_acc_i] = bank_deltas.get(src_acc_i, 0.0) - amount
-            else:
-                saving_deltas[(src_acc_i, src_s_i)] = (
-                    saving_deltas.get((src_acc_i, src_s_i), 0.0) - amount
-                )
+            result = apply_transfer(self._accounts, request)
+            if result.error is not None:
+                error_label.setText(result.error.message)
+                error_label.show()
+                return
 
-            if dst_kind == "bank":
-                bank_deltas[dst_acc_i] = bank_deltas.get(dst_acc_i, 0.0) + amount
-            else:
-                saving_deltas[(dst_acc_i, dst_s_i)] = (
-                    saving_deltas.get((dst_acc_i, dst_s_i), 0.0) + amount
-                )
-
-            # Use today's date for new history snapshots so transfers are
-            # timestamped correctly.
-            today_str = ""
-            try:
-                today_str = _date.today().isoformat()
-            except Exception:
-                today_str = ""
-
-            updated_accounts: List = []
-            for acc_idx, acc in enumerate(self._accounts):
-                # Bank accounts
-                if isinstance(acc, BankAccount):
-                    delta = bank_deltas.get(acc_idx, 0.0)
-                    if delta != 0.0:
-                        new_total = acc.total_amount + delta
-                        new_history = list(acc.history)
-                        try:
-                            new_history.append(
-                                MoneySnapshot(date=today_str, amount=new_total)
-                            )
-                        except Exception:
-                            pass
-                        updated_accounts.append(
-                            BankAccount(
-                                name=acc.name,
-                                total_amount=new_total,
-                                is_liquid=acc.is_liquid,
-                                history=new_history,
-                            )
-                        )
-                    else:
-                        updated_accounts.append(acc)
-                    continue
-
-                # Savings accounts
-                if isinstance(acc, SavingsAccount):
-                    # If no savings in this account are affected, keep as is.
-                    has_delta = any(key[0] == acc_idx for key in saving_deltas.keys())
-                    if not has_delta:
-                        updated_accounts.append(acc)
-                        continue
-
-                    new_savings: List[Savings] = []
-                    for s_idx, s in enumerate(acc.savings):
-                        delta = saving_deltas.get((acc_idx, s_idx), 0.0)
-                        if delta != 0.0:
-                            new_amount = s.amount + delta
-                            new_history = list(s.history)
-                            try:
-                                new_history.append(
-                                    MoneySnapshot(date=today_str, amount=new_amount)
-                                )
-                            except Exception:
-                                pass
-                            new_savings.append(
-                                Savings(
-                                    name=s.name,
-                                    amount=new_amount,
-                                    history=new_history,
-                                )
-                            )
-                        else:
-                            new_savings.append(s)
-
-                    updated_accounts.append(
-                        SavingsAccount(
-                            name=acc.name,
-                            total_amount=0.0,  # recomputed from savings
-                            is_liquid=acc.is_liquid,
-                            savings=new_savings,
-                        )
-                    )
-                    continue
-
-                # Any other account types (if ever added)
-                updated_accounts.append(acc)
-
-            self._accounts = updated_accounts
+            self._accounts = result.accounts
             dlg.accept()
             self._save_and_refresh()
 

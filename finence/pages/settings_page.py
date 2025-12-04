@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 from pathlib import Path
-from datetime import date
 
 from ..qt import (
     QLabel,
@@ -21,7 +20,8 @@ from ..qt import (
     QCursor,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
-from ..models.accounts import BankAccount, MoneySnapshot
+from ..models.accounts import BankAccount
+from ..models.bank_settings import BankSettingsRowInput, apply_bank_settings
 from .base_page import BasePage
 
 
@@ -184,7 +184,6 @@ class SettingsPage(BasePage):
 
         layout.addStretch(1)
 
-        # Save button
         save_button = QPushButton("שמור חשבונות", card)
         save_button.setObjectName("SaveButton")
 
@@ -197,62 +196,22 @@ class SettingsPage(BasePage):
                 return
 
             try:
-                updated_bank_accounts: List[BankAccount] = []
-                today_str = date.today().isoformat()
-
+                rows: List[BankSettingsRowInput] = []
                 for account_name, widgets in account_widgets.items():
                     checkbox = widgets["checkbox"]
                     amount_edit = widgets["amount_edit"]
                     current_account = widgets["current_account"]
 
-                    is_active = checkbox.isChecked()
-                    amount_text = amount_edit.text().strip()
-
-                    # Get or create account
-                    if current_account:
-                        account = current_account
-                        was_inactive = not account.active
-                        is_being_activated = is_active and was_inactive
-                    else:
-                        # Create new account (inactive by default)
-                        account = BankAccount(
+                    rows.append(
+                        BankSettingsRowInput(
                             name=account_name,
-                            total_amount=0.0,
-                            is_liquid=account_name == "מזומן",  # מזומן is liquid
-                            history=[],
-                            active=False,
+                            is_active=checkbox.isChecked(),
+                            starter_amount_text=amount_edit.text(),
+                            current_account=current_account,
                         )
-                        is_being_activated = is_active
-
-                    # If being activated and has starter amount, add to history
-                    new_history = list(account.history)
-                    new_total = account.total_amount
-
-                    if is_being_activated and amount_text:
-                        try:
-                            starter_amount = float(amount_text)
-                            if starter_amount > 0:
-                                # Add starter amount to history with today's date
-                                new_history.append(
-                                    MoneySnapshot(date=today_str, amount=starter_amount)
-                                )
-                                new_total = starter_amount
-                        except (ValueError, TypeError):
-                            pass
-
-                    # Create updated account with new active status and history
-                    account = BankAccount(
-                        name=account.name,
-                        total_amount=new_total,
-                        is_liquid=account.is_liquid,
-                        history=new_history,
-                        active=is_active,
                     )
 
-                    # Always add account to the list (active or inactive)
-                    updated_bank_accounts.append(account)
-
-                # Save bank accounts
+                updated_bank_accounts: List[BankAccount] = apply_bank_settings(rows)
                 self._provider.save_bank_accounts(updated_bank_accounts)
 
                 # Reload accounts to refresh UI
