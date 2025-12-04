@@ -2,15 +2,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from ..qt import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QComboBox,
-    Qt,
-)
+from ..qt import QDialog, QHBoxLayout, QLabel, QPushButton, QComboBox, Qt
+from .dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..models.accounts import SavingsAccount
 
 
@@ -33,15 +26,8 @@ class DeleteSavingsAccountDialog(QDialog):
         except Exception:
             pass
 
-        # Set RTL layout direction for the dialog
-        try:
-            self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
-            pass
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 24, 32, 24)
-        layout.setSpacing(16)
+        # Use shared RTL dialog configuration so margins/spacing match other dialogs.
+        layout = setup_standard_rtl_dialog(self)
 
         # Account selection dropdown
         account_label = QLabel("בחר חשבון:", self)
@@ -81,10 +67,7 @@ class DeleteSavingsAccountDialog(QDialog):
         try:
             self._message_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
-            try:
-                self._message_label.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
-                pass
+            pass
         try:
             self._message_label.setAlignment(
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
@@ -96,19 +79,11 @@ class DeleteSavingsAccountDialog(QDialog):
                 pass
         self._update_message()
 
-        # Buttons
-        buttons_row = QHBoxLayout()
-        buttons_row.setSpacing(12)
-
-        cancel_btn = QPushButton("ביטול", self)
-        delete_btn = QPushButton("מחק", self)
-        delete_btn.setDefault(True)
-
-        # Match transfer dialog: cancel on the right, primary action on the left,
-        # both using the default QPushButton styling (no special Delete style).
-        buttons_row.addWidget(cancel_btn)
-        buttons_row.addStretch(1)
-        buttons_row.addWidget(delete_btn)
+        # Buttons row using the shared helper so order and spacing match other dialogs.
+        buttons_row, delete_btn, cancel_btn = create_standard_buttons_row(
+            self,
+            primary_text="מחק",
+        )
 
         layout.addLayout(account_row)
         layout.addWidget(self._message_label)

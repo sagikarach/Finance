@@ -32,6 +32,7 @@ from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..ui.savings_account_dialog import SavingsAccountDialog
 from ..ui.edit_savings_account_dialog import EditSavingsAccountDialog
 from ..ui.delete_savings_account_dialog import DeleteSavingsAccountDialog
+from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from .base_page import BasePage
 
 
@@ -53,6 +54,19 @@ class SavingsPage(BasePage):
             page_title="חסכונות",
             current_route="savings",
         )
+
+    def on_route_activated(self) -> None:
+        """Sync header toggle + sidebar savings list with current theme when opened."""
+        app = QApplication.instance()
+        is_dark = False
+        if app is not None:
+            try:
+                is_dark = str(app.property("theme") or "light") == "dark"
+            except Exception:
+                is_dark = False
+        # This will also refresh the sidebar's savings-list background for
+        # the active theme via BasePage._on_theme_changed.
+        self._on_theme_changed(is_dark)
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         """Add settings button to header."""
@@ -446,24 +460,10 @@ class SavingsPage(BasePage):
             return
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("העבר כסף בין חסכונות")
-        dlg.setModal(True)
-        try:
-            dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        except Exception:
-            pass
-
-        layout = QVBoxLayout(dlg)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(12)
-
-        try:
-            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
-            try:
-                dlg.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
-            except Exception:
-                pass
+        layout = setup_standard_rtl_dialog(
+            dlg,
+            title="העבר כסף בין חסכונות",
+        )
 
         # Source endpoint
         src_row = QHBoxLayout()
@@ -523,13 +523,11 @@ class SavingsPage(BasePage):
         error_label.setWordWrap(True)
         error_label.hide()
 
-        buttons_row = QHBoxLayout()
-        ok_btn = QPushButton("בצע העברה", dlg)
-        cancel_btn = QPushButton("ביטול", dlg)
-        # In RTL: cancel on the right, action on the left.
-        buttons_row.addWidget(cancel_btn)
-        buttons_row.addStretch(1)
-        buttons_row.addWidget(ok_btn)
+        (
+            buttons_row,
+            ok_btn,
+            cancel_btn,
+        ) = create_standard_buttons_row(dlg, primary_text="בצע העברה")
 
         layout.addLayout(src_row)
         layout.addWidget(src_balance_label)

@@ -2,17 +2,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from ..qt import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QCheckBox,
-    QComboBox,
-    Qt,
-)
+from ..qt import QDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox, QComboBox, Qt
+from .dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..models.accounts import SavingsAccount
 
 
@@ -37,15 +28,8 @@ class EditSavingsAccountDialog(QDialog):
         except Exception:
             pass
 
-        # Set RTL layout direction for the dialog
-        try:
-            self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
-            pass
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 24, 32, 24)
-        layout.setSpacing(16)
+        # Use shared RTL dialog configuration so margins/spacing match other dialogs.
+        layout = setup_standard_rtl_dialog(self)
 
         # Account selection dropdown
         account_label = QLabel("בחר חשבון:", self)
@@ -141,19 +125,11 @@ class EditSavingsAccountDialog(QDialog):
                 pass
         self._error_label.hide()
 
-        # Buttons
-        buttons_row = QHBoxLayout()
-        buttons_row.setSpacing(12)
-
-        cancel_btn = QPushButton("ביטול", self)
-        save_btn = QPushButton("שמור", self)
-        save_btn.setDefault(True)
-
-        # Match transfer dialog: cancel on the right, primary action on the left,
-        # both using the default QPushButton styling.
-        buttons_row.addWidget(cancel_btn)
-        buttons_row.addStretch(1)
-        buttons_row.addWidget(save_btn)
+        # Buttons row using the shared helper so order and spacing match other dialogs.
+        buttons_row, save_btn, cancel_btn = create_standard_buttons_row(
+            self,
+            primary_text="שמור",
+        )
 
         layout.addLayout(account_row)
         layout.addLayout(name_row)

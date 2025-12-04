@@ -26,7 +26,7 @@ try:
         QToolTip,
         QDateEdit,
     )
-    from PySide6.QtGui import (
+    from PySide6.QtGui import (  # type: ignore
         QAction,
         QPainter,
         QColor,
@@ -35,8 +35,18 @@ try:
         QIcon,
         QPixmap,
         QImage,
-    )  # type: ignore
-    from PySide6.QtCore import Signal, Slot, Qt, QMarginsF, QDate, QLocale  # type: ignore
+        QPainterPath,
+        QLinearGradient,
+    )
+    from PySide6.QtCore import (  # type: ignore
+        Signal,
+        Slot,
+        Qt,
+        QMarginsF,
+        QDate,
+        QLocale,
+        QPointF,
+    )
 
     backend = "PySide6"
     # QtCharts (available in modern PySide6 wheels)
@@ -80,7 +90,7 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
         QToolTip,
         QDateEdit,
     )
-    from PyQt6.QtGui import (
+    from PyQt6.QtGui import (  # type: ignore
         QAction,
         QPainter,
         QColor,
@@ -89,15 +99,18 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
         QIcon,
         QPixmap,
         QImage,
-    )  # type: ignore
-    from PyQt6.QtCore import (
+        QPainterPath,
+        QLinearGradient,
+    )
+    from PyQt6.QtCore import (  # type: ignore
         pyqtSignal as Signal,
         pyqtSlot as Slot,
         Qt,
         QMarginsF,
         QDate,
         QLocale,
-    )  # type: ignore
+        QPointF,
+    )
 
     backend = "PyQt6"
     # QtCharts (may require separate wheel in PyQt6)
@@ -144,6 +157,8 @@ __all__ = [
     "Qt",
     "QPainter",
     "QColor",
+    "QPainterPath",
+    "QLinearGradient",
     "QGraphicsDropShadowEffect",
     "QMarginsF",
     "QFont",
@@ -152,6 +167,7 @@ __all__ = [
     "QIcon",
     "QPixmap",
     "QImage",
+    "QPointF",
     "QDate",
     "QDateEdit",
     "QLocale",

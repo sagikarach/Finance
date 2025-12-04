@@ -27,6 +27,9 @@ from ..qt import (
     QCategoryAxis,
     QColor,
     QPainter,
+    QPainterPath,
+    QLinearGradient,
+    QPointF,
     QToolTip,
     QCursor,
     charts_available,
@@ -35,6 +38,123 @@ from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..models.accounts import SavingsAccount, Savings, MoneySnapshot, parse_iso_date
 from .base_page import BasePage
 from .savings_page import format_currency
+
+
+class ShadowChartView(QChartView):
+    """Custom chart view that paints a soft filled 'shadow' under each line."""
+
+    def __init__(
+        self,
+        chart: QChart,
+        shadows: List[tuple[QLineSeries, QColor]],
+        parent: Optional[QWidget] = None,
+    ) -> None:
+        super().__init__(chart, parent)
+        self._shadows: List[tuple[QLineSeries, QColor]] = shadows
+
+    def drawForeground(self, painter: QPainter, rect) -> None:  # type: ignore[override]
+        # Keep any default foreground (e.g. tooltips) first.
+        try:
+            super().drawForeground(painter, rect)
+        except Exception:
+            pass
+
+        try:
+            chart = self.chart()
+        except Exception:
+            chart = None
+        if chart is None or not self._shadows:
+            return
+
+        try:
+            plot_rect = chart.plotArea()
+        except Exception:
+            plot_rect = rect
+        bottom_y = plot_rect.bottom()
+
+        for series, base_color in self._shadows:
+            # Collect data points from the series.
+            try:
+                pts = list(series.points())  # type: ignore[attr-defined]
+            except Exception:
+                try:
+                    pts = list(series.pointsVector())  # type: ignore[attr-defined]
+                except Exception:
+                    pts = []
+            if len(pts) < 2:
+                continue
+
+            path = QPainterPath()
+            try:
+                first_pos = chart.mapToPosition(pts[0], series)  # type: ignore[arg-type]
+            except Exception:
+                continue
+            path.moveTo(first_pos)
+            last_pos = first_pos
+            min_y = first_pos.y()
+
+            for pt in pts[1:]:
+                try:
+                    pos = chart.mapToPosition(pt, series)  # type: ignore[arg-type]
+                except Exception:
+                    continue
+                path.lineTo(pos)
+                last_pos = pos
+                if pos.y() < min_y:
+                    min_y = pos.y()
+
+            # Close the path down to the bottom of the plot area so the fill
+            # appears only under the line.
+            try:
+                path.lineTo(QPointF(last_pos.x(), bottom_y))
+                path.lineTo(QPointF(first_pos.x(), bottom_y))
+            except Exception:
+                pass
+            try:
+                path.closeSubpath()
+            except Exception:
+                pass
+
+            # Create a vertical gradient that is strongest near the line
+            # (around min_y) and fades out towards the bottom of the plot.
+            gradient = None
+            try:
+                gradient = QLinearGradient(
+                    QPointF(0.0, min_y), QPointF(0.0, bottom_y)
+                )
+                top_col = QColor(base_color)
+                top_col.setAlpha(180)
+                bottom_col = QColor(base_color)
+                bottom_col.setAlpha(0)
+                gradient.setColorAt(0.0, top_col)
+                gradient.setColorAt(1.0, bottom_col)
+            except Exception:
+                gradient = None
+
+            # Fallback flat fill if gradient creation fails for any reason.
+            fill = QColor(base_color)
+            try:
+                fill.setAlpha(80)
+            except Exception:
+                pass
+
+            painter.save()
+            try:
+                painter.setPen(Qt.PenStyle.NoPen)  # type: ignore[attr-defined]
+            except Exception:
+                try:
+                    painter.setPen(Qt.NoPen)  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            if gradient is not None:
+                painter.setBrush(gradient)
+            else:
+                painter.setBrush(fill)
+            try:
+                painter.drawPath(path)
+            except Exception:
+                pass
+            painter.restore()
 
 
 class SavingsAccountPage(BasePage):
@@ -215,7 +335,12 @@ class SavingsAccountPage(BasePage):
 
             max_amount = 0.0
 
-            for s in target.savings:
+            # Track (series, color) so the custom view can paint shadows.
+            shadow_specs: List[tuple[QLineSeries, QColor]] = []
+
+            total_savings = max(1, len(target.savings))
+
+            for idx, s in enumerate(target.savings):
                 series = QLineSeries()
                 series.setName(s.name)
                 # Hide square markers on the line; we only want smooth lines.
@@ -239,18 +364,21 @@ class SavingsAccountPage(BasePage):
                         if parse_iso_date(str(existing.date)) < dt:
                             latest_by_month[key] = snap
 
-                # Build a value for every month in month_keys so each savings
-                # line is continuous across the whole range. For months with
-                # no data, we carry forward the last known amount (or 0 before
-                # the first data point).
+                # Build a base value for every month in month_keys so each
+                # savings line is continuous across the whole range. For
+                # months with no data, we carry forward the last known amount
+                # (or 0 before the first data point). Then we densify this
+                # sequence with an interpolated smooth curve between the
+                # month samples so the drawn line looks rounded rather than
+                # like a series of sharp corners.
+                base_values: List[float] = []
                 last_amount = 0.0
                 if not latest_by_month:
                     # No history at all: use the current total amount flat
                     # across all months.
                     last_amount = float(s.amount)
-                    for key in month_keys:
-                        x_val = float(month_to_index[key])
-                        series.append(x_val, last_amount)
+                    for _key in month_keys:
+                        base_values.append(last_amount)
                         if last_amount > max_amount:
                             max_amount = last_amount
                 else:
@@ -258,11 +386,96 @@ class SavingsAccountPage(BasePage):
                         snap_opt = latest_by_month.get(key)
                         if snap_opt is not None:
                             last_amount = float(snap_opt.amount)
-                        x_val = float(month_to_index[key])
-                        series.append(x_val, last_amount)
+                        base_values.append(last_amount)
                         if last_amount > max_amount:
                             max_amount = last_amount
 
+                n_months = len(month_keys)
+                if n_months == 1:
+                    # Single point: just draw it where the only month index is.
+                    series.append(0.0, base_values[0])
+                else:
+                    # Slightly smooth the month-to-month knots using a small
+                    # moving average so the curve looks even more rounded,
+                    # while still staying very close to the real data.
+                    smooth_knots: List[float] = list(base_values)
+                    if n_months >= 3:
+                        tmp = list(smooth_knots)
+                        for i_k in range(1, n_months - 1):
+                            tmp[i_k] = (
+                                0.25 * smooth_knots[i_k - 1]
+                                + 0.5 * smooth_knots[i_k]
+                                + 0.25 * smooth_knots[i_k + 1]
+                            )
+                        smooth_knots = tmp
+
+                    # Clamp the smoothed curve to the real data range of this
+                    # series so we don't overshoot wildly above or below.
+                    min_y_val = min(base_values)
+                    max_y_val = max(base_values) if base_values else 0.0
+
+                    def sample_catmull_rom(i_seg: int, t: float) -> float:
+                        """Sample a Catmull-Rom spline between month i_seg and i_seg+1."""
+
+                        i0 = max(0, min(n_months - 1, i_seg - 1))
+                        i1 = max(0, min(n_months - 1, i_seg))
+                        i2 = max(0, min(n_months - 1, i_seg + 1))
+                        i3 = max(0, min(n_months - 1, i_seg + 2))
+                        p0 = smooth_knots[i0]
+                        p1 = smooth_knots[i1]
+                        p2 = smooth_knots[i2]
+                        p3 = smooth_knots[i3]
+                        t2 = t * t
+                        t3 = t2 * t
+                        val = 0.5 * (
+                            (2.0 * p1)
+                            + (-p0 + p2) * t
+                            + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2
+                            + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
+                        )
+                        if val < min_y_val:
+                            val = min_y_val
+                        if val > max_y_val:
+                            val = max_y_val
+                        return val
+
+                    # Start with the first knot at x=0.
+                    series.append(0.0, smooth_knots[0])
+                    # Number of intermediate samples between each pair of
+                    # months – higher means smoother but more points.
+                    steps_per_segment = 16
+                    for i_seg in range(n_months - 1):
+                        for j in range(1, steps_per_segment + 1):
+                            t = float(j) / float(steps_per_segment)
+                            x_val = float(i_seg) + t
+                            y_val = sample_catmull_rom(i_seg, t)
+                            series.append(x_val, y_val)
+
+                # Choose a distinct color per savings line.
+                try:
+                    hue = int((360.0 * idx) / float(total_savings))
+                    base_color = QColor.fromHsl(hue, 180, 140)
+                except Exception:
+                    base_color = QColor("#f97316")  # warm fallback
+
+                # Style the visible line.
+                try:
+                    pen = series.pen()
+                    pen.setColor(base_color)
+                    try:
+                        pen.setWidthF(2.0)
+                    except Exception:
+                        pass
+                    try:
+                        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)  # type: ignore[attr-defined]
+                        pen.setCapStyle(Qt.PenCapStyle.RoundCap)  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+                    series.setPen(pen)
+                except Exception:
+                    pass
+
+                shadow_specs.append((series, base_color))
                 chart.addSeries(series)
 
                 # Connect hover handler to show tooltip with month, savings
@@ -290,18 +503,11 @@ class SavingsAccountPage(BasePage):
                     return on_hover
 
                 # Capture the sequence of y-values for this series in month
-                # order so the hover handler can look them up by index.
-                series_values: List[float] = []
-                if not latest_by_month:
-                    last_amount_tmp = float(s.amount)
-                    series_values = [last_amount_tmp for _ in month_keys]
-                else:
-                    last_amount_tmp = 0.0
-                    for key in month_keys:
-                        snap_opt = latest_by_month.get(key)
-                        if snap_opt is not None:
-                            last_amount_tmp = float(snap_opt.amount)
-                        series_values.append(last_amount_tmp)
+                # order so the hover handler can look them up by index. We
+                # use the base monthly values here rather than the dense
+                # interpolated curve, so each tooltip still snaps cleanly to
+                # the real month buckets.
+                series_values: List[float] = list(base_values)
 
                 try:
                     series.hovered.connect(make_hover_handler(s.name, series_values))  # type: ignore[arg-type]
@@ -368,7 +574,7 @@ class SavingsAccountPage(BasePage):
                 except Exception:
                     pass
 
-            chart_view = QChartView(chart, chart_card)
+            chart_view = ShadowChartView(chart, shadow_specs, chart_card)
             chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)  # type: ignore[attr-defined]
             chart_view.setFrameShape(QFrame.Shape.NoFrame)  # type: ignore[name-defined]
             chart_view.setStyleSheet("background: transparent;")
