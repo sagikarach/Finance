@@ -28,6 +28,42 @@ def update_dashboard_button_width(
                 pass
 
 
+def update_bank_button_width(
+    sidebar: object,
+    sidebar_width: int,
+    bank_button_container: object,
+    bank_btn: object,
+    bank_toggle_btn: object,
+) -> None:
+    """Update bank-accounts button container, button, and toggle to full width."""
+    if not bank_button_container or not bank_button_container.isVisible():
+        return
+
+    container_rect = bank_button_container.geometry()
+    if container_rect.height() > 0:
+        bank_button_container.setGeometry(
+            -16, container_rect.y(), sidebar_width + 32, container_rect.height()
+        )
+        if bank_btn:
+            bank_btn.setGeometry(
+                0, container_rect.y(), sidebar_width, container_rect.height()
+            )
+            try:
+                bank_btn.raise_()
+                bank_btn.update()
+                bank_btn.repaint()
+            except Exception:
+                pass
+        if bank_toggle_btn:
+            bank_toggle_btn.setGeometry(
+                0, container_rect.y(), 32, container_rect.height()
+            )
+            try:
+                bank_toggle_btn.raise_()
+            except Exception:
+                pass
+
+
 def update_savings_button_width(
     sidebar: object,
     sidebar_width: int,

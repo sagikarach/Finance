@@ -246,6 +246,11 @@ class BasePage(QWidget):
                     self._sidebar._savings_list.refresh_theme()  # type: ignore[attr-defined]
                 except Exception:
                     pass
+            if hasattr(self._sidebar, "_bank_list"):
+                try:
+                    self._sidebar._bank_list.refresh_theme()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
 
     def showEvent(self, event) -> None:
         super().showEvent(event)

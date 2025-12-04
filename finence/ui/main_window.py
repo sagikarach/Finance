@@ -6,6 +6,7 @@ from ..pages.home_page import HomePage
 from ..pages.settings_page import SettingsPage
 from ..pages.savings_page import SavingsPage
 from ..pages.savings_account_page import SavingsAccountPage
+from ..pages.bank_accounts_page import BankAccountsPage
 from ..qt import QAction, QMainWindow, QStackedWidget
 from .router import Router
 
@@ -61,6 +62,14 @@ class MainWindow(QMainWindow):
                 navigate=self.router.navigate,
             ),
         )
+        self.router.register(
+            "bank_accounts",
+            lambda: BankAccountsPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
 
     def _build_menu(self) -> None:
         menu_bar = self.menuBar()
@@ -69,3 +78,6 @@ class MainWindow(QMainWindow):
         action_home = QAction("Home", self)
         action_home.triggered.connect(lambda: self.router.navigate("home"))
         nav_menu.addAction(action_home)
+        action_bank = QAction("חשבונות", self)
+        action_bank.triggered.connect(lambda: self.router.navigate("bank_accounts"))
+        nav_menu.addAction(action_bank)

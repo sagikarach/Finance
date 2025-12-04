@@ -167,11 +167,14 @@ def load_base_light_styles() -> str:
         padding: 10px 16px;
     }
     QPushButton#SidebarNavToggle {
-        background: #bfdbfe;
+        background: #dcecff;
         color: #0f172a;
         padding: 10px 8px;
         border-radius: 0px;
-        border: none;
+        border-top: 2px solid #a0bce2;
+        border-bottom: 2px solid #a0bce2;
+        border-left: none;
+        border-right: none;
         font-size: 14px;
         font-weight: 600;
         text-align: center;
@@ -180,7 +183,8 @@ def load_base_light_styles() -> str:
         background: #c9e1fe;
     }
     QPushButton#SidebarNavToggle:checked {
-        background: #c9e1fe;
+        background: #dcecff;
+        border-bottom: none;
     }
     QPushButton#SidebarNavSubButton {
         background: transparent;
@@ -471,17 +475,24 @@ def load_base_dark_styles() -> str:
         padding: 10px 16px;
     }
     QPushButton#SidebarNavToggle {
-        background: #111827;
+        background: #020617;
         color: #e5e7eb;
         padding: 10px 8px;
         border-radius: 0px;
-        border: none;
+        border-top: 2px solid #1f2937;
+        border-bottom: 2px solid #1f2937;
+        border-left: none;
+        border-right: none;
         font-size: 14px;
         font-weight: 600;
         text-align: center;
     }
     QPushButton#SidebarNavToggle:hover {
         background: #1f2937; /* Same as SidebarNavButton:hover */
+    }
+    QPushButton#SidebarNavToggle:checked {
+        background: #020617;
+        border-bottom: none;
     }
     QPushButton#SidebarNavSubButton {
         background: transparent; /* Transparent to show container's pressed background */
