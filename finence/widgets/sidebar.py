@@ -411,6 +411,25 @@ class Sidebar(QWidget):
         # Rebuild collapsible sections from the updated accounts list.
         self._rebuild_bank_items()
         self._rebuild_savings_items()
+        # Update button widths to ensure layout is recalculated
+        try:
+            from PySide6.QtCore import QTimer  # type: ignore
+
+            QTimer.singleShot(10, self._update_button_width)
+        except Exception:
+            try:
+                from PyQt6.QtCore import QTimer  # type: ignore
+
+                QTimer.singleShot(10, self._update_button_width)
+            except Exception:
+                self._update_button_width()
+        # Force sidebar layout update
+        try:
+            self.updateGeometry()
+            self.update()
+            self.repaint()
+        except Exception:
+            pass
 
     def refresh_profile(self) -> None:
         self._avatar.refresh()
@@ -457,8 +476,10 @@ class Sidebar(QWidget):
         )
         if hasattr(self, "_bank_section"):
             if is_bank_section:
-                # On the bank-accounts page, respect the current expanded state;
-                # just ensure the toggle is visible and reflects it.
+                # For all bank-related pages, respect the user's current
+                # expanded/collapsed state. The list should only open/close when
+                # the user clicks the arrow toggle, not automatically on route
+                # changes.
                 is_expanded = False
                 try:
                     is_expanded = self._bank_section.is_expanded()  # type: ignore[attr-defined]
@@ -535,6 +556,9 @@ class Sidebar(QWidget):
         for acc in self._accounts:
             if not isinstance(acc, BankAccount):
                 continue
+            # Only show active bank accounts
+            if not acc.active:
+                continue
             name = acc.name
 
             def make_cb(account: BankAccount) -> Callable[[], None]:
@@ -547,7 +571,51 @@ class Sidebar(QWidget):
             items.append((name, make_cb(acc)))
 
         try:
+            # BEFORE calling set_items, ensure the section is in the layout
+            # so that _apply_visibility() can properly remember its position
+            layout = self.layout()
+            bank_container = getattr(
+                self._navigation, "get_bank_container", lambda: None
+            )()
+            if (
+                layout is not None
+                and isinstance(layout, QVBoxLayout)
+                and bank_container is not None
+            ):
+                try:
+                    idx_bank = layout.indexOf(bank_container)
+                    if idx_bank != -1:
+                        # Check if section is already in layout
+                        try:
+                            idx_current = layout.indexOf(self._bank_section)  # type: ignore[arg-type]
+                        except Exception:
+                            idx_current = -1
+                        # If not in layout, insert it at the correct position
+                        if idx_current == -1:
+                            layout.insertWidget(idx_bank + 1, self._bank_section)  # type: ignore[arg-type]
+                            # Set the layout index so it's remembered even if removed later
+                            if hasattr(self._bank_section, "_layout_index"):
+                                self._bank_section._layout_index = idx_bank + 1  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+
+            # Now call set_items - this will call _apply_visibility() which can
+            # properly remember the position if the section needs to be removed
             self._bank_section.set_items(items)  # type: ignore[attr-defined]
+
+            # Force update to ensure UI refreshes
+            if items:
+                try:
+                    self._bank_section.updateGeometry()  # type: ignore[attr-defined]
+                    self._bank_section.update()  # type: ignore[attr-defined]
+                    if layout is not None:
+                        layout.invalidate()
+                        layout.activate()
+                    # Also update the sidebar itself
+                    self.updateGeometry()
+                    self.update()
+                except Exception:
+                    pass
         except Exception:
             pass
 

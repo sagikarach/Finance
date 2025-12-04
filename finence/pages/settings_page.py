@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from pathlib import Path
+from datetime import date
 
 from ..qt import (
     QLabel,
@@ -19,7 +20,8 @@ from ..qt import (
     QToolTip,
     QCursor,
 )
-from ..data.provider import AccountsProvider
+from ..data.provider import AccountsProvider, JsonFileAccountsProvider
+from ..models.accounts import BankAccount, MoneySnapshot
 from .base_page import BasePage
 
 
@@ -69,6 +71,267 @@ class SettingsPage(BasePage):
         super()._on_theme_changed(is_dark)
         if self._update_eye_icon is not None:
             self._update_eye_icon()
+
+    def _build_bank_accounts_card(self) -> QWidget:
+        """Build the bank accounts management card."""
+        card = QWidget(self)
+        card.setObjectName("Sidebar")
+        try:
+            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        try:
+            card.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # type: ignore[attr-defined]
+        except Exception:
+            try:
+                card.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+
+        title_label = QLabel("ניהול חשבונות בנק", card)
+        try:
+            title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        except Exception:
+            pass
+        layout.addWidget(title_label)
+        layout.addSpacing(8)
+
+        # The 4 default bank accounts
+        default_account_names = ["בנק", "מזומן", "ביט", "פייבוקס"]
+
+        # Load current bank accounts
+        bank_accounts: Dict[str, BankAccount] = {}
+        if isinstance(self._provider, JsonFileAccountsProvider):
+            try:
+                all_accounts = self._provider.list_accounts()
+                for acc in all_accounts:
+                    if isinstance(acc, BankAccount):
+                        bank_accounts[acc.name] = acc
+            except Exception:
+                pass
+
+        # Store UI elements for each account
+        account_widgets: Dict[str, Dict[str, Any]] = {}
+
+        # Create UI for each of the 4 accounts
+        for account_name in default_account_names:
+            account = bank_accounts.get(account_name)
+            is_active = account.active if account else False
+            current_amount = account.total_amount if account else 0.0
+
+            # Account row container
+            account_row = QWidget(card)
+            account_row_layout = QVBoxLayout(account_row)
+            account_row_layout.setContentsMargins(0, 0, 0, 0)
+            account_row_layout.setSpacing(4)
+
+            # Checkbox for active/inactive
+            active_checkbox = QCheckBox(account_name, account_row)
+            active_checkbox.setChecked(is_active)
+
+            # Amount input row
+            amount_row = QHBoxLayout()
+            amount_row.setSpacing(8)
+            amount_label = QLabel("סכום התחלתי:", account_row)
+            amount_edit = QLineEdit(account_row)
+            try:
+                amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                try:
+                    amount_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            try:
+                amount_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
+            except Exception:
+                pass
+            # Set current amount if account exists (show it even if inactive)
+            if account:
+                amount_edit.setText(f"{current_amount:.2f}")
+            amount_edit.setEnabled(is_active)
+            amount_edit.setPlaceholderText("0.00")
+
+            dash = QLabel("-", account_row)
+            amount_row.addWidget(amount_label)
+            amount_row.addWidget(dash)
+            amount_row.addWidget(amount_edit, 1)
+
+            # Toggle amount input visibility/enabled based on active checkbox
+            def make_toggle_handler(edit: QLineEdit) -> Callable[[bool], None]:
+                def handler(checked: bool) -> None:
+                    edit.setEnabled(checked)
+                    if not checked:
+                        edit.clear()
+
+                return handler
+
+            active_checkbox.toggled.connect(make_toggle_handler(amount_edit))  # type: ignore[arg-type]
+
+            account_row_layout.addWidget(active_checkbox)
+            account_row_layout.addLayout(amount_row)
+
+            layout.addWidget(account_row)
+
+            # Store widgets for save handler
+            account_widgets[account_name] = {
+                "checkbox": active_checkbox,
+                "amount_edit": amount_edit,
+                "current_account": account,
+            }
+
+        layout.addStretch(1)
+
+        # Save button
+        save_button = QPushButton("שמור חשבונות", card)
+        save_button.setObjectName("SaveButton")
+
+        def on_save_bank_accounts() -> None:
+            if not isinstance(self._provider, JsonFileAccountsProvider):
+                try:
+                    QToolTip.showText(QCursor.pos(), "שגיאה: לא ניתן לשמור חשבונות")
+                except Exception:
+                    pass
+                return
+
+            try:
+                updated_bank_accounts: List[BankAccount] = []
+                today_str = date.today().isoformat()
+
+                for account_name, widgets in account_widgets.items():
+                    checkbox = widgets["checkbox"]
+                    amount_edit = widgets["amount_edit"]
+                    current_account = widgets["current_account"]
+
+                    is_active = checkbox.isChecked()
+                    amount_text = amount_edit.text().strip()
+
+                    # Get or create account
+                    if current_account:
+                        account = current_account
+                        was_inactive = not account.active
+                        is_being_activated = is_active and was_inactive
+                    else:
+                        # Create new account (inactive by default)
+                        account = BankAccount(
+                            name=account_name,
+                            total_amount=0.0,
+                            is_liquid=account_name == "מזומן",  # מזומן is liquid
+                            history=[],
+                            active=False,
+                        )
+                        is_being_activated = is_active
+
+                    # If being activated and has starter amount, add to history
+                    new_history = list(account.history)
+                    new_total = account.total_amount
+
+                    if is_being_activated and amount_text:
+                        try:
+                            starter_amount = float(amount_text)
+                            if starter_amount > 0:
+                                # Add starter amount to history with today's date
+                                new_history.append(
+                                    MoneySnapshot(date=today_str, amount=starter_amount)
+                                )
+                                new_total = starter_amount
+                        except (ValueError, TypeError):
+                            pass
+
+                    # Create updated account with new active status and history
+                    account = BankAccount(
+                        name=account.name,
+                        total_amount=new_total,
+                        is_liquid=account.is_liquid,
+                        history=new_history,
+                        active=is_active,
+                    )
+
+                    # Always add account to the list (active or inactive)
+                    updated_bank_accounts.append(account)
+
+                # Save bank accounts
+                self._provider.save_bank_accounts(updated_bank_accounts)
+
+                # Reload accounts to refresh UI
+                try:
+                    self._accounts = self._provider.list_accounts()
+                except Exception:
+                    pass
+
+                # Update sidebar with a small delay to ensure data is saved
+                def update_sidebar() -> None:
+                    if self._sidebar is not None and hasattr(
+                        self._sidebar, "update_accounts"
+                    ):
+                        try:
+                            # Reload accounts again to ensure we have the latest data
+                            try:
+                                latest_accounts = self._provider.list_accounts()
+                            except Exception:
+                                latest_accounts = self._accounts
+                            self._sidebar.update_accounts(latest_accounts)  # type: ignore[arg-type]
+                        except Exception:
+                            pass
+
+                try:
+                    from PySide6.QtCore import QTimer  # type: ignore
+
+                    QTimer.singleShot(50, update_sidebar)
+                except Exception:
+                    try:
+                        from PyQt6.QtCore import QTimer  # type: ignore
+
+                        QTimer.singleShot(50, update_sidebar)
+                    except Exception:
+                        update_sidebar()
+
+                # Update checkboxes to reflect saved state
+                for account_name, widgets in account_widgets.items():
+                    checkbox = widgets["checkbox"]
+                    amount_edit = widgets["amount_edit"]
+                    # Find the saved account
+                    saved_account = None
+                    for acc in updated_bank_accounts:
+                        if acc.name == account_name:
+                            saved_account = acc
+                            break
+                    if saved_account:
+                        # Update checkbox to match saved state
+                        checkbox.blockSignals(True)
+                        checkbox.setChecked(saved_account.active)
+                        checkbox.blockSignals(False)
+                        # Update amount field
+                        if saved_account.active and saved_account.total_amount > 0:
+                            amount_edit.setText(f"{saved_account.total_amount:.2f}")
+                        amount_edit.setEnabled(saved_account.active)
+
+                # Show confirmation
+                try:
+                    QToolTip.showText(QCursor.pos(), "חשבונות הבנק נשמרו")
+                except Exception:
+                    pass
+
+            except Exception as e:
+                try:
+                    QToolTip.showText(QCursor.pos(), f"שגיאה בשמירה: {str(e)}")
+                except Exception:
+                    pass
+
+        save_button.clicked.connect(on_save_bank_accounts)  # type: ignore[arg-type]
+
+        try:
+            layout.addWidget(
+                save_button,
+                0,
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            )
+        except Exception:
+            layout.addWidget(save_button)
+
+        return card
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         """Build settings page specific content: user settings and grid layout."""
@@ -379,14 +642,14 @@ class SettingsPage(BasePage):
             layout_card.addStretch(1)
             return card
 
-        extra_card_top_right = _make_extra_card("הגדרות נוספות")
+        bank_accounts_card = self._build_bank_accounts_card()
         extra_card_bottom_left = _make_extra_card("הגדרה פנויה")
         extra_card_bottom_right = _make_extra_card("הגדרה פנויה")
 
-        # First row: extra square + user settings square
+        # First row: bank accounts + user settings square
         row1 = QHBoxLayout()
         row1.setSpacing(16)
-        row1.addWidget(extra_card_top_right, 1)
+        row1.addWidget(bank_accounts_card, 1)
         row1.addWidget(content_card, 1)
 
         # Second row: two extra squares

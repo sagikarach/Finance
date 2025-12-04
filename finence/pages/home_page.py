@@ -16,6 +16,7 @@ from ..qt import (
 )
 from ..data.provider import AccountsProvider
 from ..models.accounts import (
+    BankAccount,
     compute_total_amount,
     compute_total_liquid_amount,
 )
@@ -52,8 +53,14 @@ class HomePage(BasePage):
         return buttons
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
-        total_all = compute_total_amount(self._accounts)
-        total_liquid = compute_total_liquid_amount(self._accounts)
+        # Filter out inactive bank accounts
+        active_accounts = [
+            acc
+            for acc in self._accounts
+            if not isinstance(acc, BankAccount) or acc.active
+        ]
+        total_all = compute_total_amount(active_accounts)
+        total_liquid = compute_total_liquid_amount(active_accounts)
 
         total_all_card = QWidget(self)
         total_all_card.setObjectName("StatCardGreen")
@@ -138,7 +145,7 @@ class HomePage(BasePage):
         cards_row.addWidget(total_liquid_card, 1)
         main_col.addLayout(cards_row, 0)
 
-        chart = AccountsPieChart(accounts=self._accounts, parent=self)
+        chart = AccountsPieChart(accounts=active_accounts, parent=self)
 
         chart_card = QWidget(self)
         chart_card.setObjectName("Sidebar")

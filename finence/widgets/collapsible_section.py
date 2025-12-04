@@ -85,7 +85,7 @@ class CollapsibleButtonList(QWidget):
 
         self._content_layout = QVBoxLayout(self._content)
         self._content_layout.setContentsMargins(0, 0, 0, 4)
-        self._content_layout.setSpacing(4)
+        self._content_layout.setSpacing(0)
 
         self._root_layout.addWidget(self._header)
         self._root_layout.addWidget(self._content)
@@ -150,7 +150,48 @@ class CollapsibleButtonList(QWidget):
 
             self._content_layout.addWidget(row)
 
+        # Before applying visibility, if we have items and a _layout_index but aren't in layout,
+        # insert ourselves into the layout so _apply_visibility can properly remember the position
+        if self._items and self._layout_index is not None:
+            parent = self.parentWidget()
+            parent_layout = parent.layout() if parent is not None else None
+            try:
+                from ..qt import QVBoxLayout as _QVBoxLayout  # type: ignore
+            except Exception:
+                _QVBoxLayout = None  # type: ignore
+
+            if (
+                parent_layout is not None
+                and _QVBoxLayout is not None
+                and isinstance(parent_layout, _QVBoxLayout)
+            ):
+                try:
+                    idx_current = parent_layout.indexOf(self)  # type: ignore[arg-type]
+                except Exception:
+                    idx_current = -1
+                if idx_current == -1:
+                    # Not in layout, insert at remembered position
+                    try:
+                        parent_layout.insertWidget(self._layout_index, self)  # type: ignore[arg-type]
+                        parent_layout.invalidate()
+                        parent_layout.activate()
+                        if parent is not None:
+                            parent.updateGeometry()
+                            parent.update()
+                    except Exception:
+                        pass
+
         self._apply_visibility()
+
+        # Force update to ensure UI refreshes
+        if self._items:
+            try:
+                self.updateGeometry()
+                self.update()
+                self._content.updateGeometry()
+                self._content.update()
+            except Exception:
+                pass
 
     def set_expanded(self, expanded: bool) -> None:
         """Set expanded state and update visibility."""
@@ -284,8 +325,10 @@ class CollapsibleButtonList(QWidget):
                     except Exception:
                         idx_current = -1
                     # Remember the position for re-insertion
-                    self._layout_index = idx_current if idx_current >= 0 else None
-                    if idx_current != -1:
+                    # Only update _layout_index if we're actually in the layout
+                    # Otherwise, preserve the existing _layout_index if it was set
+                    if idx_current >= 0:
+                        self._layout_index = idx_current
                         try:
                             parent_layout.removeWidget(self)  # type: ignore[arg-type]
                             # Force layout to recalculate and update immediately
@@ -298,6 +341,8 @@ class CollapsibleButtonList(QWidget):
                                 parent.repaint()
                         except Exception:
                             pass
+                    # If not in layout, keep existing _layout_index (don't set to None)
+                    # This allows the sidebar to set _layout_index before calling set_items
 
                 self._apply_collapsed_style()
                 self.setFixedHeight(0)

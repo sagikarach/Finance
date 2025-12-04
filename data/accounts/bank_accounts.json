@@ -1,8 +1,9 @@
 [
   {
     "name": "בנק",
-    "is_liquid": false,
+    "is_liquid": true,
     "total_amount": 1500.75,
+    "active": true,
     "history": [
       {
         "date": "2025-01-01",
@@ -30,6 +31,7 @@
     "name": "מזומן",
     "is_liquid": true,
     "total_amount": 4000.0,
+    "active": true,
     "history": [
       {
         "date": "2025-01-01",
@@ -44,5 +46,36 @@
         "amount": 4000.0
       }
     ]
+  },
+  {
+    "name": "ביט",
+    "is_liquid": true,
+    "total_amount": 500.0,
+    "active": true,
+    "history": [
+      {
+        "date": "2025-12-04",
+        "amount": 500.0
+      },
+      {
+        "date": "2025-12-04",
+        "amount": 500.0
+      },
+      {
+        "date": "2025-12-04",
+        "amount": 500.0
+      },
+      {
+        "date": "2025-12-04",
+        "amount": 500.0
+      }
+    ]
+  },
+  {
+    "name": "פייבוקס",
+    "is_liquid": true,
+    "total_amount": 0.0,
+    "active": true,
+    "history": []
   }
 ]

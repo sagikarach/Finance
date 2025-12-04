@@ -77,11 +77,5 @@
         ]
       }
     ]
-  },
-  {
-    "name": "טסט",
-    "is_liquid": false,
-    "total_amount": 0.0,
-    "savings": []
   }
 ]

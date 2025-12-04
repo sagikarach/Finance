@@ -44,7 +44,34 @@ class BankAccountsPage(BasePage):
         )
 
     def on_route_activated(self) -> None:
-        """Sync header toggle + sidebar with current theme when opened."""
+        """Reload accounts and refresh content when route is activated."""
+        # Reload accounts from provider to pick up any changes
+        try:
+            self._accounts = self._provider.list_accounts()
+        except Exception:
+            pass
+
+        # Keep the sidebar's bank-accounts list in sync so newly activated /
+        # deactivated accounts appear immediately in the collapsible list.
+        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
+            try:
+                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+            except Exception:
+                pass
+
+        # Rebuild content to show updated accounts
+        if isinstance(self._content_col, QVBoxLayout):
+            layout = self._content_col
+            # Clear existing content
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+            # Rebuild with updated accounts
+            self._build_content(layout)
+
+        # Sync theme
         app = QApplication.instance()
         is_dark = False
         if app is not None:
@@ -69,7 +96,7 @@ class BankAccountsPage(BasePage):
     def _build_content(self, main_col: QVBoxLayout) -> None:
         """Build bank-accounts page content with totals and a pie chart."""
         bank_accounts: List[BankAccount] = [
-            acc for acc in self._accounts if isinstance(acc, BankAccount)
+            acc for acc in self._accounts if isinstance(acc, BankAccount) and acc.active
         ]
 
         total_all = compute_total_amount(bank_accounts)
@@ -162,7 +189,10 @@ class BankAccountsPage(BasePage):
 
         # --- Middle: pie chart of bank accounts only ---
         if bank_accounts:
-            chart = AccountsPieChart(accounts=bank_accounts, parent=self)
+            # Cast to List[MoneyAccount] for type compatibility
+            chart = AccountsPieChart(
+                accounts=[acc for acc in bank_accounts], parent=self
+            )  # type: ignore[arg-type]
 
             chart_card = QWidget(self)
             chart_card.setObjectName("Sidebar")

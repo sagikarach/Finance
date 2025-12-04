@@ -97,12 +97,16 @@ class JsonFileAccountsProvider(AccountsProvider):
                     if latest is not None:
                         total_amount = float(latest)
 
+                # Get active field, defaulting to True for backward compatibility
+                active = bool(item.get("active", False))
+
                 accounts.append(
                     BankAccount(
                         name=name,
                         total_amount=float(total_amount),
                         is_liquid=is_liquid,
                         history=account_history,
+                        active=active,
                     )
                 )
             except Exception:
@@ -215,7 +219,7 @@ class JsonFileAccountsProvider(AccountsProvider):
                         for snapshot in savings_item.history
                     ],
                 }
-                account_dict["savings"].append(savings_dict)
+                account_dict["savings"].append(savings_dict)  # type: ignore[attr-defined]
             json_data.append(account_dict)
 
         # Write to file
@@ -233,6 +237,7 @@ class JsonFileAccountsProvider(AccountsProvider):
                 "name": account.name,
                 "is_liquid": account.is_liquid,
                 "total_amount": account.total_amount,
+                "active": account.active,
                 "history": [
                     {"date": snap.date, "amount": snap.amount}
                     for snap in account.history

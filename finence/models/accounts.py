@@ -36,6 +36,7 @@ class BankAccount(MoneyAccount):
     """Account with history tracking at the account level."""
 
     history: List[MoneySnapshot] = field(default_factory=list)
+    active: bool = False
 
     def __post_init__(self) -> None:
         # Compute total_amount from history if history exists
