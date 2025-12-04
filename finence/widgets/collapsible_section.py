@@ -181,6 +181,18 @@ class CollapsibleButtonList(QWidget):
         # header is hidden and the list is not expanded.
         self._apply_visibility()
 
+    def refresh_theme(self) -> None:
+        """Re-apply styling based on current theme and expanded/collapsed state."""
+        has_items = bool(self._items)
+        show_content = self._expanded and has_items
+
+        if show_content:
+            # Re-apply expanded styling
+            self._apply_pressed_style()
+        else:
+            # Re-apply collapsed styling
+            self._apply_collapsed_style()
+
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
@@ -217,7 +229,7 @@ class CollapsibleButtonList(QWidget):
                 h = self._header.sizeHint().height()
                 self.setMinimumHeight(0)
                 self.setMaximumHeight(h)
-                self._content.setStyleSheet("")
+                self._apply_collapsed_style()
                 self.show()
         else:
             # Content-only mode (used under external header in sidebar).
@@ -287,9 +299,7 @@ class CollapsibleButtonList(QWidget):
                         except Exception:
                             pass
 
-                # Clear all styling, set zero size, and hide completely
-                self._content.setStyleSheet("")
-                self.setStyleSheet("")  # Clear widget's own background
+                self._apply_collapsed_style()
                 self.setFixedHeight(0)
                 self.setMinimumHeight(0)
                 self.setMaximumHeight(0)
@@ -300,7 +310,6 @@ class CollapsibleButtonList(QWidget):
         self.toggle()
 
     def _apply_pressed_style(self) -> None:
-        """Apply pressed background/border styling based on current theme."""
         try:
             from PySide6.QtWidgets import QApplication  # type: ignore
         except Exception:
@@ -336,3 +345,7 @@ class CollapsibleButtonList(QWidget):
         self._content.setStyleSheet(
             f"QWidget#SidebarSavingsList {{ background: {container_bg}; {border_css}}}"
         )
+
+    def _apply_collapsed_style(self) -> None:
+        self._content.setStyleSheet("QWidget#SidebarSavingsList { background: transparent; }")
+        self.setStyleSheet("background: transparent;")

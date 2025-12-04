@@ -243,6 +243,28 @@ class Sidebar(QWidget):
         # Navigate to the savings-account detail page.
         self._navigate("savings_account")  # type: ignore[arg-type]
 
+    def _on_bank_account_clicked(self, account: BankAccount) -> None:
+        """Handle click on a specific bank account button in the sidebar."""
+        if self._navigate is None:
+            return
+
+        # Propagate selected account name up to the closest BasePage so it can
+        # be read by the bank-account detail page via the shared app_context.
+        parent = self.parent()
+        while parent is not None and not hasattr(
+            parent, "set_selected_bank_account"
+        ):
+            parent = parent.parent()
+
+        if parent is not None and hasattr(parent, "set_selected_bank_account"):
+            try:
+                parent.set_selected_bank_account(account.name)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        # Navigate to the bank-account detail page.
+        self._navigate("bank_account")  # type: ignore[arg-type]
+
     def _apply_toggle_button_style(self) -> None:
         toggle_btn = self._navigation.get_savings_toggle_button()
         savings_btn = self._navigation.get_savings_button()
@@ -324,6 +346,8 @@ class Sidebar(QWidget):
                 if event.type() == QEvent.Type.StyleChange:  # type: ignore
                     QTimer.singleShot(50, self._update_button_width)
                     self._apply_toggle_button_style()
+                    # Refresh collapsible sections styling
+                    self._refresh_collapsible_sections()
             except Exception:
                 try:
                     from PyQt6.QtCore import QEvent, QTimer  # type: ignore
@@ -331,10 +355,25 @@ class Sidebar(QWidget):
                     if event.type() == QEvent.Type.StyleChange:  # type: ignore
                         QTimer.singleShot(50, self._update_button_width)
                         self._apply_toggle_button_style()
+                        # Refresh collapsible sections styling
+                        self._refresh_collapsible_sections()
                 except Exception:
                     pass
 
         self.changeEvent = changeEvent  # type: ignore[assignment]
+
+    def _refresh_collapsible_sections(self) -> None:
+        """Refresh styling of collapsible sections when theme changes."""
+        if hasattr(self, "_savings_section"):
+            try:
+                self._savings_section.refresh_theme()  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        if hasattr(self, "_bank_section"):
+            try:
+                self._bank_section.refresh_theme()  # type: ignore[attr-defined]
+            except Exception:
+                pass
 
     def _update_button_width(self) -> None:
         sidebar_width = self.width()
@@ -385,6 +424,7 @@ class Sidebar(QWidget):
 
         is_home = route == "home"
         is_bank = route == "bank_accounts"
+        is_bank_section = route in ("bank_accounts", "bank_account")
         # Distinguish between the main savings page (where the savings button
         # itself should be disabled, like the dashboard button on home) and the
         # per-account page, which should still allow clicking the savings
@@ -405,18 +445,20 @@ class Sidebar(QWidget):
         )
         if bank_btn:
             bank_btn.blockSignals(True)
-            bank_btn.setChecked(is_bank)
+            bank_btn.setChecked(is_bank_section)
+            # Disable only on the main bank-accounts page; keep it enabled on the
+            # per-account page so clicking it navigates back to the overview.
             bank_btn.setEnabled(not is_bank)
             bank_btn.blockSignals(False)
 
-        # Show bank accounts list + its toggle only on the bank-accounts page.
+        # Show bank accounts list + its toggle on bank-related pages.
         bank_toggle_btn = (
             self._navigation.get_bank_toggle_button()
             if hasattr(self._navigation, "get_bank_toggle_button")
             else None
         )
         if hasattr(self, "_bank_section"):
-            if is_bank:
+            if is_bank_section:
                 # On the bank-accounts page, respect the current expanded state;
                 # just ensure the toggle is visible and reflects it.
                 is_expanded = False
@@ -497,12 +539,10 @@ class Sidebar(QWidget):
                 continue
             name = acc.name
 
-            def make_cb(a: BankAccount) -> Callable[[], None]:
+            def make_cb(account: BankAccount) -> Callable[[], None]:
                 def _cb() -> None:
-                    # Navigate to the bank-accounts page; we can later extend
-                    # this to focus a specific account if needed.
-                    if self._navigate is not None:
-                        self._navigate("bank_accounts")  # type: ignore[arg-type]
+                    # Reuse existing selection + navigation behaviour.
+                    self._on_bank_account_clicked(account)
 
                 return _cb
 

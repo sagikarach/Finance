@@ -241,14 +241,15 @@ class BasePage(QWidget):
                 except Exception:
                     pass
 
-            if hasattr(self._sidebar, "_savings_list"):
+            # Refresh collapsible sections styling
+            if hasattr(self._sidebar, "_savings_section"):
                 try:
-                    self._sidebar._savings_list.refresh_theme()  # type: ignore[attr-defined]
+                    self._sidebar._savings_section.refresh_theme()  # type: ignore[attr-defined]
                 except Exception:
                     pass
-            if hasattr(self._sidebar, "_bank_list"):
+            if hasattr(self._sidebar, "_bank_section"):
                 try:
-                    self._sidebar._bank_list.refresh_theme()  # type: ignore[attr-defined]
+                    self._sidebar._bank_section.refresh_theme()  # type: ignore[attr-defined]
                 except Exception:
                     pass
 
@@ -274,5 +275,11 @@ class BasePage(QWidget):
     def set_selected_savings_account(self, account_name: str) -> None:
         try:
             self._app_context["selected_savings_account"] = account_name
+        except Exception:
+            pass
+
+    def set_selected_bank_account(self, account_name: str) -> None:
+        try:
+            self._app_context["selected_bank_account"] = account_name
         except Exception:
             pass
