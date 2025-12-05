@@ -1,13 +1,12 @@
-"""Button positioning utilities for sidebar components."""
+from typing import Any
 
 
 def update_dashboard_button_width(
-    sidebar: object,
+    sidebar: Any,
     sidebar_width: int,
-    button_container: object,
-    dashboard_btn: object,
+    button_container: Any,
+    dashboard_btn: Any,
 ) -> None:
-    """Update dashboard button container and button to full width."""
     if not button_container or not button_container.isVisible():
         return
 
@@ -29,13 +28,12 @@ def update_dashboard_button_width(
 
 
 def update_bank_button_width(
-    sidebar: object,
+    sidebar: Any,
     sidebar_width: int,
-    bank_button_container: object,
-    bank_btn: object,
-    bank_toggle_btn: object,
+    bank_button_container: Any,
+    bank_btn: Any,
+    bank_toggle_btn: Any,
 ) -> None:
-    """Update bank-accounts button container, button, and toggle to full width."""
     if not bank_button_container or not bank_button_container.isVisible():
         return
 
@@ -65,13 +63,12 @@ def update_bank_button_width(
 
 
 def update_savings_button_width(
-    sidebar: object,
+    sidebar: Any,
     sidebar_width: int,
-    savings_button_container: object,
-    savings_btn: object,
-    savings_toggle_btn: object,
+    savings_button_container: Any,
+    savings_btn: Any,
+    savings_toggle_btn: Any,
 ) -> None:
-    """Update savings button container, button, and toggle to full width."""
     if not savings_button_container or not savings_button_container.isVisible():
         return
 
@@ -101,11 +98,10 @@ def update_savings_button_width(
 
 
 def update_savings_accounts_container_width(
-    sidebar: object,
+    sidebar: Any,
     sidebar_width: int,
-    savings_accounts_container: object,
+    savings_accounts_container: Any,
 ) -> None:
-    """Update savings accounts container to full width."""
     if not savings_accounts_container or not savings_accounts_container.isVisible():
         return
 

@@ -18,23 +18,6 @@ def load_home_page_light_styles() -> str:
         padding: 6px 8px;
         background: transparent;
     }
-    /* Colored stat cards */
-    QWidget#StatCardGreen {
-        background: #22c55e; /* green-500 */
-        border: none;
-        border-radius: 20px;
-    }
-    QWidget#StatCardPurple {
-        background: #6366f1; /* indigo-500 */
-        border: none;
-        border-radius: 20px;
-    }
-    QWidget#StatCardGreen *, QWidget#StatCardPurple * {
-        background: transparent; /* avoid white fill from descendants */
-    }
-    QWidget#StatCardGreen QLabel, QWidget#StatCardPurple QLabel {
-        color: #0b1220;
-    }
     """
 
 

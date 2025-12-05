@@ -18,20 +18,16 @@ from ..qt import (
     QComboBox,
     QLineEdit,
 )
-from ..data.provider import AccountsProvider, JsonFileAccountsProvider
+from ..data.provider import AccountsProvider
 from ..models.accounts import (
     compute_savings_account_total_amount,
     compute_savings_account_liquid_amount,
     SavingsAccount,
     BankAccount,
 )
-from ..models.transfers import TransferEndpoint, TransferRequest, apply_transfer
-from ..models.savings_dialogs import (
-    SavingsAccountForm,
-    form_to_new_savings_account,
-    form_to_updated_savings_account,
-    remove_savings_account,
-)
+from ..models.transfers import TransferEndpoint, TransferRequest
+from ..models.savings_dialogs import SavingsAccountForm
+from ..models.accounts_service import AccountsService
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..ui.savings_account_dialog import SavingsAccountDialog
 from ..ui.edit_savings_account_dialog import EditSavingsAccountDialog
@@ -41,8 +37,6 @@ from .base_page import BasePage
 
 
 class SavingsPage(BasePage):
-    """Savings page showing the state of user accounts."""
-
     def __init__(
         self,
         app_context: Optional[Dict[str, str]] = None,
@@ -58,9 +52,9 @@ class SavingsPage(BasePage):
             page_title="חסכונות",
             current_route="savings",
         )
+        self._accounts_service = AccountsService(self._provider)
 
     def on_route_activated(self) -> None:
-        """Sync header toggle + sidebar savings list with current theme when opened."""
         app = QApplication.instance()
         is_dark = False
         if app is not None:
@@ -68,12 +62,10 @@ class SavingsPage(BasePage):
                 is_dark = str(app.property("theme") or "light") == "dark"
             except Exception:
                 is_dark = False
-        # This will also refresh the sidebar's savings-list background for
-        # the active theme via BasePage._on_theme_changed.
+
         self._on_theme_changed(is_dark)
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
-        """Add settings button to header."""
         buttons = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
@@ -85,7 +77,6 @@ class SavingsPage(BasePage):
         return buttons
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
-        """Build savings page content with total and liquid amount cards from SavingsAccount only."""
         total_all = compute_savings_account_total_amount(self._accounts)
         total_liquid = compute_savings_account_liquid_amount(self._accounts)
 
@@ -93,6 +84,7 @@ class SavingsPage(BasePage):
         total_all_card.setObjectName("StatCardGreen")
         try:
             total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            total_all_card.setAutoFillBackground(True)
         except Exception:
             pass
         total_all_card_layout = QVBoxLayout(total_all_card)
@@ -121,6 +113,7 @@ class SavingsPage(BasePage):
         total_liquid_card.setObjectName("StatCardPurple")
         try:
             total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            total_liquid_card.setAutoFillBackground(True)
         except Exception:
             pass
         total_liquid_card_layout = QVBoxLayout(total_liquid_card)
@@ -172,7 +165,6 @@ class SavingsPage(BasePage):
         cards_row.addWidget(total_liquid_card, 1)
         main_col.addLayout(cards_row, 0)
 
-        # Filter to only SavingsAccount for the pie chart
         from ..models.accounts import MoneyAccount
 
         savings_accounts: List[MoneyAccount] = [
@@ -201,10 +193,8 @@ class SavingsPage(BasePage):
         chart_side_layout.setContentsMargins(12, 12, 12, 12)
         chart_side_layout.setSpacing(0)
 
-        # Add buttons with equal spacing
         add_button = QPushButton("הוסף סוג חסכון", chart_side_card)
         add_button.setObjectName("AddButton")
-        # Make buttons twice as high
         try:
             add_button.setMinimumHeight(add_button.sizeHint().height() * 2)
         except Exception:
@@ -231,14 +221,12 @@ class SavingsPage(BasePage):
         except Exception:
             pass
 
-        # Connect button handlers
         add_button.clicked.connect(lambda: self._handle_add_account())  # type: ignore[arg-type]
         edit_button.clicked.connect(lambda: self._handle_edit_account())  # type: ignore[arg-type]
         delete_button.clicked.connect(lambda: self._handle_delete_account())  # type: ignore[arg-type]
         move_button.clicked.connect(lambda: self._handle_move_between_accounts())  # type: ignore[arg-type]
 
         chart_side_layout.addStretch(1)
-        # Order: move money, add, edit, delete.
         chart_side_layout.addWidget(move_button, 0)
         chart_side_layout.addStretch(1)
         chart_side_layout.addWidget(add_button, 0)
@@ -256,44 +244,27 @@ class SavingsPage(BasePage):
         main_col.addLayout(chart_row, 1)
 
     def _get_savings_accounts(self) -> List[SavingsAccount]:
-        """Get list of SavingsAccount instances from current accounts."""
         return [acc for acc in self._accounts if isinstance(acc, SavingsAccount)]
 
     def _get_bank_accounts(self) -> List[BankAccount]:
-        """Get list of BankAccount instances from current accounts."""
         return [acc for acc in self._accounts if isinstance(acc, BankAccount)]
 
     def _save_and_refresh(self) -> None:
-        """Save savings accounts to JSON and refresh the page."""
-        if not isinstance(self._provider, JsonFileAccountsProvider):
-            return
-
-        savings_accounts = self._get_savings_accounts()
-        bank_accounts = self._get_bank_accounts()
         try:
-            self._provider.save_savings_accounts(savings_accounts)
+            self._accounts_service.save_all(self._accounts)
         except Exception:
             pass
         try:
-            # JsonFileAccountsProvider also knows how to persist bank accounts.
-            self._provider.save_bank_accounts(bank_accounts)  # type: ignore[attr-defined]
+            self._accounts = self._accounts_service.load_accounts()
         except Exception:
             pass
 
-        # Reload accounts from provider
-        self._accounts = self._provider.list_accounts()
-
-        # Update sidebar with new accounts while preserving the current
-        # expanded/collapsed state of the savings list.
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
                 self._sidebar.update_accounts(self._accounts)
             except Exception:
                 pass
 
-        # Refresh this page's content in-place instead of navigating away and
-        # back. This avoids the sidebar savings list visibly closing/re-opening
-        # when editing an account.
         if isinstance(self._content_col, QVBoxLayout):
             layout = self._content_col
             while layout.count():
@@ -316,17 +287,16 @@ class SavingsPage(BasePage):
             if not form.name.strip():
                 return
 
-            new_account = form_to_new_savings_account(form)
-            self._accounts.append(new_account)
+            self._accounts = self._accounts_service.add_savings_account(
+                self._accounts, form
+            )
             self._save_and_refresh()
 
     def _handle_edit_account(self) -> None:
-        """Handle edit button click - open dialog to edit selected SavingsAccount."""
         savings_accounts = self._get_savings_accounts()
         if not savings_accounts:
             return
 
-        # Get existing account names for validation
         existing_names = [acc.name for acc in savings_accounts]
 
         dialog = EditSavingsAccountDialog(
@@ -339,7 +309,6 @@ class SavingsPage(BasePage):
             if selected_account is None:
                 return
 
-            # Find the actual account object in self._accounts
             account_to_edit = None
             for account in self._accounts:
                 if account is selected_account:
@@ -347,7 +316,6 @@ class SavingsPage(BasePage):
                     break
 
             if account_to_edit is None:
-                # Fallback: find by name
                 for account in self._accounts:
                     if (
                         isinstance(account, SavingsAccount)
@@ -366,24 +334,9 @@ class SavingsPage(BasePage):
             if not form.name.strip():
                 return
 
-            updated_account = form_to_updated_savings_account(account_to_edit, form)
-
-            # Replace the old account with the new one in the list
-            for i, account in enumerate(self._accounts):
-                if account is account_to_edit:
-                    self._accounts[i] = updated_account
-                    break
-            else:
-                # Fallback: find by name
-                original_name = account_to_edit.name
-                for i, account in enumerate(self._accounts):
-                    if (
-                        isinstance(account, SavingsAccount)
-                        and account.name == original_name
-                    ):
-                        self._accounts[i] = updated_account
-                        break
-
+            self._accounts = self._accounts_service.edit_savings_account(
+                self._accounts, account_to_edit, form
+            )
             self._save_and_refresh()
 
     def _handle_delete_account(self) -> None:
@@ -397,7 +350,9 @@ class SavingsPage(BasePage):
             if selected_account is None:
                 return
 
-            self._accounts = remove_savings_account(self._accounts, selected_account)
+            self._accounts = self._accounts_service.delete_savings_account(
+                self._accounts, selected_account
+            )
             self._save_and_refresh()
 
     def _handle_move_between_accounts(self) -> None:
@@ -408,8 +363,6 @@ class SavingsPage(BasePage):
         if not self._accounts:
             return
 
-        # Build a flat list of endpoints: (label, kind, account_index, saving_index)
-        # kind is "bank" or "saving". For bank accounts saving_index is -1.
         endpoints: List[tuple[str, str, int, int]] = []
         for acc_idx, acc in enumerate(self._accounts):
             if isinstance(acc, BankAccount):
@@ -418,7 +371,6 @@ class SavingsPage(BasePage):
                 label = acc.name
                 endpoints.append((label, "bank", acc_idx, -1))
             elif isinstance(acc, SavingsAccount):
-                # For savings, show "account name — saving name".
                 for s_idx, s in enumerate(acc.savings):
                     label = f"{acc.name} — {s.name}"
                     endpoints.append((label, "saving", acc_idx, s_idx))
@@ -432,7 +384,6 @@ class SavingsPage(BasePage):
             title="העבר כסף בין חסכונות",
         )
 
-        # Source endpoint
         src_row = QHBoxLayout()
         src_label = QLabel("העבר מ:", dlg)
         src_combo = QComboBox(dlg)
@@ -593,7 +544,9 @@ class SavingsPage(BasePage):
                 amount=amount,
             )
 
-            result = apply_transfer(self._accounts, request)
+            result = self._accounts_service.apply_transfer_request(
+                self._accounts, request
+            )
             if result.error is not None:
                 error_label.setText(result.error.message)
                 error_label.show()

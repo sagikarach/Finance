@@ -8,25 +8,19 @@ from ..qt import (
     QHBoxLayout,
     QWidget,
     Qt,
-    QColor,
-    QGraphicsDropShadowEffect,
     QSizePolicy,
     QApplication,
     QToolButton,
 )
 from ..data.provider import AccountsProvider
-from ..models.accounts import (
-    BankAccount,
-    compute_total_amount,
-    compute_total_liquid_amount,
-)
+from ..models.accounts import BankAccount
+from ..models.accounts_service import AccountsService
+from ..models.overview import AccountsOverview
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from .base_page import BasePage
 
 
 class BankAccountsPage(BasePage):
-    """Bank accounts overview page (חשבונות) similar to the savings overview."""
-
     def __init__(
         self,
         app_context: Optional[Dict[str, str]] = None,
@@ -42,36 +36,29 @@ class BankAccountsPage(BasePage):
             page_title="חשבונות",
             current_route="bank_accounts",
         )
+        self._accounts_service = AccountsService(self._provider)
 
     def on_route_activated(self) -> None:
-        """Reload accounts and refresh content when route is activated."""
-        # Reload accounts from provider to pick up any changes
         try:
-            self._accounts = self._provider.list_accounts()
+            self._accounts = self._accounts_service.load_accounts()
         except Exception:
             pass
 
-        # Keep the sidebar's bank-accounts list in sync so newly activated /
-        # deactivated accounts appear immediately in the collapsible list.
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
                 self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
             except Exception:
                 pass
 
-        # Rebuild content to show updated accounts
         if isinstance(self._content_col, QVBoxLayout):
             layout = self._content_col
-            # Clear existing content
             while layout.count():
                 item = layout.takeAt(0)
                 widget = item.widget()
                 if widget is not None:
                     widget.deleteLater()
-            # Rebuild with updated accounts
             self._build_content(layout)
 
-        # Sync theme
         app = QApplication.instance()
         is_dark = False
         if app is not None:
@@ -82,7 +69,6 @@ class BankAccountsPage(BasePage):
         self._on_theme_changed(is_dark)
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
-        """Add settings button to header."""
         buttons: List[QToolButton] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
@@ -94,19 +80,19 @@ class BankAccountsPage(BasePage):
         return buttons
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
-        """Build bank-accounts page content with totals and a pie chart."""
+        overview = AccountsOverview.for_bank_accounts(self._accounts)
         bank_accounts: List[BankAccount] = [
-            acc for acc in self._accounts if isinstance(acc, BankAccount) and acc.active
+            acc for acc in overview.accounts if isinstance(acc, BankAccount)
         ]
 
-        total_all = compute_total_amount(bank_accounts)
-        total_liquid = compute_total_liquid_amount(bank_accounts)
+        total_all = overview.total_all
+        total_liquid = overview.total_liquid
 
-        # --- Top cards: total and liquid amounts for bank accounts only ---
         total_all_card = QWidget(self)
         total_all_card.setObjectName("StatCardGreen")
         try:
             total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            total_all_card.setAutoFillBackground(True)
         except Exception:
             pass
         total_all_card_layout = QVBoxLayout(total_all_card)
@@ -135,6 +121,7 @@ class BankAccountsPage(BasePage):
         total_liquid_card.setObjectName("StatCardPurple")
         try:
             total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            total_liquid_card.setAutoFillBackground(True)
         except Exception:
             pass
         total_liquid_card_layout = QVBoxLayout(total_liquid_card)
@@ -159,40 +146,14 @@ class BankAccountsPage(BasePage):
         )
         total_liquid_card_layout.addStretch(1)
 
-        # Shared drop shadow styling with the savings and home pages.
-        try:
-            for card in (total_all_card, total_liquid_card):
-                shadow = QGraphicsDropShadowEffect(card)
-                shadow.setBlurRadius(36)
-                app = QApplication.instance()
-                is_dark = False
-                if app is not None:
-                    try:
-                        current_theme = str(app.property("theme") or "light")
-                        is_dark = current_theme == "dark"
-                    except Exception:
-                        pass
-                if is_dark:
-                    shadow.setColor(QColor(0, 0, 0, 120))
-                else:
-                    shadow.setColor(QColor(0, 0, 0, 60))
-                shadow.setOffset(0, 10)
-                card.setGraphicsEffect(shadow)
-        except Exception:
-            pass
-
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
         cards_row.addWidget(total_all_card, 1)
         cards_row.addWidget(total_liquid_card, 1)
         main_col.addLayout(cards_row, 0)
 
-        # --- Middle: pie chart of bank accounts only ---
         if bank_accounts:
-            # Cast to List[MoneyAccount] for type compatibility
-            chart = AccountsPieChart(
-                accounts=[acc for acc in bank_accounts], parent=self
-            )  # type: ignore[arg-type]
+            chart = AccountsPieChart(accounts=bank_accounts, parent=self)  # type: ignore[arg-type]
 
             chart_card = QWidget(self)
             chart_card.setObjectName("Sidebar")

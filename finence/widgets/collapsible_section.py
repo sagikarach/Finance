@@ -392,7 +392,27 @@ class CollapsibleButtonList(QWidget):
         )
 
     def _apply_collapsed_style(self) -> None:
+        try:
+            from PySide6.QtWidgets import QApplication  # type: ignore
+        except Exception:
+            try:
+                from PyQt6.QtWidgets import QApplication  # type: ignore
+            except Exception:
+                return
+
+        app = QApplication.instance()
+        if app is None:
+            return
+
+        theme = app.property("theme")
+        is_dark = theme == "dark"
+
+        if is_dark:
+            container_bg = "#111827"  # Match sidebar dark background
+        else:
+            container_bg = "transparent"
+
         self._content.setStyleSheet(
-            "QWidget#SidebarSavingsList { background: transparent; }"
+            f"QWidget#SidebarSavingsList {{ background: {container_bg}; }}"
         )
-        self.setStyleSheet("background: transparent;")
+        self.setStyleSheet(f"background: {container_bg};")

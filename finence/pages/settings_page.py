@@ -21,7 +21,8 @@ from ..qt import (
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..models.accounts import BankAccount
-from ..models.bank_settings import BankSettingsRowInput, apply_bank_settings
+from ..models.bank_settings import BankSettingsRowInput
+from ..models.accounts_service import AccountsService
 from .base_page import BasePage
 
 
@@ -46,6 +47,7 @@ class SettingsPage(BasePage):
         )
         self._update_eye_icon: Optional[Callable[[], None]] = None
         self._get_previous_route = get_previous_route
+        self._accounts_service = AccountsService(self._provider)
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         """Add back button to header."""
@@ -188,13 +190,6 @@ class SettingsPage(BasePage):
         save_button.setObjectName("SaveButton")
 
         def on_save_bank_accounts() -> None:
-            if not isinstance(self._provider, JsonFileAccountsProvider):
-                try:
-                    QToolTip.showText(QCursor.pos(), "שגיאה: לא ניתן לשמור חשבונות")
-                except Exception:
-                    pass
-                return
-
             try:
                 rows: List[BankSettingsRowInput] = []
                 for account_name, widgets in account_widgets.items():
@@ -211,22 +206,23 @@ class SettingsPage(BasePage):
                         )
                     )
 
-                updated_bank_accounts: List[BankAccount] = apply_bank_settings(rows)
-                self._provider.save_bank_accounts(updated_bank_accounts)
+                merged_accounts = self._accounts_service.apply_bank_settings_rows(rows)
+                updated_bank_accounts: List[BankAccount] = [
+                    acc for acc in merged_accounts if isinstance(acc, BankAccount)
+                ]
+                if isinstance(self._provider, JsonFileAccountsProvider):
+                    self._provider.save_bank_accounts(updated_bank_accounts)
 
-                # Reload accounts to refresh UI
                 try:
                     self._accounts = self._provider.list_accounts()
                 except Exception:
                     pass
 
-                # Update sidebar with a small delay to ensure data is saved
                 def update_sidebar() -> None:
                     if self._sidebar is not None and hasattr(
                         self._sidebar, "update_accounts"
                     ):
                         try:
-                            # Reload accounts again to ensure we have the latest data
                             try:
                                 latest_accounts = self._provider.list_accounts()
                             except Exception:
@@ -247,27 +243,22 @@ class SettingsPage(BasePage):
                     except Exception:
                         update_sidebar()
 
-                # Update checkboxes to reflect saved state
                 for account_name, widgets in account_widgets.items():
                     checkbox = widgets["checkbox"]
                     amount_edit = widgets["amount_edit"]
-                    # Find the saved account
                     saved_account = None
                     for acc in updated_bank_accounts:
                         if acc.name == account_name:
                             saved_account = acc
                             break
                     if saved_account:
-                        # Update checkbox to match saved state
                         checkbox.blockSignals(True)
                         checkbox.setChecked(saved_account.active)
                         checkbox.blockSignals(False)
-                        # Update amount field
                         if saved_account.active and saved_account.total_amount > 0:
                             amount_edit.setText(f"{saved_account.total_amount:.2f}")
                         amount_edit.setEnabled(saved_account.active)
 
-                # Show confirmation
                 try:
                     QToolTip.showText(QCursor.pos(), "חשבונות הבנק נשמרו")
                 except Exception:
@@ -293,8 +284,6 @@ class SettingsPage(BasePage):
         return card
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
-        """Build settings page specific content: user settings and grid layout."""
-        # User settings card
         content_card = QWidget(self)
         content_card.setObjectName("Sidebar")
         try:
@@ -351,13 +340,11 @@ class SettingsPage(BasePage):
         save_button = QPushButton("שמור", content_card)
         save_button.setObjectName("SaveButton")
 
-        # Eye icon button
         eye_button = QToolButton(content_card)
         eye_button.setObjectName("PasswordEye")
         eye_button.setCheckable(True)
         eye_button.setToolTip("הצג / הסתר סיסמה")
 
-        # Load eye icon based on theme
         app = QApplication.instance()
         current_theme = "light"
         if app is not None:
@@ -418,7 +405,6 @@ class SettingsPage(BasePage):
         else:
             eye_button.setText("👁")
 
-        # Function to update eye icon based on theme
         def update_eye_icon() -> None:
             app_ = QApplication.instance()
             current_theme_ = "light"
@@ -482,7 +468,6 @@ class SettingsPage(BasePage):
 
         self._update_eye_icon = update_eye_icon
 
-        # Password visibility toggle
         def on_toggle_show_password(checked: bool) -> None:
             try:
                 mode = (
@@ -500,7 +485,6 @@ class SettingsPage(BasePage):
 
         eye_button.toggled.connect(on_toggle_show_password)  # type: ignore[arg-type]
 
-        # Save button handler
         def on_save_clicked() -> None:
             self._user.full_name = name_edit.text() or self._user.full_name
             try:
@@ -517,13 +501,11 @@ class SettingsPage(BasePage):
                 self._user_store.save(self._user)
             except Exception:
                 pass
-            # Update sidebar
             try:
                 if self._sidebar is not None:
                     self._sidebar.refresh_profile()
             except Exception:
                 pass
-            # Show confirmation
             try:
                 QToolTip.showText(QCursor.pos(), "ההגדרות נשמרו")
             except Exception:
@@ -531,13 +513,11 @@ class SettingsPage(BasePage):
 
         save_button.clicked.connect(on_save_clicked)  # type: ignore[arg-type]
 
-        # Layout user settings card
         content_layout.addWidget(title_label)
         content_layout.addSpacing(4)
         content_layout.addWidget(lock_checkbox)
         content_layout.addSpacing(8)
 
-        # Name row
         name_row = QHBoxLayout()
         name_row.setSpacing(8)
         dash1 = QLabel("-", content_card)
@@ -545,7 +525,6 @@ class SettingsPage(BasePage):
         name_row.addWidget(dash1)
         name_row.addWidget(name_edit, 1)
 
-        # Password row
         password_row_widget = QWidget(content_card)
         password_row = QHBoxLayout(password_row_widget)
         password_row.setSpacing(8)
@@ -558,7 +537,6 @@ class SettingsPage(BasePage):
         content_layout.addLayout(name_row)
         content_layout.addWidget(password_row_widget)
 
-        # Lock checkbox controls password visibility
         def update_lock_ui(enabled: bool) -> None:
             password_row_widget.setVisible(enabled)
             password_edit.setEnabled(enabled)
@@ -581,7 +559,6 @@ class SettingsPage(BasePage):
         except Exception:
             content_layout.addWidget(save_button)
 
-        # Helper to create additional empty squares
         def _make_extra_card(title: str) -> QWidget:
             card = QWidget(self)
             card.setObjectName("Sidebar")
@@ -605,13 +582,11 @@ class SettingsPage(BasePage):
         extra_card_bottom_left = _make_extra_card("הגדרה פנויה")
         extra_card_bottom_right = _make_extra_card("הגדרה פנויה")
 
-        # First row: bank accounts + user settings square
         row1 = QHBoxLayout()
         row1.setSpacing(16)
         row1.addWidget(bank_accounts_card, 1)
         row1.addWidget(content_card, 1)
 
-        # Second row: two extra squares
         row2 = QHBoxLayout()
         row2.setSpacing(16)
         row2.addWidget(extra_card_bottom_left, 1)

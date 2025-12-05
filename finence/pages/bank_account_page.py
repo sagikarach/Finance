@@ -12,6 +12,7 @@ from ..qt import (
 )
 from ..data.provider import AccountsProvider
 from ..models.accounts import BankAccount
+from ..models.accounts_service import AccountsService
 from ..widgets.bank_history_chart import create_bank_history_chart_card
 from .base_page import BasePage
 from .savings_page import format_currency
@@ -33,6 +34,7 @@ class BankAccountPage(BasePage):
             page_title="פרטי חשבון בנק",
             current_route="bank_account",
         )
+        self._accounts_service = AccountsService(self._provider)
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         buttons: List[QToolButton] = []
@@ -65,14 +67,12 @@ class BankAccountPage(BasePage):
                 break
 
         if target is None:
-            # Fallback UI if nothing was selected or account was removed.
             placeholder = QLabel("לא נבחר חשבון בנק", self)
             placeholder.setObjectName("Title")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main_col.addWidget(placeholder, 1)
             return
 
-        # --- Top third: summary rectangle with total amount ---
         top_card = QWidget(self)
         top_card.setObjectName("Sidebar")
         try:
@@ -94,8 +94,6 @@ class BankAccountPage(BasePage):
         liquid_label = QLabel(liquid_text, top_card)
         liquid_label.setObjectName("StatTitle")
 
-        # First row: name and liquid status on the same line, on opposite
-        # sides, with the total amount displayed on its own row below.
         name_liquid_row = QHBoxLayout()
         name_liquid_row.setSpacing(8)
         name_liquid_row.addWidget(liquid_label, 0, Qt.AlignmentFlag.AlignRight)
@@ -108,13 +106,16 @@ class BankAccountPage(BasePage):
         top_layout.addStretch(1)
         top_layout.addLayout(summary_col, 1)
 
-        # --- Bottom 2/3: rectangle with line chart of bank account history ---
         chart_card = create_bank_history_chart_card(self, target, format_currency)
 
         main_col.addWidget(top_card, 1)
         main_col.addWidget(chart_card, 2)
 
     def on_route_activated(self) -> None:
+        try:
+            self._accounts = self._accounts_service.load_accounts()
+        except Exception:
+            pass
         if isinstance(self._content_col, QVBoxLayout):
             self._build_content(self._content_col)
 

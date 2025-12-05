@@ -8,18 +8,13 @@ from ..qt import (
     QHBoxLayout,
     QWidget,
     Qt,
-    QColor,
-    QGraphicsDropShadowEffect,
     QSizePolicy,
     QApplication,
     QToolButton,
 )
 from ..data.provider import AccountsProvider
-from ..models.accounts import (
-    BankAccount,
-    compute_total_amount,
-    compute_total_liquid_amount,
-)
+from ..models.accounts_service import AccountsService
+from ..models.overview import AccountsOverview
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from .base_page import BasePage
 
@@ -40,6 +35,7 @@ class HomePage(BasePage):
             page_title="לוח בקרה",
             current_route="home",
         )
+        self._accounts_service = AccountsService(self._provider)
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         buttons = []
@@ -53,16 +49,17 @@ class HomePage(BasePage):
         return buttons
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
-        # Filter out inactive bank accounts
-        active_accounts = [
-            acc
-            for acc in self._accounts
-            if not isinstance(acc, BankAccount) or acc.active
-        ]
-        total_all = compute_total_amount(active_accounts)
-        total_liquid = compute_total_liquid_amount(active_accounts)
+        # DEBUG: Add green card and put both in cards_row layout
+        overview = AccountsOverview.for_home(self._accounts)
+        total_all = overview.total_all
+        total_liquid = overview.total_liquid
 
-        total_all_card = QWidget(self)
+        # Get parent widget from layout to ensure proper cleanup
+        parent_widget = main_col.parentWidget()
+        if parent_widget is None:
+            parent_widget = self
+
+        total_all_card = QWidget(parent_widget)
         total_all_card.setObjectName("StatCardGreen")
         try:
             total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -90,7 +87,7 @@ class HomePage(BasePage):
         )
         total_all_card_layout.addStretch(1)
 
-        total_liquid_card = QWidget(self)
+        total_liquid_card = QWidget(parent_widget)
         total_liquid_card.setObjectName("StatCardPurple")
         try:
             total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -118,36 +115,15 @@ class HomePage(BasePage):
         )
         total_liquid_card_layout.addStretch(1)
 
-        try:
-            for card in (total_all_card, total_liquid_card):
-                shadow = QGraphicsDropShadowEffect(card)
-                shadow.setBlurRadius(36)
-                app = QApplication.instance()
-                is_dark = False
-                if app is not None:
-                    try:
-                        current_theme = str(app.property("theme") or "light")
-                        is_dark = current_theme == "dark"
-                    except Exception:
-                        pass
-                if is_dark:
-                    shadow.setColor(QColor(0, 0, 0, 120))
-                else:
-                    shadow.setColor(QColor(0, 0, 0, 60))
-                shadow.setOffset(0, 10)
-                card.setGraphicsEffect(shadow)
-        except Exception:
-            pass
-
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
         cards_row.addWidget(total_all_card, 1)
         cards_row.addWidget(total_liquid_card, 1)
         main_col.addLayout(cards_row, 0)
 
-        chart = AccountsPieChart(accounts=active_accounts, parent=self)
+        chart = AccountsPieChart(accounts=overview.accounts, parent=parent_widget)
 
-        chart_card = QWidget(self)
+        chart_card = QWidget(parent_widget)
         chart_card.setObjectName("Sidebar")
         try:
             chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -158,7 +134,7 @@ class HomePage(BasePage):
         chart_card_layout.setSpacing(0)
         chart_card_layout.addWidget(chart, 1)
 
-        chart_side_card = QWidget(self)
+        chart_side_card = QWidget(parent_widget)
         chart_side_card.setObjectName("Sidebar")
         try:
             chart_side_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -176,32 +152,40 @@ class HomePage(BasePage):
         main_col.addLayout(chart_row, 1)
 
     def on_route_activated(self) -> None:
-        """Refresh accounts and rebuild content when returning to home.
-
-        This ensures the totals and pie chart reflect transfers or edits that
-        happened on other pages (like the savings page) before navigating back.
-        """
-        # Reload accounts from provider so we pick up any saved changes.
         try:
-            self._accounts = self._provider.list_accounts()
+            self._accounts = self._accounts_service.load_accounts()
         except Exception:
             pass
 
-        # Keep sidebar in sync with latest accounts, if it exists.
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
                 self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
             except Exception:
                 pass
 
-        # Rebuild the main content (summary cards + pie chart).
         if isinstance(self._content_col, QVBoxLayout):
             layout = self._content_col
+            # Remove all items and widgets immediately
+            widgets_to_delete = []
             while layout.count():
                 item = layout.takeAt(0)
                 widget = item.widget()
                 if widget is not None:
-                    widget.deleteLater()
+                    widgets_to_delete.append(widget)
+                layout_item = item.layout()
+                if layout_item is not None:
+                    # Recursively collect widgets from nested layouts
+                    while layout_item.count():
+                        nested_item = layout_item.takeAt(0)
+                        nested_widget = nested_item.widget()
+                        if nested_widget is not None:
+                            widgets_to_delete.append(nested_widget)
+            # Delete all collected widgets
+            for widget in widgets_to_delete:
+                widget.setParent(None)
+                widget.deleteLater()
+            # Force Qt to process the deletions before rebuilding
+            QApplication.processEvents()
             self._build_content(layout)
 
 
