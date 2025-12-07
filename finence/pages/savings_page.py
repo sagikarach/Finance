@@ -19,6 +19,7 @@ from ..qt import (
     QLineEdit,
 )
 from ..data.provider import AccountsProvider
+from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import (
     compute_savings_account_total_amount,
     compute_savings_account_liquid_amount,
@@ -52,7 +53,10 @@ class SavingsPage(BasePage):
             page_title="חסכונות",
             current_route="savings",
         )
-        self._accounts_service = AccountsService(self._provider)
+        self._history_provider = JsonFileActionHistoryProvider()
+        self._accounts_service = AccountsService(
+            self._provider, history_provider=self._history_provider
+        )
 
     def on_route_activated(self) -> None:
         app = QApplication.instance()

@@ -19,7 +19,9 @@ from ..qt import (
     QDialog,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
-from ..models.accounts import SavingsAccount, Savings, MoneySnapshot
+from ..data.action_history_provider import JsonFileActionHistoryProvider
+from ..models.accounts import SavingsAccount
+from ..models.accounts_service import AccountsService
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..widgets.savings_history_chart import create_savings_history_chart_card
 from .base_page import BasePage
@@ -44,6 +46,10 @@ class SavingsAccountPage(BasePage):
             # selection arrow, while still treating it as part of the savings
             # section visually (handled in Sidebar.update_route).
             current_route="savings_account",
+        )
+        self._history_provider = JsonFileActionHistoryProvider()
+        self._accounts_service = AccountsService(
+            self._provider, history_provider=self._history_provider
         )
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
@@ -311,19 +317,18 @@ class SavingsAccountPage(BasePage):
                 error_label.show()
                 return
 
-            snap = MoneySnapshot(date=date_str, amount=amount_val)
-            new_savings = list(account.savings) + [
-                Savings(name=name, amount=amount_val, history=[snap])
-            ]
-            updated_account = SavingsAccount(
-                name=account.name,
-                total_amount=0.0,
-                is_liquid=account.is_liquid,
-                savings=new_savings,
-            )
-            self._replace_savings_account(account, updated_account)
+            try:
+                all_accounts = self._provider.list_accounts()
+                updated_accounts = self._accounts_service.add_saving(
+                    all_accounts, account, name, amount_val, date_str
+                )
+                self._accounts_service.save_all(updated_accounts)
+                self._accounts = updated_accounts
+                self._save_savings_accounts_and_refresh(account.name)
+            except Exception:
+                pass
+
             dlg.accept()
-            self._save_savings_accounts_and_refresh(account.name)
 
         ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
         cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
@@ -400,24 +405,18 @@ class SavingsAccountPage(BasePage):
             except Exception:
                 date_str = ""
 
-            # Append a new snapshot for this saving and update its current amount
-            new_history = list(target_saving.history) + [
-                MoneySnapshot(date=date_str, amount=amount_val)
-            ]
-            updated_saving = Savings(
-                name=target_saving.name, amount=amount_val, history=new_history
-            )
-            new_savings = list(account.savings)
-            new_savings[idx] = updated_saving
-            updated_account = SavingsAccount(
-                name=account.name,
-                total_amount=0.0,
-                is_liquid=account.is_liquid,
-                savings=new_savings,
-            )
-            self._replace_savings_account(account, updated_account)
+            try:
+                all_accounts = self._provider.list_accounts()
+                updated_accounts = self._accounts_service.edit_saving(
+                    all_accounts, account, target_saving.name, amount_val, date_str
+                )
+                self._accounts_service.save_all(updated_accounts)
+                self._accounts = updated_accounts
+                self._save_savings_accounts_and_refresh(account.name)
+            except Exception:
+                pass
+
             dlg.accept()
-            self._save_savings_accounts_and_refresh(account.name)
 
         ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
         cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
@@ -452,17 +451,21 @@ class SavingsAccountPage(BasePage):
             idx = savings_combo.currentIndex()
             if idx < 0 or idx >= len(account.savings):
                 return
-            new_savings = list(account.savings)
-            del new_savings[idx]
-            updated_account = SavingsAccount(
-                name=account.name,
-                total_amount=0.0,
-                is_liquid=account.is_liquid,
-                savings=new_savings,
-            )
-            self._replace_savings_account(account, updated_account)
+            saving_to_delete = account.savings[idx]
+            saving_name = saving_to_delete.name
+
+            try:
+                all_accounts = self._provider.list_accounts()
+                updated_accounts = self._accounts_service.delete_saving(
+                    all_accounts, account, saving_name
+                )
+                self._accounts_service.save_all(updated_accounts)
+                self._accounts = updated_accounts
+                self._save_savings_accounts_and_refresh(account.name)
+            except Exception:
+                pass
+
             dlg.accept()
-            self._save_savings_accounts_and_refresh(account.name)
 
         delete_btn.clicked.connect(on_delete)  # type: ignore[arg-type]
         cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]

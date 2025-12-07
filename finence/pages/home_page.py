@@ -9,13 +9,14 @@ from ..qt import (
     QWidget,
     Qt,
     QSizePolicy,
-    QApplication,
     QToolButton,
 )
 from ..data.provider import AccountsProvider
+from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
 from ..widgets.accounts_pie_chart import AccountsPieChart
+from ..widgets.action_history_table import ActionHistoryTable
 from .base_page import BasePage
 
 
@@ -35,7 +36,10 @@ class HomePage(BasePage):
             page_title="לוח בקרה",
             current_route="home",
         )
-        self._accounts_service = AccountsService(self._provider)
+        self._history_provider = JsonFileActionHistoryProvider()
+        self._accounts_service = AccountsService(
+            self._provider, history_provider=self._history_provider
+        )
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         buttons = []
@@ -141,8 +145,20 @@ class HomePage(BasePage):
         except Exception:
             pass
         chart_side_layout = QVBoxLayout(chart_side_card)
-        chart_side_layout.setContentsMargins(12, 12, 12, 12)
+        # Remove inner padding so the history table can fully cover the card width/height,
+        # letting row background colors visually fill the entire rectangle behind the table.
+        chart_side_layout.setContentsMargins(0, 0, 0, 0)
         chart_side_layout.setSpacing(0)
+
+        try:
+            history = self._history_provider.list_history()
+        except Exception:
+            history = []
+
+        history_table = ActionHistoryTable(
+            history=history, max_rows=10, parent=chart_side_card
+        )
+        chart_side_layout.addWidget(history_table, 1)
 
         chart_row = QHBoxLayout()
         chart_row.setSpacing(16)
@@ -163,30 +179,13 @@ class HomePage(BasePage):
             except Exception:
                 pass
 
-        if isinstance(self._content_col, QVBoxLayout):
-            layout = self._content_col
-            # Remove all items and widgets immediately
-            widgets_to_delete = []
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widgets_to_delete.append(widget)
-                layout_item = item.layout()
-                if layout_item is not None:
-                    # Recursively collect widgets from nested layouts
-                    while layout_item.count():
-                        nested_item = layout_item.takeAt(0)
-                        nested_widget = nested_item.widget()
-                        if nested_widget is not None:
-                            widgets_to_delete.append(nested_widget)
-            # Delete all collected widgets
-            for widget in widgets_to_delete:
-                widget.setParent(None)
-                widget.deleteLater()
-            # Force Qt to process the deletions before rebuilding
-            QApplication.processEvents()
-            self._build_content(layout)
+        try:
+            history = self._history_provider.list_history()
+            history_table = self.findChild(ActionHistoryTable)
+            if history_table is not None:
+                history_table.set_history(history)
+        except Exception:
+            pass
 
 
 def format_currency(value: float) -> str:

@@ -33,13 +33,10 @@ class MoneyAccount:
 
 @dataclass(frozen=True)
 class BankAccount(MoneyAccount):
-    """Account with history tracking at the account level."""
-
     history: List[MoneySnapshot] = field(default_factory=list)
     active: bool = False
 
     def __post_init__(self) -> None:
-        # Compute total_amount from history if history exists
         if self.history:
             latest = latest_amount_from_history(self.history)
             if latest is not None:
@@ -65,12 +62,10 @@ def compute_total_liquid_amount(accounts: Iterable[MoneyAccount]) -> float:
 
 
 def compute_savings_account_total_amount(accounts: Iterable[MoneyAccount]) -> float:
-    """Compute total amount from SavingsAccount only."""
     return float(sum(a.total_amount for a in accounts if isinstance(a, SavingsAccount)))
 
 
 def compute_savings_account_liquid_amount(accounts: Iterable[MoneyAccount]) -> float:
-    """Compute total liquid amount from SavingsAccount only."""
     return float(
         sum(
             a.total_amount

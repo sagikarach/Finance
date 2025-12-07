@@ -13,6 +13,7 @@ from ..qt import (
     QToolButton,
 )
 from ..data.provider import AccountsProvider
+from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import BankAccount
 from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
@@ -36,7 +37,10 @@ class BankAccountsPage(BasePage):
             page_title="חשבונות",
             current_route="bank_accounts",
         )
-        self._accounts_service = AccountsService(self._provider)
+        self._history_provider = JsonFileActionHistoryProvider()
+        self._accounts_service = AccountsService(
+            self._provider, history_provider=self._history_provider
+        )
 
     def on_route_activated(self) -> None:
         try:
@@ -49,15 +53,6 @@ class BankAccountsPage(BasePage):
                 self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
             except Exception:
                 pass
-
-        if isinstance(self._content_col, QVBoxLayout):
-            layout = self._content_col
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget is not None:
-                    widget.deleteLater()
-            self._build_content(layout)
 
         app = QApplication.instance()
         is_dark = False

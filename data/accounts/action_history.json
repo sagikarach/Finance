@@ -1,0 +1,34 @@
+[
+  {
+    "id": "413d3f41-23e5-4a1e-8e87-4885ddc85487",
+    "timestamp": "2025-12-06",
+    "action": {
+      "action_name": "add_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט2",
+      "saving_amount": 123.0
+    }
+  },
+  {
+    "id": "c80a46ee-b777-4f79-ba4c-d8fa3181ad52",
+    "timestamp": "2025-12-06",
+    "action": {
+      "action_name": "delete_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט1",
+      "saving_amount": 500.0
+    }
+  },
+  {
+    "id": "16383902-d0b2-43cc-9abd-715bd34d124a",
+    "timestamp": "2025-12-06",
+    "action": {
+      "action_name": "delete_savings_account",
+      "success": true,
+      "account_name": "טסט",
+      "account_total_amount": 500.0
+    }
+  }
+]

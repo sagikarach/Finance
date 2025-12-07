@@ -11,6 +11,7 @@ from ..qt import (
     QToolButton,
 )
 from ..data.provider import AccountsProvider
+from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import BankAccount
 from ..models.accounts_service import AccountsService
 from ..widgets.bank_history_chart import create_bank_history_chart_card
@@ -34,7 +35,10 @@ class BankAccountPage(BasePage):
             page_title="פרטי חשבון בנק",
             current_route="bank_account",
         )
-        self._accounts_service = AccountsService(self._provider)
+        self._history_provider = JsonFileActionHistoryProvider()
+        self._accounts_service = AccountsService(
+            self._provider, history_provider=self._history_provider
+        )
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         buttons: List[QToolButton] = []

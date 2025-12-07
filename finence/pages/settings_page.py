@@ -20,6 +20,7 @@ from ..qt import (
     QCursor,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
+from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import BankAccount
 from ..models.bank_settings import BankSettingsRowInput
 from ..models.accounts_service import AccountsService
@@ -47,7 +48,10 @@ class SettingsPage(BasePage):
         )
         self._update_eye_icon: Optional[Callable[[], None]] = None
         self._get_previous_route = get_previous_route
-        self._accounts_service = AccountsService(self._provider)
+        self._history_provider = JsonFileActionHistoryProvider()
+        self._accounts_service = AccountsService(
+            self._provider, history_provider=self._history_provider
+        )
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         """Add back button to header."""

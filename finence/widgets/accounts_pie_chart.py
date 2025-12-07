@@ -34,6 +34,7 @@ class AccountsPieChart(QWidget):
         self.setObjectName("ChartCard")
         self._accounts: List[MoneyAccount] = list(accounts or [])
         self._slice_to_marker: dict = {}
+        self._was_hidden: bool = False
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(8)
@@ -78,6 +79,17 @@ class AccountsPieChart(QWidget):
             self._layout.addWidget(placeholder)
 
         self.setLayout(self._layout)
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if charts_available and self._was_hidden:
+            # Re-render chart to trigger animation
+            self._render_chart()
+        self._was_hidden = False
+
+    def hideEvent(self, event) -> None:
+        super().hideEvent(event)
+        self._was_hidden = True
 
     def set_accounts(self, accounts: List[MoneyAccount]) -> None:
         self._accounts = list(accounts)
