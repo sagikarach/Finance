@@ -403,6 +403,8 @@ class ActionHistoryTable(QWidget):
             "activate_bank_account": "הפעלת חשבון",
             "deactivate_bank_account": "ביטול חשבון",
             "set_starter_amount": "הגדרת סכום התחלתי",
+            "add_income_movement": "הוספת הכנסה",
+            "add_outcome_movement": "הוספת הוצאה",
         }
 
         try:

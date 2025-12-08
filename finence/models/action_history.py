@@ -84,6 +84,32 @@ class SetStarterAmountAction(Action):
 
 
 @dataclass(frozen=True)
+class AddIncomeMovementAction(Action):
+    """
+    Records adding an income movement to a bank account.
+    """
+
+    account_name: str = field(default="")
+    amount: float = field(default=0.0)
+    category: str = field(default="")
+    type: str = field(default="")
+    description: Optional[str] = field(default=None)
+
+
+@dataclass(frozen=True)
+class AddOutcomeMovementAction(Action):
+    """
+    Records adding an outcome (expense) movement to a bank account.
+    """
+
+    account_name: str = field(default="")
+    amount: float = field(default=0.0)
+    category: str = field(default="")
+    type: str = field(default="")
+    description: Optional[str] = field(default=None)
+
+
+@dataclass(frozen=True)
 class ActionHistory:
     id: str
     timestamp: str

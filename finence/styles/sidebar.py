@@ -131,6 +131,30 @@ def load_sidebar_light_styles() -> str:
     QPushButton#SidebarNavSubButton:hover {
         background: rgba(201, 225, 254, 0.5);
     }
+    QWidget#SidebarActions {
+        background: #bfdbfe;
+        border-radius: 12px;
+        min-height: 130px;
+        padding: 8px 8px 0px 8px;
+    }
+    QWidget#SidebarActions QPushButton {
+        background: transparent;
+        color: #0f172a;
+        padding: 10px 14px;
+        min-height: 40px;
+        margin-bottom: 8px;
+        border-radius: 0px;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+    }
+    QWidget#SidebarActions QPushButton:hover {
+        background: rgba(201, 225, 254, 0.35);
+    }
+    QWidget#SidebarActions QPushButton:pressed {
+        background: #dbeafe; /* app light background */
+    }
     """
 
 
@@ -211,6 +235,30 @@ def load_sidebar_dark_styles() -> str:
     }
     QPushButton#SidebarNavSubButton:hover {
         background: rgba(31, 41, 55, 0.5);
+    }
+    QWidget#SidebarActions {
+        background: #111827;
+        border-radius: 12px;
+        min-height: 120px;
+        padding: 8px 8px 0px 8px;
+    }
+    QWidget#SidebarActions QPushButton {
+        background: transparent;
+        color: #e5e7eb;
+        padding: 10px 14px;
+        min-height: 40px;
+        margin-bottom: 8px;
+        border-radius: 0px;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+    }
+    QWidget#SidebarActions QPushButton:hover {
+        background: rgba(15, 23, 42, 0.6);
+    }
+    QWidget#SidebarActions QPushButton:pressed {
+        background: #020617; /* app dark background */
     }
     QLabel#UserName {
         font-size: 16px;

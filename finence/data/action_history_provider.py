@@ -19,6 +19,8 @@ from ..models.action_history import (
     ActivateBankAccountAction,
     DeactivateBankAccountAction,
     SetStarterAmountAction,
+    AddIncomeMovementAction,
+    AddOutcomeMovementAction,
 )
 
 
@@ -149,6 +151,8 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             "activate_bank_account": ActivateBankAccountAction,
             "deactivate_bank_account": DeactivateBankAccountAction,
             "set_starter_amount": SetStarterAmountAction,
+            "add_income_movement": AddIncomeMovementAction,
+            "add_outcome_movement": AddOutcomeMovementAction,
         }
 
         action_class = action_class_map.get(action_name)

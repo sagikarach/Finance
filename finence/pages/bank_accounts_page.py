@@ -13,7 +13,6 @@ from ..qt import (
     QToolButton,
 )
 from ..data.provider import AccountsProvider
-from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import BankAccount
 from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
@@ -37,7 +36,6 @@ class BankAccountsPage(BasePage):
             page_title="חשבונות",
             current_route="bank_accounts",
         )
-        self._history_provider = JsonFileActionHistoryProvider()
         self._accounts_service = AccountsService(
             self._provider, history_provider=self._history_provider
         )

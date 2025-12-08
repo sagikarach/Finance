@@ -57,11 +57,14 @@ class EditSavingsAccountDialog(QDialog):
         # Use default combo styling like the transfer dialog (avoid the
         # Savings page's special AccountComboBox theme).
         self._account_combo.setObjectName("DialogAccountCombo")
-        # Match transfer dialog: combo text flows RTL.
+        # Ensure dropdown text flows LTR.
         try:
-            self._account_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
-            pass
+            try:
+                self._account_combo.setLayoutDirection(Qt.LeftToRight)
+            except Exception:
+                pass
         for account in accounts:
             self._account_combo.addItem(
                 account.name, account

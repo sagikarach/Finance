@@ -61,6 +61,8 @@ class ActionHistoryDetailsDialog(QDialog):
             "activate_bank_account": "הפעלת חשבון",
             "deactivate_bank_account": "ביטול חשבון",
             "set_starter_amount": "הגדרת סכום התחלתי",
+            "add_income_movement": "הוספת הכנסה",
+            "add_outcome_movement": "הוספת הוצאה",
         }
         action_key = entry.action.action_name
         action_title = action_name_map.get(action_key, action_key)
@@ -93,6 +95,9 @@ class ActionHistoryDetailsDialog(QDialog):
                 "old_amount": "סכום קודם",
                 "new_amount": "סכום חדש",
                 "starter_amount": "סכום התחלתי",
+                "category": "קטגוריה",
+                "type": "סוג",
+                "description": "תיאור",
             }
             for field_info in fields(action):
                 name = field_info.name
@@ -118,5 +123,3 @@ class ActionHistoryDetailsDialog(QDialog):
         layout.addLayout(buttons_row)
 
         close_btn.clicked.connect(self.accept)  # type: ignore[arg-type]
-
-

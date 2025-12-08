@@ -18,6 +18,13 @@ from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.user_profile_store import UserProfileStore
 from ..models.user import UserProfile
 from ..widgets.sidebar import Sidebar
+from ..widgets.bank_movement_actions import BankMovementActions
+from ..data.bank_movement_provider import JsonFileBankMovementProvider
+from ..models.accounts import BankAccount
+from ..data.action_history_provider import JsonFileActionHistoryProvider
+from ..models.accounts_service import AccountsService
+from ..models.bank_movement_service import BankMovementService
+from ..ui.bank_movement_dialog import BankMovementDialog
 from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
 
 
@@ -68,6 +75,16 @@ class BasePage(QWidget):
         self._sidebar: Optional[Sidebar] = None
         self._theme_btn: Optional[QToolButton] = None
         self._content_col: Optional[QVBoxLayout] = None
+        self._bank_movement_provider = JsonFileBankMovementProvider()
+        self._history_provider = JsonFileActionHistoryProvider()
+        # Service used to persist account changes (including savings/bank data).
+        self._accounts_service: Optional[AccountsService] = AccountsService(
+            self._provider, history_provider=self._history_provider
+        )
+        # Domain service that encapsulates movement + history logic.
+        self._bank_movement_service: Optional[BankMovementService] = (
+            BankMovementService(self._bank_movement_provider, self._history_provider)
+        )
 
         self._build_ui()
 
@@ -132,8 +149,15 @@ class BasePage(QWidget):
         sidebar_layout.setContentsMargins(
             0, 40, 16, 40
         )  # Larger top and bottom margins
-        sidebar_layout.setSpacing(16)
-        sidebar_layout.addWidget(self._sidebar, 1)  # Expand to fill available space
+        sidebar_layout.setSpacing(12)
+        sidebar_layout.addWidget(self._sidebar, 1)
+
+        self._bank_actions = BankMovementActions(
+            parent=sidebar_container,
+            on_add_income=self._on_add_income,
+            on_add_outcome=self._on_add_outcome,
+        )
+        sidebar_layout.addWidget(self._bank_actions, 0)
 
         layout.addWidget(main_area, 1)
         layout.addWidget(sidebar_container, 0)
@@ -176,6 +200,144 @@ class BasePage(QWidget):
     def _build_header_left_buttons(self) -> List[QToolButton]:
         return []
 
+    def _on_add_income(self) -> None:
+        self._open_bank_movement_dialog(is_income=True)
+
+    def _on_add_outcome(self) -> None:
+        self._open_bank_movement_dialog(is_income=False)
+
+    def _open_bank_movement_dialog(self, is_income: bool) -> None:
+        try:
+            bank_accounts: List[BankAccount] = [
+                acc for acc in self._accounts if isinstance(acc, BankAccount)
+            ]
+        except Exception:
+            bank_accounts = []
+
+        # Load categories depending on whether this is income or outcome.
+        categories: list[str] = []
+        provider = self._bank_movement_provider
+        try:
+            if hasattr(provider, "list_categories_for_type"):
+                categories = provider.list_categories_for_type(is_income)  # type: ignore[attr-defined]
+            else:
+                categories = provider.list_categories()  # type: ignore[attr-defined]
+        except Exception:
+            categories = []
+
+        # When the user adds a new category, save it under the correct side
+        # (income or outcome) if the provider supports that, otherwise fall
+        # back to the older single-list API.
+        on_category_added = None
+        try:
+            if hasattr(provider, "add_category_for_type"):
+
+                def _on_cat_added(
+                    name: str, *, _prov=provider, _is_income=is_income
+                ) -> None:
+                    try:
+                        _prov.add_category_for_type(name, _is_income)  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+
+                on_category_added = _on_cat_added
+            elif hasattr(provider, "add_category"):
+                on_category_added = getattr(provider, "add_category")
+        except Exception:
+            on_category_added = None
+
+        dialog = BankMovementDialog(
+            bank_accounts,
+            categories,
+            is_income,
+            parent=None,
+            on_category_added=on_category_added,
+        )
+        result = dialog.exec()
+        if not result:
+            return
+        movement = dialog.get_movement()
+        if movement is None:
+            return
+
+        # Delegate movement + history logic to the domain service so this page
+        # stays focused on UI wiring.
+        service = self._bank_movement_service
+        if service is not None:
+            try:
+                self._accounts = service.apply_movement(
+                    self._accounts, movement, is_income_hint=is_income
+                )
+            except Exception:
+                # If the service fails, keep the old accounts list to avoid
+                # corrupting in-memory state.
+                pass
+
+        # Refresh any on-screen history table so the new action appears
+        # immediately without requiring navigation.
+        try:
+            from ..widgets.action_history_table import ActionHistoryTable
+
+            history_table = self.findChild(ActionHistoryTable)
+            if history_table is not None and hasattr(
+                self._history_provider, "list_history"
+            ):
+                try:
+                    history = self._history_provider.list_history()  # type: ignore[attr-defined]
+                except Exception:
+                    history = []
+                try:
+                    history_table.set_history(history)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Persist the updated accounts and refresh any UI that depends on them.
+        self._save_and_refresh_accounts()
+
+    def _save_and_refresh_accounts(self) -> None:
+        """
+        Persist the current accounts list and refresh sidebar + content so that
+        all totals and charts reflect the latest data.
+        """
+        svc = self._accounts_service
+        if svc is None:
+            try:
+                svc = AccountsService(
+                    self._provider, history_provider=self._history_provider
+                )
+                self._accounts_service = svc
+            except Exception:
+                svc = None
+
+        if svc is not None:
+            try:
+                svc.save_all(self._accounts)
+            except Exception:
+                pass
+            try:
+                self._accounts = svc.load_accounts()
+            except Exception:
+                pass
+
+        # Update sidebar account list if it supports it.
+        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
+            try:
+                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+            except Exception:
+                pass
+
+        # Rebuild the main content so that any totals/charts reflect the new data.
+        if isinstance(self._content_col, QVBoxLayout):
+            layout = self._content_col
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+            self._build_content(layout)
+
     def _build_theme_toggle_button(self) -> QToolButton:
         theme_btn = QToolButton(self)
         theme_btn.setObjectName("IconButton")
@@ -199,11 +361,11 @@ class BasePage(QWidget):
                 return
             try:
                 if checked:
-                    app_.setStyleSheet(load_dark_stylesheet())
+                    app_.setStyleSheet(load_dark_stylesheet())  # type: ignore[attr-defined]
                     app_.setProperty("theme", "dark")
                     theme_btn.setText("🌙")
                 else:
-                    app_.setStyleSheet(load_default_stylesheet())
+                    app_.setStyleSheet(load_default_stylesheet())  # type: ignore[attr-defined]
                     app_.setProperty("theme", "light")
                     theme_btn.setText("☀")
                 self._on_theme_changed(checked)
@@ -257,9 +419,7 @@ class BasePage(QWidget):
             from ..widgets.action_history_table import ActionHistoryTable
 
             history_table = self.findChild(ActionHistoryTable)
-            if history_table is not None and hasattr(
-                history_table, "_update_table"
-            ):
+            if history_table is not None and hasattr(history_table, "_update_table"):
                 history_table._update_table()  # type: ignore[attr-defined]
         except Exception:
             pass

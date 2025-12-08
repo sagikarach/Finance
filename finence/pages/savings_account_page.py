@@ -344,6 +344,13 @@ class SavingsAccountPage(BasePage):
         select_row = QHBoxLayout()
         select_label = QLabel("בחר חסכון:", dlg)
         savings_combo = QComboBox(dlg)
+        try:
+            savings_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        except Exception:
+            try:
+                savings_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+            except Exception:
+                pass
         for s in account.savings:
             savings_combo.addItem(s.name, s)
         select_row.addWidget(select_label, 0)
@@ -432,6 +439,13 @@ class SavingsAccountPage(BasePage):
         select_row = QHBoxLayout()
         select_label = QLabel("בחר חסכון למחיקה:", dlg)
         savings_combo = QComboBox(dlg)
+        try:
+            savings_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        except Exception:
+            try:
+                savings_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+            except Exception:
+                pass
         for s in account.savings:
             savings_combo.addItem(s.name, s)
         select_row.addWidget(select_label, 0)

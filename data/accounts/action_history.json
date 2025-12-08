@@ -107,5 +107,101 @@
       "saving_name": "טסט2",
       "saving_amount": 500.0
     }
+  },
+  {
+    "id": "5dc5187f-668e-40c1-a510-aa2475d8ca89",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": 999.0,
+      "category": "משכורת",
+      "type": "חודשי"
+    }
+  },
+  {
+    "id": "47cfea1b-9450-48fb-88a3-639b75953cee",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_outcome_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": -90.0,
+      "category": "מגורים",
+      "type": "חודשי"
+    }
+  },
+  {
+    "id": "bfb7e8f8-7039-4644-ae87-85d07b1593b9",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": 99.0,
+      "category": "משכורת",
+      "type": "חודשי"
+    }
+  },
+  {
+    "id": "dd2ce6d1-ddd4-47a3-8b14-bc66ed150794",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": 10000.0,
+      "category": "משכורת",
+      "type": "חודשי"
+    }
+  },
+  {
+    "id": "1601a19e-ad75-4b62-9037-e09f129258bf",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_outcome_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": -5000.0,
+      "category": "מגורים",
+      "type": "חודשי"
+    }
+  },
+  {
+    "id": "769ba156-92cf-4085-a3be-221db1c1a2a6",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": 10000.0,
+      "category": "משכורת",
+      "type": "חודשי"
+    }
+  },
+  {
+    "id": "ec3b23ca-d151-4376-85a6-738c07c58092",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_outcome_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": -0.75,
+      "category": "מגורים",
+      "type": "חודשי"
+    }
+  },
+  {
+    "id": "5114c230-3c33-405b-bf2a-22014b2fc447",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_outcome_movement",
+      "success": true,
+      "account_name": "בנק",
+      "amount": -55.0,
+      "category": "מגורים",
+      "type": "חודשי"
+    }
   }
 ]

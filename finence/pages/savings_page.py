@@ -392,10 +392,10 @@ class SavingsPage(BasePage):
         src_label = QLabel("העבר מ:", dlg)
         src_combo = QComboBox(dlg)
         try:
-            src_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            src_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                src_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                src_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
             except Exception:
                 pass
         for label, _, _, _ in endpoints:
@@ -410,10 +410,10 @@ class SavingsPage(BasePage):
         dst_label = QLabel("אל:", dlg)
         dst_combo = QComboBox(dlg)
         try:
-            dst_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            dst_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                dst_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                dst_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
             except Exception:
                 pass
         for label, _, _, _ in endpoints:
