@@ -77,5 +77,22 @@
         ]
       }
     ]
+  },
+  {
+    "name": "טסט",
+    "is_liquid": false,
+    "total_amount": 200.0,
+    "savings": [
+      {
+        "name": "טסט3",
+        "amount": 200.0,
+        "history": [
+          {
+            "date": "2025-12-08",
+            "amount": 200.0
+          }
+        ]
+      }
+    ]
   }
 ]

@@ -408,7 +408,7 @@ class CollapsibleButtonList(QWidget):
         is_dark = theme == "dark"
 
         if is_dark:
-            container_bg = "#111827"  # Match sidebar dark background
+            container_bg = "#020617"
         else:
             container_bg = "transparent"
 

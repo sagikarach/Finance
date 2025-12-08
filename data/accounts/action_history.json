@@ -30,5 +30,82 @@
       "account_name": "טסט",
       "account_total_amount": 500.0
     }
+  },
+  {
+    "id": "f90e7b39-89df-43d9-8b0c-a0178fe73238",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_savings_account",
+      "success": true,
+      "account_name": "טסט",
+      "is_liquid": false
+    }
+  },
+  {
+    "id": "20a24f1e-f7ed-4aa5-befd-8fb3b693e2c7",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט1",
+      "saving_amount": 45.0
+    }
+  },
+  {
+    "id": "c949dad8-0333-4b17-bce4-9d6b88ee6cac",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט2",
+      "saving_amount": 500.0
+    }
+  },
+  {
+    "id": "bea44fc9-634d-4219-8b05-56fbf3eb6cc2",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "add_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט3",
+      "saving_amount": 200.0
+    }
+  },
+  {
+    "id": "c740bb31-7d58-4e75-b73e-efe3c2de8004",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "edit_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט1",
+      "old_amount": 45.0,
+      "new_amount": 60.0
+    }
+  },
+  {
+    "id": "ca808c0e-d929-48c5-becd-6daa4d084fb0",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "delete_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט1",
+      "saving_amount": 60.0
+    }
+  },
+  {
+    "id": "7feaff6b-3820-4586-9cbd-e5e1fbdb8dcf",
+    "timestamp": "2025-12-08",
+    "action": {
+      "action_name": "delete_saving",
+      "success": true,
+      "account_name": "טסט",
+      "saving_name": "טסט2",
+      "saving_amount": 500.0
+    }
   }
 ]

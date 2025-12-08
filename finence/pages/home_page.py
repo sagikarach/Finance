@@ -53,12 +53,10 @@ class HomePage(BasePage):
         return buttons
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
-        # DEBUG: Add green card and put both in cards_row layout
         overview = AccountsOverview.for_home(self._accounts)
         total_all = overview.total_all
         total_liquid = overview.total_liquid
 
-        # Get parent widget from layout to ensure proper cleanup
         parent_widget = main_col.parentWidget()
         if parent_widget is None:
             parent_widget = self
@@ -145,9 +143,7 @@ class HomePage(BasePage):
         except Exception:
             pass
         chart_side_layout = QVBoxLayout(chart_side_card)
-        # Remove inner padding so the history table can fully cover the card width/height,
-        # letting row background colors visually fill the entire rectangle behind the table.
-        chart_side_layout.setContentsMargins(0, 0, 0, 0)
+        chart_side_layout.setContentsMargins(0, 0, 0, 8)
         chart_side_layout.setSpacing(0)
 
         try:

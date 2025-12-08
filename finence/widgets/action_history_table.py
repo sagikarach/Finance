@@ -23,12 +23,10 @@ except Exception:
     except Exception:
         QStyledItemDelegate = None  # type: ignore
 try:
-    from PySide6.QtGui import QPainter, QPaintEvent  # type: ignore
-    from PySide6.QtCore import QRect  # type: ignore
+    from PySide6.QtGui import QPainter  # type: ignore
 except Exception:
     try:
-        from PyQt6.QtGui import QPainter, QPaintEvent  # type: ignore
-        from PyQt6.QtCore import QRect  # type: ignore
+        from PyQt6.QtGui import QPainter  # type: ignore
     except Exception:
         QPainter = None  # type: ignore
         QPaintEvent = None  # type: ignore
@@ -41,6 +39,7 @@ except Exception:
     except Exception:
         QTimer = None  # type: ignore
 from ..models.action_history import ActionHistory
+from ..ui.action_history_details_dialog import ActionHistoryDetailsDialog
 
 
 class ColoredItemDelegate:
@@ -116,10 +115,10 @@ class ActionHistoryTable(QWidget):
     DEFAULT_COLOR_LIGHT = "#bfdbfe"
     ALTERNATE_COLOR_LIGHT = "#f8fafc"
 
-    HOVER_COLOR_DARK = "#374151"
-    PRESS_COLOR_DARK = "#d1d5db"
+    HOVER_COLOR_DARK = "#1f2937"
+    PRESS_COLOR_DARK = "#020617"
     DEFAULT_COLOR_DARK = "#111827"
-    ALTERNATE_COLOR_DARK = "#1f2937"
+    ALTERNATE_COLOR_DARK = "#020617"
 
     def __init__(
         self,
@@ -186,8 +185,6 @@ class ActionHistoryTable(QWidget):
         if ColoredItemDelegateImpl is not None:
             self._delegate = ColoredItemDelegateImpl(self._table)
             self._table.setItemDelegate(self._delegate)
-        else:
-            self._delegate = None
 
         try:
             self._table.setHorizontalScrollBarPolicy(
@@ -227,17 +224,47 @@ class ActionHistoryTable(QWidget):
 
         self._update_table()
 
+    def _is_dark_theme(self) -> bool:
+        app = QApplication.instance()
+        if app is None:
+            return False
+        try:
+            theme_value = app.property("theme")
+            if isinstance(theme_value, str):
+                return theme_value.lower() == "dark"
+        except Exception:
+            pass
+        try:
+            try:
+                from PySide6.QtGui import QPalette as _QPalette  # type: ignore
+            except Exception:
+                from PyQt6.QtGui import QPalette as _QPalette  # type: ignore
+            palette = app.palette()  # type: ignore[attr-defined]
+            try:
+                window_color = palette.color(_QPalette.ColorRole.Window)  # type: ignore[attr-defined]
+            except Exception:
+                try:
+                    window_color = palette.window().color()  # type: ignore[call-arg]
+                except Exception:
+                    return False
+            try:
+                return getattr(window_color, "lightness", lambda: 255)() < 128
+            except Exception:
+                return False
+        except Exception:
+            return False
+
     def set_history(self, history: List[ActionHistory]) -> None:
         self._history = history
         self._update_table()
 
     def _on_item_entered(self, item: QTableWidgetItem) -> None:
-        if item is None:
-            if self._hovered_row >= 0:
-                self._update_row_hover(self._hovered_row, False)
-                self._hovered_row = -1
-            return
         try:
+            if item is None:
+                if self._hovered_row >= 0:
+                    self._update_row_hover(self._hovered_row, False)
+                    self._hovered_row = -1
+                return
             new_row = item.row()
             if new_row != self._hovered_row:
                 self._update_row_hover(self._hovered_row, False)
@@ -251,8 +278,17 @@ class ActionHistoryTable(QWidget):
             self._handle_row_press(item.row())
 
     def _on_item_clicked(self, item: QTableWidgetItem) -> None:
-        if item is not None:
-            self._handle_row_press(item.row())
+        if item is None:
+            return
+        row = item.row()
+        self._handle_row_press(row)
+        try:
+            entry = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(entry, ActionHistory):
+                dialog = ActionHistoryDetailsDialog(entry, None)
+                dialog.exec()
+        except Exception:
+            pass
 
     def _handle_row_press(self, row: int) -> None:
         if row < 0 or row >= self._table.rowCount():
@@ -306,10 +342,7 @@ class ActionHistoryTable(QWidget):
             return
 
         try:
-            app = QApplication.instance()
-            is_dark = False
-            if app is not None:
-                is_dark = str(app.property("theme") or "light") == "dark"
+            is_dark = self._is_dark_theme()
 
             if row == self._pressed_row:
                 bg = QColor(
@@ -373,10 +406,7 @@ class ActionHistoryTable(QWidget):
         }
 
         try:
-            app = QApplication.instance()
-            is_dark = False
-            if app is not None:
-                is_dark = str(app.property("theme") or "light") == "dark"
+            is_dark = self._is_dark_theme()
             default_bg = QColor(
                 self.DEFAULT_COLOR_DARK if is_dark else self.DEFAULT_COLOR_LIGHT
             )

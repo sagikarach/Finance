@@ -253,6 +253,17 @@ class BasePage(QWidget):
                 except Exception:
                     pass
 
+        try:
+            from ..widgets.action_history_table import ActionHistoryTable
+
+            history_table = self.findChild(ActionHistoryTable)
+            if history_table is not None and hasattr(
+                history_table, "_update_table"
+            ):
+                history_table._update_table()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if self._theme_btn is not None:
