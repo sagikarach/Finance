@@ -316,7 +316,7 @@ class BankMovementService:
 
                 updated_acc = BankAccount(
                     name=acc.name,
-                    total_amount=0.0,  # recomputed from history in __post_init__
+                    total_amount=new_total,  # Set balance directly from calculated new_total
                     is_liquid=acc.is_liquid,
                     history=new_history,
                     active=acc.active,
@@ -329,6 +329,70 @@ class BankMovementService:
         if not account_updated:
             # No matching bank account found; return the original list unchanged.
             return accounts
+
+        return updated_accounts
+
+    def recalculate_account_balances(
+        self, accounts: List[MoneyAccount]
+    ) -> List[MoneyAccount]:
+        """
+        Recalculate account balances by summing all movements for each account.
+        This ensures balances are accurate even if movements were edited or imported.
+
+        Args:
+            accounts: List of accounts to update
+
+        Returns:
+            Updated list of accounts with recalculated balances
+        """
+        if not accounts:
+            return accounts
+
+        # Get all movements
+        try:
+            all_movements = self.movement_provider.list_movements()
+        except Exception:
+            return accounts
+
+        # Sum all movements by account name
+        balance_by_account: Dict[str, float] = {}
+        for movement in all_movements:
+            account_name = movement.account_name
+            if account_name not in balance_by_account:
+                balance_by_account[account_name] = 0.0
+            try:
+                balance_by_account[account_name] += float(movement.amount)
+            except Exception:
+                pass
+
+        # Update each bank account's balance
+        updated_accounts: List[MoneyAccount] = []
+        for acc in accounts:
+            if isinstance(acc, BankAccount):
+                # Get the sum of all movements for this account
+                calculated_balance = balance_by_account.get(acc.name, 0.0)
+
+                # Add a new snapshot with the recalculated balance
+                new_history = list(acc.history)
+                try:
+                    from datetime import date as _date
+                    date_str = _date.today().isoformat()
+                except Exception:
+                    date_str = ""
+
+                # Add snapshot with recalculated balance
+                new_history.append(MoneySnapshot(date=date_str, amount=calculated_balance))
+
+                updated_acc = BankAccount(
+                    name=acc.name,
+                    total_amount=calculated_balance,  # Set the recalculated balance
+                    is_liquid=acc.is_liquid,
+                    history=new_history,
+                    active=acc.active,
+                )
+                updated_accounts.append(updated_acc)
+            else:
+                updated_accounts.append(acc)
 
         return updated_accounts
 

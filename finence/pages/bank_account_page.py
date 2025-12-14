@@ -375,6 +375,14 @@ class BankAccountPage(BasePage):
         except Exception:
             pass
 
+        # Recalculate account balances from all movements to ensure accuracy
+        # This is important because movements might have been applied in different orders
+        # or the balance calculation might have been inconsistent
+        try:
+            self._accounts = service.recalculate_account_balances(self._accounts)
+        except Exception:
+            pass
+
         # Persist and refresh UI (sidebar, totals, charts).
         try:
             self._save_and_refresh_accounts()
