@@ -180,6 +180,13 @@ class SidebarNavigation:
     def connect_bank_handlers(
         self,
         on_toggle: Callable[[], None],
+        on_bank_click: Optional[Callable[[], None]] = None,
     ) -> None:
         if self._bank_toggle_btn:
             self._bank_toggle_btn.clicked.connect(on_toggle)
+        if self._bank_btn and on_bank_click:
+            try:
+                self._bank_btn.clicked.disconnect()
+            except Exception:
+                pass
+            self._bank_btn.clicked.connect(on_bank_click)

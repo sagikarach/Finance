@@ -112,6 +112,19 @@ class Sidebar(QWidget):
             except Exception:
                 pass
 
+        if current_route in ("bank_accounts", "bank_account"):
+            try:
+                self._bank_section.set_expanded(True)
+                toggle_btn = self._navigation.get_bank_toggle_button()
+                if toggle_btn:
+                    toggle_btn.setChecked(True)
+                    toggle_btn.setText("▲")
+                bank_btn = self._navigation.get_bank_button()
+                if bank_btn:
+                    bank_btn.setStyleSheet("border-bottom-color: transparent;")
+            except Exception:
+                pass
+
     def _setup_sidebar(self) -> None:
         self.setObjectName("Sidebar")
         try:
@@ -133,7 +146,10 @@ class Sidebar(QWidget):
         )
         if hasattr(self._navigation, "connect_bank_handlers"):
             try:
-                self._navigation.connect_bank_handlers(self._on_toggle_bank_list)
+                self._navigation.connect_bank_handlers(
+                    on_toggle=self._on_toggle_bank_list,
+                    on_bank_click=self._on_bank_clicked,
+                )
             except Exception:
                 pass
 
@@ -161,6 +177,15 @@ class Sidebar(QWidget):
     def _on_savings_clicked(self) -> None:
         if self._navigate is not None:
             self._navigate("savings")
+
+    def _on_bank_clicked(self) -> None:
+        if self._navigate is not None:
+            self._navigate("bank_accounts")
+        try:
+            if not self._bank_section.is_expanded():
+                self._on_toggle_bank_list()
+        except Exception:
+            pass
 
     def _on_toggle_bank_list(self) -> None:
         if not hasattr(self, "_bank_section"):
