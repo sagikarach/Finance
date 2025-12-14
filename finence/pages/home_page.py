@@ -149,8 +149,46 @@ class HomePage(BasePage):
         except Exception:
             history = []
 
+        # Get categories and movement provider for editing
+        categories = []
+        movement_provider = None
+        try:
+            if (
+                hasattr(self, "_bank_movement_provider")
+                and self._bank_movement_provider
+            ):
+                movement_provider = self._bank_movement_provider
+                if hasattr(movement_provider, "list_categories_for_type"):
+                    categories = movement_provider.list_categories_for_type(
+                        is_income=False
+                    )  # type: ignore[attr-defined]
+                elif hasattr(movement_provider, "list_categories"):
+                    categories = movement_provider.list_categories()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+        def on_saved() -> None:
+            """Refresh history after saving changes."""
+            try:
+                # Reload history from file to get updated entries
+                history = self._history_provider.list_history()
+                history_table.set_history(history)
+                # Also refresh the accounts to ensure consistency
+                try:
+                    self._accounts = self._accounts_service.load_accounts()
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
         history_table = ActionHistoryTable(
-            history=history, max_rows=10, parent=chart_side_card
+            history=history,
+            max_rows=10,
+            parent=chart_side_card,
+            categories=categories,
+            movement_provider=movement_provider,
+            on_saved=on_saved,
+            history_provider=self._history_provider,
         )
         chart_side_layout.addWidget(history_table, 1)
 

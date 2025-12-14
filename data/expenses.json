@@ -1,0 +1,4687 @@
+[
+  {
+    "date": "29/08/2024",
+    "description": "חניון קרטא ירושלים בעמ",
+    "amount": 67,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/08/2024",
+    "description": "BIT",
+    "amount": 450,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/08/2024",
+    "description": "קיבוץ לביא",
+    "amount": 336.1,
+    "category": "ביגוד",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "27/08/2024",
+    "description": "הקפה של משה",
+    "amount": 40,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/08/2024",
+    "description": "טוגו",
+    "amount": 99.9,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/08/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/08/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 61.66,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/08/2024",
+    "description": "אושר עד לוד",
+    "amount": 203.58,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/08/2024",
+    "description": "פרחי דליה",
+    "amount": 120,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/08/2024",
+    "description": "גולדן בורגר בעמ",
+    "amount": 58,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/08/2024",
+    "description": "גולדן בורגר בעמ",
+    "amount": 22,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/08/2024",
+    "description": "BIT",
+    "amount": 100,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/08/2024",
+    "description": "העברה ב BIT בנהפ",
+    "amount": 60,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/08/2024",
+    "description": "פרחי חן בשרון",
+    "amount": 250,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/08/2024",
+    "description": "אוטוטו סושי בע?מ",
+    "amount": 163,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/08/2024",
+    "description": "אושר עד לוד",
+    "amount": 154.65,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/08/2024",
+    "description": "אושר עד לוד",
+    "amount": 26.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/08/2024",
+    "description": "אושר עד לוד",
+    "amount": 179.62,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/08/2024",
+    "description": "BIT",
+    "amount": 122,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/08/2024",
+    "description": "BIT",
+    "amount": 420,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/08/2024",
+    "description": "דפנס קונדיטוריה וקפה בעמ",
+    "amount": 52.86,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/08/2024",
+    "description": "רובן RUBEN",
+    "amount": 80,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/08/2024",
+    "description": "בירמה קפה",
+    "amount": 32,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/08/2024",
+    "description": "מינהל קהילתי גינות העיר",
+    "amount": 60,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/08/2024",
+    "description": "פורטופינו",
+    "amount": 38,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/07/2024",
+    "description": "אושר עד לוד",
+    "amount": 206.58,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/07/2024",
+    "description": "מינימרקט קייזר בעמ",
+    "amount": 34.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/07/2024",
+    "description": "אושר עד לוד",
+    "amount": 113.77,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/07/2024",
+    "description": "מינימרקט קייזר בעמ",
+    "amount": 25,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/07/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/07/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 32.33,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/07/2024",
+    "description": "רשות הטבע והגנים - חוף פלמחים",
+    "amount": 25,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/07/2024",
+    "description": "אייס רמלה לוד",
+    "amount": 69.8,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/07/2024",
+    "description": "אושר עד לוד",
+    "amount": 76.8,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/07/2024",
+    "description": "מינימרקט השכונה",
+    "amount": 23.4,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/07/2024",
+    "description": "אושר עד לוד",
+    "amount": 323.32,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/10/2024",
+    "description": "SHEIN.COM",
+    "amount": 224.56,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/10/2024",
+    "description": "BIT",
+    "amount": 130,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/10/2024",
+    "description": "אושר עד לוד",
+    "amount": 38.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/10/2024",
+    "description": "הכל בדולר לוד",
+    "amount": 14,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/09/2024",
+    "description": "נעמן",
+    "amount": 20,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/09/2024",
+    "description": "carrefour market שרונה",
+    "amount": 632.18,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/09/2024",
+    "description": "קופת חולים מאוחדת-בית מרקחת רחובות",
+    "amount": 30,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/09/2024",
+    "description": "מרכז הסליקה של חברות ביטוח בעמ",
+    "amount": 10,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/09/2024",
+    "description": "העברה ב BIT בנהפ",
+    "amount": 25,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/09/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/09/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 41.33,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/09/2024",
+    "description": "סופרפארם לוד",
+    "amount": 45.77,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/09/2024",
+    "description": "BIT",
+    "amount": 20,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/09/2024",
+    "description": "פלוס מרקט שריגים בעמ",
+    "amount": 25.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/09/2024",
+    "description": "אגרו קפה בעמ",
+    "amount": 58,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/09/2024",
+    "description": "פז/YELLOW צומת ראם",
+    "amount": 201.12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/09/2024",
+    "description": "קופת חולים מאוחדת-בית מרקחת רחובות",
+    "amount": 116.34,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/09/2024",
+    "description": "אגרו קפה בעמ",
+    "amount": 71,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/04/2025",
+    "description": "אמצע השוק פאדי",
+    "amount": 18,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/04/2025",
+    "description": "חניון קניון מודיעין",
+    "amount": 5,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/04/2025",
+    "description": "זיפ קנית מודיעין-גמא",
+    "amount": 99.9,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/04/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 4,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/04/2025",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "amount": 29.5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/04/2025",
+    "description": "רמי לוי - לוד",
+    "amount": 130.2,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/04/2025",
+    "description": "HARIM בייקרי קרית ענבים",
+    "amount": 114,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/06/2025",
+    "description": "העברה ב BIT בנהפ",
+    "amount": 4,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/05/2025",
+    "description": "רמי לוי - לוד",
+    "amount": 153.18,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/04/2025",
+    "description": "מאריש פיצה בעמ",
+    "amount": 28,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/02/2025",
+    "description": "בי דראגסטורס ? תרופות",
+    "amount": 48.34,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/06/2025",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "amount": 6,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/06/2025",
+    "description": "עברי בפארק בעמ",
+    "amount": 47.9,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/06/2025",
+    "description": "פארק אריאל שרון",
+    "amount": 24,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/05/2025",
+    "description": "ספרינט מוטורוס בעמ - צומת שמשון",
+    "amount": 266.03,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/06/2025",
+    "description": "אושר עד לוד",
+    "amount": 329.52,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/04/2025",
+    "description": "זויה",
+    "amount": 119.9,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/04/2025",
+    "description": "משרד התחבורה - רשיונות רכב",
+    "amount": 1403,
+    "category": "רכב",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "02/06/2025",
+    "description": "פז/YELLOW בית מור",
+    "amount": 270.34,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/04/2025",
+    "description": "ביט בוקס ראש העין",
+    "amount": 230,
+    "category": "בילויים",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "01/04/2025",
+    "description": "חניון קניון מודיעין",
+    "amount": 5,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/04/2025",
+    "description": "דור אלון לוד",
+    "amount": 269.56,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/09/2024",
+    "description": "סונול סתריה",
+    "amount": 23.8,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/09/2024",
+    "description": "אושר עד לוד",
+    "amount": 105.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/03/2025",
+    "description": "יריד נשימה",
+    "amount": 186.15,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/03/2025",
+    "description": "מאריש פיצה בעמ",
+    "amount": 7,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/03/2025",
+    "description": "נאייקס ישראל מכונות אוטומטיות",
+    "amount": 9,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/03/2025",
+    "description": "אגרו קפה בעמ",
+    "amount": 82,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/03/2025",
+    "description": "מועצה דתית לוד",
+    "amount": 17,
+    "category": "דת",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/03/2025",
+    "description": "מועצה דתית לוד",
+    "amount": 17,
+    "category": "דת",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/03/2025",
+    "description": "ספרינט מוטורס בעמ- מושב זכריה",
+    "amount": 287.84,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/03/2025",
+    "description": "רולדין שוהם",
+    "amount": 124,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/03/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/03/2025",
+    "description": "סופר פארם רמלוד",
+    "amount": 110,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/03/2025",
+    "description": "רשות האוכלוסין וההגירה תשלומים",
+    "amount": 145,
+    "category": "שונות",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "20/03/2025",
+    "description": "צרויה",
+    "amount": 148,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/03/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 271.56,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/03/2025",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "amount": 43.73,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/03/2025",
+    "description": "אמצע השוק פאדי",
+    "amount": 4,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/03/2025",
+    "description": "אושר עד לוד",
+    "amount": 32.55,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/03/2025",
+    "description": "דודי פיט",
+    "amount": 148,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/03/2025",
+    "description": "רמי לוי - לוד",
+    "amount": 40.1,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/03/2025",
+    "description": "עוף והודו ברקת חנות המפעל בעמ-צמרת",
+    "amount": 33.28,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/03/2025",
+    "description": "דור אלון מגל מזרח",
+    "amount": 200.45,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/03/2025",
+    "description": "אושר עד לוד",
+    "amount": 259.15,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/03/2025",
+    "description": "ניצת הדובדבן רחובות מרכז",
+    "amount": 55.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/03/2025",
+    "description": "כפר השעשועים רמלוד",
+    "amount": 5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/03/2025",
+    "description": "שחר בן דוד",
+    "amount": 140.3,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/03/2025",
+    "description": "AZIZO לבנדר מהגולן",
+    "amount": 27,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "12/03/2025",
+    "description": "AZIZO לבנדר מהגולן",
+    "amount": 15,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "12/03/2025",
+    "description": "דורא",
+    "amount": 53,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "12/03/2025",
+    "description": "חומוס אליהו בית שאן",
+    "amount": 49,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "11/03/2025",
+    "description": "קפה מוייז",
+    "amount": 86,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "10/03/2025",
+    "description": "יוחננוף אשדות יעקב",
+    "amount": 168.23,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/03/2025",
+    "description": "הבקתה",
+    "amount": 180,
+    "category": "קניות",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "10/03/2025",
+    "description": "מאפיית המשפחה",
+    "amount": 27.6,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/12/2024",
+    "description": "א.ט.א.מ חד פעמי",
+    "amount": 229.3,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/12/2024",
+    "description": "כפר השעשועים יכין",
+    "amount": 60,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/12/2024",
+    "description": "סונול סתריה",
+    "amount": 23.8,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/12/2024",
+    "description": "משתלת הר טוב-צמרת",
+    "amount": 56,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/12/2024",
+    "description": "משרד הפנים רמלה",
+    "amount": 135,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "04/12/2024",
+    "description": "פז YELLOW רמלה",
+    "amount": 282.17,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/12/2024",
+    "description": "פוטו תמונתי ותקשורת בעמ",
+    "amount": 15,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/12/2024",
+    "description": "מאריש פיצה בעמ",
+    "amount": 7,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/12/2024",
+    "description": "חנן מכשירי כתיבה",
+    "amount": 38.87,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/11/2024",
+    "description": "מקס רמלה בעמ",
+    "amount": 10.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/11/2024",
+    "description": "SHEIN.COM",
+    "amount": 450.27,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/11/2024",
+    "description": "אושר עד לוד",
+    "amount": 55.47,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/11/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/11/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 67.66,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/11/2024",
+    "description": "ג א ק קניון הדר תלפיות",
+    "amount": 448.7,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/11/2024",
+    "description": "פז קריית מנחם",
+    "amount": 290.88,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/11/2024",
+    "description": "BIT",
+    "amount": 11,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/11/2024",
+    "description": "צמצם מודיעין",
+    "amount": 25,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/11/2024",
+    "description": "סופר פארם תחנה מרכזית ירושלים",
+    "amount": 39.1,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/11/2024",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 290.09,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/11/2024",
+    "description": "BIT",
+    "amount": 105,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/11/2024",
+    "description": "מגולגלות קריספי שניצל",
+    "amount": 313,
+    "category": "בילויים",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "10/11/2024",
+    "description": "סטארט",
+    "amount": 21,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/11/2024",
+    "description": "(קפה בכפר (אליהו אלחלל",
+    "amount": 69,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/07/2024",
+    "description": "BIT",
+    "amount": 14,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/06/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 171.33,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/06/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/06/2024",
+    "description": "אושר עד לוד",
+    "amount": 251.87,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/06/2024",
+    "description": "צילומעתיק בעמ",
+    "amount": 25,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/06/2024",
+    "description": "BIT",
+    "amount": 50,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/06/2024",
+    "description": "אושר עד לוד",
+    "amount": 257.17,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/06/2024",
+    "description": "מאריש פיצה בעמ",
+    "amount": 15,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/06/2024",
+    "description": "סופר פארם תחנה מרכזית י-ם 94",
+    "amount": 58.59,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/07/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 20.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/07/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 180.5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/07/2025",
+    "description": "החורשה",
+    "amount": 36,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/07/2025",
+    "description": "בריסטה קפה",
+    "amount": 52,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/07/2025",
+    "description": "בית הפיתה ליז",
+    "amount": 14,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/07/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 285.36,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/07/2025",
+    "description": "הדס J",
+    "amount": 300,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "02/07/2025",
+    "description": "כלים ועיצובים- רמלה",
+    "amount": 10,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/07/2025",
+    "description": "בריסטה קפה",
+    "amount": 23,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/07/2025",
+    "description": "בריסטה קפה",
+    "amount": 19,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/06/2025",
+    "description": "נאייקס ישראל מכונות אוטומטיות",
+    "amount": 10,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/06/2025",
+    "description": "סונול צומת השרון נתנ",
+    "amount": 273.55,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/06/2025",
+    "description": "לירן כהן סחר",
+    "amount": 50,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/06/2025",
+    "description": "סופרפארם לוד",
+    "amount": 21.8,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/06/2025",
+    "description": "סטימצקי יריד העמק",
+    "amount": 35,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/06/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/06/2025",
+    "description": "מאפיה רחובות",
+    "amount": 46.68,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/06/2025",
+    "description": "מאוחדת WOW",
+    "amount": 80,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/06/2025",
+    "description": "גולדה לוד",
+    "amount": 159.14,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/06/2025",
+    "description": "מוצה רחובות בעמ",
+    "amount": 157,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/06/2025",
+    "description": "דודי פיט",
+    "amount": 148,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/06/2025",
+    "description": "בני דוד מכינה ישיבתית",
+    "amount": 150,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/06/2025",
+    "description": "נשמת מדרשה גבוהה ללימוד",
+    "amount": 54,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/06/2025",
+    "description": "בריסטה קפה",
+    "amount": 75,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/06/2025",
+    "description": "ליאור עדיקה - סניף מודיעין",
+    "amount": 220.4,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "09/06/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 289.09,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/06/2024",
+    "description": "צאביס",
+    "amount": 162.8,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/05/2024",
+    "description": "מגה קמעונאות רחובות",
+    "amount": 57,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/05/2024",
+    "description": "טן אריאל",
+    "amount": 387.63,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/05/2024",
+    "description": "ישיבת הר-עציון",
+    "amount": 50,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/05/2024",
+    "description": "מסעדת סימה",
+    "amount": 117,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/05/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/05/2024",
+    "description": "אושר עד לוד",
+    "amount": 208.28,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/05/2024",
+    "description": "סופר פארם תחנה מרכזית י-ם 94",
+    "amount": 31.31,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/05/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 41.83,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/05/2024",
+    "description": "אושר עד לוד",
+    "amount": 183.72,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/05/2024",
+    "description": "אושר עד לוד",
+    "amount": 84.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/05/2024",
+    "description": "אושר עד לוד",
+    "amount": 234.77,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/05/2024",
+    "description": "סמט מוסיקה בעמ",
+    "amount": 110,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "09/09/2024",
+    "description": "BIT",
+    "amount": 63,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "09/05/2024",
+    "description": "BIT",
+    "amount": 40,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/05/2025",
+    "description": "אורבניקה מודיעין",
+    "amount": 180,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/05/2025",
+    "description": "בליקר בייקרי מודיעין",
+    "amount": 25,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/05/2025",
+    "description": "שופרסל שלי ויצמן נתניה",
+    "amount": 15.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/05/2025",
+    "description": "סופר פארם - ויצמן נתניה",
+    "amount": 86.98,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/05/2025",
+    "description": "סופר פארם - ויצמן נתניה",
+    "amount": 37.8,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/05/2025",
+    "description": "מאריש פיצה בעמ",
+    "amount": 21,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/05/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/05/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 283.45,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/05/2025",
+    "description": "סופר פארם רמלוד",
+    "amount": 66.78,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/05/2025",
+    "description": "מאריש פיצה בעמ",
+    "amount": 9,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/05/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 285,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/05/2025",
+    "description": "דודי פיט",
+    "amount": 148,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/05/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 15,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/05/2025",
+    "description": "רמי לוי - לוד",
+    "amount": 105.8,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/05/2025",
+    "description": "רמי לוי - לוד",
+    "amount": 98.63,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/05/2025",
+    "description": "משתלת דמתי",
+    "amount": 49.5,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/05/2025",
+    "description": "אגמא",
+    "amount": 90,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/05/2025",
+    "description": "גולדה לוד",
+    "amount": 31,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/05/2025",
+    "description": "PAYBOX",
+    "amount": 500,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/05/2025",
+    "description": "חניון קניון מודיעין",
+    "amount": 5,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/05/2025",
+    "description": "חניוני מאיה- דובנוב 7",
+    "amount": 117,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/05/2025",
+    "description": "פז/YELLOW לוד ויסוצקי",
+    "amount": 280.77,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/05/2025",
+    "description": "אושר עד לוד",
+    "amount": 336,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/01/2025",
+    "description": "העברה ב BIT בנהפ",
+    "amount": 500,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/12/2024",
+    "description": "דור אלון לוד",
+    "amount": 240.26,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/12/2024",
+    "description": "לילי פטיסרי",
+    "amount": 78,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/12/2024",
+    "description": "מוצצים בילו",
+    "amount": 21.9,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/12/2024",
+    "description": "פוטו תמונתי ותקשורת בעמ",
+    "amount": 33,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/12/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/12/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 90.66,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/12/2024",
+    "description": "מיקה מודיעין",
+    "amount": 265.43,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/12/2024",
+    "description": "בית הפיתה ליז",
+    "amount": 33,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/12/2024",
+    "description": "חמניה",
+    "amount": 14,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/12/2024",
+    "description": "מקס סטוק - בית שמש",
+    "amount": 96.2,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/12/2024",
+    "description": "BIT",
+    "amount": 69,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/12/2024",
+    "description": "מגן דוד אדום",
+    "amount": 90,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "16/12/2024",
+    "description": "מגן דוד אדום",
+    "amount": 90,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "14/12/2024",
+    "description": "סדש רמלה בעמ",
+    "amount": 270.05,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/12/2024",
+    "description": "מקס רמלה בעמ",
+    "amount": 69.6,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/12/2024",
+    "description": "סופרפארם לוד",
+    "amount": 58.65,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/12/2024",
+    "description": "קליית בראשית רחובות",
+    "amount": 98,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "09/12/2024",
+    "description": "PAYBOX",
+    "amount": 600,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/04/2025",
+    "description": "ספרינט מוטורס בעמ- החוף",
+    "amount": 280.45,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/04/2025",
+    "description": "מאריש פיצה בעמ",
+    "amount": 7,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/04/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/04/2025",
+    "description": "סונול סתריה",
+    "amount": 257.73,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/04/2025",
+    "description": "אושר עד לוד",
+    "amount": 355.71,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/04/2025",
+    "description": "מעונות יום - חזון עמוס",
+    "amount": 803,
+    "category": "חינוך",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "23/04/2025",
+    "description": "עמותת אליעד",
+    "amount": 100,
+    "category": "חינוך",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "22/04/2025",
+    "description": "גולדה לוד",
+    "amount": 77.35,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/04/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 9.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/04/2025",
+    "description": "נאייקס ישראל מכונות אוטומטיות",
+    "amount": 9,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/04/2025",
+    "description": "קו אופ בית הכרם",
+    "amount": 29.66,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/04/2025",
+    "description": "סונול ערד",
+    "amount": 231.49,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/04/2025",
+    "description": "דודי פיט",
+    "amount": 148,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/04/2025",
+    "description": "מאוחדת WOW",
+    "amount": 80,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/04/2025",
+    "description": "סונול צומת השרון נתנ",
+    "amount": 265.02,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/04/2025",
+    "description": "עירית ירושלים גזברות",
+    "amount": 100,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/04/2025",
+    "description": "מנפיס",
+    "amount": 76,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/04/2025",
+    "description": "עיריית מודעין מכבים רעות",
+    "amount": 250,
+    "category": "רכב",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "07/03/2025",
+    "description": "רמי לוי - לוד",
+    "amount": 92.65,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/03/2025",
+    "description": "החיטה דוד המלך לוד בעמ",
+    "amount": 15,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/03/2025",
+    "description": "עספור-צמרת",
+    "amount": 1200,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "04/03/2025",
+    "description": "דור אלון לוד",
+    "amount": 289.07,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/03/2025",
+    "description": "יהונתן ביסטריצר)קטרינה(",
+    "amount": 206,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/03/2025",
+    "description": "אושר עד לוד",
+    "amount": 132.69,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/03/2025",
+    "description": "מאוחדת פארם לוד שער העיר",
+    "amount": 32.2,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/03/2025",
+    "description": "מאוחדת WOW",
+    "amount": 80,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/03/2025",
+    "description": "עברי בפארק בעמ",
+    "amount": 53,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/02/2025",
+    "description": "מיננה - בילו סנטר",
+    "amount": 6.65,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/02/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/02/2025",
+    "description": "מאריש פיצה בעמ",
+    "amount": 8,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/02/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 180.3,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/02/2025",
+    "description": "רחובות MOOOB",
+    "amount": 50,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/02/2025",
+    "description": "סונול סתריה",
+    "amount": 290.57,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/02/2025",
+    "description": "מאוחדת פארם לוד שער העיר",
+    "amount": 493.2,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/02/2025",
+    "description": "מאוחדת שיניים",
+    "amount": 102,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/02/2025",
+    "description": "מתנה באשראי לאירוע",
+    "amount": 206.9,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/02/2025",
+    "description": "אושר עד לוד",
+    "amount": 347.35,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/02/2025",
+    "description": "אושר עד לוד",
+    "amount": 288.96,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/02/2025",
+    "description": "KSP רחובות",
+    "amount": 75,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/02/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 207.4,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "09/02/2025",
+    "description": "קרטרס אתר סחר",
+    "amount": 129.24,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/10/2024",
+    "description": "מסיבה בכיכר",
+    "amount": 45.5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/10/2024",
+    "description": "מיני דניאל",
+    "amount": 14.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/10/2024",
+    "description": "זול פעמי",
+    "amount": 113,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/10/2024",
+    "description": "אלון כפר עזה",
+    "amount": 6.5,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/10/2024",
+    "description": "אלון כפר עזה",
+    "amount": 13,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/10/2024",
+    "description": "מרכז הסליקה של חברות ביטוח בעמ",
+    "amount": 10,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/10/2024",
+    "description": "מרכז הסליקה של חברות ביטוח בעמ",
+    "amount": 10,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/10/2024",
+    "description": "מבדקי רכב",
+    "amount": 500,
+    "category": "רכב",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "07/11/2024",
+    "description": "BIT",
+    "amount": 66,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/11/2024",
+    "description": "קופת חולים מאוחדת-בית מרקחת רחובות",
+    "amount": 39.96,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/11/2024",
+    "description": "BIT",
+    "amount": 19,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/11/2024",
+    "description": "פוטו תמונתי ותקשורת בעמ",
+    "amount": 42,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/10/2024",
+    "description": "אושר עד לוד",
+    "amount": 173.1,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/10/2024",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "amount": 12,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/10/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/10/2024",
+    "description": "מועצה אזורית גן רוה חניה",
+    "amount": 250,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/10/2024",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 61.66,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/10/2024",
+    "description": "בי דראגסטורס ? תרופות",
+    "amount": 19.55,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/10/2024",
+    "description": "סונול מפגש אמיתי",
+    "amount": 291.18,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/10/2024",
+    "description": "מאפיה רחובות",
+    "amount": 62,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/10/2024",
+    "description": "סופרפארם לוד",
+    "amount": 19.55,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/10/2024",
+    "description": "BIT",
+    "amount": 67,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/10/2024",
+    "description": "מינימרקט גילי",
+    "amount": 16.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "09/10/2024",
+    "description": "מינימרקט השכונה",
+    "amount": 10,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/10/2024",
+    "description": "BIT",
+    "amount": 160,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/01/2025",
+    "description": "אומני החשיבה PLAYSMART",
+    "amount": 109,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/02/2025",
+    "description": "זיפ בילו-גמא",
+    "amount": 89.9,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/02/2025",
+    "description": "לילי פטיסרי",
+    "amount": 136,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/01/2025",
+    "description": "מרכז הפרחים בנצי רחובות",
+    "amount": 175,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/02/2025",
+    "description": "ביט עזר מציון",
+    "amount": 114,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/02/2025",
+    "description": "ביט עזר מציון",
+    "amount": 114,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/02/2025",
+    "description": "מקוואות וחניונים",
+    "amount": 17,
+    "category": "דת",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/02/2025",
+    "description": "אייס רמלה לוד",
+    "amount": 59.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/01/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 288.32,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/01/2025",
+    "description": "אייס רמלה לוד",
+    "amount": 120.6,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/01/2025",
+    "description": "carrefour market שרונה",
+    "amount": 30.19,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/01/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/01/2025",
+    "description": "צומת ספרים בלו",
+    "amount": 172.8,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/01/2025",
+    "description": "אייס בילו",
+    "amount": 139,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/01/2025",
+    "description": "שווארמה קריטי ובניו בעמ",
+    "amount": 77,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/01/2025",
+    "description": "מינימרקט אדוארד",
+    "amount": 59.24,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/01/2025",
+    "description": "בי דראגסטורס ? תרופות",
+    "amount": 188.8,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/11/2024",
+    "description": "שילב אתר הסחר",
+    "amount": 3192,
+    "category": "קניות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "27/10/2024",
+    "description": "שלמה שרותי דרך",
+    "amount": 120,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/10/2024",
+    "description": "קניית רכב",
+    "amount": 31500,
+    "category": "רכב",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "30/09/2024",
+    "description": "משכן התכלת שיווק",
+    "amount": 295,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/09/2024",
+    "description": "ועד בית",
+    "amount": 180,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/03/2025",
+    "description": "ועד בית",
+    "amount": 769.8,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/11/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 20.04,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/09/2024",
+    "description": "עיריית לוד גזברות",
+    "amount": 558.8,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/09/2024",
+    "description": "אקדמרקט בר אילן",
+    "amount": 6.9,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/09/2024",
+    "description": "אושר עד לוד",
+    "amount": 413.36,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/09/2024",
+    "description": "אושר עד לוד",
+    "amount": 242.75,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/09/2024",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 813.67,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/10/2024",
+    "description": "אושר עד לוד",
+    "amount": 100.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/10/2024",
+    "description": "אושר עד לוד",
+    "amount": 165.03,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/10/2024",
+    "description": "מי לוד בעמ",
+    "amount": 100.55,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/10/2024",
+    "description": "מגדל ר. חובה",
+    "amount": 284.25,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/10/2024",
+    "description": "עיריית לוד גזברות",
+    "amount": 562.7,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/10/2024",
+    "description": "מגדל בטוח כללי",
+    "amount": 317.13,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/11/2024",
+    "description": "אושר עד לוד",
+    "amount": 157.68,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/11/2024",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 547,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/11/2024",
+    "description": "מגדל בטוח כללי",
+    "amount": 338.39,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/12/2024",
+    "description": "מגדל בטוח כללי",
+    "amount": 337.15,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/01/2025",
+    "description": "מגדל בטוח כללי",
+    "amount": 336.22,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/02/2025",
+    "description": "מגדל בטוח כללי",
+    "amount": 338.12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/02/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/03/2025",
+    "description": "מגדל בטוח כללי",
+    "amount": 338.11,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/04/2025",
+    "description": "מגדל בטוח כללי",
+    "amount": 339.78,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/05/2025",
+    "description": "מגדל בטוח כללי",
+    "amount": 343.44,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/04/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/06/2025",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 3.5,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/06/2025",
+    "description": "השלמה למינ דנ",
+    "amount": 1.8,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/05/2025",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/05/2025",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/04/2025",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/04/2025",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/04/2025",
+    "description": "ביטוח לאומי רב ספק",
+    "amount": 1450,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "03/03/2025",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/03/2025",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/02/2025",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/02/2025",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/01/2025",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/01/2025",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/12/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 179.33,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/12/2024",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 3.5,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/12/2024",
+    "description": "השלמה למינ דנ",
+    "amount": 1.8,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/11/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 87.33,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/11/2024",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 3.5,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/11/2024",
+    "description": "השלמה למינ דנ",
+    "amount": 1.8,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/10/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 49.66,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/10/2024",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/10/2024",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/09/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 580,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/09/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 24.66,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/09/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 100,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/09/2024",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/09/2024",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/03/2025",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "amount": 150,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/08/2025",
+    "description": "תשלום דוד ילין",
+    "amount": 270,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/04/2025",
+    "description": "דור אלון יזרעאל",
+    "amount": 262.12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/03/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.52,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/03/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/03/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 112.66,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/03/2025",
+    "description": "מי לוד בעמ",
+    "amount": 32.18,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/03/2025",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 288.5,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/03/2025",
+    "description": "צילומעתיק בעמ",
+    "amount": 5,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/06/2025",
+    "description": "שופרסל דיל רמלה לוד הצפונ",
+    "amount": 29.55,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/05/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.84,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/05/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 246.09,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/05/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 190.16,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/05/2025",
+    "description": "אושר עד לוד",
+    "amount": 280.91,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/05/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/05/2025",
+    "description": "מי לוד בעמ",
+    "amount": 114.91,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/05/2025",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 309.22,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/05/2024",
+    "description": "המוסד לביטוח לאומי מוקד ט",
+    "amount": 3277,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "27/08/2024",
+    "description": "אלונית יקנעם",
+    "amount": 23.54,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/05/2024",
+    "description": "אושר עד לוד",
+    "amount": 2.28,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/05/2024",
+    "description": "דור אלון לוד",
+    "amount": 203.5,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/05/2024",
+    "description": "BIT",
+    "amount": 10,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/05/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 0.84,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/05/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 15.3,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/07/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 3.26,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/07/2024",
+    "description": "אושר עד לוד",
+    "amount": 368.31,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/07/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 9.98,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/07/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 9.14,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/06/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 18.98,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/06/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 2.84,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/06/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 0.9,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "20/06/2024",
+    "description": "מי לוד בעמ",
+    "amount": 124.39,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/06/2024",
+    "description": "BIT",
+    "amount": 180,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/06/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 0.75,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/07/2024",
+    "description": "עיריית לוד גזברות",
+    "amount": 564,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/07/2024",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 432.19,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/07/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 5.55,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/05/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/05/2025",
+    "description": "קרנף בר אילן",
+    "amount": 14,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/01/2025",
+    "description": "נאייקס ישראל מכונות אוטומטיות",
+    "amount": 25,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/01/2025",
+    "description": "עיריית לוד גזברות",
+    "amount": 580.2,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/08/2024",
+    "description": "אושר עד לוד",
+    "amount": 65.22,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/08/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 7.42,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/08/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 4.78,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/08/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 4.46,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/08/2024",
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "amount": 6.33,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/08/2024",
+    "description": "מי לוד בעמ",
+    "amount": 132.77,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/08/2024",
+    "description": "אושר עד לוד",
+    "amount": 233.43,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "30/08/2024",
+    "description": "חניון בר אילן",
+    "amount": 20,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/08/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 60,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/05/2025",
+    "description": "צילומעתיק בעמ",
+    "amount": 25,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/08/2024",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 3.5,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/08/2024",
+    "description": "השלמה למינ דנ",
+    "amount": 1.8,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/07/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 64.33,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/01/2025",
+    "description": "דיילי - קפיטריה קפלן",
+    "amount": 18,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "07/01/2025",
+    "description": "ביח קפלן רחובות",
+    "amount": 25,
+    "category": "בריאות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "03/07/2024",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/07/2024",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/06/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 94.66,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/06/2024",
+    "description": "ע.מפעולות-ישיר",
+    "amount": 1.75,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/06/2024",
+    "description": "השלמה למינ דנ",
+    "amount": 3.55,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/05/2024",
+    "description": "דירקט- מצטבר",
+    "amount": 55,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/12/2024",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 20.24,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/12/2024",
+    "description": "מי לוד בעמ",
+    "amount": 105.31,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/04/2025",
+    "description": "מי לוד בעמ",
+    "amount": 6.15,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/04/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.62,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/04/2025",
+    "description": "אישלחם תעוז בעמ",
+    "amount": 42,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/04/2025",
+    "description": "אישלחם תעוז בעמ",
+    "amount": 31,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/04/2025",
+    "description": "אישלחם תעוז בעמ",
+    "amount": 31,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/04/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/04/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 142.66,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/04/2025",
+    "description": "קרנף בר אילן",
+    "amount": 14,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/02/2025",
+    "description": "COOK AND BAKE ONLINE",
+    "amount": 199.99,
+    "category": "קניות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "11/03/2025",
+    "description": "מפגש רמות",
+    "amount": 250.74,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "11/03/2025",
+    "description": "לול ארט",
+    "amount": 25,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "11/03/2025",
+    "description": "רשות הטבע והגנים גמלא",
+    "amount": 36,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "11/03/2025",
+    "description": "רשות הטבע והגנים גמלא",
+    "amount": 52,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "07/03/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/03/2025",
+    "description": "פארק אריאל שרון",
+    "amount": 24,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/02/2025",
+    "description": "פרחי כרמי",
+    "amount": 100,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/02/2025",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 124.87,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/02/2025",
+    "description": "סופרפארם לוד",
+    "amount": 19.1,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/02/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.52,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/02/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/02/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 143.33,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/02/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/02/2025",
+    "description": "סופרפארם לוד",
+    "amount": 165.71,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/02/2025",
+    "description": "PAYBOX",
+    "amount": 380,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/02/2025",
+    "description": "רשת קפה עלית - בר אילן נייגל",
+    "amount": 18,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/02/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/02/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 259.8,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/02/2025",
+    "description": "פז גז",
+    "amount": 340,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/02/2025",
+    "description": "מי לוד בעמ",
+    "amount": 91.89,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/01/2025",
+    "description": "דלתא",
+    "amount": 200,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/02/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/02/2025",
+    "description": "פז/YELLOW בית מור",
+    "amount": 292.99,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/02/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/02/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/01/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/01/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/01/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 126,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/01/2025",
+    "description": "סונול צומת קיסריה",
+    "amount": 267.48,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/01/2025",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 221.52,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/01/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 19.79,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/06/2025",
+    "description": "כוורת",
+    "amount": -7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/06/2025",
+    "description": "כוורת",
+    "amount": -8.5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/06/2025",
+    "description": "מש - קר בעמ",
+    "amount": -6,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/06/2025",
+    "description": "מש - קר בעמ",
+    "amount": -4.5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/06/2025",
+    "description": "מש - קר בעמ",
+    "amount": -5.5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/06/2025",
+    "description": "מש - קר בעמ",
+    "amount": -6,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/06/2025",
+    "description": "מרכז אלונים - מגער בעמ",
+    "amount": -50,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/07/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": -277.67,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/06/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": -20.78,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/06/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": -154,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/06/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": -18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/06/2025",
+    "description": "סונול סתריה",
+    "amount": -250,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/07/2025",
+    "description": "קלמא",
+    "amount": 74.25,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/07/2025",
+    "description": "אליה חכמון",
+    "amount": 36,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/07/2025",
+    "description": "פז YELLOW רמלה",
+    "amount": 290.08,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/07/2025",
+    "description": "אביאל הכל לבית",
+    "amount": 49.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/08/2025",
+    "description": "קצפת קניון הדר בעמ",
+    "amount": 26,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/07/2025",
+    "description": "יקב הולנדר בעמ",
+    "amount": 70,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/07/2025",
+    "description": "תמנון קניון רחובות-גמא",
+    "amount": 140,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/07/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 202.82,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/07/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 111.3,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/07/2025",
+    "description": "אושר עד לוד",
+    "amount": 220.47,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/07/2025",
+    "description": "החיטה דוד המלך לוד בעמ",
+    "amount": 15,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/07/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/07/2025",
+    "description": "מקס נתניה",
+    "amount": 47.5,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/07/2025",
+    "description": "פוטו תמונתי ותקשורת בעמ",
+    "amount": 5,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/07/2025",
+    "description": "סופרפארם לוד",
+    "amount": 44.33,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/07/2025",
+    "description": "גפטו רסטו בר",
+    "amount": 51,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/07/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/07/2025",
+    "description": "בי דראגסטורס ? תרופות",
+    "amount": 68.57,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/07/2025",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "amount": 7.18,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/07/2025",
+    "description": "דודי פיט",
+    "amount": 148,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/07/2025",
+    "description": "עירית ירושלים גזברות",
+    "amount": 100,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/07/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 34.6,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/07/2025",
+    "description": "רשות הטבע והגנים - חוף פלמחים",
+    "amount": 30,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/07/2025",
+    "description": "אושר עד לוד",
+    "amount": 244.15,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/08/2025",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 490.68,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/07/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.84,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/07/2025",
+    "description": "דלק מנטה גל נתניה",
+    "amount": 274.99,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/07/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 161,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/07/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/07/2025",
+    "description": "סחלב פראי",
+    "amount": 60,
+    "category": "שונות",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "23/07/2025",
+    "description": "פז גז",
+    "amount": 77.92,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/07/2025",
+    "description": "מי לוד בעמ",
+    "amount": 104.02,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/08/2025",
+    "description": "שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/07/2025",
+    "description": "תשלום שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/06/2025",
+    "description": "תשלום שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/05/2025",
+    "description": "תשלום שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/04/2025",
+    "description": "תשלום שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/03/2025",
+    "description": "תשלום שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/02/2025",
+    "description": "תשלום שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/01/2025",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/12/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/11/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/10/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/09/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/08/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/07/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/06/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/05/2024",
+    "description": "תשלום שכר דירה",
+    "amount": 2600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/08/2025",
+    "description": "ועד בית",
+    "amount": 300,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "id": "zkmHiDaEKOFNYCmA1sZQ",
+    "date": "2025-09-07",
+    "description": "תשלום מעון שחר",
+    "amount": 4293.9,
+    "category": "חינוך",
+    "expenseType": "חודשית",
+    "expenseSource": "בנק",
+    "source": "בנק",
+    "appSource": "mobile",
+    "timestamp": "2025-09-09T11:11:49.318Z"
+  },
+  {
+    "id": "p6PktYu0CUUJAZsPnUDm",
+    "date": "2025-09-07",
+    "description": "ועד בית 9 10",
+    "amount": 300,
+    "category": "מגורים",
+    "expenseType": "חודשית",
+    "expenseSource": "בנק",
+    "source": "בנק",
+    "appSource": "mobile",
+    "timestamp": "2025-09-09T11:11:49.318Z"
+  },
+  {
+    "id": "eDQ45vTaelZKRECf3qAD",
+    "date": "2025-08-05",
+    "description": "קניות חלב וביצים",
+    "amount": 21,
+    "category": "קניות",
+    "expenseType": "חודשית",
+    "expenseSource": "מזומן",
+    "source": "מזומן",
+    "appSource": "mobile",
+    "timestamp": "2025-09-09T11:11:49.318Z"
+  },
+  {
+    "date": "07/09/2025",
+    "description": "אושר עד לוד",
+    "amount": 351.37,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/09/2025",
+    "description": "פז/YELLOW צומת נתניה",
+    "amount": 280.37,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/09/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 14,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "04/09/2025",
+    "description": "סחלב פראי",
+    "amount": 100,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "03/09/2025",
+    "description": "בריסטה קפה",
+    "amount": 28,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/09/2025",
+    "description": "אומה טומה",
+    "amount": 65,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/09/2025",
+    "description": "עסקה משותפת מרכז הנשיא",
+    "amount": 20,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/09/2025",
+    "description": "קפה ויקולו רעות",
+    "amount": 38,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/09/2025",
+    "description": "ספרינט מוטורוס בעמ - כפר כמא",
+    "amount": 281.87,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/09/2025",
+    "description": "קפה ויקולו רעות",
+    "amount": 52,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "02/09/2025",
+    "description": "סופר אלונית חוצה ישראל מגל מערב",
+    "amount": 9.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/08/2025",
+    "description": "ברטה איטלקיה במשאית- קפה",
+    "amount": 28,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/08/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 14,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/08/2025",
+    "description": "רן פירות",
+    "amount": 30,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/08/2025",
+    "description": "FREE-FIT",
+    "amount": 20,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/08/2025",
+    "description": "סונול סתריה",
+    "amount": 238.73,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/08/2025",
+    "description": "מיקה עגלת קפה",
+    "amount": 31,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/08/2025",
+    "description": "אמצע השוק פאדי",
+    "amount": 25,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/08/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/08/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 23.4,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/08/2025",
+    "description": "סופרפארם לוד",
+    "amount": 118.33,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/08/2025",
+    "description": "אושר עד לוד",
+    "amount": 386.17,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/08/2025",
+    "description": "ספרינט מוטורוס בעמ - צומת מנגו",
+    "amount": 234.38,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/08/2025",
+    "description": "בית הפיתה ליז",
+    "amount": 55,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/08/2025",
+    "description": "סופרפארם לוד",
+    "amount": 37.75,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/08/2025",
+    "description": "פז/YELLOW צומת נתניה",
+    "amount": 275.15,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "18/08/2025",
+    "description": "חניון קניון השרון",
+    "amount": 20,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/08/2025",
+    "description": "FREE-FIT",
+    "amount": 20,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/08/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/08/2025",
+    "description": "דודי פיט",
+    "amount": 148,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/08/2025",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "amount": 21.28,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/08/2025",
+    "description": "אוצר הספרים המזכרות והיוד",
+    "amount": 3221,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "14/08/2025",
+    "description": "FREE-FIT",
+    "amount": 20,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/08/2025",
+    "description": "גולף קידס",
+    "amount": 197,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/08/2025",
+    "description": "סופט קוקיז",
+    "amount": 36,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/08/2025",
+    "description": "חניון קניון רמלה עזריאלי",
+    "amount": 5,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/08/2025",
+    "description": "פרש דה מרקט",
+    "amount": 86,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/08/2025",
+    "description": "ליאור עדיקה - סניף מודיעין",
+    "amount": 121.6,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/08/2025",
+    "description": "שילב רחובות",
+    "amount": 40.53,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/08/2025",
+    "description": "אושר עד לוד",
+    "amount": 418.08,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/08/2025",
+    "description": "קניון רחובות",
+    "amount": 20,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/08/2025",
+    "description": "הודיס בעמ",
+    "amount": 100,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/08/2025",
+    "description": "פז YELLOW רמלה",
+    "amount": 294.97,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/09/2025",
+    "description": "שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/09/2025",
+    "description": "חניון בר אילן",
+    "amount": 12,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "07/09/2025",
+    "description": "צילומעתיק בעמ",
+    "amount": 5,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/08/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.92,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/08/2025",
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/08/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 118,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/08/2025",
+    "description": "לגו סטור תור גיבס בעמ- צמרת",
+    "amount": 299,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/10/2025",
+    "description": "שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "08/10/2025",
+    "description": "המרכז הזואולוגי רמת גן בעמ",
+    "amount": 24,
+    "category": "בילויים",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "06/10/2025",
+    "description": "סולתם רדד )כלי בית( בעמ-צמרת",
+    "amount": 68.7,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "06/10/2025",
+    "description": "RONI KHAN עיר ימים",
+    "amount": 119,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "05/10/2025",
+    "description": "(רנן - פירסינגים (רננה לו",
+    "amount": 221,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "29/09/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 224.77,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/09/2025",
+    "description": "סופר פארם רמלוד",
+    "amount": 112.59,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/09/2025",
+    "description": "שופרסל דיל רמלה לוד הצפונ",
+    "amount": 25.91,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/09/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 27,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/09/2025",
+    "description": "אושר עד לוד",
+    "amount": 434.03,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/09/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 19.33,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/09/2025",
+    "description": "דמי כרטיס ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/09/2025",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "amount": 17,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/09/2025",
+    "description": "פינת הנשיא לוד",
+    "amount": 6.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/09/2025",
+    "description": "roni khan רחובות",
+    "amount": 109,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/09/2025",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "amount": 120,
+    "category": "חינוך",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "17/09/2025",
+    "description": "FREE-FIT",
+    "amount": 20,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "17/09/2025",
+    "description": "FREE-FIT",
+    "amount": 20,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/09/2025",
+    "description": "בראנץ קייטרינג",
+    "amount": 15,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/09/2025",
+    "description": "פשוט טעים",
+    "amount": 6,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/09/2025",
+    "description": "סופרפארם לוד",
+    "amount": 31.9,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/09/2025",
+    "description": "דודי פיט",
+    "amount": 179,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "15/09/2025",
+    "description": "יריד נשימה",
+    "amount": 449.65,
+    "category": "ביגוד",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "15/09/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 283.94,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "12/09/2025",
+    "description": "אושר עד לוד",
+    "amount": 318.26,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "11/09/2025",
+    "description": "בריסטה קפה",
+    "amount": 20,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/09/2025",
+    "description": "מקס רמלה בעמ",
+    "amount": 121.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/09/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 21.06,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "28/09/2025",
+    "description": "היפר רוזנפלד",
+    "amount": 377.3,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "28/09/2025",
+    "description": "פז גז",
+    "amount": 68.73,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/09/2025",
+    "description": "מי לוד בעמ",
+    "amount": 118.4,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/09/2025",
+    "description": "דמי כרטיס ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "25/09/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 245.33,
+    "category": "שונות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "21/09/2025",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "amount": 70,
+    "category": "חינוך",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "17/09/2025",
+    "description": "סופר עומר בעמ",
+    "amount": 10.92,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "14/09/2025",
+    "description": "חברת החשמל לישראל בעמ",
+    "amount": 418.11,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/10/2025",
+    "description": "תשלום מעון שחר",
+    "amount": 4293.9,
+    "category": "חינוך",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/11/2025",
+    "description": "שכר דירה",
+    "amount": 3600,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/11/2025",
+    "description": "רמי לוי - לוד",
+    "amount": 111.78,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "03/11/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 260.01,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/11/2025",
+    "description": "תמנון רמלוד-גמא",
+    "amount": 170,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "31/10/2025",
+    "description": "רמלה MOOOB",
+    "amount": 65,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/10/2025",
+    "description": "איקאה IKEA",
+    "amount": 9,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/10/2025",
+    "description": "איקאה IKEA",
+    "amount": 504,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "28/10/2025",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "amount": 265.45,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "27/10/2025",
+    "description": "מוסלין ירושלים",
+    "amount": 34,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/10/2025",
+    "description": "רמלה CARREFOUR MARKET",
+    "amount": 15.9,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/10/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 26.66,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/10/2025",
+    "description": "סופרפארם לוד",
+    "amount": 20.23,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/10/2025",
+    "description": "דמי כרטיס ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "24/10/2025",
+    "description": "roni khan רחובות",
+    "amount": 10,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "23/10/2025",
+    "description": "תחנת דלק שלמה המלך",
+    "amount": 301.72,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "22/10/2025",
+    "description": "אושר עד לוד",
+    "amount": 330.27,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/10/2025",
+    "description": "HELEN",
+    "amount": 37,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/10/2025",
+    "description": "(רנן - פירסינגים (רננה לו",
+    "amount": 40,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "19/10/2025",
+    "description": "סופר פארם רמלוד",
+    "amount": 20.23,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/10/2025",
+    "description": "אושר עד לוד",
+    "amount": 74.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/10/2025",
+    "description": "דודי פיט",
+    "amount": 179,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/10/2025",
+    "description": "יוחננוף רמלה",
+    "amount": 126.87,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "16/10/2025",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "amount": 40,
+    "category": "חינוך",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "16/10/2025",
+    "description": "פז YELLOW רמלה",
+    "amount": 287.3,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/10/2025",
+    "description": "סופרפארם לוד",
+    "amount": 112.01,
+    "category": "בריאות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "13/10/2025",
+    "description": "מרקט ליז",
+    "amount": 56.7,
+    "category": "קניות",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "09/10/2025",
+    "description": "סונול מפגש אמיתי",
+    "amount": 268.07,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/11/2025",
+    "description": "תשלום מעון שחר",
+    "amount": 4293.9,
+    "category": "חינוך",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/11/2025",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "amount": 70,
+    "category": "חינוך",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "29/10/2025",
+    "description": "הפניקס חיים ובריאות",
+    "amount": 20.94,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/10/2025",
+    "description": "דמי כרטיס ויזה",
+    "amount": 18.4,
+    "category": "בנק",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "26/10/2025",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "amount": 141,
+    "category": "תחבורה",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "19/10/2025",
+    "description": "aliexpress",
+    "amount": 233.19,
+    "category": "שונות",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "15/10/2025",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "amount": 70,
+    "category": "חינוך",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "02/09/2025",
+    "description": "ארנונה",
+    "amount": 263.7,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "10/10/2025",
+    "description": "ארנונה",
+    "amount": 261.4,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "29/10/2025",
+    "description": "ביטוח חובה 2026",
+    "amount": 314.59,
+    "category": "רכב",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "29/10/2025",
+    "description": "ביטוח מקיף 2026",
+    "amount": 564.4,
+    "category": "רכב",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "28/10/2025",
+    "description": "תוספת מקיף 2026",
+    "amount": 117.5,
+    "category": "רכב",
+    "expenseType": "שנתית"
+  },
+  {
+    "date": "01/11/2025",
+    "description": "ועד בית",
+    "amount": 300,
+    "category": "מגורים",
+    "expenseType": "חודשית"
+  },
+  {
+    "date": "01/12/2025",
+    "description": "תרומה להיכל יעקב",
+    "amount": 500,
+    "category": "דת",
+    "expenseType": "חד פעמית"
+  },
+  {
+    "date": "24/11/2025",
+    "description": "ביטוח מקיף 2026",
+    "amount": 564.4,
+    "category": "רכב",
+    "expenseType": "שנתית"
+  },
+  {
+    "description": "מבחן",
+    "amount": -67.0,
+    "category": "שונות",
+    "expenseType": "חד פעמי"
+  },
+  {
+    "description": "מבחן",
+    "amount": -336.1,
+    "category": "רכב",
+    "expenseType": "חודשית"
+  },
+  {
+    "description": "הפתעה",
+    "amount": -40.0,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  },
+  {
+    "description": "תמנון רמלוד-גמא",
+    "amount": -170.0,
+    "category": "ביגוד",
+    "expenseType": "חודשית"
+  },
+  {
+    "description": "איקאה IKEA",
+    "amount": -9.0,
+    "category": "קניות",
+    "expenseType": "חד פעמי"
+  },
+  {
+    "description": "מוסלין ירושלים",
+    "amount": -34.0,
+    "category": "בילויים",
+    "expenseType": "חודשית"
+  }
+]

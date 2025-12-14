@@ -1,90 +1,632 @@
 [
   {
-    "amount": 5000.0,
-    "date": "2025-12-08",
+    "amount": 500.0,
+    "date": "2025-12-14",
     "account_name": "בנק",
     "category": "משכורת",
     "type": "חודשי",
-    "description": null
+    "description": "משכורת שגיא",
+    "id": "b175e60e-418b-445e-bf3d-37e71faaa9be"
   },
   {
-    "amount": 5000.0,
-    "date": "2025-12-08",
+    "amount": 1000.0,
+    "date": "2024-12-05",
     "account_name": "בנק",
-    "category": "משכורת",
-    "type": "חודשי",
-    "description": null
+    "category": "קצבה",
+    "type": "חד פעמי",
+    "description": "משכורת חן",
+    "id": "43e2b602-a20a-4358-ae10-b1008c087b79"
   },
   {
-    "amount": -500.0,
-    "date": "2025-12-08",
+    "amount": -200.0,
+    "date": "2025-12-14",
+    "account_name": "בנק",
+    "category": "מגורים",
+    "type": "חד פעמי",
+    "description": "תשלום מעון",
+    "id": "1ef1937e-685f-45a9-92b4-8bab39e89b14"
+  },
+  {
+    "amount": -1000.0,
+    "date": "2024-12-05",
+    "account_name": "מזומן",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "מעבר דירה",
+    "id": "0bccee16-d838-496b-b60e-6e96f0ba903c"
+  },
+  {
+    "amount": -377.3,
+    "date": "28/09/2025",
+    "account_name": "בנק",
+    "category": "שונות",
+    "type": "חודשי",
+    "description": "היפר רוזנפלד",
+    "id": "d270b0d5-39f0-486c-9c0d-3e0c72e8ef14"
+  },
+  {
+    "amount": -21.06,
+    "date": "28/09/2025",
+    "account_name": "בנק",
+    "category": "בנק",
+    "type": "חודשי",
+    "description": "הפניקס חיים ובריאות",
+    "id": "b76200d5-e216-4d24-85cc-a56bcec1142a"
+  },
+  {
+    "amount": -118.4,
+    "date": "27/09/2025",
     "account_name": "בנק",
     "category": "מגורים",
     "type": "חודשי",
-    "description": "ארנונה"
+    "description": "מי לוד בעמ",
+    "id": "152b509b-6627-4e62-97d4-a5d8ec996132"
   },
   {
-    "amount": 999.0,
-    "date": "2025-12-08",
+    "amount": -18.4,
+    "date": "25/09/2025",
     "account_name": "בנק",
-    "category": "משכורת",
+    "category": "בנק",
     "type": "חודשי",
-    "description": null
+    "description": "דמי כרטיס ויזה",
+    "id": "49c8c3d1-830e-49e5-a644-a9b0a841fd41"
   },
   {
-    "amount": -90.0,
-    "date": "2025-12-08",
+    "amount": -70.0,
+    "date": "21/09/2025",
     "account_name": "בנק",
-    "category": "מגורים",
-    "type": "חודשי",
-    "description": null
+    "category": "חינוך",
+    "type": "שנתי",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "id": "1b8a09b5-254e-489e-80de-9f5bd0ccf873"
   },
   {
-    "amount": 99.0,
-    "date": "2025-12-08",
-    "account_name": "בנק",
-    "category": "משכורת",
-    "type": "חודשי",
-    "description": null
-  },
-  {
-    "amount": 10000.0,
-    "date": "2025-12-08",
-    "account_name": "בנק",
-    "category": "משכורת",
-    "type": "חודשי",
-    "description": null
-  },
-  {
-    "amount": -5000.0,
-    "date": "2025-12-08",
+    "amount": -418.11,
+    "date": "14/09/2025",
     "account_name": "בנק",
     "category": "מגורים",
     "type": "חודשי",
-    "description": null
+    "description": "חברת החשמל לישראל בעמ",
+    "id": "5bb632e2-e8ce-44a9-bfec-5ac34db7602b"
   },
   {
-    "amount": 10000.0,
-    "date": "2025-12-08",
+    "amount": -20.92,
+    "date": "29/08/2025",
     "account_name": "בנק",
-    "category": "משכורת",
+    "category": "בנק",
     "type": "חודשי",
-    "description": null
+    "description": "הפניקס חיים ובריאות",
+    "id": "194c7bdd-bcaf-476b-a390-2581341b1c5c"
   },
   {
-    "amount": -0.75,
-    "date": "2025-12-08",
+    "amount": -18.4,
+    "date": "26/08/2025",
     "account_name": "בנק",
-    "category": "מגורים",
+    "category": "בנק",
     "type": "חודשי",
-    "description": null
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "id": "4b5c6d33-c493-4d42-a83c-83f1d07d5136"
   },
   {
-    "amount": -55.0,
-    "date": "2025-12-08",
+    "amount": -118.0,
+    "date": "25/08/2025",
     "account_name": "בנק",
-    "category": "מגורים",
+    "category": "תחבורה",
     "type": "חודשי",
-    "description": null
+    "description": "מ. התחבורה - פנגו מוביט",
+    "id": "b0f0c792-6956-4319-8947-2aca09e253b2"
+  },
+  {
+    "amount": -100.0,
+    "date": "2025-12-14",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חד פעמי",
+    "description": "Test",
+    "id": "eec2f031-6259-4e6d-a326-87263812bb10"
+  },
+  {
+    "amount": -68.7,
+    "date": "06/10/2025",
+    "account_name": "בנק",
+    "category": "שונות",
+    "type": "חודשי",
+    "description": "סולתם רדד )כלי בית( בעמ-צמרת",
+    "id": "de95560a-09a4-4322-bcdf-4b8bfa8e2625"
+  },
+  {
+    "amount": -119.0,
+    "date": "06/10/2025",
+    "account_name": "בנק",
+    "category": "ביגוד",
+    "type": "חודשי",
+    "description": "RONI KHAN עיר ימים",
+    "id": "f89d0a97-be21-4c6f-9063-ad920adf8fe6"
+  },
+  {
+    "amount": -109.0,
+    "date": "21/09/2025",
+    "account_name": "בנק",
+    "category": "ביגוד",
+    "type": "חודשי",
+    "description": "roni khan רחובות",
+    "id": "beae5761-b672-44b9-bf16-d0abda475a6c"
+  },
+  {
+    "amount": -15.0,
+    "date": "16/09/2025",
+    "account_name": "בנק",
+    "category": "בילויים",
+    "type": "חודשי",
+    "description": "בראנץ קייטרינג",
+    "id": "e01e3abc-6801-4852-8572-c31cb0d95d08"
+  },
+  {
+    "amount": -24.0,
+    "date": "08/10/2025",
+    "account_name": "בנק",
+    "category": "בילויים",
+    "type": "שנתי",
+    "description": "המרכז הזואולוגי רמת גן בעמ",
+    "id": "61336040-1657-43cb-8a51-c977c4c8d2b0"
+  },
+  {
+    "amount": -224.77,
+    "date": "29/09/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "id": "cad5bef9-08fa-4ef5-a049-f9845d6c9b00"
+  },
+  {
+    "amount": -112.59,
+    "date": "26/09/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "סופר פארם רמלוד",
+    "id": "8309de71-dda8-4386-94f2-7d55b0c631c0"
+  },
+  {
+    "amount": -25.91,
+    "date": "26/09/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "שופרסל דיל רמלה לוד הצפונ",
+    "id": "cc488350-9828-44b2-9216-8ba31287ae54"
+  },
+  {
+    "amount": -27.0,
+    "date": "26/09/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "פינת הנשיא לוד",
+    "id": "31e5389a-8221-46fb-93ce-4ced3b2a916b"
+  },
+  {
+    "amount": -434.03,
+    "date": "25/09/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "אושר עד לוד",
+    "id": "19445498-1940-41c8-8929-55d9b0883423"
+  },
+  {
+    "amount": -12.88,
+    "date": "25/09/2025",
+    "account_name": "בנק",
+    "category": "בנק",
+    "type": "חודשי",
+    "description": "דמי כרטיס ויזה",
+    "id": "5d3a2b0f-bbfe-42bf-9b0a-877264d26595"
+  },
+  {
+    "amount": -17.0,
+    "date": "22/09/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "id": "cd31d159-62e1-4917-a7e6-0df1f82538b8"
+  },
+  {
+    "amount": -6.9,
+    "date": "22/09/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "פינת הנשיא לוד",
+    "id": "50ecbdb2-b282-4a66-aa87-57d3a26a99ca"
+  },
+  {
+    "amount": -120.0,
+    "date": "21/09/2025",
+    "account_name": "בנק",
+    "category": "חינוך",
+    "type": "שנתי",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "id": "249edc8c-01d8-40f3-abfe-fb3cd8fcc7d3"
+  },
+  {
+    "amount": -20.0,
+    "date": "17/09/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "FREE-FIT",
+    "id": "2061886c-e2a3-4592-9707-b1fd2136d7f6"
+  },
+  {
+    "amount": -20.0,
+    "date": "17/09/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "FREE-FIT",
+    "id": "64a287ee-3839-4079-bd49-6c6054979a79"
+  },
+  {
+    "amount": -31.9,
+    "date": "16/09/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "סופרפארם לוד",
+    "id": "19afa061-565d-40d7-a3db-60dd57ece387"
+  },
+  {
+    "amount": -179.0,
+    "date": "16/09/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "דודי פיט",
+    "id": "8e70ea86-8d1b-492b-b184-37aa3d3b4bec"
+  },
+  {
+    "amount": -449.65,
+    "date": "15/09/2025",
+    "account_name": "בנק",
+    "category": "ביגוד",
+    "type": "שנתי",
+    "description": "יריד נשימה",
+    "id": "b480330e-7e37-44cb-8db5-ac8e4b557933"
+  },
+  {
+    "amount": -283.94,
+    "date": "15/09/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "id": "8a4db6dd-8b5d-464b-8078-80cf62b453e6"
+  },
+  {
+    "amount": -318.26,
+    "date": "12/09/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "אושר עד לוד",
+    "id": "f5d8ddb3-dd10-4eb7-8198-424e4a4dcfc7"
+  },
+  {
+    "amount": -20.0,
+    "date": "11/09/2025",
+    "account_name": "בנק",
+    "category": "בילויים",
+    "type": "חודשי",
+    "description": "בריסטה קפה",
+    "id": "e9eb64ad-87f4-4fc3-b8e7-0357e5bda6bf"
+  },
+  {
+    "amount": -121.7,
+    "date": "10/09/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "מקס רמלה בעמ",
+    "id": "764a35dd-2f23-4ea7-9453-eef2a239e212"
+  },
+  {
+    "amount": -50.0,
+    "date": "2025-12-14",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חד פעמי",
+    "description": "Test save",
+    "id": "3f3e5db2-e7ec-43d6-9feb-b8b8d6d9521a"
+  },
+  {
+    "amount": -450.0,
+    "date": "31/08/2025",
+    "account_name": "בנק",
+    "category": "ביגוד",
+    "type": "חודשי",
+    "description": "טס״ט",
+    "id": "06fa3909-6e10-4eda-9a8a-1343b6bd21fd"
+  },
+  {
+    "amount": -450.0,
+    "date": "31/08/2025",
+    "account_name": "בנק",
+    "category": "ביגוד",
+    "type": "חודשי",
+    "description": "טס״ט",
+    "id": "ff105756-21c0-42f3-9d32-c47a0a99c5da"
+  },
+  {
+    "amount": -450.0,
+    "date": "31/08/2025",
+    "account_name": "בנק",
+    "category": "חינוך",
+    "type": "חודשי",
+    "description": "טס״ט",
+    "id": "9f7f1713-91a4-4671-9b56-2d198a33304a"
+  },
+  {
+    "amount": -67.0,
+    "date": "31/08/2025",
+    "account_name": "בנק",
+    "category": "שונות",
+    "type": "חד פעמי",
+    "description": "מבחן",
+    "id": "834420db-2292-4ab6-8eaf-0cfe61e6c08d"
+  },
+  {
+    "amount": -336.1,
+    "date": "31/08/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "מבחן",
+    "id": "f06b36cd-469e-447d-a706-d538eeff9cff"
+  },
+  {
+    "amount": -40.0,
+    "date": "31/08/2025",
+    "account_name": "בנק",
+    "category": "בילויים",
+    "type": "חודשי",
+    "description": "הפתעה",
+    "id": "36b33cc7-dd7c-448a-94b6-d685ab8249c3"
+  },
+  {
+    "amount": -40.0,
+    "date": "19/10/2025",
+    "account_name": "בנק",
+    "category": "שונות",
+    "type": "חודשי",
+    "description": "(רנן - פירסינגים (רננה לו",
+    "id": "72c58441-19b0-43d3-a5c8-948d440e0d6a"
+  },
+  {
+    "amount": -10.0,
+    "date": "24/10/2025",
+    "account_name": "בנק",
+    "category": "ביגוד",
+    "type": "חודשי",
+    "description": "roni khan רחובות",
+    "id": "4ff6b576-e7fb-4421-a360-d5cbc767c57a"
+  },
+  {
+    "amount": -111.78,
+    "date": "03/11/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "רמי לוי - לוד",
+    "id": "871f5a80-ba85-4fa1-ac40-233ef49e4dcb"
+  },
+  {
+    "amount": -260.01,
+    "date": "03/11/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "id": "cd6fee3d-3a0f-4cb0-aca0-dac913676c6b"
+  },
+  {
+    "amount": -65.0,
+    "date": "31/10/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "רמלה MOOOB",
+    "id": "1c4a33c4-d8a3-4b64-9931-3923e0080032"
+  },
+  {
+    "amount": -504.0,
+    "date": "29/10/2025",
+    "account_name": "בנק",
+    "category": "שונות",
+    "type": "חודשי",
+    "description": "איקאה IKEA",
+    "id": "bfef07ac-9ba8-4bf5-b13a-091d5a946f3d"
+  },
+  {
+    "amount": -265.45,
+    "date": "28/10/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "יעד מור תחנת דלק-צמרת",
+    "id": "4b72bebb-ed10-4fc3-8647-4632d0797611"
+  },
+  {
+    "amount": -15.9,
+    "date": "26/10/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "רמלה CARREFOUR MARKET",
+    "id": "79df40d1-ed69-4826-9630-83aa271386f0"
+  },
+  {
+    "amount": -26.66,
+    "date": "26/10/2025",
+    "account_name": "בנק",
+    "category": "תחבורה",
+    "type": "חודשי",
+    "description": "מ. התחבורה - פנגו מוביט",
+    "id": "2328f7f3-9472-41ff-91ee-e04402a0aa60"
+  },
+  {
+    "amount": -20.23,
+    "date": "26/10/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "סופרפארם לוד",
+    "id": "1dcc059b-4254-452f-a1f8-84fd6586622a"
+  },
+  {
+    "amount": -18.4,
+    "date": "26/10/2025",
+    "account_name": "בנק",
+    "category": "בנק",
+    "type": "חודשי",
+    "description": "דמי כרטיס ויזה",
+    "id": "218aad08-4cf1-4c05-9203-a78d6b0c9f52"
+  },
+  {
+    "amount": -301.72,
+    "date": "23/10/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "תחנת דלק שלמה המלך",
+    "id": "7aabe373-041a-4b0a-ad75-76445583e3e7"
+  },
+  {
+    "amount": -330.27,
+    "date": "22/10/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "אושר עד לוד",
+    "id": "ff688a92-3618-4e64-bc01-93cdc1beba87"
+  },
+  {
+    "amount": -37.0,
+    "date": "19/10/2025",
+    "account_name": "בנק",
+    "category": "בילויים",
+    "type": "חודשי",
+    "description": "HELEN",
+    "id": "44e4f4f6-cd74-4d21-8834-94bc8c4a971c"
+  },
+  {
+    "amount": -20.23,
+    "date": "19/10/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "סופר פארם רמלוד",
+    "id": "f63b67ba-548c-451a-8972-1c31e1de0dbe"
+  },
+  {
+    "amount": -74.7,
+    "date": "16/10/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "אושר עד לוד",
+    "id": "af0ff120-6ae9-4f6f-bcc8-3b0343d8050d"
+  },
+  {
+    "amount": -179.0,
+    "date": "16/10/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "דודי פיט",
+    "id": "bd1e3527-9312-4e68-adeb-0ea361fd03de"
+  },
+  {
+    "amount": -126.87,
+    "date": "16/10/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "יוחננוף רמלה",
+    "id": "d76eee5c-a14b-4353-a2ea-5b81bda2b822"
+  },
+  {
+    "amount": -40.0,
+    "date": "16/10/2025",
+    "account_name": "בנק",
+    "category": "חינוך",
+    "type": "שנתי",
+    "description": "המרכז לחינוך וחברה בלוד",
+    "id": "562c6f88-fb78-43d1-b2d6-4dd4de70c514"
+  },
+  {
+    "amount": -287.3,
+    "date": "16/10/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "פז YELLOW רמלה",
+    "id": "3f909e5e-8276-425e-853b-0ba7324f2c09"
+  },
+  {
+    "amount": -112.01,
+    "date": "13/10/2025",
+    "account_name": "בנק",
+    "category": "בריאות",
+    "type": "חודשי",
+    "description": "סופרפארם לוד",
+    "id": "5c71617e-40d7-4376-9c0c-b381a4f370a3"
+  },
+  {
+    "amount": -56.7,
+    "date": "13/10/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": "מרקט ליז",
+    "id": "67a25a08-ff43-45f8-98a2-3204a5a51577"
+  },
+  {
+    "amount": -268.07,
+    "date": "09/10/2025",
+    "account_name": "בנק",
+    "category": "רכב",
+    "type": "חודשי",
+    "description": "סונול מפגש אמיתי",
+    "id": "08d1e6c3-2b04-4957-bf38-d66918a6f6bc"
+  },
+  {
+    "amount": -170.0,
+    "date": "01/11/2025",
+    "account_name": "בנק",
+    "category": "ביגוד",
+    "type": "חודשי",
+    "description": "תמנון רמלוד-גמא",
+    "id": "3a2248f4-bb9f-4bd2-b668-e5fff415d47f"
+  },
+  {
+    "amount": -9.0,
+    "date": "29/10/2025",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חד פעמי",
+    "description": "איקאה IKEA",
+    "id": "dde60129-627f-4a13-adc6-53ec15f2778e"
+  },
+  {
+    "amount": -34.0,
+    "date": "27/10/2025",
+    "account_name": "בנק",
+    "category": "בילויים",
+    "type": "חודשי",
+    "description": "מוסלין ירושלים",
+    "id": "b74e1643-1309-4248-b2b8-564e8454019a"
   }
 ]

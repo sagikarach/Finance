@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt
+from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt, QComboBox
 
 
 def setup_standard_rtl_dialog(
@@ -68,3 +68,89 @@ def create_standard_buttons_row(
     buttons_row.addWidget(primary_btn)
 
     return buttons_row, primary_btn, cancel_btn
+
+
+def wrap_hebrew_rtl(text: str) -> str:
+    """Wrap Hebrew text with RTL embedding marks to prevent reversal.
+
+    This prevents Hebrew text from being reversed when displayed in Qt widgets
+    with RTL layout direction.
+
+    Args:
+        text: The text to wrap (may contain Hebrew characters)
+
+    Returns:
+        Text wrapped with RLE/PDF marks if it contains Hebrew, otherwise unchanged
+    """
+    if not text:
+        return text
+    # Check if text contains Hebrew characters (Unicode range U+0590 to U+05FF)
+    if any("\u0590" <= char <= "\u05ff" for char in text):
+        RLE = "\u202b"  # Right-to-Left Embedding
+        PDF = "\u202c"  # Pop Directional Formatting
+        return RLE + text + PDF
+    return text
+
+
+def unwrap_rtl(text: str) -> str:
+    """Remove RTL embedding marks from text.
+
+    This is useful when converting user input back to enum values or comparing
+    with stored values that don't have RTL marks.
+
+    Args:
+        text: The text that may contain RTL marks
+
+    Returns:
+        Text with RTL marks removed
+    """
+    if not text:
+        return text
+    # Remove RLE at start and PDF at end if present
+    if text.startswith("\u202b") and text.endswith("\u202c"):
+        return text[1:-1]
+    return text
+
+
+def apply_rtl_alignment(combo: QComboBox) -> None:
+    """Ensure that all items in a combo box are aligned to the right (for Hebrew).
+
+    This sets the text alignment for all items in both the closed state and
+    the popup list view.
+
+    Args:
+        combo: The QComboBox to configure
+    """
+    try:
+        model = combo.model()
+    except Exception:
+        return
+
+    try:
+        align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+    except Exception:
+        try:
+            # Older Qt enums
+            align = Qt.AlignRight  # type: ignore[attr-defined]
+        except Exception:
+            return
+
+    try:
+        role = Qt.ItemDataRole.TextAlignmentRole
+    except Exception:
+        try:
+            role = Qt.TextAlignmentRole  # type: ignore[attr-defined]
+        except Exception:
+            return
+
+    try:
+        row_count = model.rowCount()
+    except Exception:
+        return
+
+    for row in range(row_count):
+        try:
+            index = model.index(row, 0)
+            model.setData(index, align, role)
+        except Exception:
+            continue

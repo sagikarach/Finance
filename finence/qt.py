@@ -28,6 +28,8 @@ try:
         QTableWidget,
         QTableWidgetItem,
         QHeaderView,
+        QScrollArea,
+        QProgressBar,
     )
     from PySide6.QtGui import (  # type: ignore
         QAction,
@@ -95,6 +97,8 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
         QTableWidget,
         QTableWidgetItem,
         QHeaderView,
+        QScrollArea,
+        QProgressBar,
     )
     from PyQt6.QtGui import (  # type: ignore
         QAction,
@@ -180,6 +184,8 @@ __all__ = [
     "QTableWidget",
     "QTableWidgetItem",
     "QHeaderView",
+    "QScrollArea",
+    "QProgressBar",
     # Charts
     "charts_available",
     "QChart",

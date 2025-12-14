@@ -1,207 +1,200 @@
 [
   {
-    "id": "413d3f41-23e5-4a1e-8e87-4885ddc85487",
-    "timestamp": "2025-12-06",
-    "action": {
-      "action_name": "add_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט2",
-      "saving_amount": 123.0
-    }
-  },
-  {
-    "id": "c80a46ee-b777-4f79-ba4c-d8fa3181ad52",
-    "timestamp": "2025-12-06",
-    "action": {
-      "action_name": "delete_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט1",
-      "saving_amount": 500.0
-    }
-  },
-  {
-    "id": "16383902-d0b2-43cc-9abd-715bd34d124a",
-    "timestamp": "2025-12-06",
-    "action": {
-      "action_name": "delete_savings_account",
-      "success": true,
-      "account_name": "טסט",
-      "account_total_amount": 500.0
-    }
-  },
-  {
-    "id": "f90e7b39-89df-43d9-8b0c-a0178fe73238",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "add_savings_account",
-      "success": true,
-      "account_name": "טסט",
-      "is_liquid": false
-    }
-  },
-  {
-    "id": "20a24f1e-f7ed-4aa5-befd-8fb3b693e2c7",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "add_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט1",
-      "saving_amount": 45.0
-    }
-  },
-  {
-    "id": "c949dad8-0333-4b17-bce4-9d6b88ee6cac",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "add_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט2",
-      "saving_amount": 500.0
-    }
-  },
-  {
-    "id": "bea44fc9-634d-4219-8b05-56fbf3eb6cc2",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "add_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט3",
-      "saving_amount": 200.0
-    }
-  },
-  {
-    "id": "c740bb31-7d58-4e75-b73e-efe3c2de8004",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "edit_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט1",
-      "old_amount": 45.0,
-      "new_amount": 60.0
-    }
-  },
-  {
-    "id": "ca808c0e-d929-48c5-becd-6daa4d084fb0",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "delete_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט1",
-      "saving_amount": 60.0
-    }
-  },
-  {
-    "id": "7feaff6b-3820-4586-9cbd-e5e1fbdb8dcf",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "delete_saving",
-      "success": true,
-      "account_name": "טסט",
-      "saving_name": "טסט2",
-      "saving_amount": 500.0
-    }
-  },
-  {
-    "id": "5dc5187f-668e-40c1-a510-aa2475d8ca89",
-    "timestamp": "2025-12-08",
+    "id": "fb26f098-39f1-4ed2-956a-37128e4cfa95",
+    "timestamp": "2025-12-14",
     "action": {
       "action_name": "add_income_movement",
       "success": true,
-      "account_name": "בנק",
-      "amount": 999.0,
-      "category": "משכורת",
-      "type": "חודשי"
+      "movement_id": "b175e60e-418b-445e-bf3d-37e71faaa9be"
     }
   },
   {
-    "id": "47cfea1b-9450-48fb-88a3-639b75953cee",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "add_outcome_movement",
-      "success": true,
-      "account_name": "בנק",
-      "amount": -90.0,
-      "category": "מגורים",
-      "type": "חודשי"
-    }
-  },
-  {
-    "id": "bfb7e8f8-7039-4644-ae87-85d07b1593b9",
-    "timestamp": "2025-12-08",
+    "id": "2f7c8e08-b2cf-40ff-865a-10a179d9df58",
+    "timestamp": "2025-12-14",
     "action": {
       "action_name": "add_income_movement",
       "success": true,
-      "account_name": "בנק",
-      "amount": 99.0,
-      "category": "משכורת",
-      "type": "חודשי"
+      "movement_id": "43e2b602-a20a-4358-ae10-b1008c087b79"
     }
   },
   {
-    "id": "dd2ce6d1-ddd4-47a3-8b14-bc66ed150794",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "add_income_movement",
-      "success": true,
-      "account_name": "בנק",
-      "amount": 10000.0,
-      "category": "משכורת",
-      "type": "חודשי"
-    }
-  },
-  {
-    "id": "1601a19e-ad75-4b62-9037-e09f129258bf",
-    "timestamp": "2025-12-08",
+    "id": "0fd7d140-104b-42b7-8f58-b308b6629462",
+    "timestamp": "2025-12-14",
     "action": {
       "action_name": "add_outcome_movement",
       "success": true,
-      "account_name": "בנק",
-      "amount": -5000.0,
-      "category": "מגורים",
-      "type": "חודשי"
+      "movement_id": "1ef1937e-685f-45a9-92b4-8bab39e89b14"
     }
   },
   {
-    "id": "769ba156-92cf-4085-a3be-221db1c1a2a6",
-    "timestamp": "2025-12-08",
-    "action": {
-      "action_name": "add_income_movement",
-      "success": true,
-      "account_name": "בנק",
-      "amount": 10000.0,
-      "category": "משכורת",
-      "type": "חודשי"
-    }
-  },
-  {
-    "id": "ec3b23ca-d151-4376-85a6-738c07c58092",
-    "timestamp": "2025-12-08",
+    "id": "d7d7aaa8-80f6-4a3b-9502-696b3b45cbf7",
+    "timestamp": "2025-12-14",
     "action": {
       "action_name": "add_outcome_movement",
       "success": true,
-      "account_name": "בנק",
-      "amount": -0.75,
-      "category": "מגורים",
-      "type": "חודשי"
+      "movement_id": "0bccee16-d838-496b-b60e-6e96f0ba903c"
     }
   },
   {
-    "id": "5114c230-3c33-405b-bf2a-22014b2fc447",
-    "timestamp": "2025-12-08",
+    "id": "85b99326-4e5c-4c2b-a98a-f5394d17dc1c",
+    "timestamp": "2025-12-14",
     "action": {
-      "action_name": "add_outcome_movement",
+      "action_name": "upload_outcome_file",
       "success": true,
       "account_name": "בנק",
-      "amount": -55.0,
-      "category": "מגורים",
-      "type": "חודשי"
+      "file_name": "הוצאות_שגיא_אוקטובר_25.csv",
+      "total_amount": -1023.27,
+      "expenses_count": 6,
+      "movement_ids": [
+        "d270b0d5-39f0-486c-9c0d-3e0c72e8ef14",
+        "b76200d5-e216-4d24-85cc-a56bcec1142a",
+        "152b509b-6627-4e62-97d4-a5d8ec996132",
+        "49c8c3d1-830e-49e5-a644-a9b0a841fd41",
+        "1b8a09b5-254e-489e-80de-9f5bd0ccf873",
+        "5bb632e2-e8ce-44a9-bfec-5ac34db7602b"
+      ]
+    }
+  },
+  {
+    "id": "64aa3e0c-3635-49ea-a102-e5e2dc1c185b",
+    "timestamp": "2025-12-14",
+    "action": {
+      "action_name": "upload_outcome_file",
+      "success": true,
+      "account_name": "בנק",
+      "file_name": "שגיא_הוצאות_ספטמבר_25.csv",
+      "total_amount": -157.32,
+      "expenses_count": 3,
+      "movement_ids": [
+        "194c7bdd-bcaf-476b-a390-2581341b1c5c",
+        "4b5c6d33-c493-4d42-a83c-83f1d07d5136",
+        "b0f0c792-6956-4319-8947-2aca09e253b2"
+      ]
+    }
+  },
+  {
+    "id": "7aab646b-9c70-4932-b1ea-4703e6fbed8c",
+    "timestamp": "2025-12-14",
+    "action": {
+      "action_name": "upload_outcome_file",
+      "success": true,
+      "account_name": "בנק",
+      "file_name": "הוצאות_חן_אוקטובר_25.csv",
+      "total_amount": -2761.23,
+      "expenses_count": 23,
+      "movement_ids": [
+        "de95560a-09a4-4322-bcdf-4b8bfa8e2625",
+        "f89d0a97-be21-4c6f-9063-ad920adf8fe6",
+        "beae5761-b672-44b9-bf16-d0abda475a6c",
+        "e01e3abc-6801-4852-8572-c31cb0d95d08",
+        "61336040-1657-43cb-8a51-c977c4c8d2b0",
+        "cad5bef9-08fa-4ef5-a049-f9845d6c9b00",
+        "8309de71-dda8-4386-94f2-7d55b0c631c0",
+        "cc488350-9828-44b2-9216-8ba31287ae54",
+        "31e5389a-8221-46fb-93ce-4ced3b2a916b",
+        "19445498-1940-41c8-8929-55d9b0883423",
+        "5d3a2b0f-bbfe-42bf-9b0a-877264d26595",
+        "cd31d159-62e1-4917-a7e6-0df1f82538b8",
+        "50ecbdb2-b282-4a66-aa87-57d3a26a99ca",
+        "249edc8c-01d8-40f3-abfe-fb3cd8fcc7d3",
+        "2061886c-e2a3-4592-9707-b1fd2136d7f6",
+        "64a287ee-3839-4079-bd49-6c6054979a79",
+        "19afa061-565d-40d7-a3db-60dd57ece387",
+        "8e70ea86-8d1b-492b-b184-37aa3d3b4bec",
+        "b480330e-7e37-44cb-8db5-ac8e4b557933",
+        "8a4db6dd-8b5d-464b-8078-80cf62b453e6",
+        "f5d8ddb3-dd10-4eb7-8198-424e4a4dcfc7",
+        "e9eb64ad-87f4-4fc3-b8e7-0357e5bda6bf",
+        "764a35dd-2f23-4ea7-9453-eef2a239e212"
+      ]
+    }
+  },
+  {
+    "id": "d3cfd019-cc65-4e5c-9546-486d3f0a598f",
+    "timestamp": "2025-12-14",
+    "action": {
+      "action_name": "upload_outcome_file",
+      "success": true,
+      "account_name": "בנק",
+      "file_name": "test.csv",
+      "total_amount": -450.0,
+      "expenses_count": 1,
+      "movement_ids": [
+        "06fa3909-6e10-4eda-9a8a-1343b6bd21fd"
+      ]
+    }
+  },
+  {
+    "id": "8d8d0025-8493-48ed-a0f2-d5d04a384769",
+    "timestamp": "2025-12-14",
+    "action": {
+      "action_name": "upload_outcome_file",
+      "success": true,
+      "account_name": "בנק",
+      "file_name": "test.csv",
+      "total_amount": -450.0,
+      "expenses_count": 1,
+      "movement_ids": [
+        "ff105756-21c0-42f3-9d32-c47a0a99c5da"
+      ]
+    }
+  },
+  {
+    "id": "36236d0b-bf18-4ea0-aed2-f3acb8aeb2dd",
+    "timestamp": "2025-12-14",
+    "action": {
+      "action_name": "upload_outcome_file",
+      "success": true,
+      "account_name": "בנק",
+      "file_name": "test.csv",
+      "total_amount": -893.1,
+      "expenses_count": 4,
+      "movement_ids": [
+        "9f7f1713-91a4-4671-9b56-2d198a33304a",
+        "834420db-2292-4ab6-8eaf-0cfe61e6c08d",
+        "f06b36cd-469e-447d-a706-d538eeff9cff",
+        "36b33cc7-dd7c-448a-94b6-d685ab8249c3"
+      ]
+    }
+  },
+  {
+    "id": "49dd7245-e1df-4715-8075-ca579c4a79a7",
+    "timestamp": "2025-12-14",
+    "action": {
+      "action_name": "upload_outcome_file",
+      "success": true,
+      "account_name": "בנק",
+      "file_name": "הוצאות_חן_נובמבר_25.csv",
+      "total_amount": -3384.3,
+      "expenses_count": 26,
+      "movement_ids": [
+        "72c58441-19b0-43d3-a5c8-948d440e0d6a",
+        "4ff6b576-e7fb-4421-a360-d5cbc767c57a",
+        "871f5a80-ba85-4fa1-ac40-233ef49e4dcb",
+        "cd6fee3d-3a0f-4cb0-aca0-dac913676c6b",
+        "1c4a33c4-d8a3-4b64-9931-3923e0080032",
+        "bfef07ac-9ba8-4bf5-b13a-091d5a946f3d",
+        "4b72bebb-ed10-4fc3-8647-4632d0797611",
+        "79df40d1-ed69-4826-9630-83aa271386f0",
+        "2328f7f3-9472-41ff-91ee-e04402a0aa60",
+        "1dcc059b-4254-452f-a1f8-84fd6586622a",
+        "218aad08-4cf1-4c05-9203-a78d6b0c9f52",
+        "7aabe373-041a-4b0a-ad75-76445583e3e7",
+        "ff688a92-3618-4e64-bc01-93cdc1beba87",
+        "44e4f4f6-cd74-4d21-8834-94bc8c4a971c",
+        "f63b67ba-548c-451a-8972-1c31e1de0dbe",
+        "af0ff120-6ae9-4f6f-bcc8-3b0343d8050d",
+        "bd1e3527-9312-4e68-adeb-0ea361fd03de",
+        "d76eee5c-a14b-4353-a2ea-5b81bda2b822",
+        "562c6f88-fb78-43d1-b2d6-4dd4de70c514",
+        "3f909e5e-8276-425e-853b-0ba7324f2c09",
+        "5c71617e-40d7-4376-9c0c-b381a4f370a3",
+        "67a25a08-ff43-45f8-98a2-3204a5a51577",
+        "08d1e6c3-2b04-4957-bf38-d66918a6f6bc",
+        "3a2248f4-bb9f-4bd2-b668-e5fff415d47f",
+        "dde60129-627f-4a13-adc6-53ec15f2778e",
+        "b74e1643-1309-4248-b2b8-564e8454019a"
+      ]
     }
   }
 ]

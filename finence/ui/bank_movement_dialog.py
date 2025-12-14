@@ -14,7 +14,12 @@ from ..qt import (
     Qt,
     QDate,
 )
-from .dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
+from .dialog_utils import (
+    setup_standard_rtl_dialog,
+    create_standard_buttons_row,
+    wrap_hebrew_rtl,
+    apply_rtl_alignment,
+)
 from ..models.accounts import BankAccount
 from ..models.bank_movement import BankMovement, MovementType
 
@@ -166,7 +171,7 @@ class BankMovementDialog(QDialog):
         for acc in self._accounts:
             self._account_combo.addItem(acc.name)
         # Ensure items themselves are aligned right inside the combo and popup
-        self._apply_rtl_alignment(self._account_combo)
+        apply_rtl_alignment(self._account_combo)
         account_row.addWidget(account_label, 0)
         account_row.addWidget(self._account_combo, 1)
 
@@ -198,7 +203,7 @@ class BankMovementDialog(QDialog):
         except Exception:
             pass
         # Make sure existing items (including "add new") are aligned correctly
-        self._apply_rtl_alignment(self._category_combo)
+        apply_rtl_alignment(self._category_combo)
         try:
             self._category_combo.activated.connect(self._on_category_activated)  # type: ignore[arg-type]
         except Exception:
@@ -227,9 +232,9 @@ class BankMovementDialog(QDialog):
         except Exception:
             pass
         for mt in MovementType:
-            self._type_combo.addItem(mt.value, mt)
+            self._type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
         # Align type names to the right as well
-        self._apply_rtl_alignment(self._type_combo)
+        apply_rtl_alignment(self._type_combo)
         type_row.addWidget(type_label, 0)
         type_row.addWidget(self._type_combo, 1)
 
@@ -324,7 +329,10 @@ class BankMovementDialog(QDialog):
                 mtype = type_data
             else:
                 try:
-                    mtype = MovementType(self._type_combo.currentText())
+                    from .dialog_utils import unwrap_rtl
+
+                    type_text = unwrap_rtl(self._type_combo.currentText())
+                    mtype = MovementType(type_text)
                 except Exception:
                     mtype = MovementType.ONE_TIME
 
@@ -374,7 +382,7 @@ class BankMovementDialog(QDialog):
                     self._categories.append(name)
                     self._category_combo.insertItem(insert_index, name, name)
                     # Newly inserted item also needs RTL/right alignment
-                    self._apply_rtl_alignment(self._category_combo)
+                    apply_rtl_alignment(self._category_combo)
                     if self._on_category_added is not None:
                         try:
                             self._on_category_added(name)
@@ -386,42 +394,3 @@ class BankMovementDialog(QDialog):
                 self._last_category_index = index
         except Exception:
             pass
-
-    def _apply_rtl_alignment(self, combo: QComboBox) -> None:
-        """
-        Ensure that all items in the given combo box are aligned to the right
-        (for Hebrew) in both the closed state and the popup list.
-        """
-        try:
-            model = combo.model()
-        except Exception:
-            return
-
-        try:
-            align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        except Exception:
-            try:
-                # Older Qt enums
-                align = Qt.AlignRight  # type: ignore[attr-defined]
-            except Exception:
-                return
-
-        try:
-            role = Qt.ItemDataRole.TextAlignmentRole
-        except Exception:
-            try:
-                role = Qt.TextAlignmentRole  # type: ignore[attr-defined]
-            except Exception:
-                return
-
-        try:
-            row_count = model.rowCount()
-        except Exception:
-            return
-
-        for row in range(row_count):
-            try:
-                index = model.index(row, 0)
-                model.setData(index, align, role)
-            except Exception:
-                continue

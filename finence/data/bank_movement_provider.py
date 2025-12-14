@@ -68,6 +68,12 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                     if isinstance(description_value, str)
                     else None
                 )
+                # Get movement ID if it exists (for backward compatibility, generate if missing)
+                movement_id = item.get("id")
+                if not movement_id:
+                    from .bank_movement import generate_movement_id
+
+                    movement_id = generate_movement_id()
 
                 if not date or not account_name:
                     continue
@@ -80,6 +86,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                         category=category,
                         type=movement_type,
                         description=description,
+                        id=movement_id,
                     )
                 )
             except Exception:

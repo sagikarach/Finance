@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
+import uuid
 
 
 class MovementType(StrEnum):
     MONTHLY = "חודשי"
     YEARLY = "שנתי"
     ONE_TIME = "חד פעמי"
+
+
+def generate_movement_id() -> str:
+    """Generate a unique ID for a bank movement."""
+    return str(uuid.uuid4())
 
 
 @dataclass(frozen=True)
@@ -18,3 +24,4 @@ class BankMovement:
     category: str
     type: MovementType
     description: str | None = None
+    id: str = field(default_factory=generate_movement_id)

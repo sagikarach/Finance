@@ -24,6 +24,7 @@ from ..models.accounts import BankAccount
 from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts_service import AccountsService
 from ..models.bank_movement_service import BankMovementService
+from ..models.movement_classifier import SimilarityBasedClassifier
 from ..ui.bank_movement_dialog import BankMovementDialog
 from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
 
@@ -81,9 +82,21 @@ class BasePage(QWidget):
         self._accounts_service: Optional[AccountsService] = AccountsService(
             self._provider, history_provider=self._history_provider
         )
+        # Optional similarity-based classifier for automatic category/type.
+        # Uses historical expense data to learn and classify.
+        classifier = None
+        try:
+            classifier = SimilarityBasedClassifier()
+            classifier.initialize()
+        except Exception:
+            classifier = None
         # Domain service that encapsulates movement + history logic.
         self._bank_movement_service: Optional[BankMovementService] = (
-            BankMovementService(self._bank_movement_provider, self._history_provider)
+            BankMovementService(
+                self._bank_movement_provider,
+                self._history_provider,
+                classifier=classifier,
+            )
         )
 
         self._build_ui()
@@ -266,7 +279,10 @@ class BasePage(QWidget):
         if service is not None:
             try:
                 self._accounts = service.apply_movement(
-                    self._accounts, movement, is_income_hint=is_income
+                    self._accounts,
+                    movement,
+                    is_income_hint=is_income,
+                    record_history=True,
                 )
             except Exception:
                 # If the service fails, keep the old accounts list to avoid

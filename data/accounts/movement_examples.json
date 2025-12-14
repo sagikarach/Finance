@@ -1,0 +1,1392 @@
+[
+  {
+    "description": "חניון קרטא ירושלים בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "BIT",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "קיבוץ לביא",
+    "category": "ביגוד",
+    "type": "שנתי"
+  },
+  {
+    "description": "הקפה של משה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "טוגו",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "דמי כרטיס בנק לאומי ויזה",
+    "category": "בנק",
+    "type": "חודשי"
+  },
+  {
+    "description": "מ. התחבורה - פנגו מוביט",
+    "category": "תחבורה",
+    "type": "חודשי"
+  },
+  {
+    "description": "אושר עד לוד",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "פרחי דליה",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "גולדן בורגר בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "העברה ב BIT בנהפ",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "פרחי חן בשרון",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "אוטוטו סושי בע?מ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "דפנס קונדיטוריה וקפה בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "רובן RUBEN",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "בירמה קפה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מינהל קהילתי גינות העיר",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "פורטופינו",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מינימרקט קייזר בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "רשות הטבע והגנים - חוף פלמחים",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "אייס רמלה לוד",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מינימרקט השכונה",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "SHEIN.COM",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "הכל בדולר לוד",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "נעמן",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "carrefour market שרונה",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "קופת חולים מאוחדת-בית מרקחת רחובות",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מרכז הסליקה של חברות ביטוח בעמ",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "סופרפארם לוד",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "פלוס מרקט שריגים בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "אגרו קפה בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "פז/YELLOW צומת ראם",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "אמצע השוק פאדי",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "חניון קניון מודיעין",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "זיפ קנית מודיעין-גמא",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "פינת הנשיא לוד",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מכולת הבנים- מוחמד ערפאת",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "רמי לוי - לוד",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "HARIM בייקרי קרית ענבים",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מאריש פיצה בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "בי דראגסטורס ? תרופות",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "עברי בפארק בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "פארק אריאל שרון",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "ספרינט מוטורוס בעמ - צומת שמשון",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "אושר עד לוד",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "זויה",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "משרד התחבורה - רשיונות רכב",
+    "category": "רכב",
+    "type": "שנתי"
+  },
+  {
+    "description": "פז/YELLOW בית מור",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "ביט בוקס ראש העין",
+    "category": "בילויים",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "דור אלון לוד",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "סונול סתריה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "יריד נשימה",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "נאייקס ישראל מכונות אוטומטיות",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מועצה דתית לוד",
+    "category": "דת",
+    "type": "חודשי"
+  },
+  {
+    "description": "ספרינט מוטורס בעמ- מושב זכריה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "רולדין שוהם",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "סופר פארם רמלוד",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "רשות האוכלוסין וההגירה תשלומים",
+    "category": "שונות",
+    "type": "שנתי"
+  },
+  {
+    "description": "צרויה",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "יעד מור תחנת דלק-צמרת",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "דודי פיט",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "עוף והודו ברקת חנות המפעל בעמ-צמרת",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "דור אלון מגל מזרח",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "ניצת הדובדבן רחובות מרכז",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "כפר השעשועים רמלוד",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "שחר בן דוד",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "AZIZO לבנדר מהגולן",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "דורא",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "חומוס אליהו בית שאן",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "קפה מוייז",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "יוחננוף אשדות יעקב",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "הבקתה",
+    "category": "קניות",
+    "type": "שנתי"
+  },
+  {
+    "description": "מאפיית המשפחה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "א.ט.א.מ חד פעמי",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "כפר השעשועים יכין",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "משתלת הר טוב-צמרת",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "משרד הפנים רמלה",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "פז YELLOW רמלה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "פוטו תמונתי ותקשורת בעמ",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "חנן מכשירי כתיבה",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מקס רמלה בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "ג א ק קניון הדר תלפיות",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "פז קריית מנחם",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "צמצם מודיעין",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "סופר פארם תחנה מרכזית ירושלים",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מגולגלות קריספי שניצל",
+    "category": "בילויים",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "סטארט",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "(קפה בכפר (אליהו אלחלל",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "צילומעתיק בעמ",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "סופר פארם תחנה מרכזית י-ם 94",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "החורשה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "בריסטה קפה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "בית הפיתה ליז",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "הדס J",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "כלים ועיצובים- רמלה",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "סונול צומת השרון נתנ",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "לירן כהן סחר",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "סטימצקי יריד העמק",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מאפיה רחובות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מאוחדת WOW",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "גולדה לוד",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מוצה רחובות בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "בני דוד מכינה ישיבתית",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "נשמת מדרשה גבוהה ללימוד",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "ליאור עדיקה - סניף מודיעין",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "צאביס",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מגה קמעונאות רחובות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "טן אריאל",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "ישיבת הר-עציון",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מסעדת סימה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "סמט מוסיקה בעמ",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "אורבניקה מודיעין",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "בליקר בייקרי מודיעין",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "שופרסל שלי ויצמן נתניה",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "סופר פארם - ויצמן נתניה",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מאריש פיצה בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "פינת הנשיא לוד",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "משתלת דמתי",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "אגמא",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "PAYBOX",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "חניוני מאיה- דובנוב 7",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "פז/YELLOW לוד ויסוצקי",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "לילי פטיסרי",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מוצצים בילו",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "פוטו תמונתי ותקשורת בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מיקה מודיעין",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "חמניה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מקס סטוק - בית שמש",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מגן דוד אדום",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "סדש רמלה בעמ",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "קליית בראשית רחובות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "ספרינט מוטורס בעמ- החוף",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "מעונות יום - חזון עמוס",
+    "category": "חינוך",
+    "type": "שנתי"
+  },
+  {
+    "description": "עמותת אליעד",
+    "category": "חינוך",
+    "type": "שנתי"
+  },
+  {
+    "description": "קו אופ בית הכרם",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "סונול ערד",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "עירית ירושלים גזברות",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מנפיס",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "עיריית מודעין מכבים רעות",
+    "category": "רכב",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "החיטה דוד המלך לוד בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "עספור-צמרת",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "יהונתן ביסטריצר)קטרינה(",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מאוחדת פארם לוד שער העיר",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מיננה - בילו סנטר",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "רחובות MOOOB",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מאוחדת שיניים",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מתנה באשראי לאירוע",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "KSP רחובות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "קרטרס אתר סחר",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "מסיבה בכיכר",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מיני דניאל",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "זול פעמי",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "אלון כפר עזה",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מבדקי רכב",
+    "category": "רכב",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "מועצה אזורית גן רוה חניה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "סונול מפגש אמיתי",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "מינימרקט גילי",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "אומני החשיבה PLAYSMART",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "זיפ בילו-גמא",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "מרכז הפרחים בנצי רחובות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "ביט עזר מציון",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מקוואות וחניונים",
+    "category": "דת",
+    "type": "חודשי"
+  },
+  {
+    "description": "צומת ספרים בלו",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "אייס בילו",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "שווארמה קריטי ובניו בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מינימרקט אדוארד",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "שילב אתר הסחר",
+    "category": "קניות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "שלמה שרותי דרך",
+    "category": "תחבורה",
+    "type": "חודשי"
+  },
+  {
+    "description": "קניית רכב",
+    "category": "רכב",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "משכן התכלת שיווק",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "ועד בית",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מפעיל-צילום והדפסת מסמכים",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "עיריית לוד גזברות",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "אקדמרקט בר אילן",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "חברת החשמל לישראל בעמ",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מי לוד בעמ",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מגדל ר. חובה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "מגדל בטוח כללי",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "חניון בר אילן",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "ע.מפעולות-ישיר",
+    "category": "בנק",
+    "type": "חודשי"
+  },
+  {
+    "description": "השלמה למינ דנ",
+    "category": "בנק",
+    "type": "חודשי"
+  },
+  {
+    "description": "ביטוח לאומי רב ספק",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "דירקט- מצטבר",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "המרכז לחינוך וחברה בלוד",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "תשלום דוד ילין",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "דור אלון יזרעאל",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "הפניקס חיים ובריאות",
+    "category": "בנק",
+    "type": "חודשי"
+  },
+  {
+    "description": "שופרסל דיל רמלה לוד הצפונ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "המוסד לביטוח לאומי מוקד ט",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "אלונית יקנעם",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "קרנף בר אילן",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "דיילי - קפיטריה קפלן",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "ביח קפלן רחובות",
+    "category": "בריאות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "אישלחם תעוז בעמ",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "קרנף בר אילן",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "COOK AND BAKE ONLINE",
+    "category": "קניות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "מפגש רמות",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "לול ארט",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "רשות הטבע והגנים גמלא",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "פרחי כרמי",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "רשת קפה עלית - בר אילן נייגל",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "פז גז",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "דלתא",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "פז/YELLOW בית מור",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "סונול צומת קיסריה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "כוורת",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מש - קר בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מרכז אלונים - מגער בעמ",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "קלמא",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "אליה חכמון",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "אביאל הכל לבית",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "קצפת קניון הדר בעמ",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "יקב הולנדר בעמ",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "תמנון קניון רחובות-גמא",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "החיטה דוד המלך לוד בעמ",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "מקס נתניה",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "גפטו רסטו בר",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "עירית ירושלים גזברות",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "דלק מנטה גל נתניה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "מ. התחבורה - פנגו מוביט",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "סחלב פראי",
+    "category": "שונות",
+    "type": "שנתי"
+  },
+  {
+    "description": "פז גז",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "שכר דירה",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "תשלום שכר דירה",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "תשלום מעון שחר",
+    "category": "חינוך",
+    "type": "חודשי"
+  },
+  {
+    "description": "ועד בית 9 10",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "קניות חלב וביצים",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "פז/YELLOW צומת נתניה",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "סחלב פראי",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "אומה טומה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "עסקה משותפת מרכז הנשיא",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "קפה ויקולו רעות",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "ספרינט מוטורוס בעמ - כפר כמא",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "סופר אלונית חוצה ישראל מגל מערב",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "ברטה איטלקיה במשאית- קפה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "רן פירות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "FREE-FIT",
+    "category": "בריאות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מיקה עגלת קפה",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "ספרינט מוטורוס בעמ - צומת מנגו",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "חניון קניון השרון",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "אוצר הספרים המזכרות והיוד",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "FREE-FIT",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "גולף קידס",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "סופט קוקיז",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "חניון קניון רמלה עזריאלי",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "פרש דה מרקט",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "שילב רחובות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "קניון רחובות",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "הודיס בעמ",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "לגו סטור תור גיבס בעמ- צמרת",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "המרכז הזואולוגי רמת גן בעמ",
+    "category": "בילויים",
+    "type": "שנתי"
+  },
+  {
+    "description": "סולתם רדד )כלי בית( בעמ-צמרת",
+    "category": "שונות",
+    "type": "חודשי"
+  },
+  {
+    "description": "RONI KHAN עיר ימים",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "(רנן - פירסינגים (רננה לו",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "דמי כרטיס ויזה",
+    "category": "בנק",
+    "type": "חודשי"
+  },
+  {
+    "description": "roni khan רחובות",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "המרכז לחינוך וחברה בלוד",
+    "category": "חינוך",
+    "type": "שנתי"
+  },
+  {
+    "description": "בראנץ קייטרינג",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "פשוט טעים",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "יריד נשימה",
+    "category": "ביגוד",
+    "type": "שנתי"
+  },
+  {
+    "description": "היפר רוזנפלד",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "סופר עומר בעמ",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "תמנון רמלוד-גמא",
+    "category": "ביגוד",
+    "type": "חודשי"
+  },
+  {
+    "description": "רמלה MOOOB",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "איקאה IKEA",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "איקאה IKEA",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "מוסלין ירושלים",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "רמלה CARREFOUR MARKET",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "תחנת דלק שלמה המלך",
+    "category": "רכב",
+    "type": "חודשי"
+  },
+  {
+    "description": "HELEN",
+    "category": "בילויים",
+    "type": "חודשי"
+  },
+  {
+    "description": "יוחננוף רמלה",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "מרקט ליז",
+    "category": "קניות",
+    "type": "חודשי"
+  },
+  {
+    "description": "aliexpress",
+    "category": "שונות",
+    "type": "חד פעמי"
+  },
+  {
+    "description": "ארנונה",
+    "category": "מגורים",
+    "type": "חודשי"
+  },
+  {
+    "description": "ביטוח חובה 2026",
+    "category": "רכב",
+    "type": "שנתי"
+  },
+  {
+    "description": "ביטוח מקיף 2026",
+    "category": "רכב",
+    "type": "שנתי"
+  },
+  {
+    "description": "תוספת מקיף 2026",
+    "category": "רכב",
+    "type": "שנתי"
+  },
+  {
+    "description": "תרומה להיכל יעקב",
+    "category": "דת",
+    "type": "חד פעמי"
+  }
+]

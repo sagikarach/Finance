@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Callable
 
 from ..qt import (
     QWidget,
@@ -125,6 +125,10 @@ class ActionHistoryTable(QWidget):
         history: Optional[List[ActionHistory]] = None,
         max_rows: int = 10,
         parent: Optional[QWidget] = None,
+        categories: Optional[List[str]] = None,
+        movement_provider: Optional[object] = None,
+        on_saved: Optional[Callable[[], None]] = None,
+        history_provider: Optional[object] = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("ActionHistoryTable")
@@ -135,6 +139,10 @@ class ActionHistoryTable(QWidget):
         self._history: List[ActionHistory] = list(history or [])
         self._max_rows = max_rows
         self._row_base_bg: dict[int, QColor] = {}
+        self._categories = categories or []
+        self._movement_provider = movement_provider
+        self._on_saved = on_saved
+        self._history_provider = history_provider
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 20, 0, 0)
@@ -284,9 +292,18 @@ class ActionHistoryTable(QWidget):
         self._handle_row_press(row)
         try:
             entry = item.data(Qt.ItemDataRole.UserRole)
-            if isinstance(entry, ActionHistory):
-                dialog = ActionHistoryDetailsDialog(entry, None)
-                dialog.exec()
+            if not isinstance(entry, ActionHistory):
+                return
+
+            dialog = ActionHistoryDetailsDialog(
+                entry,
+                None,
+                categories=self._categories,
+                movement_provider=self._movement_provider,
+                on_saved=self._on_saved,
+                history_provider=self._history_provider,
+            )
+            dialog.exec()
         except Exception:
             pass
 
@@ -405,6 +422,7 @@ class ActionHistoryTable(QWidget):
             "set_starter_amount": "הגדרת סכום התחלתי",
             "add_income_movement": "הוספת הכנסה",
             "add_outcome_movement": "הוספת הוצאה",
+            "upload_outcome_file": "ייבוא קובץ הוצאות",
         }
 
         try:
