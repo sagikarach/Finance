@@ -53,8 +53,7 @@ class ShadowChartView(QChartView):
         except Exception:
             pass
 
-    def drawForeground(self, painter: QPainter, rect) -> None:  # type: ignore[override]
-        # Keep any default foreground (e.g. tooltips) first.
+    def drawForeground(self, painter: QPainter, rect) -> None:
         try:
             super().drawForeground(painter, rect)
         except Exception:
@@ -74,12 +73,11 @@ class ShadowChartView(QChartView):
         bottom_y = plot_rect.bottom()
 
         for series, base_color in self._shadows:
-            # Collect data points from the series.
             try:
-                pts = list(series.points())  # type: ignore[attr-defined]
+                pts = list(series.points())
             except Exception:
                 try:
-                    pts = list(series.pointsVector())  # type: ignore[attr-defined]
+                    pts = list(series.pointsVector())
                 except Exception:
                     pts = []
             if len(pts) < 2:
@@ -87,7 +85,7 @@ class ShadowChartView(QChartView):
 
             path = QPainterPath()
             try:
-                first_pos = chart.mapToPosition(pts[0], series)  # type: ignore[arg-type]
+                first_pos = chart.mapToPosition(pts[0], series)
             except Exception:
                 continue
             path.moveTo(first_pos)
@@ -96,7 +94,7 @@ class ShadowChartView(QChartView):
 
             for pt in pts[1:]:
                 try:
-                    pos = chart.mapToPosition(pt, series)  # type: ignore[arg-type]
+                    pos = chart.mapToPosition(pt, series)
                 except Exception:
                     continue
                 path.lineTo(pos)
@@ -104,8 +102,6 @@ class ShadowChartView(QChartView):
                 if pos.y() < min_y:
                     min_y = pos.y()
 
-            # Close the path down to the bottom of the plot area so the fill
-            # appears only under the line.
             try:
                 path.lineTo(QPointF(last_pos.x(), bottom_y))
                 path.lineTo(QPointF(first_pos.x(), bottom_y))
@@ -116,8 +112,6 @@ class ShadowChartView(QChartView):
             except Exception:
                 pass
 
-            # Create a vertical gradient that is strongest near the line
-            # (around min_y) and fades out towards the bottom of the plot.
             gradient = None
             try:
                 gradient = QLinearGradient(QPointF(0.0, min_y), QPointF(0.0, bottom_y))
@@ -130,7 +124,6 @@ class ShadowChartView(QChartView):
             except Exception:
                 gradient = None
 
-            # Fallback flat fill if gradient creation fails for any reason.
             fill = QColor(base_color)
             try:
                 fill.setAlpha(80)
@@ -139,7 +132,7 @@ class ShadowChartView(QChartView):
 
             painter.save()
             try:
-                painter.setPen(Qt.PenStyle.NoPen)  # type: ignore[attr-defined]
+                painter.setPen(Qt.PenStyle.NoPen)
             except Exception:
                 try:
                     painter.setPen(Qt.NoPen)  # type: ignore[attr-defined]
@@ -155,7 +148,7 @@ class ShadowChartView(QChartView):
                 pass
             painter.restore()
 
-    def mouseMoveEvent(self, event) -> None:  # type: ignore[override]
+    def mouseMoveEvent(self, event) -> None:
         try:
             super().mouseMoveEvent(event)
         except Exception:
@@ -173,13 +166,13 @@ class ShadowChartView(QChartView):
             return
 
         try:
-            pos = event.position()  # type: ignore[attr-defined]
+            pos = event.position()
         except Exception:
             pos = event.pos()
 
         try:
             base_series = self._tooltip_specs[0][0]
-            value_pt = chart.mapToValue(pos, base_series)  # type: ignore[arg-type]
+            value_pt = chart.mapToValue(pos, base_series)
             x_val = value_pt.x()
         except Exception:
             return
@@ -201,7 +194,7 @@ class ShadowChartView(QChartView):
             try:
                 series_pos = chart.mapToPosition(
                     QPointF(float(idx), amount_val),
-                    series,  # type: ignore[arg-type]
+                    series,
                 )
             except Exception:
                 continue
@@ -234,7 +227,6 @@ def create_savings_history_chart_card(
     account: SavingsAccount,
     format_amount: Callable[[float], str],
 ) -> QWidget:
-    """Create the bottom card with a smoothed line chart and shadow under each saving."""
     chart_card = QWidget(parent)
     chart_card.setObjectName("Sidebar")
     try:
@@ -259,7 +251,6 @@ def create_savings_history_chart_card(
 
         max_amount = 0.0
 
-        # Track (series, color) so the custom view can paint shadows.
         shadow_specs: List[tuple[QLineSeries, QColor]] = []
         tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = []
 
@@ -286,14 +277,12 @@ def create_savings_history_chart_card(
             for x_val, y_val in samples:
                 series.append(x_val, y_val)
 
-            # Choose a distinct color per savings line.
             try:
                 hue = int((360.0 * idx) / float(total_savings))
                 base_color = QColor.fromHsl(hue, 180, 140)
             except Exception:
-                base_color = QColor("#f97316")  # warm fallback
+                base_color = QColor("#f97316")
 
-            # Style the visible line.
             try:
                 pen = series.pen()
                 pen.setColor(base_color)
@@ -302,8 +291,8 @@ def create_savings_history_chart_card(
                 except Exception:
                     pass
                 try:
-                    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)  # type: ignore[attr-defined]
-                    pen.setCapStyle(Qt.PenCapStyle.RoundCap)  # type: ignore[attr-defined]
+                    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                 except Exception:
                     pass
                 series.setPen(pen)
@@ -313,11 +302,8 @@ def create_savings_history_chart_card(
             shadow_specs.append((series, base_color))
             chart.addSeries(series)
 
-            # Base month-by-month values for this savings so the custom chart
-            # view can compute tooltips on mouse move.
             tooltip_specs.append((series, s.name, list(base_values)))
 
-        # X axis with month/year labels (no axis title, no grid).
         axis_x = QCategoryAxis()
         for key in month_keys:
             year, month = key
@@ -325,11 +311,10 @@ def create_savings_history_chart_card(
             axis_x.append(label, float(month_to_index[key]))
         try:
             axis_x.setGridLineVisible(False)
-            axis_x.setMinorGridLineVisible(False)  # type: ignore[attr-defined]
+            axis_x.setMinorGridLineVisible(False)
         except Exception:
             pass
 
-        # Y axis with amount values (no axis title, no grid).
         axis_y = QValueAxis()
         axis_y.setLabelFormat("%.0f")
         if max_amount > 0:
@@ -338,16 +323,15 @@ def create_savings_history_chart_card(
             top = 1000.0
         axis_y.setRange(0.0, top)
         try:
-            axis_y.setTickInterval(1000.0)  # type: ignore[attr-defined]
+            axis_y.setTickInterval(1000.0)
         except Exception:
             pass
         try:
             axis_y.setGridLineVisible(False)
-            axis_y.setMinorGridLineVisible(False)  # type: ignore[attr-defined]
+            axis_y.setMinorGridLineVisible(False)
         except Exception:
             pass
 
-        # Theme-aware axis label colors: pure white in dark mode, dark navy in light.
         label_color = QColor("#0f172a")
         app = QApplication.instance()
         if app is not None:
@@ -368,8 +352,8 @@ def create_savings_history_chart_card(
 
         for s_obj in chart.series():
             try:
-                s_obj.attachAxis(axis_x)  # type: ignore[arg-type]
-                s_obj.attachAxis(axis_y)  # type: ignore[arg-type]
+                s_obj.attachAxis(axis_x)
+                s_obj.attachAxis(axis_y)
             except Exception:
                 pass
 
@@ -381,8 +365,8 @@ def create_savings_history_chart_card(
             format_amount,
             chart_card,
         )
-        chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)  # type: ignore[attr-defined]
-        chart_view.setFrameShape(QFrame.Shape.NoFrame)  # type: ignore[name-defined]
+        chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        chart_view.setFrameShape(QFrame.Shape.NoFrame)
         chart_view.setStyleSheet("background: transparent;")
         chart_layout.addWidget(chart_view, 1)
     else:

@@ -55,7 +55,7 @@ class ActionHistoryDetailsDialog(QDialog):
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
 
@@ -63,7 +63,6 @@ class ActionHistoryDetailsDialog(QDialog):
         layout.setContentsMargins(32, 24, 32, 24)
         layout.setSpacing(12)
 
-        # Set minimum window size to accommodate the table
         self.setMinimumWidth(700)
         self.setMinimumHeight(400)
 
@@ -106,23 +105,18 @@ class ActionHistoryDetailsDialog(QDialog):
         details_layout = QVBoxLayout()
 
         if isinstance(action, UploadOutcomeFileAction):
-            # Custom rendering for bulk outcome imports: show file info and then
-            # display expenses in a table format.
             header = QLabel(
                 f"ייבוא קובץ: {action.file_name} ({action.expenses_count} הוצאות, סכום כולל {action.total_amount})",
                 self,
             )
             details_layout.addWidget(header)
 
-            # Load expense data from movements provider using IDs
             expenses_data: List[dict] = []
             if self._movement_provider and action.movement_ids:
                 try:
                     all_movements = self._movement_provider.list_movements()
-                    # Create a lookup by ID
                     movements_by_id = {m.id: m for m in all_movements}
 
-                    # Load expenses from movements using IDs
                     for movement_id in action.movement_ids:
                         movement = movements_by_id.get(movement_id)
                         if movement:
@@ -137,12 +131,9 @@ class ActionHistoryDetailsDialog(QDialog):
                                 }
                             )
                 except Exception:
-                    # If loading fails, expenses_data remains empty
                     expenses_data = []
 
-            # Create table for expenses
             if expenses_data:
-                # Store original expenses for comparison (loaded from movements provider)
                 self._original_expenses = [dict(exp) for exp in expenses_data]
 
                 expenses_table = QTableWidget(self)
@@ -150,28 +141,24 @@ class ActionHistoryDetailsDialog(QDialog):
                 expenses_table.setColumnCount(5)
                 expenses_table.setRowCount(len(expenses_data))
 
-                # CRITICAL: Set RTL layout direction on table AND viewport BEFORE adding items
                 rtl_direction = None
                 try:
                     rtl_direction = Qt.LayoutDirection.RightToLeft
                 except Exception:
                     try:
-                        rtl_direction = Qt.RightToLeft  # type: ignore[attr-defined]
+                        rtl_direction = Qt.RightToLeft
                     except Exception:
                         pass
 
                 if rtl_direction:
                     expenses_table.setLayoutDirection(rtl_direction)
-                    # Also set on viewport - this is critical for cell text rendering
                     viewport = expenses_table.viewport()
                     if viewport:
                         viewport.setLayoutDirection(rtl_direction)
 
-                # Set Hebrew headers (right to left order)
                 headers = ["תאריך", "סכום", "קטגוריה", "סוג", "תיאור"]
                 expenses_table.setHorizontalHeaderLabels(headers)
 
-                # Set header alignment to center as requested
                 header_view = expenses_table.horizontalHeader()
                 if rtl_direction:
                     header_view.setLayoutDirection(rtl_direction)
@@ -181,11 +168,10 @@ class ActionHistoryDetailsDialog(QDialog):
                     )
                 except Exception:
                     try:
-                        header_view.setDefaultAlignment(Qt.AlignCenter)  # type: ignore[attr-defined]
+                        header_view.setDefaultAlignment(Qt.AlignCenter)
                     except Exception:
                         pass
 
-                # Populate table with expense data (loaded from movements provider)
                 for row, exp in enumerate(expenses_data):
                     try:
                         date = str(exp.get("date", ""))
@@ -194,27 +180,22 @@ class ActionHistoryDetailsDialog(QDialog):
                         etype = str(exp.get("type", ""))
                         desc = str(exp.get("description", ""))
 
-                        # Create items with original text (not reversed)
-                        # Use RTL wrapper to prevent Hebrew text reversal
                         desc_item = QTableWidgetItem(wrap_hebrew_rtl(desc))
                         amount_item = QTableWidgetItem(amount)
                         date_item = QTableWidgetItem(date)
 
-                        # Set alignment to center as requested
                         try:
                             alignment = (
                                 Qt.AlignmentFlag.AlignCenter
                                 | Qt.AlignmentFlag.AlignVCenter
                             )
                         except Exception:
-                            alignment = Qt.AlignCenter  # type: ignore[attr-defined]
+                            alignment = Qt.AlignCenter
 
                         desc_item.setTextAlignment(alignment)
                         amount_item.setTextAlignment(alignment)
                         date_item.setTextAlignment(alignment)
 
-                        # Create combo box for category (editable)
-                        # Filter categories based on whether this is an income or outcome movement
                         try:
                             amount_value = float(amount)
                         except (ValueError, TypeError):
@@ -240,12 +221,11 @@ class ActionHistoryDetailsDialog(QDialog):
                             )
                         except Exception:
                             try:
-                                category_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                                category_combo.setLayoutDirection(Qt.RightToLeft)
                             except Exception:
                                 pass
-                        expenses_table.setCellWidget(row, 2, category_combo)  # קטגוריה
+                        expenses_table.setCellWidget(row, 2, category_combo)
 
-                        # Create combo box for type (editable)
                         type_combo = QComboBox(self)
                         type_options = [
                             wrap_hebrew_rtl(MovementType.MONTHLY.value),
@@ -253,7 +233,6 @@ class ActionHistoryDetailsDialog(QDialog):
                             wrap_hebrew_rtl(MovementType.ONE_TIME.value),
                         ]
                         type_combo.addItems(type_options)
-                        # Find matching type (unwrap RTL marks for comparison)
                         current_type = unwrap_rtl(etype)
                         for i, opt in enumerate(type_options):
                             unwrapped_opt = unwrap_rtl(opt)
@@ -265,7 +244,6 @@ class ActionHistoryDetailsDialog(QDialog):
                                 type_combo.setCurrentIndex(i)
                                 break
                         else:
-                            # Default to first option if no match
                             type_combo.setCurrentIndex(0)
                         type_combo.setEditable(False)
                         try:
@@ -274,65 +252,46 @@ class ActionHistoryDetailsDialog(QDialog):
                             )
                         except Exception:
                             try:
-                                type_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                                type_combo.setLayoutDirection(Qt.RightToLeft)
                             except Exception:
                                 pass
-                        expenses_table.setCellWidget(row, 3, type_combo)  # סוג
+                        expenses_table.setCellWidget(row, 3, type_combo)
 
-                        # Set items in table (matching RTL header order)
-                        # Column 0: תאריך (rightmost in RTL)
-                        # Column 1: סכום
-                        # Column 2: קטגוריה (combo box)
-                        # Column 3: סוג (combo box)
-                        # Column 4: תיאור (leftmost in RTL)
-                        expenses_table.setItem(row, 0, date_item)  # תאריך
-                        expenses_table.setItem(row, 1, amount_item)  # סכום
-                        expenses_table.setItem(row, 4, desc_item)  # תיאור
+                        expenses_table.setItem(row, 0, date_item)
+                        expenses_table.setItem(row, 1, amount_item)
+                        expenses_table.setItem(row, 4, desc_item)
                     except Exception:
                         continue
 
-                # Configure table properties
                 expenses_table.setAlternatingRowColors(True)
                 expenses_table.setSelectionBehavior(
                     QTableWidget.SelectionBehavior.SelectRows
                 )
-                expenses_table.setEditTriggers(
-                    QTableWidget.EditTrigger.NoEditTriggers
-                )  # Read-only
+                expenses_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
-                # Resize columns to content
                 expenses_table.resizeColumnsToContents()
 
-                # Set minimum column widths (matching RTL order)
                 expenses_table.setColumnWidth(
                     0, max(100, expenses_table.columnWidth(0))
-                )  # תאריך
-                expenses_table.setColumnWidth(
-                    1, max(80, expenses_table.columnWidth(1))
-                )  # סכום
+                )
+                expenses_table.setColumnWidth(1, max(80, expenses_table.columnWidth(1)))
                 expenses_table.setColumnWidth(
                     2, max(100, expenses_table.columnWidth(2))
-                )  # קטגוריה
-                expenses_table.setColumnWidth(
-                    3, max(80, expenses_table.columnWidth(3))
-                )  # סוג
+                )
+                expenses_table.setColumnWidth(3, max(80, expenses_table.columnWidth(3)))
                 expenses_table.setColumnWidth(
                     4, max(200, expenses_table.columnWidth(4))
-                )  # תיאור
+                )
 
-                # Set table height to show more rows (up to 15 rows, then scroll)
                 row_height = (
                     expenses_table.rowHeight(0) if expenses_table.rowCount() > 0 else 30
                 )
                 max_rows = min(10, len(expenses_data))
-                expenses_table.setMinimumHeight(
-                    (max_rows + 1) * row_height + 50
-                )  # +1 for header, +50 for padding
+                expenses_table.setMinimumHeight((max_rows + 1) * row_height + 50)
                 expenses_table.setMaximumHeight((max_rows + 1) * row_height + 50)
 
                 details_layout.addWidget(expenses_table)
         elif isinstance(action, (AddIncomeMovementAction, AddOutcomeMovementAction)):
-            # Handle single income/outcome movements - allow editing via movement_id
             if self._movement_provider and action.movement_id:
                 try:
                     all_movements = self._movement_provider.list_movements()
@@ -340,7 +299,6 @@ class ActionHistoryDetailsDialog(QDialog):
                     movement = movements_by_id.get(action.movement_id)
 
                     if movement:
-                        # Create a table with a single row for this movement
                         expenses_table = QTableWidget(1, 5, self)
                         expenses_table.setHorizontalHeaderLabels(
                             ["תאריך", "סכום", "קטגוריה", "סוג", "תיאור"]
@@ -353,7 +311,6 @@ class ActionHistoryDetailsDialog(QDialog):
                             QTableWidget.SelectionBehavior.SelectRows
                         )
 
-                        # Set RTL layout
                         try:
                             expenses_table.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
@@ -370,15 +327,12 @@ class ActionHistoryDetailsDialog(QDialog):
                         except Exception:
                             pass
 
-                        # Populate the single row
                         row = 0
                         expenses_table.setItem(row, 0, QTableWidgetItem(movement.date))
                         expenses_table.setItem(
                             row, 1, QTableWidgetItem(str(movement.amount))
                         )
 
-                        # Category combo box
-                        # Filter categories based on whether this is an income or outcome movement
                         is_income = movement.amount > 0
                         filtered_categories = self._get_categories_for_movement(
                             is_income
@@ -404,13 +358,11 @@ class ActionHistoryDetailsDialog(QDialog):
                             pass
                         expenses_table.setCellWidget(row, 2, category_combo)
 
-                        # Type combo box
                         type_combo = QComboBox(self)
                         type_options = [
                             wrap_hebrew_rtl(mt.value) for mt in MovementType
                         ]
                         type_combo.addItems(type_options)
-                        # Find matching type by unwrapping
                         for i, opt in enumerate(type_options):
                             if unwrap_rtl(opt) == movement.type.value:
                                 type_combo.setCurrentIndex(i)
@@ -428,7 +380,6 @@ class ActionHistoryDetailsDialog(QDialog):
                             row, 4, QTableWidgetItem(movement.description or "")
                         )
 
-                        # Set RTL alignment for all cells
                         for col in range(5):
                             item = expenses_table.item(row, col)
                             if item:
@@ -440,7 +391,6 @@ class ActionHistoryDetailsDialog(QDialog):
                                 except Exception:
                                     pass
 
-                        # Store original expense for save
                         self._original_expenses = [
                             {
                                 "id": movement.id,
@@ -453,7 +403,6 @@ class ActionHistoryDetailsDialog(QDialog):
                         ]
                         self._expenses_table = expenses_table
 
-                        # Resize columns
                         expenses_table.resizeColumnsToContents()
                         expenses_table.setColumnWidth(
                             0, max(100, expenses_table.columnWidth(0))
@@ -473,12 +422,9 @@ class ActionHistoryDetailsDialog(QDialog):
 
                         details_layout.addWidget(expenses_table)
                 except Exception:
-                    # Fallback to generic display
                     pass
 
-            # If we didn't create a table, try to load movement to show account name
             if not self._expenses_table:
-                # Try to load movement to show account name
                 if self._movement_provider and action.movement_id:
                     try:
                         all_movements = self._movement_provider.list_movements()
@@ -537,7 +483,6 @@ class ActionHistoryDetailsDialog(QDialog):
         buttons_row = QHBoxLayout()
         buttons_row.addStretch(1)
 
-        # Add save button if we have editable expenses
         save_btn = None
         action = self._entry.action
         if (
@@ -548,25 +493,16 @@ class ActionHistoryDetailsDialog(QDialog):
             )
         ) and self._movement_provider:
             save_btn = QPushButton("שמור שינויים", self)
-            save_btn.clicked.connect(self._on_save_changes)  # type: ignore[arg-type]
+            save_btn.clicked.connect(self._on_save_changes)
             buttons_row.addWidget(save_btn)
 
         close_btn = QPushButton("סגור", self)
         buttons_row.addWidget(close_btn)
         layout.addLayout(buttons_row)
 
-        close_btn.clicked.connect(self.accept)  # type: ignore[arg-type]
+        close_btn.clicked.connect(self.accept)
 
     def _get_categories_for_movement(self, is_income: bool) -> List[str]:
-        """
-        Get the appropriate categories (income or outcome) for a movement.
-
-        Args:
-            is_income: True if this is an income movement, False for outcome
-
-        Returns:
-            List of category names
-        """
         if not self._movement_provider:
             return self._categories or []
 
@@ -574,33 +510,27 @@ class ActionHistoryDetailsDialog(QDialog):
             if hasattr(self._movement_provider, "list_categories_for_type"):
                 return self._movement_provider.list_categories_for_type(
                     is_income=is_income
-                )  # type: ignore[attr-defined]
+                )
             elif hasattr(self._movement_provider, "list_categories"):
-                # If provider doesn't support filtering, return all categories
-                return self._movement_provider.list_categories()  # type: ignore[attr-defined]
+                return self._movement_provider.list_categories()
         except Exception:
             pass
 
-        # Fallback to the categories passed to the dialog
         return self._categories or []
 
     def _on_save_changes(self) -> None:
-        """Save changes to expense categories and types."""
         if not self._expenses_table or not self._movement_provider:
             return
 
         try:
-            # Get all movements from provider
             all_movements = self._movement_provider.list_movements()
 
             action = self._entry.action
 
-            # Handle single income/outcome movements
             if isinstance(action, (AddIncomeMovementAction, AddOutcomeMovementAction)):
                 if not action.movement_id:
                     return
 
-                # Find the movement by ID
                 movement = None
                 movement_index = -1
                 for i, m in enumerate(all_movements):
@@ -612,7 +542,6 @@ class ActionHistoryDetailsDialog(QDialog):
                 if movement is None:
                     return
 
-                # Get new category and type from combo boxes (single row, row 0)
                 category_widget = self._expenses_table.cellWidget(0, 2)
                 type_widget = self._expenses_table.cellWidget(0, 3)
 
@@ -627,11 +556,9 @@ class ActionHistoryDetailsDialog(QDialog):
                 new_category = category_widget.currentText()
                 new_type_str = unwrap_rtl(type_widget.currentText())
 
-                # Convert type string to MovementType
                 try:
                     new_type = MovementType(new_type_str)
                 except Exception:
-                    # Try to match by value
                     if "חודש" in new_type_str:
                         new_type = MovementType.MONTHLY
                     elif "שנת" in new_type_str:
@@ -639,7 +566,6 @@ class ActionHistoryDetailsDialog(QDialog):
                     else:
                         new_type = MovementType.ONE_TIME
 
-                # Update the movement
                 updated_movement = replace(
                     movement,
                     category=new_category,
@@ -647,10 +573,8 @@ class ActionHistoryDetailsDialog(QDialog):
                 )
                 all_movements[movement_index] = updated_movement
 
-                # Save all movements
                 self._movement_provider.save_movements(all_movements)
 
-                # Show success message
                 from ..qt import QDialog, QVBoxLayout, QLabel, QPushButton
 
                 success_dlg = QDialog(self)
@@ -658,12 +582,11 @@ class ActionHistoryDetailsDialog(QDialog):
                 success_layout = QVBoxLayout(success_dlg)
                 success_label = QLabel("השינויים נשמרו בהצלחה", success_dlg)
                 success_btn = QPushButton("אישור", success_dlg)
-                success_btn.clicked.connect(success_dlg.accept)  # type: ignore[arg-type]
+                success_btn.clicked.connect(success_dlg.accept)
                 success_layout.addWidget(success_label)
                 success_layout.addWidget(success_btn)
                 success_dlg.exec()
 
-                # Refresh history if callback provided
                 if self._on_saved:
                     try:
                         self._on_saved()
@@ -672,24 +595,19 @@ class ActionHistoryDetailsDialog(QDialog):
 
                 return
 
-            # Handle bulk CSV uploads
             if not isinstance(action, UploadOutcomeFileAction):
                 return
 
             account_name = action.account_name
 
-            # Update movements based on table changes using movement IDs
             updated_count = 0
             for row in range(self._expenses_table.rowCount()):
-                # Get original expense data
                 if row >= len(self._original_expenses):
                     continue
 
                 original_exp = self._original_expenses[row]
-                # Get movement ID from expense (preferred method)
                 movement_id = original_exp.get("id")
 
-                # Get new category and type from combo boxes
                 category_widget = self._expenses_table.cellWidget(row, 2)
                 type_widget = self._expenses_table.cellWidget(row, 3)
 
@@ -707,11 +625,9 @@ class ActionHistoryDetailsDialog(QDialog):
                 new_category = category_combo.currentText()
                 new_type_str = unwrap_rtl(type_combo.currentText())
 
-                # Convert type string to MovementType
                 try:
                     new_type = MovementType(new_type_str)
                 except Exception:
-                    # Try to match by value
                     if "חודש" in new_type_str:
                         new_type = MovementType.MONTHLY
                     elif "שנת" in new_type_str:
@@ -719,12 +635,9 @@ class ActionHistoryDetailsDialog(QDialog):
                     else:
                         new_type = MovementType.ONE_TIME
 
-                # Find and update movement by ID (preferred) or fallback to field matching
                 movement_found = False
                 for i, movement in enumerate(all_movements):
-                    # Try ID match first
                     if movement_id and movement.id == movement_id:
-                        # Update the movement using replace to preserve ID
                         updated_movement = replace(
                             movement,
                             category=new_category,
@@ -734,7 +647,6 @@ class ActionHistoryDetailsDialog(QDialog):
                         updated_count += 1
                         movement_found = True
                         break
-                    # Fallback: match by fields (for backward compatibility with old data)
                     elif not movement_id:
                         orig_date = str(original_exp.get("date", ""))
                         orig_amount = float(original_exp.get("amount", 0.0))
@@ -746,7 +658,6 @@ class ActionHistoryDetailsDialog(QDialog):
                             and abs(movement.amount - orig_amount) < 0.01
                             and str(movement.description or "") == orig_desc
                         ):
-                            # Update the movement, preserving existing ID or generating new one
                             updated_movement = replace(
                                 movement,
                                 category=new_category,
@@ -758,25 +669,17 @@ class ActionHistoryDetailsDialog(QDialog):
                             break
 
                 if not movement_found:
-                    pass  # Movement not found, skip this row
+                    pass
 
-            # Save updated movements
             if updated_count > 0:
                 self._movement_provider.save_movements(all_movements)
 
-                # Action history only stores movement IDs, not the data itself
-                # So we don't need to update the action history entry - the IDs remain the same
-                # The actual movement data is updated in the movements provider above
-                # This ensures single source of truth - data lives only in movements provider
-
-                # Call callback if provided
                 if self._on_saved:
                     try:
                         self._on_saved()
                     except Exception:
                         pass
 
-                # Show success message using a simple dialog
                 from ..qt import QDialog, QVBoxLayout, QLabel, QPushButton
 
                 success_dlg = QDialog(self)
@@ -786,13 +689,12 @@ class ActionHistoryDetailsDialog(QDialog):
                     f"נשמרו {updated_count} הוצאות בהצלחה", success_dlg
                 )
                 success_btn = QPushButton("אישור", success_dlg)
-                success_btn.clicked.connect(success_dlg.accept)  # type: ignore[arg-type]
+                success_btn.clicked.connect(success_dlg.accept)
                 success_layout.addWidget(success_label)
                 success_layout.addWidget(success_btn)
                 success_dlg.exec()
 
         except Exception as e:
-            # Show error message using a simple dialog
             from ..qt import QDialog, QVBoxLayout, QLabel, QPushButton
 
             error_dlg = QDialog(self)
@@ -800,7 +702,7 @@ class ActionHistoryDetailsDialog(QDialog):
             error_layout = QVBoxLayout(error_dlg)
             error_label = QLabel(f"שגיאה בשמירה: {str(e)}", error_dlg)
             error_btn = QPushButton("אישור", error_dlg)
-            error_btn.clicked.connect(error_dlg.accept)  # type: ignore[arg-type]
+            error_btn.clicked.connect(error_dlg.accept)
             error_layout.addWidget(error_label)
             error_layout.addWidget(error_btn)
             error_dlg.exec()

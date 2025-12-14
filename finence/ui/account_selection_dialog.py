@@ -15,8 +15,6 @@ from ..models.accounts import SavingsAccount
 
 
 class AccountSelectionDialog(QDialog):
-    """Dialog for selecting a SavingsAccount from a list."""
-
     def __init__(
         self,
         accounts: List[SavingsAccount],
@@ -73,18 +71,16 @@ class AccountSelectionDialog(QDialog):
                 self._selected_account = self._accounts[current_row]
                 self.accept()
 
-        select_btn.clicked.connect(on_select)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
+        select_btn.clicked.connect(on_select)
+        cancel_btn.clicked.connect(self.reject)
 
-        # Allow double-click to select
         def on_item_double_clicked(item) -> None:
             on_select()
 
         try:
-            self._list_widget.itemDoubleClicked.connect(on_item_double_clicked)  # type: ignore[attr-defined]
+            self._list_widget.itemDoubleClicked.connect(on_item_double_clicked)
         except Exception:
             pass
 
     def get_selected_account(self) -> Optional[SavingsAccount]:
-        """Get the selected account."""
         return self._selected_account

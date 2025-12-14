@@ -28,8 +28,6 @@ from .base_page import BasePage
 
 
 class SettingsPage(BasePage):
-    """Settings page for user configuration."""
-
     def __init__(
         self,
         app_context: Optional[Dict[str, str]] = None,
@@ -54,7 +52,6 @@ class SettingsPage(BasePage):
         )
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
-        """Add back button to header."""
         buttons = []
         back_btn = QToolButton(self)
         back_btn.setObjectName("IconButton")
@@ -73,13 +70,11 @@ class SettingsPage(BasePage):
         return buttons
 
     def _on_theme_changed(self, is_dark: bool) -> None:
-        """Handle theme change - update eye icon and sidebar."""
         super()._on_theme_changed(is_dark)
         if self._update_eye_icon is not None:
             self._update_eye_icon()
 
     def _build_bank_accounts_card(self) -> QWidget:
-        """Build the bank accounts management card."""
         card = QWidget(self)
         card.setObjectName("Sidebar")
         try:
@@ -87,10 +82,10 @@ class SettingsPage(BasePage):
         except Exception:
             pass
         try:
-            card.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # type: ignore[attr-defined]
+            card.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                card.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                card.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         layout = QVBoxLayout(card)
@@ -105,10 +100,8 @@ class SettingsPage(BasePage):
         layout.addWidget(title_label)
         layout.addSpacing(8)
 
-        # The 4 default bank accounts
         default_account_names = ["בנק", "מזומן", "ביט", "פייבוקס"]
 
-        # Load current bank accounts
         bank_accounts: Dict[str, BankAccount] = {}
         if isinstance(self._provider, JsonFileAccountsProvider):
             try:
@@ -119,42 +112,36 @@ class SettingsPage(BasePage):
             except Exception:
                 pass
 
-        # Store UI elements for each account
         account_widgets: Dict[str, Dict[str, Any]] = {}
 
-        # Create UI for each of the 4 accounts
         for account_name in default_account_names:
             account = bank_accounts.get(account_name)
             is_active = account.active if account else False
             current_amount = account.total_amount if account else 0.0
 
-            # Account row container
             account_row = QWidget(card)
             account_row_layout = QVBoxLayout(account_row)
             account_row_layout.setContentsMargins(0, 0, 0, 0)
             account_row_layout.setSpacing(4)
 
-            # Checkbox for active/inactive
             active_checkbox = QCheckBox(account_name, account_row)
             active_checkbox.setChecked(is_active)
 
-            # Amount input row
             amount_row = QHBoxLayout()
             amount_row.setSpacing(8)
             amount_label = QLabel("סכום התחלתי:", account_row)
             amount_edit = QLineEdit(account_row)
             try:
-                amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # type: ignore[attr-defined]
+                amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             except Exception:
                 try:
-                    amount_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                    amount_edit.setLayoutDirection(Qt.RightToLeft)
                 except Exception:
                     pass
             try:
                 amount_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
             except Exception:
                 pass
-            # Set current amount if account exists (show it even if inactive)
             if account:
                 amount_edit.setText(f"{current_amount:.2f}")
             amount_edit.setEnabled(is_active)
@@ -165,7 +152,6 @@ class SettingsPage(BasePage):
             amount_row.addWidget(dash)
             amount_row.addWidget(amount_edit, 1)
 
-            # Toggle amount input visibility/enabled based on active checkbox
             def make_toggle_handler(edit: QLineEdit) -> Callable[[bool], None]:
                 def handler(checked: bool) -> None:
                     edit.setEnabled(checked)
@@ -174,14 +160,13 @@ class SettingsPage(BasePage):
 
                 return handler
 
-            active_checkbox.toggled.connect(make_toggle_handler(amount_edit))  # type: ignore[arg-type]
+            active_checkbox.toggled.connect(make_toggle_handler(amount_edit))
 
             account_row_layout.addWidget(active_checkbox)
             account_row_layout.addLayout(amount_row)
 
             layout.addWidget(account_row)
 
-            # Store widgets for save handler
             account_widgets[account_name] = {
                 "checkbox": active_checkbox,
                 "amount_edit": amount_edit,
@@ -231,17 +216,17 @@ class SettingsPage(BasePage):
                                 latest_accounts = self._provider.list_accounts()
                             except Exception:
                                 latest_accounts = self._accounts
-                            self._sidebar.update_accounts(latest_accounts)  # type: ignore[arg-type]
+                            self._sidebar.update_accounts(latest_accounts)
                         except Exception:
                             pass
 
                 try:
-                    from PySide6.QtCore import QTimer  # type: ignore
+                    from PySide6.QtCore import QTimer
 
                     QTimer.singleShot(50, update_sidebar)
                 except Exception:
                     try:
-                        from PyQt6.QtCore import QTimer  # type: ignore
+                        from PyQt6.QtCore import QTimer
 
                         QTimer.singleShot(50, update_sidebar)
                     except Exception:
@@ -274,7 +259,7 @@ class SettingsPage(BasePage):
                 except Exception:
                     pass
 
-        save_button.clicked.connect(on_save_bank_accounts)  # type: ignore[arg-type]
+        save_button.clicked.connect(on_save_bank_accounts)
 
         try:
             layout.addWidget(
@@ -295,10 +280,10 @@ class SettingsPage(BasePage):
         except Exception:
             pass
         try:
-            content_card.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # type: ignore[attr-defined]
+            content_card.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                content_card.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                content_card.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         content_layout = QVBoxLayout(content_card)
@@ -321,10 +306,10 @@ class SettingsPage(BasePage):
         password_label = QLabel("סיסמה", content_card)
         password_edit = QLineEdit(content_card)
         try:
-            password_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # type: ignore[attr-defined]
+            password_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                password_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                password_edit.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -332,10 +317,10 @@ class SettingsPage(BasePage):
         except Exception:
             pass
         try:
-            password_edit.setEchoMode(QLineEdit.EchoMode.Password)  # type: ignore[attr-defined]
+            password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         except Exception:
             try:
-                password_edit.setEchoMode(QLineEdit.Password)  # type: ignore[attr-defined]
+                password_edit.setEchoMode(QLineEdit.Password)
             except Exception:
                 pass
         if getattr(self._user, "password", None):
@@ -378,7 +363,7 @@ class SettingsPage(BasePage):
             pixmap = QPixmap(str(eye_icon_path))
             if not pixmap.isNull():
                 try:
-                    from PySide6.QtCore import QSize  # type: ignore
+                    from PySide6.QtCore import QSize
 
                     scaled_pixmap = pixmap.scaled(
                         QSize(24, 24),
@@ -388,7 +373,7 @@ class SettingsPage(BasePage):
                     eye_button.setIconSize(QSize(24, 24))
                 except Exception:
                     try:
-                        from PyQt6.QtCore import QSize  # type: ignore
+                        from PyQt6.QtCore import QSize
 
                         scaled_pixmap = pixmap.scaled(
                             QSize(24, 24),
@@ -441,7 +426,7 @@ class SettingsPage(BasePage):
                 pixmap_ = QPixmap(str(eye_icon_path_))
                 if not pixmap_.isNull():
                     try:
-                        from PySide6.QtCore import QSize  # type: ignore
+                        from PySide6.QtCore import QSize
 
                         scaled_pixmap_ = pixmap_.scaled(
                             QSize(24, 24),
@@ -451,7 +436,7 @@ class SettingsPage(BasePage):
                         eye_button.setIconSize(QSize(24, 24))
                     except Exception:
                         try:
-                            from PyQt6.QtCore import QSize  # type: ignore
+                            from PyQt6.QtCore import QSize
 
                             scaled_pixmap_ = pixmap_.scaled(
                                 QSize(24, 24),
@@ -478,27 +463,27 @@ class SettingsPage(BasePage):
                     QLineEdit.EchoMode.Normal
                     if checked
                     else QLineEdit.EchoMode.Password
-                )  # type: ignore[attr-defined]
+                )
                 password_edit.setEchoMode(mode)
             except Exception:
                 try:
-                    mode = QLineEdit.Normal if checked else QLineEdit.Password  # type: ignore[attr-defined]
+                    mode = QLineEdit.Normal if checked else QLineEdit.Password
                     password_edit.setEchoMode(mode)
                 except Exception:
                     pass
 
-        eye_button.toggled.connect(on_toggle_show_password)  # type: ignore[arg-type]
+        eye_button.toggled.connect(on_toggle_show_password)
 
         def on_save_clicked() -> None:
             self._user.full_name = name_edit.text() or self._user.full_name
             try:
-                self._user.lock_enabled = lock_checkbox.isChecked()  # type: ignore[assignment]
+                self._user.lock_enabled = lock_checkbox.isChecked()
             except Exception:
                 pass
             try:
                 self._user.password = (
                     password_edit.text() if self._user.lock_enabled else None
-                )  # type: ignore[assignment]
+                )
             except Exception:
                 pass
             try:
@@ -515,7 +500,7 @@ class SettingsPage(BasePage):
             except Exception:
                 pass
 
-        save_button.clicked.connect(on_save_clicked)  # type: ignore[arg-type]
+        save_button.clicked.connect(on_save_clicked)
 
         content_layout.addWidget(title_label)
         content_layout.addSpacing(4)
@@ -551,7 +536,7 @@ class SettingsPage(BasePage):
         def on_lock_toggled(checked: bool) -> None:
             update_lock_ui(checked)
 
-        lock_checkbox.toggled.connect(on_lock_toggled)  # type: ignore[arg-type]
+        lock_checkbox.toggled.connect(on_lock_toggled)
         update_lock_ui(lock_checkbox.isChecked())
         content_layout.addStretch(1)
         try:

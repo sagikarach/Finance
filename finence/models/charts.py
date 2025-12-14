@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Tuple
 from .accounts import MoneySnapshot, parse_iso_date
 
 
-MonthKey = Tuple[int, int]  # (year, month)
+MonthKey = Tuple[int, int]
 
 
 @dataclass(frozen=True)

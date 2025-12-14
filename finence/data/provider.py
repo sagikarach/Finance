@@ -44,16 +44,13 @@ class JsonFileAccountsProvider(AccountsProvider):
     def list_accounts(self) -> List[MoneyAccount]:
         accounts: List[MoneyAccount] = []
 
-        # Load bank accounts
         accounts.extend(self._load_bank_accounts())
 
-        # Load savings accounts
         accounts.extend(self._load_savings_accounts())
 
         return accounts
 
     def _load_bank_accounts(self) -> List[MoneyAccount]:
-        """Load BankAccount from bank_accounts.json."""
         accounts: List[MoneyAccount] = []
 
         if not self._bank_accounts_path.exists():
@@ -90,14 +87,12 @@ class JsonFileAccountsProvider(AccountsProvider):
                         except Exception:
                             continue
 
-                # Use total_amount from JSON, or compute from history
                 total_amount = float(item.get("total_amount", 0.0))
                 if account_history and total_amount == 0.0:
                     latest = latest_amount_from_history(account_history)
                     if latest is not None:
                         total_amount = float(latest)
 
-                # Get active field, defaulting to True for backward compatibility
                 active = bool(item.get("active", False))
 
                 accounts.append(
@@ -114,7 +109,6 @@ class JsonFileAccountsProvider(AccountsProvider):
         return accounts
 
     def _load_savings_accounts(self) -> List[MoneyAccount]:
-        """Load SavingsAccount from savings_accounts.json."""
         accounts: List[MoneyAccount] = []
 
         if not self._savings_accounts_path.exists():
@@ -178,7 +172,6 @@ class JsonFileAccountsProvider(AccountsProvider):
                         except Exception:
                             continue
 
-                # Use total_amount from JSON, or compute from savings
                 total_amount = float(item.get("total_amount", 0.0))
                 if savings and total_amount == 0.0:
                     total_amount = sum(s.amount for s in savings)
@@ -196,11 +189,8 @@ class JsonFileAccountsProvider(AccountsProvider):
         return accounts
 
     def save_savings_accounts(self, accounts: List[SavingsAccount]) -> None:
-        """Save SavingsAccount list to savings_accounts.json."""
-        # Ensure directory exists
         self._savings_accounts_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Convert to JSON format
         json_data = []
         for account in accounts:
             account_dict = {
@@ -209,7 +199,6 @@ class JsonFileAccountsProvider(AccountsProvider):
                 "total_amount": account.total_amount,
                 "savings": [],
             }
-            # Convert savings to JSON format
             for savings_item in account.savings:
                 savings_dict = {
                     "name": savings_item.name,
@@ -222,13 +211,10 @@ class JsonFileAccountsProvider(AccountsProvider):
                 account_dict["savings"].append(savings_dict)  # type: ignore[attr-defined]
             json_data.append(account_dict)
 
-        # Write to file
         with self._savings_accounts_path.open("w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
 
     def save_bank_accounts(self, accounts: List[BankAccount]) -> None:
-        """Save BankAccount list to bank_accounts.json."""
-        # Ensure directory exists
         self._bank_accounts_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []

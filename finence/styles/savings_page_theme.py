@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 def load_savings_page_light_styles() -> str:
-    """Styles specific to the savings page in light mode."""
     return """
     QComboBox#AccountComboBox {
         background: #ffffff;
@@ -110,7 +109,6 @@ def load_savings_page_light_styles() -> str:
 
 
 def load_savings_page_dark_styles() -> str:
-    """Styles specific to the savings page in dark mode."""
     return """
     QComboBox#AccountComboBox {
         background: #1e293b;

@@ -20,11 +20,6 @@ from ..models.bank_movement import BankMovement, MovementType
 
 
 class OutcomeReviewDialog(QDialog):
-    """
-    Dialog that lets the user manually classify an outcome movement when the
-    AI/Ollama confidence is low.
-    """
-
     def __init__(
         self,
         movement: BankMovement,
@@ -46,7 +41,6 @@ class OutcomeReviewDialog(QDialog):
             self, title="סיווג הוצאה", margins=(32, 24, 32, 24), spacing=12
         )
 
-        # Info row: description + amount + date
         info_col = QVBoxLayout()
         info_col.setSpacing(4)
 
@@ -61,7 +55,6 @@ class OutcomeReviewDialog(QDialog):
 
         layout.addLayout(info_col)
 
-        # AI suggestion row (optional)
         if suggested_category:
             suggestion = (
                 f"הצעת AI: {suggested_category} / "
@@ -73,16 +66,13 @@ class OutcomeReviewDialog(QDialog):
         suggestion_label = QLabel(suggestion, self)
         layout.addWidget(suggestion_label)
 
-        # Category row
         cat_row = QHBoxLayout()
         cat_row.setSpacing(8)
         cat_label = QLabel("קטגוריה:", self)
         cat_label.setMinimumWidth(80)
         self._category_combo = QComboBox(self)
-        # Existing categories
         for cat in self._categories:
             self._category_combo.addItem(cat, cat)
-        # "Add new category" sentinel
         self._add_category_sentinel = "__add_category__"
         self._category_combo.addItem("הוסף קטגוריה חדשה…", self._add_category_sentinel)
 
@@ -101,20 +91,18 @@ class OutcomeReviewDialog(QDialog):
         except Exception:
             pass
 
-        # Pre-select suggested category if present in the list
         if suggested_category and suggested_category in self._categories:
             idx = self._categories.index(suggested_category)
             self._category_combo.setCurrentIndex(idx)
         else:
             self._category_combo.setCurrentIndex(0 if self._categories else 0)
 
-        self._category_combo.activated.connect(self._on_category_activated)  # type: ignore[arg-type]
+        self._category_combo.activated.connect(self._on_category_activated)
 
         cat_row.addWidget(cat_label, 0)
         cat_row.addWidget(self._category_combo, 1)
         layout.addLayout(cat_row)
 
-        # Type row
         type_row = QHBoxLayout()
         type_row.setSpacing(8)
         type_label = QLabel("סוג:", self)
@@ -137,7 +125,6 @@ class OutcomeReviewDialog(QDialog):
 
         for mt in MovementType:
             self._type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
-        # Pre-select suggested type if provided
         if suggested_type is not None:
             for i in range(self._type_combo.count()):
                 if self._type_combo.itemData(i) == suggested_type:
@@ -148,7 +135,6 @@ class OutcomeReviewDialog(QDialog):
         type_row.addWidget(self._type_combo, 1)
         layout.addLayout(type_row)
 
-        # Buttons
         buttons_row, ok_btn, skip_btn = create_standard_buttons_row(
             self, primary_text="שמור"
         )
@@ -157,7 +143,6 @@ class OutcomeReviewDialog(QDialog):
         def on_accept() -> None:
             cat = self._category_combo.currentData()
             if cat == self._add_category_sentinel:
-                # User clicked "add new" but didn't actually add; ignore.
                 return
             if isinstance(cat, str):
                 self._selected_category = cat.strip()
@@ -167,12 +152,11 @@ class OutcomeReviewDialog(QDialog):
             self.accept()
 
         def on_skip() -> None:
-            # Leave movement uncategorized for now.
             self._selected_category = None
             self.reject()
 
-        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
-        skip_btn.clicked.connect(on_skip)  # type: ignore[arg-type]
+        ok_btn.clicked.connect(on_accept)
+        skip_btn.clicked.connect(on_skip)
 
         layout.addLayout(buttons_row)
 
@@ -185,11 +169,9 @@ class OutcomeReviewDialog(QDialog):
         if data != self._add_category_sentinel:
             return
 
-        # Add new category via the existing dialog and callback.
         try:
             dialog = NewCategoryDialog(self._categories, parent=self)
             if not dialog.exec():
-                # Revert to previous selection
                 if self._categories:
                     self._category_combo.setCurrentIndex(0)
                 return
@@ -212,10 +194,6 @@ class OutcomeReviewDialog(QDialog):
             return
 
     def get_result(self) -> Optional[BankMovement]:
-        """
-        Return a movement with the user-selected category/type, or None if the
-        user skipped classification.
-        """
         if not self._selected_category:
             return None
 

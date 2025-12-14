@@ -50,8 +50,8 @@ class Sidebar(QWidget):
             header_tooltip="חשבונות בנק",
         )
         try:
-            self._bank_section.set_header_visible(False)  # type: ignore[attr-defined]
-            self._bank_section.set_expanded(False)  # type: ignore[attr-defined]
+            self._bank_section.set_header_visible(False)
+            self._bank_section.set_expanded(False)
         except Exception:
             pass
 
@@ -62,7 +62,7 @@ class Sidebar(QWidget):
             header_tooltip="חסכונות",
         )
         try:
-            self._savings_section.set_header_visible(False)  # type: ignore[attr-defined]
+            self._savings_section.set_header_visible(False)
         except Exception:
             pass
 
@@ -104,7 +104,7 @@ class Sidebar(QWidget):
 
         if current_route in ("savings", "savings_account"):
             try:
-                self._savings_section.set_expanded(True)  # type: ignore[attr-defined]
+                self._savings_section.set_expanded(True)
                 toggle_btn = self._navigation.get_savings_toggle_button()
                 if toggle_btn:
                     toggle_btn.setChecked(True)
@@ -133,7 +133,7 @@ class Sidebar(QWidget):
         )
         if hasattr(self._navigation, "connect_bank_handlers"):
             try:
-                self._navigation.connect_bank_handlers(self._on_toggle_bank_list)  # type: ignore[attr-defined]
+                self._navigation.connect_bank_handlers(self._on_toggle_bank_list)
             except Exception:
                 pass
 
@@ -145,9 +145,9 @@ class Sidebar(QWidget):
 
         is_expanded = False
         try:
-            currently = self._savings_section.is_expanded()  # type: ignore[attr-defined]
-            self._savings_section.set_expanded(not currently)  # type: ignore[attr-defined]
-            is_expanded = self._savings_section.is_expanded()  # type: ignore[attr-defined]
+            currently = self._savings_section.is_expanded()
+            self._savings_section.set_expanded(not currently)
+            is_expanded = self._savings_section.is_expanded()
         except Exception:
             return
 
@@ -160,10 +160,9 @@ class Sidebar(QWidget):
 
     def _on_savings_clicked(self) -> None:
         if self._navigate is not None:
-            self._navigate("savings")  # type: ignore[arg-type]
+            self._navigate("savings")
 
     def _on_toggle_bank_list(self) -> None:
-        """Expand/collapse the bank accounts list under the 'חשבונות' button."""
         if not hasattr(self, "_bank_section"):
             return
 
@@ -180,9 +179,9 @@ class Sidebar(QWidget):
 
         is_expanded = False
         try:
-            currently = self._bank_section.is_expanded()  # type: ignore[attr-defined]
-            self._bank_section.set_expanded(not currently)  # type: ignore[attr-defined]
-            is_expanded = self._bank_section.is_expanded()  # type: ignore[attr-defined]
+            currently = self._bank_section.is_expanded()
+            self._bank_section.set_expanded(not currently)
+            is_expanded = self._bank_section.is_expanded()
         except Exception:
             return
 
@@ -198,7 +197,6 @@ class Sidebar(QWidget):
         self._update_button_width()
 
     def _on_savings_account_clicked(self, account: MoneyAccount) -> None:
-        """Handle click on a specific savings account button in the sidebar."""
         if self._navigate is None:
             return
 
@@ -210,14 +208,13 @@ class Sidebar(QWidget):
 
         if parent is not None and hasattr(parent, "set_selected_savings_account"):
             try:
-                parent.set_selected_savings_account(account.name)  # type: ignore[attr-defined]
+                parent.set_selected_savings_account(account.name)
             except Exception:
                 pass
 
-        self._navigate("savings_account")  # type: ignore[arg-type]
+        self._navigate("savings_account")
 
     def _on_bank_account_clicked(self, account: MoneyAccount) -> None:
-        """Handle click on a specific bank account button in the sidebar."""
         if self._navigate is None:
             return
 
@@ -227,11 +224,11 @@ class Sidebar(QWidget):
 
         if parent is not None and hasattr(parent, "set_selected_bank_account"):
             try:
-                parent.set_selected_bank_account(account.name)  # type: ignore[attr-defined]
+                parent.set_selected_bank_account(account.name)
             except Exception:
                 pass
 
-        self._navigate("bank_account")  # type: ignore[arg-type]
+        self._navigate("bank_account")
 
     def _apply_toggle_button_style(self) -> None:
         toggle_btn = self._navigation.get_savings_toggle_button()
@@ -242,7 +239,7 @@ class Sidebar(QWidget):
                 savings_btn,
                 bool(
                     hasattr(self, "_savings_section")
-                    and self._savings_section.is_expanded()  # type: ignore[attr-defined]
+                    and self._savings_section.is_expanded()
                 ),
             )
 
@@ -254,14 +251,14 @@ class Sidebar(QWidget):
     def _setup_resize_handler(self) -> None:
         original_resize = self.resizeEvent
 
-        def resizeEvent(event):  # type: ignore
+        def resizeEvent(event):
             if original_resize is not None:
                 try:
                     original_resize(event)
                 except Exception:
                     pass
             try:
-                from PySide6.QtCore import QTimer  # type: ignore
+                from PySide6.QtCore import QTimer
 
                 QTimer.singleShot(10, self._update_button_width)
             except Exception:
@@ -277,7 +274,7 @@ class Sidebar(QWidget):
     def _setup_show_handler(self) -> None:
         original_show = self.showEvent
 
-        def showEvent(event):  # type: ignore
+        def showEvent(event):
             if original_show is not None:
                 try:
                     original_show(event)
@@ -286,7 +283,7 @@ class Sidebar(QWidget):
             if hasattr(self, "_current_route"):
                 self.update_route(self._current_route)
             try:
-                from PySide6.QtCore import QTimer  # type: ignore
+                from PySide6.QtCore import QTimer
 
                 QTimer.singleShot(10, self._update_button_width)
             except Exception:
@@ -302,16 +299,16 @@ class Sidebar(QWidget):
     def _setup_change_handler(self) -> None:
         original_change = self.changeEvent
 
-        def changeEvent(event):  # type: ignore
+        def changeEvent(event):
             if original_change is not None:
                 try:
                     original_change(event)
                 except Exception:
                     pass
             try:
-                from PySide6.QtCore import QEvent, QTimer  # type: ignore
+                from PySide6.QtCore import QEvent, QTimer
 
-                if event.type() == QEvent.Type.StyleChange:  # type: ignore
+                if event.type() == QEvent.Type.StyleChange:
                     QTimer.singleShot(50, self._update_button_width)
                     self._apply_toggle_button_style()
                     self._refresh_collapsible_sections()
@@ -319,7 +316,7 @@ class Sidebar(QWidget):
                 try:
                     from PyQt6.QtCore import QEvent, QTimer  # type: ignore
 
-                    if event.type() == QEvent.Type.StyleChange:  # type: ignore
+                    if event.type() == QEvent.Type.StyleChange:
                         QTimer.singleShot(50, self._update_button_width)
                         self._apply_toggle_button_style()
                         self._refresh_collapsible_sections()
@@ -329,15 +326,14 @@ class Sidebar(QWidget):
         self.changeEvent = changeEvent  # type: ignore[assignment]
 
     def _refresh_collapsible_sections(self) -> None:
-        """Refresh styling of collapsible sections when theme changes."""
         if hasattr(self, "_savings_section"):
             try:
-                self._savings_section.refresh_theme()  # type: ignore[attr-defined]
+                self._savings_section.refresh_theme()
             except Exception:
                 pass
         if hasattr(self, "_bank_section"):
             try:
-                self._bank_section.refresh_theme()  # type: ignore[attr-defined]
+                self._bank_section.refresh_theme()
             except Exception:
                 pass
 
@@ -370,7 +366,6 @@ class Sidebar(QWidget):
         update_savings_accounts_container_width(
             self,
             sidebar_width,
-            # Use the internal content widget of the collapsible savings section.
             getattr(self._savings_section, "_content", None),
         )
 
@@ -379,7 +374,7 @@ class Sidebar(QWidget):
         self._rebuild_bank_items()
         self._rebuild_savings_items()
         try:
-            from PySide6.QtCore import QTimer  # type: ignore
+            from PySide6.QtCore import QTimer
 
             QTimer.singleShot(10, self._update_button_width)
         except Exception:
@@ -423,8 +418,6 @@ class Sidebar(QWidget):
         if bank_btn:
             bank_btn.blockSignals(True)
             bank_btn.setChecked(is_bank_section)
-            # Disable only on the main bank-accounts page; keep it enabled on the
-            # per-account page so clicking it navigates back to the overview.
             bank_btn.setEnabled(not is_bank)
             bank_btn.blockSignals(False)
 
@@ -437,7 +430,7 @@ class Sidebar(QWidget):
             if is_bank_section:
                 is_expanded = False
                 try:
-                    is_expanded = self._bank_section.is_expanded()  # type: ignore[attr-defined]
+                    is_expanded = self._bank_section.is_expanded()
                 except Exception:
                     is_expanded = False
 
@@ -445,16 +438,14 @@ class Sidebar(QWidget):
                     if is_expanded:
                         bank_btn.setStyleSheet("border-bottom-color: transparent;")
                     else:
-                        bank_btn.setStyleSheet(
-                            ""
-                        )  # Use default CSS which shows bottom border when checked
+                        bank_btn.setStyleSheet("")
                 if bank_toggle_btn:
                     bank_toggle_btn.setVisible(True)
                     bank_toggle_btn.setChecked(is_expanded)
                     bank_toggle_btn.setText("▲" if is_expanded else "▼")
             else:
                 try:
-                    self._bank_section.set_expanded(False)  # type: ignore[attr-defined]
+                    self._bank_section.set_expanded(False)
                 except Exception:
                     pass
                 if bank_toggle_btn:
@@ -476,7 +467,7 @@ class Sidebar(QWidget):
             if not is_savings_section:
                 if hasattr(self, "_savings_section"):
                     try:
-                        self._savings_section.set_expanded(False)  # type: ignore[attr-defined]
+                        self._savings_section.set_expanded(False)
                     except Exception:
                         pass
                 toggle_btn.setChecked(False)
@@ -485,15 +476,11 @@ class Sidebar(QWidget):
 
         if hasattr(self, "_savings_section"):
             try:
-                self._savings_section.setVisible(is_savings_section)  # type: ignore[attr-defined]
+                self._savings_section.setVisible(is_savings_section)
             except Exception:
                 pass
 
         self._current_route = route
-
-    # ------------------------------------------------------------------ #
-    # Internal helpers
-    # ------------------------------------------------------------------ #
 
     def _build_section_state(
         self,
@@ -504,9 +491,6 @@ class Sidebar(QWidget):
         click_handler: Callable[[MoneyAccount], None],
         account_filter: Optional[Callable[[MoneyAccount], bool]] = None,
     ) -> SidebarSectionState:
-        """
-        Build a SidebarSectionState from the current accounts list.
-        """
         section = SidebarSectionState(
             section_id=section_id,
             title=title,
@@ -521,7 +505,6 @@ class Sidebar(QWidget):
 
             def make_cb(account: MoneyAccount) -> Callable[[], None]:
                 def _cb() -> None:
-                    # Delegate to the provided handler (bank/savings specific).
                     click_handler(account)
 
                 return _cb
@@ -531,20 +514,15 @@ class Sidebar(QWidget):
         return section
 
     def _rebuild_bank_items(self) -> None:
-        """Populate the collapsible bank section with one row per BankAccount."""
         if not hasattr(self, "_bank_section"):
             return
 
-        # Capture current expanded state so we don't surprise the user when the
-        # list is rebuilt after settings changes.
         expanded = False
         try:
-            expanded = bool(self._bank_section.is_expanded())  # type: ignore[attr-defined]
+            expanded = bool(self._bank_section.is_expanded())
         except Exception:
             expanded = False
 
-        # Build a small in‑memory model for the bank section so all the logic
-        # (filtering, callbacks) lives in one place instead of in the widget.
         section = self._build_section_state(
             section_id="bank_accounts",
             title="חשבונות",
@@ -554,9 +532,6 @@ class Sidebar(QWidget):
             account_filter=lambda a: isinstance(a, BankAccount) and a.active,
         )
 
-        # Ensure the section widget sits directly under the bank button
-        # container before we feed it the new items. This mirrors the original
-        # layout insertion logic but is now driven by the model.
         try:
             layout = self.layout()
             bank_container = getattr(
@@ -570,35 +545,32 @@ class Sidebar(QWidget):
                 try:
                     idx_bank = layout.indexOf(bank_container)
                     if idx_bank != -1:
-                        idx_current = layout.indexOf(self._bank_section)  # type: ignore[arg-type]
+                        idx_current = layout.indexOf(self._bank_section)
                     else:
                         idx_current = -1
                 except Exception:
                     idx_current = -1
 
                 if idx_current == -1 and idx_bank != -1:
-                    layout.insertWidget(idx_bank + 1, self._bank_section)  # type: ignore[arg-type]
+                    layout.insertWidget(idx_bank + 1, self._bank_section)
                     if hasattr(self._bank_section, "_layout_index"):
-                        # Remember the natural position under the bank button.
-                        self._bank_section._layout_index = idx_bank + 1  # type: ignore[attr-defined]
+                        self._bank_section._layout_index = idx_bank + 1
         except Exception:
             pass
 
-        # Push the model into the collapsible widget.
         try:
-            self._bank_section.set_items(section.as_collapsible_items())  # type: ignore[attr-defined]
-            self._bank_section.set_expanded(section.expanded)  # type: ignore[attr-defined]
+            self._bank_section.set_items(section.as_collapsible_items())
+            self._bank_section.set_expanded(section.expanded)
         except Exception:
             pass
 
     def _rebuild_savings_items(self) -> None:
-        """Populate the collapsible savings section with one row per SavingsAccount."""
         if not hasattr(self, "_savings_section"):
             return
 
         expanded = False
         try:
-            expanded = bool(self._savings_section.is_expanded())  # type: ignore[attr-defined]
+            expanded = bool(self._savings_section.is_expanded())
         except Exception:
             expanded = False
 
@@ -611,7 +583,7 @@ class Sidebar(QWidget):
         )
 
         try:
-            self._savings_section.set_items(section.as_collapsible_items())  # type: ignore[attr-defined]
-            self._savings_section.set_expanded(section.expanded)  # type: ignore[attr-defined]
+            self._savings_section.set_items(section.as_collapsible_items())
+            self._savings_section.set_expanded(section.expanded)
         except Exception:
             pass

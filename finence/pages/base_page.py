@@ -30,7 +30,6 @@ from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
 
 
 def _load_default_full_name() -> str:
-    """Load default full name from defaults.json file."""
     defaults_path = Path.cwd() / "defaults.json"
     default_full_name = "אורח"
 
@@ -65,7 +64,6 @@ class BasePage(QWidget):
         self._accounts: List = self._provider.list_accounts()
         self._navigate = navigate
         self._user_store = UserProfileStore()
-        # Load default name from JSON file, with app_context as fallback
         default_name = self._app_context.get("userName") or _load_default_full_name()
         self._user: UserProfile = self._user_store.load(
             default_full_name=default_name,
@@ -78,19 +76,15 @@ class BasePage(QWidget):
         self._content_col: Optional[QVBoxLayout] = None
         self._bank_movement_provider = JsonFileBankMovementProvider()
         self._history_provider = JsonFileActionHistoryProvider()
-        # Service used to persist account changes (including savings/bank data).
         self._accounts_service: Optional[AccountsService] = AccountsService(
             self._provider, history_provider=self._history_provider
         )
-        # Optional similarity-based classifier for automatic category/type.
-        # Uses historical expense data to learn and classify.
         classifier = None
         try:
             classifier = SimilarityBasedClassifier()
             classifier.initialize()
         except Exception:
             classifier = None
-        # Domain service that encapsulates movement + history logic.
         self._bank_movement_service: Optional[BankMovementService] = (
             BankMovementService(
                 self._bank_movement_provider,
@@ -113,7 +107,7 @@ class BasePage(QWidget):
 
         header_container = self._build_header()
         try:
-            header_container.setFixedHeight(56)  # Fixed height to match home page
+            header_container.setFixedHeight(56)
             header_container.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
@@ -159,9 +153,7 @@ class BasePage(QWidget):
 
         sidebar_container = QWidget(self)
         sidebar_layout = QVBoxLayout(sidebar_container)
-        sidebar_layout.setContentsMargins(
-            0, 40, 16, 40
-        )  # Larger top and bottom margins
+        sidebar_layout.setContentsMargins(0, 40, 16, 40)
         sidebar_layout.setSpacing(12)
         sidebar_layout.addWidget(self._sidebar, 1)
 
@@ -227,20 +219,16 @@ class BasePage(QWidget):
         except Exception:
             bank_accounts = []
 
-        # Load categories depending on whether this is income or outcome.
         categories: list[str] = []
         provider = self._bank_movement_provider
         try:
             if hasattr(provider, "list_categories_for_type"):
-                categories = provider.list_categories_for_type(is_income)  # type: ignore[attr-defined]
+                categories = provider.list_categories_for_type(is_income)
             else:
-                categories = provider.list_categories()  # type: ignore[attr-defined]
+                categories = provider.list_categories()
         except Exception:
             categories = []
 
-        # When the user adds a new category, save it under the correct side
-        # (income or outcome) if the provider supports that, otherwise fall
-        # back to the older single-list API.
         on_category_added = None
         try:
             if hasattr(provider, "add_category_for_type"):
@@ -249,7 +237,7 @@ class BasePage(QWidget):
                     name: str, *, _prov=provider, _is_income=is_income
                 ) -> None:
                     try:
-                        _prov.add_category_for_type(name, _is_income)  # type: ignore[attr-defined]
+                        _prov.add_category_for_type(name, _is_income)
                     except Exception:
                         pass
 
@@ -273,8 +261,6 @@ class BasePage(QWidget):
         if movement is None:
             return
 
-        # Delegate movement + history logic to the domain service so this page
-        # stays focused on UI wiring.
         service = self._bank_movement_service
         if service is not None:
             try:
@@ -285,12 +271,8 @@ class BasePage(QWidget):
                     record_history=True,
                 )
             except Exception:
-                # If the service fails, keep the old accounts list to avoid
-                # corrupting in-memory state.
                 pass
 
-        # Refresh any on-screen history table so the new action appears
-        # immediately without requiring navigation.
         try:
             from ..widgets.action_history_table import ActionHistoryTable
 
@@ -299,7 +281,7 @@ class BasePage(QWidget):
                 self._history_provider, "list_history"
             ):
                 try:
-                    history = self._history_provider.list_history()  # type: ignore[attr-defined]
+                    history = self._history_provider.list_history()
                 except Exception:
                     history = []
                 try:
@@ -309,14 +291,9 @@ class BasePage(QWidget):
         except Exception:
             pass
 
-        # Persist the updated accounts and refresh any UI that depends on them.
         self._save_and_refresh_accounts()
 
     def _save_and_refresh_accounts(self) -> None:
-        """
-        Persist the current accounts list and refresh sidebar + content so that
-        all totals and charts reflect the latest data.
-        """
         svc = self._accounts_service
         if svc is None:
             try:
@@ -337,14 +314,12 @@ class BasePage(QWidget):
             except Exception:
                 pass
 
-        # Update sidebar account list if it supports it.
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
-                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+                self._sidebar.update_accounts(self._accounts)
             except Exception:
                 pass
 
-        # Rebuild the main content so that any totals/charts reflect the new data.
         if isinstance(self._content_col, QVBoxLayout):
             layout = self._content_col
             while layout.count():
@@ -388,7 +363,7 @@ class BasePage(QWidget):
             except Exception:
                 pass
 
-        theme_btn.toggled.connect(on_theme_toggled)  # type: ignore[arg-type]
+        theme_btn.toggled.connect(on_theme_toggled)
         return theme_btn
 
     def _on_theme_changed(self, is_dark: bool) -> None:
@@ -397,11 +372,9 @@ class BasePage(QWidget):
             self._theme_btn.setText("🌙" if is_dark else "☀")
 
         if self._sidebar is not None:
-            # Re-run sidebar width logic so buttons/list fill correctly in the
-            # new theme, and refresh the savings list background if present.
             if hasattr(self._sidebar, "_update_button_width"):
                 try:
-                    from PySide6.QtCore import QTimer  # type: ignore
+                    from PySide6.QtCore import QTimer
 
                     QTimer.singleShot(100, self._sidebar._update_button_width)
                 except Exception:
@@ -412,22 +385,20 @@ class BasePage(QWidget):
                     except Exception:
                         pass
 
-            # Ensure the toggle arrow background is recalculated for the new theme.
             if hasattr(self._sidebar, "_apply_toggle_button_style"):
                 try:
-                    self._sidebar._apply_toggle_button_style()  # type: ignore[attr-defined]
+                    self._sidebar._apply_toggle_button_style()
                 except Exception:
                     pass
 
-            # Refresh collapsible sections styling
             if hasattr(self._sidebar, "_savings_section"):
                 try:
-                    self._sidebar._savings_section.refresh_theme()  # type: ignore[attr-defined]
+                    self._sidebar._savings_section.refresh_theme()
                 except Exception:
                     pass
             if hasattr(self._sidebar, "_bank_section"):
                 try:
-                    self._sidebar._bank_section.refresh_theme()  # type: ignore[attr-defined]
+                    self._sidebar._bank_section.refresh_theme()
                 except Exception:
                     pass
 
@@ -436,7 +407,7 @@ class BasePage(QWidget):
 
             history_table = self.findChild(ActionHistoryTable)
             if history_table is not None and hasattr(history_table, "_update_table"):
-                history_table._update_table()  # type: ignore[attr-defined]
+                history_table._update_table()
         except Exception:
             pass
 

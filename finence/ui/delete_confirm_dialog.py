@@ -13,8 +13,6 @@ from ..qt import (
 
 
 class DeleteConfirmDialog(QDialog):
-    """Dialog for confirming deletion of a SavingsAccount."""
-
     def __init__(
         self,
         account_name: str,
@@ -55,5 +53,5 @@ class DeleteConfirmDialog(QDialog):
         layout.addWidget(message)
         layout.addLayout(buttons_row)
 
-        delete_btn.clicked.connect(self.accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
+        delete_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)

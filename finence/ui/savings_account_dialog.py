@@ -10,6 +10,7 @@ from ..qt import (
     QLineEdit,
     QPushButton,
     QCheckBox,
+    QWidget,
     Qt,
 )
 from ..models.accounts import SavingsAccount
@@ -21,19 +22,16 @@ from ..models.savings_dialogs import (
 
 
 class SavingsAccountDialog(QDialog):
-    """Dialog for adding or editing a SavingsAccount."""
-
     def __init__(
         self,
         account: Optional[SavingsAccount] = None,
         existing_names: Optional[List[str]] = None,
-        parent: Optional[QDialog] = None,
+        parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
         self._account = account
         self._is_edit_mode = account is not None
         self._existing_names = existing_names or []
-        # For edit mode, exclude the current account's name from validation
         if account and account.name in self._existing_names:
             self._existing_names = [
                 n for n in self._existing_names if n != account.name
@@ -47,12 +45,11 @@ class SavingsAccountDialog(QDialog):
         except Exception:
             pass
 
-        # Set RTL layout direction for the dialog
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self.setLayoutDirection(Qt.RightToLeft)
+                self.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
             except Exception:
                 pass
 
@@ -65,14 +62,14 @@ class SavingsAccountDialog(QDialog):
 
         name_label = QLabel("שם:", self)
         name_label.setObjectName("StatTitle")
-        name_label.setMinimumWidth(60)  # Fixed width for label
+        name_label.setMinimumWidth(60)
 
         self._name_edit = QLineEdit(self)
         try:
             self._name_edit.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._name_edit.setLayoutDirection(Qt.LeftToRight)
+                self._name_edit.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
             except Exception:
                 pass
         try:
@@ -82,22 +79,20 @@ class SavingsAccountDialog(QDialog):
         if account:
             self._name_edit.setText(account.name)
 
-        name_row.addWidget(name_label, 0)  # Label on RIGHT
-        name_row.addWidget(self._name_edit, 1)  # Input field on LEFT, expands
+        name_row.addWidget(name_label, 0)
+        name_row.addWidget(self._name_edit, 1)
 
-        # Is liquid checkbox
         self._is_liquid_checkbox = QCheckBox("נזיל", self)
         try:
             self._is_liquid_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)
+                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
             except Exception:
                 pass
         if account:
             self._is_liquid_checkbox.setChecked(account.is_liquid)
 
-        # Buttons (in RTL: save on right, cancel on left)
         buttons_row = QHBoxLayout()
         buttons_row.setSpacing(12)
 
@@ -106,22 +101,20 @@ class SavingsAccountDialog(QDialog):
         save_btn.setDefault(True)
         save_btn.setObjectName("SaveButton")
 
-        # In RTL: first widget added appears on RIGHT, last on LEFT
-        # So: save first (right), cancel second (left)
-        buttons_row.addWidget(save_btn)  # Save on RIGHT (primary action)
+        buttons_row.addWidget(save_btn)
         buttons_row.addStretch(1)
-        buttons_row.addWidget(cancel_btn)  # Cancel on LEFT (secondary action)
+        buttons_row.addWidget(cancel_btn)
 
         self._error_label = QLabel("", self)
-        self._error_label.setStyleSheet("color: #b91c1c;")  # red
+        self._error_label.setStyleSheet("color: #b91c1c;")
         self._error_label.setWordWrap(True)
-        self._error_label.setMinimumHeight(0)  # No space when empty
-        self._error_label.setMaximumHeight(60)  # Limit height when showing error
+        self._error_label.setMinimumHeight(0)
+        self._error_label.setMaximumHeight(60)
         try:
             self._error_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._error_label.setLayoutDirection(Qt.LeftToRight)
+                self._error_label.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
             except Exception:
                 pass
         try:
@@ -133,7 +126,7 @@ class SavingsAccountDialog(QDialog):
                 self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # type: ignore[attr-defined]
             except Exception:
                 pass
-        self._error_label.hide()  # Hidden initially
+        self._error_label.hide()
 
         layout.addLayout(name_row)
         layout.addWidget(self._error_label)
@@ -163,13 +156,11 @@ class SavingsAccountDialog(QDialog):
             self.adjustSize()
             self.accept()
 
-        save_btn.clicked.connect(validate_and_accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
+        save_btn.clicked.connect(validate_and_accept)
+        cancel_btn.clicked.connect(self.reject)
 
     def get_name(self) -> str:
-        """Get the entered name."""
         return self._name_edit.text().strip()
 
     def get_is_liquid(self) -> bool:
-        """Get the is_liquid value."""
         return self._is_liquid_checkbox.isChecked()

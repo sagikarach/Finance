@@ -85,39 +85,20 @@ class SetStarterAmountAction(Action):
 
 @dataclass(frozen=True)
 class AddIncomeMovementAction(Action):
-    """
-    Records adding an income movement to a bank account.
-    Stores only a reference (ID) to the movement, not the data itself.
-    The actual movement data (including account_name) is stored in the bank movements provider.
-    """
-
     movement_id: str = field(default="")
 
 
 @dataclass(frozen=True)
 class AddOutcomeMovementAction(Action):
-    """
-    Records adding an outcome (expense) movement to a bank account.
-    Stores only a reference (ID) to the movement, not the data itself.
-    The actual movement data (including account_name) is stored in the bank movements provider.
-    """
-
     movement_id: str = field(default="")
 
 
 @dataclass(frozen=True)
 class UploadOutcomeFileAction(Action):
-    """
-    Records importing a CSV file of outcome movements for a bank account.
-    Stores only references (IDs) to the movements, not the data itself.
-    The actual movement data is stored in the bank movements provider.
-    """
-
     account_name: str = field(default="")
     file_name: str = field(default="")
     total_amount: float = field(default=0.0)
     expenses_count: int = field(default=0)
-    # Store only movement IDs - the actual data is in the movements provider
     movement_ids: list[str] = field(default_factory=list)
 
 

@@ -157,7 +157,6 @@ class AccountsService:
         saving_amount: float,
         date_str: Optional[str] = None,
     ) -> List[MoneyAccount]:
-        """Add an individual saving to a savings account."""
         from .accounts import Savings, MoneySnapshot
         from datetime import date as _date
 
@@ -212,7 +211,6 @@ class AccountsService:
         new_amount: float,
         date_str: Optional[str] = None,
     ) -> List[MoneyAccount]:
-        """Edit an individual saving in a savings account."""
         from .accounts import Savings, MoneySnapshot
         from datetime import date as _date
 
@@ -278,7 +276,6 @@ class AccountsService:
         account: SavingsAccount,
         saving_name: str,
     ) -> List[MoneyAccount]:
-        """Delete an individual saving from a savings account."""
         saving_amount = 0.0
 
         for saving in account.savings:
@@ -469,10 +466,10 @@ class AccountsService:
         bank_accounts = [acc for acc in accounts if isinstance(acc, BankAccount)]
 
         try:
-            self.provider.save_savings_accounts(savings_accounts)  # type: ignore[arg-type]
+            self.provider.save_savings_accounts(savings_accounts)
         except Exception:
             pass
         try:
-            self.provider.save_bank_accounts(bank_accounts)  # type: ignore[arg-type]
+            self.provider.save_bank_accounts(bank_accounts)
         except Exception:
             pass

@@ -14,14 +14,6 @@ from ..qt import (
 
 
 class CollapsibleButtonList(QWidget):
-    """
-    Generic collapsible list with a header button and an arrow.
-
-    - Header row: [toggle arrow] [title button]
-    - Content: vertical list of item buttons
-    - When collapsed, only the header is visible and no extra space is used.
-    """
-
     def __init__(
         self,
         parent: QWidget,
@@ -34,16 +26,12 @@ class CollapsibleButtonList(QWidget):
 
         self._expanded: bool = False
         self._items: List[Tuple[str, Callable[[], None]]] = []
-        # Remember our position in the parent's layout for reliable insert/remove
         self._layout_index: Optional[int] = None
 
-        # Root layout: no extra margins/spacing so this widget's height is
-        # exactly the sum of its children (header + content when expanded).
         self._root_layout = QVBoxLayout(self)
         self._root_layout.setContentsMargins(0, 0, 0, 0)
         self._root_layout.setSpacing(0)
 
-        # --- Header row: [toggle] [title] ---
         self._header = QWidget(self)
         header_layout = QHBoxLayout(self._header)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -75,7 +63,6 @@ class CollapsibleButtonList(QWidget):
         header_layout.addWidget(self._toggle_btn)
         header_layout.addWidget(self._title_btn)
 
-        # --- Content container with items ---
         self._content = QWidget(self)
         self._content.setObjectName("SidebarSavingsList")
         try:
@@ -92,17 +79,10 @@ class CollapsibleButtonList(QWidget):
 
         self._apply_visibility()
 
-        # Clicking either the arrow or the title toggles expansion
-        self._toggle_btn.clicked.connect(self._on_header_clicked)  # type: ignore[arg-type]
-        self._title_btn.clicked.connect(self._on_header_clicked)  # type: ignore[arg-type]
-
-    # ------------------------------------------------------------------ #
-    # Public API
-    # ------------------------------------------------------------------ #
+        self._toggle_btn.clicked.connect(self._on_header_clicked)
+        self._title_btn.clicked.connect(self._on_header_clicked)
 
     def set_items(self, items: Iterable[Tuple[str, Callable[[], None]]]) -> None:
-        """Replace all item buttons with given label/callback pairs."""
-        # Clear old items
         while self._content_layout.count():
             item = self._content_layout.takeAt(0)
             w = item.widget()
@@ -114,12 +94,9 @@ class CollapsibleButtonList(QWidget):
         for label, callback in self._items:
             row = QWidget(self._content)
             row_layout = QHBoxLayout(row)
-            # Match original savings list: small right margin so a potential
-            # arrow column is slightly inside the visible edge.
             row_layout.setContentsMargins(0, 0, 8, 0)
             row_layout.setSpacing(0)
 
-            # Left spacer so text appears visually centered between arrow and edge.
             left_spacer = QLabel("", row)
             left_spacer.setFixedWidth(24)
 
@@ -134,8 +111,6 @@ class CollapsibleButtonList(QWidget):
             except Exception:
                 pass
 
-            # Right "arrow" column (kept empty for now) so alignment matches
-            # the original savings list exactly.
             right_arrow = QLabel("", row)
             right_arrow.setObjectName("SidebarNavSubArrow")
             right_arrow.setFixedWidth(20)
@@ -145,18 +120,15 @@ class CollapsibleButtonList(QWidget):
             row_layout.addWidget(btn, 1)
             row_layout.addWidget(right_arrow, 0)
 
-            # Bind callback
-            btn.clicked.connect(lambda _=False, cb=callback: cb())  # type: ignore[arg-type]
+            btn.clicked.connect(lambda _=False, cb=callback: cb())
 
             self._content_layout.addWidget(row)
 
-        # Before applying visibility, if we have items and a _layout_index but aren't in layout,
-        # insert ourselves into the layout so _apply_visibility can properly remember the position
         if self._items and self._layout_index is not None:
             parent = self.parentWidget()
             parent_layout = parent.layout() if parent is not None else None
             try:
-                from ..qt import QVBoxLayout as _QVBoxLayout  # type: ignore
+                from ..qt import QVBoxLayout as _QVBoxLayout
             except Exception:
                 _QVBoxLayout = None  # type: ignore
 
@@ -166,13 +138,12 @@ class CollapsibleButtonList(QWidget):
                 and isinstance(parent_layout, _QVBoxLayout)
             ):
                 try:
-                    idx_current = parent_layout.indexOf(self)  # type: ignore[arg-type]
+                    idx_current = parent_layout.indexOf(self)
                 except Exception:
                     idx_current = -1
                 if idx_current == -1:
-                    # Not in layout, insert at remembered position
                     try:
-                        parent_layout.insertWidget(self._layout_index, self)  # type: ignore[arg-type]
+                        parent_layout.insertWidget(self._layout_index, self)
                         parent_layout.invalidate()
                         parent_layout.activate()
                         if parent is not None:
@@ -183,7 +154,6 @@ class CollapsibleButtonList(QWidget):
 
         self._apply_visibility()
 
-        # Force update to ensure UI refreshes
         if self._items:
             try:
                 self.updateGeometry()
@@ -194,19 +164,16 @@ class CollapsibleButtonList(QWidget):
                 pass
 
     def set_expanded(self, expanded: bool) -> None:
-        """Set expanded state and update visibility."""
         if self._expanded == expanded:
             return
         self._expanded = expanded
         self._apply_visibility()
 
     def toggle(self) -> None:
-        """Toggle expanded/collapsed state."""
         self._expanded = not self._expanded
         self._apply_visibility()
 
     def is_expanded(self) -> bool:
-        """Return whether the list is currently expanded."""
         return self._expanded
 
     def header_button(self) -> QPushButton:
@@ -216,40 +183,27 @@ class CollapsibleButtonList(QWidget):
         return self._toggle_btn
 
     def set_header_visible(self, visible: bool) -> None:
-        """Show or hide the internal header row (arrow + title) and recompute layout."""
         self._header.setVisible(visible)
-        # Re-apply visibility rules so height collapses correctly when the
-        # header is hidden and the list is not expanded.
         self._apply_visibility()
 
     def refresh_theme(self) -> None:
-        """Re-apply styling based on current theme and expanded/collapsed state."""
         has_items = bool(self._items)
         show_content = self._expanded and has_items
 
         if show_content:
-            # Re-apply expanded styling
             self._apply_pressed_style()
         else:
-            # Re-apply collapsed styling
             self._apply_collapsed_style()
-
-    # ------------------------------------------------------------------ #
-    # Internal helpers
-    # ------------------------------------------------------------------ #
 
     def _apply_visibility(self) -> None:
         has_items = bool(self._items)
         show_content = self._expanded and has_items
 
-        # Show/hide only the content widget
         self._content.setVisible(show_content)
 
-        # Arrow state
         self._toggle_btn.setChecked(self._expanded)
         self._toggle_btn.setText("▲" if show_content else "▼")
 
-        # Header pressed state & bottom border
         self._title_btn.setChecked(self._expanded)
         if show_content:
             self._title_btn.setStyleSheet("border-bottom-color: transparent;")
@@ -258,91 +212,73 @@ class CollapsibleButtonList(QWidget):
 
         header_visible = self._header.isVisible()
         if header_visible:
-            # Normal mode: header row is part of this widget.
             if show_content:
-                # Header + rows take natural height.
                 self.setMinimumHeight(0)
                 self.setMaximumHeight(16777215)
                 self.show()
                 self._apply_pressed_style()
             else:
-                # Collapse to just the header height.
                 h = self._header.sizeHint().height()
                 self.setMinimumHeight(0)
                 self.setMaximumHeight(h)
                 self._apply_collapsed_style()
                 self.show()
         else:
-            # Content-only mode (used under external header in sidebar).
-            # When collapsed, remove the widget from the layout entirely to ensure
-            # zero vertical space. When expanded, insert it back at the remembered position.
             parent = self.parentWidget()
             parent_layout = parent.layout() if parent is not None else None
-            # Import here to avoid circulars
             try:
-                from ..qt import QVBoxLayout as _QVBoxLayout  # type: ignore
-            except Exception:  # pragma: no cover - very defensive
+                from ..qt import QVBoxLayout as _QVBoxLayout
+            except Exception:
                 _QVBoxLayout = None  # type: ignore
 
             if show_content:
-                # Expanded: insert back into the parent layout if not already there
                 if (
                     parent_layout is not None
                     and _QVBoxLayout is not None
                     and isinstance(parent_layout, _QVBoxLayout)
                 ):
                     try:
-                        idx_current = parent_layout.indexOf(self)  # type: ignore[arg-type]
+                        idx_current = parent_layout.indexOf(self)
                     except Exception:
                         idx_current = -1
                     if idx_current == -1:
-                        # Insert at the remembered position, or at the end if not remembered
                         insert_at = (
                             self._layout_index
                             if self._layout_index is not None
                             else parent_layout.count()
                         )
                         try:
-                            parent_layout.insertWidget(insert_at, self)  # type: ignore[arg-type]
+                            parent_layout.insertWidget(insert_at, self)
                         except Exception:
                             pass
 
-                # Allow natural height and show
                 self.setMinimumHeight(0)
                 self.setMaximumHeight(16777215)
                 self.show()
                 self.updateGeometry()
                 self._apply_pressed_style()
             else:
-                # Collapsed: remember position and remove from layout entirely
                 if (
                     parent_layout is not None
                     and _QVBoxLayout is not None
                     and isinstance(parent_layout, _QVBoxLayout)
                 ):
                     try:
-                        idx_current = parent_layout.indexOf(self)  # type: ignore[arg-type]
+                        idx_current = parent_layout.indexOf(self)
                     except Exception:
                         idx_current = -1
-                    # Remember the position for re-insertion
-                    # Only update _layout_index if we're actually in the layout
-                    # Otherwise, preserve the existing _layout_index if it was set
                     if idx_current >= 0:
                         self._layout_index = idx_current
                         try:
-                            parent_layout.removeWidget(self)  # type: ignore[arg-type]
-                            # Force layout to recalculate and update immediately
+                            parent_layout.removeWidget(self)
                             parent_layout.invalidate()
                             parent_layout.activate()
                             if parent is not None:
                                 parent.updateGeometry()
                                 parent.update()
-                                # Also trigger a repaint to ensure visual update
                                 parent.repaint()
                         except Exception:
                             pass
-                    # If not in layout, keep existing _layout_index (don't set to None)
-                    # This allows the sidebar to set _layout_index before calling set_items
 
                 self._apply_collapsed_style()
                 self.setFixedHeight(0)
@@ -356,7 +292,7 @@ class CollapsibleButtonList(QWidget):
 
     def _apply_pressed_style(self) -> None:
         try:
-            from PySide6.QtWidgets import QApplication  # type: ignore
+            from PySide6.QtWidgets import QApplication
         except Exception:
             try:
                 from PyQt6.QtWidgets import QApplication  # type: ignore
@@ -393,7 +329,7 @@ class CollapsibleButtonList(QWidget):
 
     def _apply_collapsed_style(self) -> None:
         try:
-            from PySide6.QtWidgets import QApplication  # type: ignore
+            from PySide6.QtWidgets import QApplication
         except Exception:
             try:
                 from PyQt6.QtWidgets import QApplication  # type: ignore

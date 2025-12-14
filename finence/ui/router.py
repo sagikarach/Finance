@@ -29,12 +29,11 @@ class Router:
         widget = self._stack.widget(index)
         if widget is not None and hasattr(widget, "on_route_activated"):
             try:
-                widget.on_route_activated()  # type: ignore[attr-defined]
+                widget.on_route_activated()
             except Exception:
                 pass
 
     def previous_route(self) -> str:
-        """Get the previous route, or 'home' if no previous route exists."""
         return self._previous_route or "home"
 
     def _ensure_created(self, route_name: str) -> None:

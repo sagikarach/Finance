@@ -76,7 +76,7 @@ class SavingsPage(BasePage):
         settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))  # type: ignore[arg-type]
+            settings_btn.clicked.connect(lambda: self._navigate("settings"))
         buttons.append(settings_btn)
         return buttons
 
@@ -225,10 +225,10 @@ class SavingsPage(BasePage):
         except Exception:
             pass
 
-        add_button.clicked.connect(lambda: self._handle_add_account())  # type: ignore[arg-type]
-        edit_button.clicked.connect(lambda: self._handle_edit_account())  # type: ignore[arg-type]
-        delete_button.clicked.connect(lambda: self._handle_delete_account())  # type: ignore[arg-type]
-        move_button.clicked.connect(lambda: self._handle_move_between_accounts())  # type: ignore[arg-type]
+        add_button.clicked.connect(lambda: self._handle_add_account())
+        edit_button.clicked.connect(lambda: self._handle_edit_account())
+        delete_button.clicked.connect(lambda: self._handle_delete_account())
+        move_button.clicked.connect(lambda: self._handle_move_between_accounts())
 
         chart_side_layout.addStretch(1)
         chart_side_layout.addWidget(move_button, 0)
@@ -255,11 +255,14 @@ class SavingsPage(BasePage):
 
     def _save_and_refresh(self) -> None:
         try:
+            if self._accounts_service is None:
+                return
             self._accounts_service.save_all(self._accounts)
         except Exception:
             pass
         try:
-            self._accounts = self._accounts_service.load_accounts()
+            if self._accounts_service is not None:
+                self._accounts = self._accounts_service.load_accounts()
         except Exception:
             pass
 
@@ -291,6 +294,8 @@ class SavingsPage(BasePage):
             if not form.name.strip():
                 return
 
+            if self._accounts_service is None:
+                return
             self._accounts = self._accounts_service.add_savings_account(
                 self._accounts, form
             )
@@ -395,17 +400,15 @@ class SavingsPage(BasePage):
             src_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                src_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                src_combo.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         for label, _, _, _ in endpoints:
             src_combo.addItem(label)
-        # Option B: label on the right, field to its left (text inside field is RTL).
         src_row.addWidget(src_label, 0)
         src_row.addWidget(src_combo, 1)
         src_balance_label = QLabel("", dlg)
 
-        # Target endpoint
         dst_row = QHBoxLayout()
         dst_label = QLabel("אל:", dlg)
         dst_combo = QComboBox(dlg)
@@ -413,7 +416,7 @@ class SavingsPage(BasePage):
             dst_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                dst_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                dst_combo.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         for label, _, _, _ in endpoints:
@@ -422,7 +425,6 @@ class SavingsPage(BasePage):
         dst_row.addWidget(dst_combo, 1)
         dst_balance_label = QLabel("", dlg)
 
-        # Amount
         amount_row = QHBoxLayout()
         amount_label = QLabel("סכום להעברה:", dlg)
         amount_edit = QLineEdit(dlg)
@@ -430,7 +432,7 @@ class SavingsPage(BasePage):
             amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                amount_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                amount_edit.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -496,8 +498,8 @@ class SavingsPage(BasePage):
                         pass
 
         try:
-            src_combo.currentIndexChanged.connect(lambda: _update_balances())  # type: ignore[arg-type]
-            dst_combo.currentIndexChanged.connect(lambda: _update_balances())  # type: ignore[arg-type]
+            src_combo.currentIndexChanged.connect(lambda: _update_balances())
+            dst_combo.currentIndexChanged.connect(lambda: _update_balances())
         except Exception:
             pass
 
@@ -560,8 +562,8 @@ class SavingsPage(BasePage):
             dlg.accept()
             self._save_and_refresh()
 
-        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        ok_btn.clicked.connect(on_accept)
+        cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()
 
 

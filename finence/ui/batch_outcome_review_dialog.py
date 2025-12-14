@@ -25,11 +25,6 @@ from ..models.classified_expense import ClassifiedExpense
 
 
 class BatchOutcomeReviewDialog(QDialog):
-    """
-    Dialog that lets the user manually classify multiple outcome movements
-    (up to 3) with low confidence in a single batch.
-    """
-
     def __init__(
         self,
         expenses: List[ClassifiedExpense],
@@ -38,7 +33,7 @@ class BatchOutcomeReviewDialog(QDialog):
         parent: Optional[QDialog] = None,
     ) -> None:
         super().__init__(parent)
-        self._expenses = expenses[:3]  # Limit to 3 expenses
+        self._expenses = expenses[:3]
         self._categories = list(categories)
         self._on_category_added = on_category_added
         self._results: List[Optional[BankMovement]] = [None] * len(self._expenses)
@@ -50,20 +45,17 @@ class BatchOutcomeReviewDialog(QDialog):
             spacing=12,
         )
 
-        # Info label
         info_label = QLabel(
             f"נמצאו {len(self._expenses)} הוצאות עם בטחון נמוך. אנא סווג אותן:", self
         )
         layout.addWidget(info_label)
 
-        # Scroll area for expenses
         scroll = QScrollArea(self)
         scroll.setWidgetResizable(True)
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
         scroll_layout.setSpacing(16)
 
-        # Create a section for each expense
         self._category_combos: List[QComboBox] = []
         self._type_combos: List[QComboBox] = []
         self._add_category_sentinel = "__add_category__"
@@ -73,13 +65,11 @@ class BatchOutcomeReviewDialog(QDialog):
             suggested_cat = classified_expense.suggested_category
             suggested_type = classified_expense.suggested_type
             confidence = classified_expense.confidence
-            # Expense container
             expense_container = QWidget()
             expense_layout = QVBoxLayout(expense_container)
             expense_layout.setSpacing(8)
             expense_layout.setContentsMargins(12, 12, 12, 12)
 
-            # Expense header with info
             header_text = (
                 f"הוצאה {idx + 1}: {movement.description or 'ללא תיאור'} | "
                 f"סכום: {movement.amount} | תאריך: {movement.date}"
@@ -88,7 +78,6 @@ class BatchOutcomeReviewDialog(QDialog):
             header_label.setObjectName("ExpenseHeader")
             expense_layout.addWidget(header_label)
 
-            # AI suggestion with confidence visualization
             confidence_row = QHBoxLayout()
             confidence_row.setSpacing(8)
 
@@ -103,7 +92,6 @@ class BatchOutcomeReviewDialog(QDialog):
             suggestion_label = QLabel(suggestion_text, expense_container)
             confidence_row.addWidget(suggestion_label)
 
-            # Confidence progress bar
             confidence_bar = QProgressBar(expense_container)
             confidence_bar.setMinimum(0)
             confidence_bar.setMaximum(100)
@@ -112,19 +100,17 @@ class BatchOutcomeReviewDialog(QDialog):
             confidence_bar.setMinimumWidth(150)
             confidence_bar.setMaximumWidth(200)
 
-            # Color the progress bar based on confidence level
-            # Low (0-30%): Red, Medium (30-70%): Yellow/Orange, High (70-100%): Green
             if confidence < 0.3:
-                color = "#e74c3c"  # Red
+                color = "#e74c3c"
             elif confidence < 0.7:
-                color = "#f39c12"  # Orange
+                color = "#f39c12"
             else:
-                color = "#27ae60"  # Green
+                color = "#27ae60"
 
             confidence_bar.setStyleSheet(
                 f"""
                 QProgressBar {{
-                    border: 1px solid #bdc3c7;
+                    border: 1px solid
                     border-radius: 4px;
                     text-align: center;
                     font-weight: bold;
@@ -140,24 +126,21 @@ class BatchOutcomeReviewDialog(QDialog):
             confidence_row.addStretch()
             expense_layout.addLayout(confidence_row)
 
-            # Category row
             cat_row = QHBoxLayout()
             cat_row.setSpacing(8)
             cat_label = QLabel("קטגוריה:", expense_container)
             cat_label.setMinimumWidth(80)
             category_combo = QComboBox(expense_container)
 
-            # Existing categories
             for cat in self._categories:
                 category_combo.addItem(cat, cat)
-            # "Add new category" sentinel
             category_combo.addItem("הוסף קטגוריה חדשה…", self._add_category_sentinel)
 
             try:
                 category_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             except Exception:
                 try:
-                    category_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                    category_combo.setLayoutDirection(Qt.RightToLeft)
                 except Exception:
                     pass
             try:
@@ -168,28 +151,25 @@ class BatchOutcomeReviewDialog(QDialog):
             except Exception:
                 pass
 
-            # Pre-select suggested category if present
             if suggested_cat and suggested_cat in self._categories:
                 idx_cat = self._categories.index(suggested_cat)
                 category_combo.setCurrentIndex(idx_cat)
             else:
                 category_combo.setCurrentIndex(0 if self._categories else 0)
 
-            # Connect category combo to handler
             def make_handler(exp_idx: int):
                 def handler(combo_idx: int) -> None:
                     self._on_category_activated(exp_idx, combo_idx)
 
                 return handler
 
-            category_combo.activated.connect(make_handler(idx))  # type: ignore[arg-type]
+            category_combo.activated.connect(make_handler(idx))
 
             self._category_combos.append(category_combo)
             cat_row.addWidget(cat_label, 0)
             cat_row.addWidget(category_combo, 1)
             expense_layout.addLayout(cat_row)
 
-            # Type row
             type_row = QHBoxLayout()
             type_row.setSpacing(8)
             type_label = QLabel("סוג:", expense_container)
@@ -200,7 +180,7 @@ class BatchOutcomeReviewDialog(QDialog):
                 type_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             except Exception:
                 try:
-                    type_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                    type_combo.setLayoutDirection(Qt.RightToLeft)
                 except Exception:
                     pass
             try:
@@ -213,7 +193,6 @@ class BatchOutcomeReviewDialog(QDialog):
 
             for mt in MovementType:
                 type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
-            # Pre-select suggested type if provided
             if suggested_type is not None:
                 for i in range(type_combo.count()):
                     if type_combo.itemData(i) == suggested_type:
@@ -230,35 +209,27 @@ class BatchOutcomeReviewDialog(QDialog):
         scroll.setWidget(scroll_widget)
         layout.addWidget(scroll)
 
-        # Buttons
         buttons_row, ok_btn, skip_btn = create_standard_buttons_row(
             self, primary_text="שמור הכל"
         )
         skip_btn.setText("דלג על הכל")
 
         def on_accept() -> None:
-            # Collect results for all expenses
             for idx, classified_expense in enumerate(self._expenses):
-                # Get category from currentText() since categories are added with addItems()
                 cat = self._category_combos[idx].currentText()
                 if cat == self._add_category_sentinel:
-                    # User clicked "add new" but didn't actually add; skip this one.
                     continue
                 if isinstance(cat, str) and cat.strip():
-                    # Get type from currentData() or currentText() as fallback
                     type_data = self._type_combos[idx].currentData()
                     type_str = unwrap_rtl(self._type_combos[idx].currentText())
 
-                    # Convert to MovementType if needed
                     movement_type: Optional[MovementType] = None
                     if isinstance(type_data, MovementType):
                         movement_type = type_data
                     elif isinstance(type_str, str):
-                        # Try to convert string to MovementType
                         try:
                             movement_type = MovementType(type_str)
                         except Exception:
-                            # Try to match by value
                             for mt in MovementType:
                                 if mt.value == type_str:
                                     movement_type = mt
@@ -266,7 +237,6 @@ class BatchOutcomeReviewDialog(QDialog):
 
                     if movement_type is not None:
                         try:
-                            # Use the helper method from ClassifiedExpense
                             self._results[idx] = (
                                 classified_expense.to_bank_movement_with_user_input(
                                     category=cat.strip(),
@@ -288,17 +258,15 @@ class BatchOutcomeReviewDialog(QDialog):
             self.accept()
 
         def on_skip() -> None:
-            # Leave all movements uncategorized
             self._results = [None] * len(self._expenses)
             self.reject()
 
-        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
-        skip_btn.clicked.connect(on_skip)  # type: ignore[arg-type]
+        ok_btn.clicked.connect(on_accept)
+        skip_btn.clicked.connect(on_skip)
 
         layout.addLayout(buttons_row)
 
     def _on_category_activated(self, expense_idx: int, combo_idx: int) -> None:
-        """Handle category combo activation for a specific expense."""
         try:
             combo = self._category_combos[expense_idx]
             data = combo.itemData(combo_idx)
@@ -308,11 +276,9 @@ class BatchOutcomeReviewDialog(QDialog):
         if data != self._add_category_sentinel:
             return
 
-        # Add new category via the existing dialog and callback.
         try:
             dialog = NewCategoryDialog(self._categories, parent=self)
             if not dialog.exec():
-                # Revert to previous selection
                 if self._categories:
                     combo.setCurrentIndex(0)
                 return
@@ -335,8 +301,4 @@ class BatchOutcomeReviewDialog(QDialog):
             return
 
     def get_results(self) -> List[Optional[BankMovement]]:
-        """
-        Return a list of movements with user-selected categories/types.
-        Returns None for expenses that were skipped or not classified.
-        """
         return self._results

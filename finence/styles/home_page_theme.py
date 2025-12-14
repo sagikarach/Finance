@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 def load_home_page_light_styles() -> str:
-    """Styles specific to the home page in light mode."""
     return """
     QLabel#StatTitle {
         font-size: 18px;
@@ -106,7 +105,6 @@ def load_home_page_light_styles() -> str:
 
 
 def load_home_page_dark_styles() -> str:
-    """Styles specific to the home page in dark mode."""
     return """
     QLabel#StatTitle {
         font-size: 18px;

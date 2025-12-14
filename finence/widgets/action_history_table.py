@@ -16,23 +16,23 @@ from ..qt import (
 )
 
 try:
-    from PySide6.QtWidgets import QStyledItemDelegate  # type: ignore
+    from PySide6.QtWidgets import QStyledItemDelegate
 except Exception:
     try:
         from PyQt6.QtWidgets import QStyledItemDelegate  # type: ignore
     except Exception:
         QStyledItemDelegate = None  # type: ignore
 try:
-    from PySide6.QtGui import QPainter  # type: ignore
+    from PySide6.QtGui import QPainter
 except Exception:
     try:
         from PyQt6.QtGui import QPainter  # type: ignore
     except Exception:
         QPainter = None  # type: ignore
-        QPaintEvent = None  # type: ignore
-        QRect = None  # type: ignore
+        QPaintEvent = None
+        QRect = None
 try:
-    from PySide6.QtCore import QTimer  # type: ignore
+    from PySide6.QtCore import QTimer
 except Exception:
     try:
         from PyQt6.QtCore import QTimer  # type: ignore
@@ -75,7 +75,7 @@ if QStyledItemDelegate is not None and QPainter is not None:
             try:
                 parent = self.parent()
                 if parent is not None:
-                    parent.viewport().update()  # type: ignore
+                    parent.viewport().update()  # type: ignore[attr-defined]
             except Exception:
                 pass
 
@@ -89,7 +89,7 @@ if QStyledItemDelegate is not None and QPainter is not None:
                     try:
                         parent = self.parent()
                         if parent is not None:
-                            viewport = parent.viewport()  # type: ignore
+                            viewport = parent.viewport()  # type: ignore[attr-defined]
                             if viewport is not None:
                                 viewport_width = viewport.width()
                                 full_rect = option.rect
@@ -244,15 +244,15 @@ class ActionHistoryTable(QWidget):
             pass
         try:
             try:
-                from PySide6.QtGui import QPalette as _QPalette  # type: ignore
+                from PySide6.QtGui import QPalette as _QPalette
             except Exception:
                 from PyQt6.QtGui import QPalette as _QPalette  # type: ignore
             palette = app.palette()  # type: ignore[attr-defined]
             try:
-                window_color = palette.color(_QPalette.ColorRole.Window)  # type: ignore[attr-defined]
+                window_color = palette.color(_QPalette.ColorRole.Window)
             except Exception:
                 try:
-                    window_color = palette.window().color()  # type: ignore[call-arg]
+                    window_color = palette.window().color()
                 except Exception:
                     return False
             try:

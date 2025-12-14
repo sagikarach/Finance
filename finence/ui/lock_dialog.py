@@ -14,11 +14,6 @@ from ..qt import (
 
 
 class LockDialog(QDialog):
-    """
-    Simple lock screen dialog asking the user to enter their password
-    before accessing the main window.
-    """
-
     def __init__(
         self, expected_password: str, parent: Optional[QDialog] = None
     ) -> None:
@@ -28,7 +23,7 @@ class LockDialog(QDialog):
         self.setWindowTitle("נעילת אפליקציה")
         self.setModal(True)
         try:
-            self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)  # type: ignore[attr-defined]
+            self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         except Exception:
             pass
 
@@ -45,7 +40,7 @@ class LockDialog(QDialog):
 
         password_edit = QLineEdit(self)
         try:
-            password_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)  # type: ignore[attr-defined]
+            password_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
                 password_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
@@ -56,7 +51,7 @@ class LockDialog(QDialog):
         except Exception:
             pass
         try:
-            password_edit.setEchoMode(QLineEdit.EchoMode.Password)  # type: ignore[attr-defined]
+            password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         except Exception:
             try:
                 password_edit.setEchoMode(QLineEdit.Password)  # type: ignore[attr-defined]
@@ -64,7 +59,7 @@ class LockDialog(QDialog):
                 pass
 
         error_label = QLabel("", self)
-        error_label.setStyleSheet("color: #b91c1c;")  # red-700
+        error_label.setStyleSheet("color: #b91c1c;")
         try:
             error_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         except Exception:
@@ -94,9 +89,9 @@ class LockDialog(QDialog):
                 password_edit.selectAll()
                 password_edit.setFocus()
 
-        unlock_btn.clicked.connect(try_unlock)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
+        unlock_btn.clicked.connect(try_unlock)
+        cancel_btn.clicked.connect(self.reject)
         try:
-            password_edit.returnPressed.connect(try_unlock)  # type: ignore[attr-defined]
+            password_edit.returnPressed.connect(try_unlock)
         except Exception:
             pass

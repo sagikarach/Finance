@@ -54,7 +54,7 @@ class BankAccountPage(BasePage):
         settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))  # type: ignore[arg-type]
+            settings_btn.clicked.connect(lambda: self._navigate("settings"))
         buttons.append(settings_btn)
         return buttons
 
@@ -114,13 +114,12 @@ class BankAccountPage(BasePage):
         summary_col.addLayout(name_liquid_row)
         summary_col.addWidget(total_label, 0, Qt.AlignmentFlag.AlignRight)
 
-        # Import CSV button for this specific bank account
         import_btn = QPushButton("ייבוא הוצאות מ־CSV", top_card)
         import_btn.setObjectName("AddButton")
         try:
             import_btn.clicked.connect(
                 lambda _=None, acc=target: self._on_import_csv(acc)
-            )  # type: ignore[arg-type]
+            )
         except Exception:
             pass
         summary_col.addWidget(import_btn, 0, Qt.AlignmentFlag.AlignLeft)
@@ -134,13 +133,8 @@ class BankAccountPage(BasePage):
         main_col.addWidget(chart_card, 2)
 
     def _on_import_csv(self, account: BankAccount) -> None:
-        """
-        Let the user pick a CSV file exported from the bank and import all
-        outcome rows as movements for the given account.
-        """
-        # QFileDialog is not wrapped in our qt helper, so import defensively.
         try:
-            from PySide6.QtWidgets import QFileDialog  # type: ignore
+            from PySide6.QtWidgets import QFileDialog
         except Exception:
             try:
                 from PyQt6.QtWidgets import QFileDialog  # type: ignore
@@ -160,41 +154,32 @@ class BankAccountPage(BasePage):
         if not file_path:
             return
 
-        # Use the shared bank movement service from BasePage to import all
-        # outcome rows and update accounts/history consistently.
         service = getattr(self, "_bank_movement_service", None)
         if service is None:
             return
 
-        # Track all movements that end up imported in this batch so we can
-        # record a single aggregated history entry.
         from_dialog: List = []
 
-        # IMPORTANT: Get the imported batch BEFORE showing the feedback dialog,
-        # because movements from the dialog will be added to _imported_for_last_csv
-        # and we want to include them all in the history entry.
         try:
             self._accounts = service.import_outcome_csv(
                 self._accounts, account.name, file_path
             )
         except Exception:
             return
-        # Handle any low-confidence classifications by asking the user.
         try:
             pending = service.pop_pending_reviews()
         except Exception:
             pending = []
         if pending:
-            # Prepare category list and "add category" callback, similar to BasePage.
             categories: list[str] = []
             provider = getattr(self, "_bank_movement_provider", None)
             try:
                 if provider is not None and hasattr(
                     provider, "list_categories_for_type"
                 ):
-                    categories = provider.list_categories_for_type(False)  # type: ignore[attr-defined]
+                    categories = provider.list_categories_for_type(False)
                 elif provider is not None and hasattr(provider, "list_categories"):
-                    categories = provider.list_categories()  # type: ignore[attr-defined]
+                    categories = provider.list_categories()
             except Exception:
                 categories = []
 
@@ -204,7 +189,7 @@ class BankAccountPage(BasePage):
 
                     def _on_cat_added(name: str, *, _prov=provider) -> None:
                         try:
-                            _prov.add_category_for_type(name, False)  # type: ignore[attr-defined]
+                            _prov.add_category_for_type(name, False)
                         except Exception:
                             pass
 
@@ -214,12 +199,10 @@ class BankAccountPage(BasePage):
             except Exception:
                 on_category_added = None
 
-            # Sort by confidence (lowest first) and take top 3
             pending_sorted = sorted(pending, key=lambda x: x.confidence)
             top_3_pending = pending_sorted[:3]
 
             if top_3_pending:
-                # Show batch dialog for up to 3 expenses with lowest confidence
                 try:
                     from ..ui.batch_outcome_review_dialog import (
                         BatchOutcomeReviewDialog,
@@ -236,15 +219,11 @@ class BankAccountPage(BasePage):
                     result = False
 
                 if result:
-                    # Get all results from the batch dialog
                     results = dlg.get_results()
                     for idx, updated in enumerate(results):
                         if updated is None:
                             continue
 
-                        # Apply the user-classified movement so it affects balances (but
-                        # not history – we will add a single aggregated entry).
-                        # apply_movement will save the movement to the movements provider.
                         try:
                             self._accounts = service.apply_movement(
                                 self._accounts,
@@ -253,18 +232,15 @@ class BankAccountPage(BasePage):
                                 record_history=False,
                             )
                             from_dialog.append(updated)
-                            # Ensure the movement is also added to the imported list for history
                             try:
                                 service._imported_for_last_csv.append(updated)
                             except Exception:
                                 pass
 
-                            # Learn from confirmed expense if classifier supports it
                             if service.classifier is not None and hasattr(
                                 service.classifier, "learn"
                             ):
                                 try:
-                                    # Map MovementType enum to Hebrew string
                                     type_mapping = {
                                         MovementType.MONTHLY: "חודשית",
                                         MovementType.YEARLY: "שנתית",
@@ -280,22 +256,17 @@ class BankAccountPage(BasePage):
                                         "category": updated.category,
                                         "expenseType": expense_type_str,
                                     }
-                                    service.classifier.learn(confirmed_expense)  # type: ignore[attr-defined]
+                                    service.classifier.learn(confirmed_expense)
                                 except Exception:
-                                    pass  # Learning is best-effort
+                                    pass
                         except Exception:
                             continue
 
-        # Build a single history entry that represents this file import, with
-        # all individual expenses and their final classification.
         try:
             imported_batch = service.pop_imported_for_last_csv()
         except Exception:
             imported_batch = []
 
-        # imported_batch already includes movements added via _imported_for_last_csv.append()
-        # But we also need to include any movements that were in from_dialog
-        # Deduplicate by ID to avoid adding the same movement twice
         all_movement_ids = {m.id for m in imported_batch}
         for m in from_dialog:
             if m.id not in all_movement_ids:
@@ -310,7 +281,6 @@ class BankAccountPage(BasePage):
             except Exception:
                 total_amount = 0.0
 
-            # Store only movement IDs - the actual data is in the movements provider
             movement_ids: list[str] = []
             for m in all_movements:
                 try:
@@ -335,24 +305,18 @@ class BankAccountPage(BasePage):
                 history_entry = ActionHistory(
                     id=generate_action_id(),
                     timestamp=get_current_timestamp(),
-                    action=action_obj,  # type: ignore[arg-type]
+                    action=action_obj,
                 )
-                self._history_provider.add_action(history_entry)  # type: ignore[attr-defined]
+                self._history_provider.add_action(history_entry)
             except Exception:
                 pass
 
-        # Refresh any on-screen history table so the new action appears
-        # immediately without requiring navigation.
-        # Search the entire widget tree to find history table (it might be on HomePage)
         try:
             from ..widgets.action_history_table import ActionHistoryTable
 
-            # Search recursively from the top-level window
-            def find_history_table(widget) -> Optional[ActionHistoryTable]:  # type: ignore[return-type]
-                """Recursively search for ActionHistoryTable in widget tree."""
+            def find_history_table(widget) -> Optional[ActionHistoryTable]:
                 if isinstance(widget, ActionHistoryTable):
                     return widget
-                # Search children
                 for child in widget.children():
                     if isinstance(child, QWidget):
                         result = find_history_table(child)
@@ -360,7 +324,6 @@ class BankAccountPage(BasePage):
                             return result
                 return None
 
-            # Start search from top-level window
             top_level = self.window()
             if top_level is not None:
                 history_table = find_history_table(top_level)
@@ -368,22 +331,18 @@ class BankAccountPage(BasePage):
                     self._history_provider, "list_history"
                 ):
                     try:
-                        history = self._history_provider.list_history()  # type: ignore[attr-defined]
+                        history = self._history_provider.list_history()
                         history_table.set_history(history)
                     except Exception:
                         pass
         except Exception:
             pass
 
-        # Recalculate account balances from all movements to ensure accuracy
-        # This is important because movements might have been applied in different orders
-        # or the balance calculation might have been inconsistent
         try:
             self._accounts = service.recalculate_account_balances(self._accounts)
         except Exception:
             pass
 
-        # Persist and refresh UI (sidebar, totals, charts).
         try:
             self._save_and_refresh_accounts()
         except Exception:

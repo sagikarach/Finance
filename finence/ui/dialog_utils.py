@@ -9,12 +9,6 @@ def setup_standard_rtl_dialog(
     margins: tuple[int, int, int, int] = (24, 24, 24, 24),
     spacing: int = 12,
 ) -> QVBoxLayout:
-    """Configure a dialog with the standard RTL look-and-feel.
-
-    - Right-to-left layout direction
-    - No context help button
-    - Uniform margins/spacing used across the app's dialogs
-    """
     if title:
         dialog.setWindowTitle(title)
 
@@ -23,10 +17,8 @@ def setup_standard_rtl_dialog(
     try:
         dialog.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
     except Exception:
-        # Older Qt versions may not support this flag; fail silently.
         pass
 
-    # Ensure RTL layout so labels appear on the right and fields on the left.
     try:
         dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
     except Exception:
@@ -46,11 +38,6 @@ def create_standard_buttons_row(
     primary_text: str,
     cancel_text: str = "ביטול",
 ) -> tuple[QHBoxLayout, QPushButton, QPushButton]:
-    """Create a standard buttons row for dialogs.
-
-    Returns (layout, primary_button, cancel_button).
-    The visual order in RTL is: [cancel] ... [primary].
-    """
     buttons_row = QHBoxLayout()
     buttons_row.setSpacing(12)
 
@@ -62,7 +49,6 @@ def create_standard_buttons_row(
     except Exception:
         pass
 
-    # In RTL, cancel should appear on the right and primary on the left.
     buttons_row.addWidget(cancel_btn)
     buttons_row.addStretch(1)
     buttons_row.addWidget(primary_btn)
@@ -71,56 +57,24 @@ def create_standard_buttons_row(
 
 
 def wrap_hebrew_rtl(text: str) -> str:
-    """Wrap Hebrew text with RTL embedding marks to prevent reversal.
-
-    This prevents Hebrew text from being reversed when displayed in Qt widgets
-    with RTL layout direction.
-
-    Args:
-        text: The text to wrap (may contain Hebrew characters)
-
-    Returns:
-        Text wrapped with RLE/PDF marks if it contains Hebrew, otherwise unchanged
-    """
     if not text:
         return text
-    # Check if text contains Hebrew characters (Unicode range U+0590 to U+05FF)
     if any("\u0590" <= char <= "\u05ff" for char in text):
-        RLE = "\u202b"  # Right-to-Left Embedding
-        PDF = "\u202c"  # Pop Directional Formatting
+        RLE = "\u202b"
+        PDF = "\u202c"
         return RLE + text + PDF
     return text
 
 
 def unwrap_rtl(text: str) -> str:
-    """Remove RTL embedding marks from text.
-
-    This is useful when converting user input back to enum values or comparing
-    with stored values that don't have RTL marks.
-
-    Args:
-        text: The text that may contain RTL marks
-
-    Returns:
-        Text with RTL marks removed
-    """
     if not text:
         return text
-    # Remove RLE at start and PDF at end if present
     if text.startswith("\u202b") and text.endswith("\u202c"):
         return text[1:-1]
     return text
 
 
 def apply_rtl_alignment(combo: QComboBox) -> None:
-    """Ensure that all items in a combo box are aligned to the right (for Hebrew).
-
-    This sets the text alignment for all items in both the closed state and
-    the popup list view.
-
-    Args:
-        combo: The QComboBox to configure
-    """
     try:
         model = combo.model()
     except Exception:
@@ -130,7 +84,6 @@ def apply_rtl_alignment(combo: QComboBox) -> None:
         align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
     except Exception:
         try:
-            # Older Qt enums
             align = Qt.AlignRight  # type: ignore[attr-defined]
         except Exception:
             return

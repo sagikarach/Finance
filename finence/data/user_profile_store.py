@@ -60,5 +60,4 @@ class UserProfileStore:
             with self._path.open("w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception:
-            # Failing to save the profile should not crash the app.
             pass

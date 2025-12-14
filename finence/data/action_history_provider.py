@@ -52,7 +52,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             )
 
     def list_history(self) -> List[ActionHistory]:
-        """Load action history from JSON file."""
         history: List[ActionHistory] = []
 
         if not self._history_path.exists():
@@ -93,7 +92,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         return history
 
     def save_history(self, history: List[ActionHistory]) -> None:
-        """Save action history to JSON file."""
         self._history_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []
@@ -109,13 +107,11 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             json.dump(json_data, f, ensure_ascii=False, indent=2)
 
     def add_action(self, action_history: ActionHistory) -> None:
-        """Add a new action to the history."""
         current_history = self.list_history()
         current_history.append(action_history)
         self.save_history(current_history)
 
     def _serialize_action(self, action: Action) -> dict:
-        """Convert an Action object to a dictionary."""
         action_dict: dict = {
             "action_name": action.action_name,
             "success": action.success,
@@ -128,7 +124,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                 continue
             value = getattr(action, field_info.name, None)
             if value is not None:
-                # Ensure lists are properly serialized as JSON arrays, not strings
                 if isinstance(value, list):
                     action_dict[field_info.name] = value
                 else:
@@ -137,7 +132,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         return action_dict
 
     def _deserialize_action(self, action_data: dict) -> Optional[Action]:
-        """Convert a dictionary to an Action object."""
         if not isinstance(action_data, dict):
             return None
 
@@ -187,12 +181,9 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                 elif "bool" in field_type_str:
                     kwargs[field_info.name] = bool(field_value)
                 elif "list[str]" in field_type_str or "List[str]" in field_type_str:
-                    # Handle list[str] type (e.g., movement_ids)
                     if isinstance(field_value, list):
-                        # Already a list - use it directly
                         kwargs[field_info.name] = field_value
                     elif isinstance(field_value, str):
-                        # Try to parse as JSON array first
                         try:
                             import json as _json
 
@@ -200,9 +191,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                             if isinstance(parsed, list):
                                 kwargs[field_info.name] = parsed
                             else:
-                                # If JSON parsing fails, try eval (for Python list string representation)
                                 try:
-                                    # Use ast.literal_eval for safe evaluation
                                     import ast
 
                                     parsed = ast.literal_eval(field_value)
@@ -213,7 +202,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                                 except Exception:
                                     kwargs[field_info.name] = []
                         except Exception:
-                            # Try ast.literal_eval as fallback
                             try:
                                 import ast
 
@@ -231,7 +219,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                 elif "str" in field_type_str:
                     kwargs[field_info.name] = str(field_value)
                 elif "list" in field_type_str or "List" in field_type_str:
-                    # Handle generic list types
                     if isinstance(field_value, list):
                         kwargs[field_info.name] = field_value
                     else:

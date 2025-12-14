@@ -41,14 +41,15 @@ class BankAccountsPage(BasePage):
         )
 
     def on_route_activated(self) -> None:
-        try:
-            self._accounts = self._accounts_service.load_accounts()
-        except Exception:
-            pass
+        if self._accounts_service is not None:
+            try:
+                self._accounts = self._accounts_service.load_accounts()
+            except Exception:
+                pass
 
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
-                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+                self._sidebar.update_accounts(self._accounts)
             except Exception:
                 pass
 
@@ -68,7 +69,7 @@ class BankAccountsPage(BasePage):
         settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))  # type: ignore[arg-type]
+            settings_btn.clicked.connect(lambda: self._navigate("settings"))
         buttons.append(settings_btn)
         return buttons
 

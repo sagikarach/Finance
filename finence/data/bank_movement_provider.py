@@ -31,7 +31,6 @@ class JsonFileBankMovementProvider(BankMovementProvider):
             self._movements_path = (
                 Path.cwd() / "data" / "accounts" / "bank_movements.json"
             )
-        # Categories are stored in a separate JSON file next to the movements file.
         self._categories_path = self._movements_path.with_name(
             "bank_movement_categories.json"
         )
@@ -68,7 +67,6 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                     if isinstance(description_value, str)
                     else None
                 )
-                # Get movement ID if it exists (for backward compatibility, generate if missing)
                 movement_id = item.get("id")
                 if not movement_id:
                     from .bank_movement import generate_movement_id
@@ -100,7 +98,6 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         json_data = []
         for movement in movements:
             m_dict = asdict(movement)
-            # Store enum as its string value
             m_dict["type"] = movement.type.value
             json_data.append(m_dict)
 
@@ -112,16 +109,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         current.append(movement)
         self.save_movements(current)
 
-    # Category management
     def _load_categories_by_type(self) -> dict:
-        """
-        Load categories from disk.
-
-        Old format (backwards compatible):
-          ["קטגוריה1", "קטגוריה2"]
-        New format:
-          {"income": ["..."], "outcome": ["..."]}
-        """
         if not self._categories_path.exists():
             return {"income": [], "outcome": []}
         try:
@@ -130,12 +118,10 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         except Exception:
             return {"income": [], "outcome": []}
 
-        # Old format: plain list shared by both income/outcome
         if isinstance(data, list):
             items = [str(x).strip() for x in data if isinstance(x, str) and x.strip()]
             return {"income": list(items), "outcome": list(items)}
 
-        # New format: dict with income/outcome keys
         if not isinstance(data, dict):
             return {"income": [], "outcome": []}
 
@@ -155,10 +141,8 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         return {"income": income, "outcome": outcome}
 
     def _save_categories_by_type(self, mapping: dict) -> None:
-        """Persist categories mapping with separate income/outcome lists."""
         income = mapping.get("income") or []
         outcome = mapping.get("outcome") or []
-        # Ensure plain lists of strings
         income_list = [str(x) for x in income if isinstance(x, str)]
         outcome_list = [str(x) for x in outcome if isinstance(x, str)]
 
@@ -172,31 +156,21 @@ class JsonFileBankMovementProvider(BankMovementProvider):
             )
 
     def list_categories_for_type(self, is_income: bool) -> List[str]:
-        """Return categories for income or outcome separately."""
         mapping = self._load_categories_by_type()
         key = "income" if is_income else "outcome"
         items = mapping.get(key, [])
-        # Defensive copy
         return list(items)
 
-    # Backwards-compatible helpers used nowhere else right now, kept just in case.
     def list_categories(self) -> List[str]:
-        """
-        Return a merged list of all categories (income + outcome).
-        """
         mapping = self._load_categories_by_type()
         merged = set(mapping.get("income", [])) | set(mapping.get("outcome", []))
         return list(merged)
 
     def save_categories(self, categories: List[str]) -> None:
-        """
-        Backwards compatible: set the same categories for both income and outcome.
-        """
         mapping = {"income": list(categories), "outcome": list(categories)}
         self._save_categories_by_type(mapping)
 
     def add_category_for_type(self, name: str, is_income: bool) -> None:
-        """Add a new category for income or outcome if it does not already exist."""
         name = name.strip()
         if not name:
             return
@@ -212,10 +186,6 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         self._save_categories_by_type(mapping)
 
     def add_category(self, name: str) -> None:
-        """
-        Backwards compatible: add the category to both income and outcome
-        lists.
-        """
         name = name.strip()
         if not name:
             return

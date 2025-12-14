@@ -9,13 +9,6 @@ if TYPE_CHECKING:
 
 @dataclass
 class ParsedExpense:
-    """
-    Represents an expense parsed from a CSV file.
-
-    This model encapsulates the raw data extracted from CSV before it's
-    converted to a BankMovement and classified.
-    """
-
     date: str
     description: str
     amount: float
@@ -23,17 +16,6 @@ class ParsedExpense:
     def to_bank_movement(
         self, account_name: str, category: str = "", movement_type=None
     ) -> "BankMovement":
-        """
-        Convert this parsed expense to a BankMovement.
-
-        Args:
-            account_name: The name of the bank account
-            category: Optional category (defaults to empty string)
-            movement_type: Optional MovementType (defaults to ONE_TIME)
-
-        Returns:
-            A BankMovement instance
-        """
         from .bank_movement import BankMovement, MovementType
 
         if movement_type is None:

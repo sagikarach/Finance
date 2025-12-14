@@ -70,8 +70,8 @@ class NewCategoryDialog(QDialog):
             self._name = name
             self.accept()
 
-        primary_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
+        primary_btn.clicked.connect(on_accept)
+        cancel_btn.clicked.connect(self.reject)
 
     def _show_error(self, message: str) -> None:
         self._error_label.setText(message)
@@ -103,18 +103,16 @@ class BankMovementDialog(QDialog):
             self, title=title, margins=(32, 24, 32, 24), spacing=12
         )
 
-        # Amount row
         amount_row = QHBoxLayout()
         amount_row.setSpacing(8)
         amount_label = QLabel("סכום:", self)
         amount_label.setMinimumWidth(80)
         self._amount_edit = QLineEdit(self)
-        # RTL layout + right-aligned text for Hebrew UI
         try:
             self._amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._amount_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._amount_edit.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -123,13 +121,12 @@ class BankMovementDialog(QDialog):
             )
         except Exception:
             try:
-                self._amount_edit.setAlignment(Qt.AlignRight)  # type: ignore[attr-defined]
+                self._amount_edit.setAlignment(Qt.AlignRight)
             except Exception:
                 pass
         amount_row.addWidget(amount_label, 0)
         amount_row.addWidget(self._amount_edit, 1)
 
-        # Date row
         date_row = QHBoxLayout()
         date_row.setSpacing(8)
         date_label = QLabel("תאריך:", self)
@@ -147,18 +144,16 @@ class BankMovementDialog(QDialog):
         date_row.addWidget(date_label, 0)
         date_row.addWidget(self._date_edit, 1)
 
-        # Account row
         account_row = QHBoxLayout()
         account_row.setSpacing(8)
         account_label = QLabel("חשבון:", self)
         account_label.setMinimumWidth(80)
         self._account_combo = QComboBox(self)
-        # RTL layout + right-aligned text for Hebrew items
         try:
             self._account_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._account_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._account_combo.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -170,29 +165,24 @@ class BankMovementDialog(QDialog):
             pass
         for acc in self._accounts:
             self._account_combo.addItem(acc.name)
-        # Ensure items themselves are aligned right inside the combo and popup
         apply_rtl_alignment(self._account_combo)
         account_row.addWidget(account_label, 0)
         account_row.addWidget(self._account_combo, 1)
 
-        # Category row
         category_row = QHBoxLayout()
         category_row.setSpacing(8)
         category_label = QLabel("קטגוריה:", self)
         category_label.setMinimumWidth(80)
         self._category_combo = QComboBox(self)
-        # Populate with existing categories
         for cat in self._categories:
             self._category_combo.addItem(cat, cat)
-        # Special option to add a new category
         self._add_category_sentinel = "__add_category__"
         self._category_combo.addItem("הוסף קטגוריה חדשה…", self._add_category_sentinel)
-        # RTL layout + right-aligned text for Hebrew items
         try:
             self._category_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._category_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._category_combo.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -202,16 +192,14 @@ class BankMovementDialog(QDialog):
             )
         except Exception:
             pass
-        # Make sure existing items (including "add new") are aligned correctly
         apply_rtl_alignment(self._category_combo)
         try:
-            self._category_combo.activated.connect(self._on_category_activated)  # type: ignore[arg-type]
+            self._category_combo.activated.connect(self._on_category_activated)
         except Exception:
             pass
         category_row.addWidget(category_label, 0)
         category_row.addWidget(self._category_combo, 1)
 
-        # Type row
         type_row = QHBoxLayout()
         type_row.setSpacing(8)
         type_label = QLabel("סוג:", self)
@@ -221,7 +209,7 @@ class BankMovementDialog(QDialog):
             self._type_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._type_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._type_combo.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -233,23 +221,20 @@ class BankMovementDialog(QDialog):
             pass
         for mt in MovementType:
             self._type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
-        # Align type names to the right as well
         apply_rtl_alignment(self._type_combo)
         type_row.addWidget(type_label, 0)
         type_row.addWidget(self._type_combo, 1)
 
-        # Description row
         desc_row = QHBoxLayout()
         desc_row.setSpacing(8)
         desc_label = QLabel("תיאור:", self)
         desc_label.setMinimumWidth(80)
         self._description_edit = QLineEdit(self)
-        # RTL layout + right-aligned text
         try:
             self._description_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._description_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._description_edit.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -258,10 +243,9 @@ class BankMovementDialog(QDialog):
             )
         except Exception:
             try:
-                self._description_edit.setAlignment(Qt.AlignRight)  # type: ignore[attr-defined]
+                self._description_edit.setAlignment(Qt.AlignRight)
             except Exception:
                 pass
-        # Some global stylesheets can override alignment; enforce it via CSS too.
         try:
             self._description_edit.setStyleSheet("text-align: right;")
         except Exception:
@@ -269,7 +253,6 @@ class BankMovementDialog(QDialog):
         desc_row.addWidget(desc_label, 0)
         desc_row.addWidget(self._description_edit, 1)
 
-        # Error label
         self._error_label = QLabel("", self)
         self._error_label.setStyleSheet("color: #b91c1c;")
         self._error_label.setWordWrap(True)
@@ -313,7 +296,6 @@ class BankMovementDialog(QDialog):
                 self._show_error("יש לבחור חשבון בנק")
                 return
 
-            # Positive for income, negative for outcome
             signed_amount = amount_value if self._is_income else -amount_value
 
             qdate = self._date_edit.date()
@@ -348,8 +330,8 @@ class BankMovementDialog(QDialog):
             )
             self.accept()
 
-        primary_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
+        primary_btn.clicked.connect(on_accept)
+        cancel_btn.clicked.connect(self.reject)
 
     def _show_error(self, message: str) -> None:
         self._error_label.setText(message)
@@ -370,7 +352,6 @@ class BankMovementDialog(QDialog):
                 dialog = NewCategoryDialog(self._categories, parent=self)
                 result = dialog.exec()
                 if not result:
-                    # Revert to previous selection
                     self._category_combo.setCurrentIndex(self._last_category_index)
                     return
                 name = dialog.get_name().strip()
@@ -381,7 +362,6 @@ class BankMovementDialog(QDialog):
                     insert_index = self._category_combo.count() - 1
                     self._categories.append(name)
                     self._category_combo.insertItem(insert_index, name, name)
-                    # Newly inserted item also needs RTL/right alignment
                     apply_rtl_alignment(self._category_combo)
                     if self._on_category_added is not None:
                         try:

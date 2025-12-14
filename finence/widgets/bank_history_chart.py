@@ -33,7 +33,6 @@ def create_bank_history_chart_card(
     account: BankAccount,
     format_amount: Callable[[float], str],
 ) -> QWidget:
-    """Create the bottom card with a smoothed line chart showing bank account history."""
     chart_card = QWidget(parent)
     chart_card.setObjectName("Sidebar")
     try:
@@ -63,7 +62,6 @@ def create_bank_history_chart_card(
             fallback_amount=account.total_amount,
         )
 
-        # Create a single line series for the bank account
         series = QLineSeries()
         series.setName(account.name)
         try:
@@ -75,13 +73,11 @@ def create_bank_history_chart_card(
         for x_val, y_val in samples:
             series.append(x_val, y_val)
 
-        # Choose a color for the line (using a blue tone for bank accounts)
         try:
-            base_color = QColor("#3b82f6")  # Blue color for bank accounts
+            base_color = QColor("#3b82f6")
         except Exception:
             base_color = QColor("#3b82f6")
 
-        # Style the visible line
         try:
             pen = series.pen()
             pen.setColor(base_color)
@@ -90,8 +86,8 @@ def create_bank_history_chart_card(
             except Exception:
                 pass
             try:
-                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)  # type: ignore[attr-defined]
-                pen.setCapStyle(Qt.PenCapStyle.RoundCap)  # type: ignore[attr-defined]
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             except Exception:
                 pass
             series.setPen(pen)
@@ -101,12 +97,10 @@ def create_bank_history_chart_card(
         shadow_specs: List[tuple[QLineSeries, QColor]] = [(series, base_color)]
         chart.addSeries(series)
 
-        # Tooltip specs for the custom chart view
         tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = [
             (series, account.name, list(base_values))
         ]
 
-        # X axis with month/year labels
         axis_x = QCategoryAxis()
         for key in month_keys:
             year, month = key
@@ -114,11 +108,10 @@ def create_bank_history_chart_card(
             axis_x.append(label, float(month_to_index[key]))
         try:
             axis_x.setGridLineVisible(False)
-            axis_x.setMinorGridLineVisible(False)  # type: ignore[attr-defined]
+            axis_x.setMinorGridLineVisible(False)
         except Exception:
             pass
 
-        # Y axis with amount values
         axis_y = QValueAxis()
         axis_y.setLabelFormat("%.0f")
         if max_amount > 0:
@@ -127,16 +120,15 @@ def create_bank_history_chart_card(
             top = 1000.0
         axis_y.setRange(0.0, top)
         try:
-            axis_y.setTickInterval(1000.0)  # type: ignore[attr-defined]
+            axis_y.setTickInterval(1000.0)
         except Exception:
             pass
         try:
             axis_y.setGridLineVisible(False)
-            axis_y.setMinorGridLineVisible(False)  # type: ignore[attr-defined]
+            axis_y.setMinorGridLineVisible(False)
         except Exception:
             pass
 
-        # Theme-aware axis label colors
         label_color = QColor("#0f172a")
         app = QApplication.instance()
         if app is not None:
@@ -157,8 +149,8 @@ def create_bank_history_chart_card(
 
         for s_obj in chart.series():
             try:
-                s_obj.attachAxis(axis_x)  # type: ignore[arg-type]
-                s_obj.attachAxis(axis_y)  # type: ignore[arg-type]
+                s_obj.attachAxis(axis_x)
+                s_obj.attachAxis(axis_y)
             except Exception:
                 pass
 
@@ -170,8 +162,8 @@ def create_bank_history_chart_card(
             format_amount,
             chart_card,
         )
-        chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)  # type: ignore[attr-defined]
-        chart_view.setFrameShape(QFrame.Shape.NoFrame)  # type: ignore[name-defined]
+        chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        chart_view.setFrameShape(QFrame.Shape.NoFrame)
         chart_view.setStyleSheet("background: transparent;")
         chart_layout.addWidget(chart_view, 1)
     else:

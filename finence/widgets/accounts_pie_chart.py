@@ -41,7 +41,6 @@ class AccountsPieChart(QWidget):
 
         if charts_available:
             self._chart_view = QChartView(self)
-            # Let layout control the size; expand within parents instead of forcing window size
             try:
                 self._chart_view.setSizePolicy(
                     QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -52,15 +51,15 @@ class AccountsPieChart(QWidget):
             except Exception:
                 pass
             try:
-                self._chart_view.setRenderHint(
-                    QPainter.RenderHint.Antialiasing, True
-                )  # Qt6 enum
+                self._chart_view.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             except AttributeError:
-                self._chart_view.setRenderHint(QPainter.Antialiasing, True)  # fallback
-            # Make the view fully transparent and remove its frame
+                self._chart_view.setRenderHint(QPainter.Antialiasing, True)  # type: ignore[attr-defined]
             try:
                 self._chart_view.setStyleSheet("background: transparent;")
-                self._chart_view.setFrameShape(QFrame.NoFrame)
+                try:
+                    self._chart_view.setFrameShape(QFrame.Shape.NoFrame)
+                except AttributeError:
+                    self._chart_view.setFrameShape(QFrame.NoFrame)  # type: ignore[attr-defined]
                 try:
                     self._chart_view.setAttribute(
                         Qt.WidgetAttribute.WA_TranslucentBackground, True
@@ -83,7 +82,6 @@ class AccountsPieChart(QWidget):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if charts_available and self._was_hidden:
-            # Re-render chart to trigger animation
             self._render_chart()
         self._was_hidden = False
 
@@ -96,7 +94,6 @@ class AccountsPieChart(QWidget):
         if charts_available:
             self._render_chart()
 
-    # Internal
     def _render_chart(self) -> None:
         series = QPieSeries()
         try:
@@ -105,14 +102,12 @@ class AccountsPieChart(QWidget):
             pass
         try:
             series.setHoleSize(0.38)
-            # Make the donut radius as large as possible inside the view
             series.setPieSize(0.92)
         except Exception:
             pass
 
         total = sum(max(a.total_amount, 0.0) for a in self._accounts)
         if total <= 0:
-            # empty chart with a single zero slice
             slice_ = series.append("No Data", 1.0)
             try:
                 slice_.setLabelVisible(True)
@@ -132,15 +127,12 @@ class AccountsPieChart(QWidget):
                     s.setProperty("baseLabel", account.name)
                 except Exception:
                     pass
-                # Labels hidden by default; legend will show names
-                # Color gradient from blue (largest) to green (smallest), spaced by count
                 try:
                     t = float(idx) / float(max(count - 1, 1))
                     color = _interpolate_qcolor(QColor("#2563eb"), QColor("#22c55e"), t)
                     s.setBrush(color)
                 except Exception:
                     pass
-                # No outside labels to avoid leader lines
                 try:
                     s.hovered.connect(
                         lambda state, sl=s, ser=series: self._on_slice_hover(
@@ -161,24 +153,23 @@ class AccountsPieChart(QWidget):
             except Exception:
                 pass
         try:
-            alignment = Qt.AlignmentFlag.AlignBottom  # place legend at bottom
-        except AttributeError:  # pragma: no cover - PySide/PyQt variant
-            alignment = Qt.AlignBottom  # fallback for older enums
+            alignment = Qt.AlignmentFlag.AlignBottom
+        except AttributeError:
+            alignment = Qt.AlignBottom  # type: ignore[attr-defined]
         chart.legend().setAlignment(alignment)
-        # Pull legend closer to the plot by tightening margins/padding
         try:
             chart.legend().setContentsMargins(0, 0, 0, 0)
         except Exception:
             pass
         try:
-            chart.setMargins(QMarginsF(0, 0, 0, 0))
+            chart.setMargins(QMarginsF(0, 0, 0, 0))  # type: ignore[arg-type]
         except Exception:
             pass
         try:
             legend = chart.legend()
             try:
                 legend.setBackgroundVisible(False)
-                legend.setBorderColor(Qt.GlobalColor.transparent)  # type: ignore[arg-type]
+                legend.setBorderColor(Qt.GlobalColor.transparent)
             except Exception:
                 pass
             try:
@@ -191,32 +182,30 @@ class AccountsPieChart(QWidget):
             chart.setTitle("")
         except Exception:
             pass
-        # Visuals
         try:
             chart.setTitleBrush(QColor("#0b1220"))
             chart.legend().setLabelColor(QColor("#0b1220"))
-            # Make    and plot area backgrounds transparent (no colored background)
             chart.setBackgroundVisible(False)
             chart.setPlotAreaBackgroundVisible(False)
             try:
-                # Ensure no border around the chart background
-                chart.setBackgroundPen(Qt.PenStyle.NoPen)  # Qt6
+                chart.setBackgroundPen(Qt.PenStyle.NoPen)
             except Exception:
                 try:
-                    chart.setBackgroundPen(Qt.NoPen)  # fallback alias
+                    chart.setBackgroundPen(Qt.NoPen)  # type: ignore[attr-defined]
                 except Exception:
                     pass
-            series.setLabelsColor(QColor("#111827"))
+            try:
+                series.setLabelsColor(QColor("#111827"))  # type: ignore[attr-defined]
+            except Exception:
+                pass
         except Exception:
             pass
 
-        # Build mapping from slice to legend marker so legend labels stay constant
         try:
             self._slice_to_marker = {}
             markers = chart.legend().markers(series)
             for sl, mk in zip(series.slices(), markers):
                 self._slice_to_marker[sl] = mk
-                # ensure legend shows base name regardless of slice label changes
                 try:
                     base = sl.property("baseLabel") or sl.label()
                     mk.setLabel(str(base))
@@ -244,7 +233,6 @@ class AccountsPieChart(QWidget):
                         slice_obj.setExplodeDistanceFactor(0.08)
                 except Exception:
                     pass
-                # Show tooltip with name, amount and percent
                 try:
                     name = slice_obj.property("baseLabel") or ""
                     amount = slice_obj.value()
@@ -273,7 +261,6 @@ class AccountsPieChart(QWidget):
                     QToolTip.hideText()
                 except Exception:
                     pass
-            # Keep legend label constant (name) regardless of hover label
             try:
                 marker = self._slice_to_marker.get(slice_obj)
                 if marker:
@@ -300,9 +287,6 @@ def _qcolor_to_hex(c: QColor) -> str:
 
 
 def _interpolate_qcolor(c1: QColor, c2: QColor, t: float) -> QColor:
-    """
-    Linearly interpolate between two colors c1 (t=0) and c2 (t=1).
-    """
     t = 0.0 if t < 0.0 else 1.0 if t > 1.0 else t
     r = int(c1.red() + (c2.red() - c1.red()) * t)
     g = int(c1.green() + (c2.green() - c1.green()) * t)

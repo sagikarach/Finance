@@ -12,7 +12,6 @@ class MovementType(StrEnum):
 
 
 def generate_movement_id() -> str:
-    """Generate a unique ID for a bank movement."""
     return str(uuid.uuid4())
 
 

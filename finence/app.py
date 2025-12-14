@@ -17,13 +17,10 @@ from .data.user_profile_store import UserProfileStore
 
 
 class FilteredStderr:
-    """Filter stderr to suppress macOS TSMSendMessageToUIServer warnings."""
-
     def __init__(self, original_stderr: TextIOWrapper) -> None:
         self.original_stderr = original_stderr
 
     def write(self, message: str) -> None:
-        # Filter out TSMSendMessageToUIServer warnings
         if "TSMSendMessageToUIServer" not in message:
             self.original_stderr.write(message)
 
@@ -31,12 +28,10 @@ class FilteredStderr:
         self.original_stderr.flush()
 
     def __getattr__(self, name: str) -> object:
-        # Forward all other attributes to original stderr
         return getattr(self.original_stderr, name)
 
 
 def _load_defaults() -> dict:
-    """Load default theme and user name from defaults.json if present."""
     defaults_path = Path.cwd() / "defaults.json"
     default_theme = "light"
     default_full_name = "אורח"
@@ -55,7 +50,6 @@ def _load_defaults() -> dict:
                         app_defaults.get("default_theme", default_theme)
                     )
         except Exception:
-            # If defaults.json is missing or invalid we just keep built-in defaults.
             pass
 
     return {
@@ -65,16 +59,6 @@ def _load_defaults() -> dict:
 
 
 def _ensure_ollama_running() -> None:
-    """
-    Best-effort helper to make sure a local Ollama server is running.
-
-    - First, try to connect to http://127.0.0.1:11434; if it responds, do nothing.
-    - If not running, try to start it in the background:
-        * Prefer `ollama serve` if `ollama` is on PATH.
-        * On macOS, fall back to `open -g -a Ollama` if available.
-
-    All failures are ignored so the app still runs even if Ollama is not installed.
-    """
     try:
         with socket.create_connection(("127.0.0.1", 11434), timeout=0.5):
             return
@@ -107,10 +91,8 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     if argv is None:
         argv = sys.argv
 
-    # Suppress macOS TSMSendMessageToUIServer warnings (harmless system messages)
     if sys.platform == "darwin":
         os.environ.setdefault("QT_LOGGING_RULES", "*.debug=false")
-        # Filter stderr to remove TSMSendMessageToUIServer messages
         if isinstance(sys.stderr, TextIOWrapper):
             sys.stderr = FilteredStderr(sys.stderr)
 
@@ -118,7 +100,6 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     app.setApplicationName("Finence")
     app.setOrganizationName("Finence")
 
-    # Load defaults from JSON file
     defaults = _load_defaults()
 
     app.setStyleSheet(load_default_stylesheet())
@@ -127,7 +108,6 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     except Exception:
         pass
 
-    # Optional lock screen: if a password is configured, ask for it before opening
     try:
         store = UserProfileStore()
         profile = store.load(
@@ -141,7 +121,6 @@ def run_app(argv: Optional[list[str]] = None) -> None:
 
     if lock_enabled and expected_password:
         lock = LockDialog(expected_password=expected_password)
-        # If dialog is rejected or password is wrong, exit without opening main window
         result = lock.exec()
         if not result:
             sys.exit(0)

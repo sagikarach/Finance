@@ -3,7 +3,7 @@ from __future__ import annotations
 backend: str
 
 try:
-    from PySide6.QtWidgets import (  # type: ignore
+    from PySide6.QtWidgets import (
         QApplication,
         QMainWindow,
         QWidget,
@@ -31,7 +31,7 @@ try:
         QScrollArea,
         QProgressBar,
     )
-    from PySide6.QtGui import (  # type: ignore
+    from PySide6.QtGui import (
         QAction,
         QPainter,
         QColor,
@@ -43,7 +43,7 @@ try:
         QPainterPath,
         QLinearGradient,
     )
-    from PySide6.QtCore import (  # type: ignore
+    from PySide6.QtCore import (
         Signal,
         Slot,
         Qt,
@@ -54,9 +54,8 @@ try:
     )
 
     backend = "PySide6"
-    # QtCharts (available in modern PySide6 wheels)
     try:
-        from PySide6.QtCharts import (  # type: ignore
+        from PySide6.QtCharts import (
             QChart,
             QChartView,
             QPieSeries,
@@ -68,10 +67,10 @@ try:
             QCategoryAxis,
         )
 
-        charts_available = True  # type: ignore[assignment]
+        charts_available = True
     except Exception:
-        charts_available = False  # type: ignore[assignment]
-except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
+        charts_available = False
+except Exception:
     from PyQt6.QtWidgets import (  # type: ignore
         QApplication,
         QMainWindow,
@@ -123,7 +122,6 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
     )
 
     backend = "PyQt6"
-    # QtCharts (may require separate wheel in PyQt6)
     try:
         from PyQt6.QtCharts import (  # type: ignore
             QChart,
@@ -137,9 +135,9 @@ except Exception:  # noqa: BLE001 - deliberate broad import fallback guard
             QCategoryAxis,
         )
 
-        charts_available = True  # type: ignore[assignment]
+        charts_available = True
     except Exception:
-        charts_available = False  # type: ignore[assignment]
+        charts_available = False
 
 __all__ = [
     "backend",
@@ -186,7 +184,6 @@ __all__ = [
     "QHeaderView",
     "QScrollArea",
     "QProgressBar",
-    # Charts
     "charts_available",
     "QChart",
     "QChartView",

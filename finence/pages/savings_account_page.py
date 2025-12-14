@@ -42,9 +42,6 @@ class SavingsAccountPage(BasePage):
             provider=provider,
             navigate=navigate,
             page_title="פרטי חסכון",
-            # Use a distinct route name so the sidebar can enable the per-account
-            # selection arrow, while still treating it as part of the savings
-            # section visually (handled in Sidebar.update_route).
             current_route="savings_account",
         )
         self._history_provider = JsonFileActionHistoryProvider()
@@ -59,7 +56,7 @@ class SavingsAccountPage(BasePage):
         settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))  # type: ignore[arg-type]
+            settings_btn.clicked.connect(lambda: self._navigate("settings"))
         buttons.append(settings_btn)
         return buttons
 
@@ -83,14 +80,12 @@ class SavingsAccountPage(BasePage):
                 break
 
         if target is None:
-            # Fallback UI if nothing was selected or account was removed.
             placeholder = QLabel("לא נבחר חשבון חסכון", self)
             placeholder.setObjectName("Title")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main_col.addWidget(placeholder, 1)
             return
 
-        # --- Top third: summary rectangle with total amount and action buttons ---
         top_card = QWidget(self)
         top_card.setObjectName("Sidebar")
         try:
@@ -112,12 +107,8 @@ class SavingsAccountPage(BasePage):
         liquid_label = QLabel(liquid_text, top_card)
         liquid_label.setObjectName("StatTitle")
 
-        # First row: name and liquid status on the same line, on opposite
-        # sides, with the total amount displayed on its own row below.
         name_liquid_row = QHBoxLayout()
         name_liquid_row.setSpacing(8)
-        # Swap positions: liquid label on the side where the name was, and the
-        # name on the opposite side.
         name_liquid_row.addWidget(liquid_label, 0, Qt.AlignmentFlag.AlignRight)
         name_liquid_row.addStretch(1)
         name_liquid_row.addWidget(name_label, 0, Qt.AlignmentFlag.AlignLeft)
@@ -125,8 +116,6 @@ class SavingsAccountPage(BasePage):
         summary_col.addLayout(name_liquid_row)
         summary_col.addWidget(total_label, 0, Qt.AlignmentFlag.AlignRight)
 
-        # Buttons row: three actions in a single horizontal line, anchored to
-        # the bottom of the top card rather than vertically centered.
         buttons_row = QHBoxLayout()
         buttons_row.setSpacing(8)
 
@@ -137,7 +126,6 @@ class SavingsAccountPage(BasePage):
         delete_saving_btn = QPushButton("מחק חסכון", top_card)
         delete_saving_btn.setObjectName("DeleteButton")
 
-        # Switch positions of add and delete in the row: delete, update, add.
         for b in (delete_saving_btn, update_saving_btn, add_saving_btn):
             try:
                 b.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -145,31 +133,19 @@ class SavingsAccountPage(BasePage):
                 pass
             buttons_row.addWidget(b, 0, Qt.AlignmentFlag.AlignLeft)
 
-        # Wrap the buttons row in a vertical layout with a stretch above so the
-        # buttons sit at the bottom of the top card.
         buttons_col = QVBoxLayout()
         buttons_col.setSpacing(0)
         buttons_col.addStretch(1)
         buttons_col.addLayout(buttons_row)
 
-        # Put buttons on one side and the summary on the other.
         top_layout.addLayout(buttons_col, 0)
         top_layout.addStretch(1)
         top_layout.addLayout(summary_col, 1)
 
-        # Connect buttons to dialogs that actually modify savings in this
-        # account and then refresh the page + chart.
-        add_saving_btn.clicked.connect(  # type: ignore[arg-type]
-            lambda: self._handle_add_saving(target)
-        )
-        update_saving_btn.clicked.connect(  # type: ignore[arg-type]
-            lambda: self._handle_update_saving(target)
-        )
-        delete_saving_btn.clicked.connect(  # type: ignore[arg-type]
-            lambda: self._handle_delete_saving(target)
-        )
+        add_saving_btn.clicked.connect(lambda: self._handle_add_saving(target))
+        update_saving_btn.clicked.connect(lambda: self._handle_update_saving(target))
+        delete_saving_btn.clicked.connect(lambda: self._handle_delete_saving(target))
 
-        # --- Bottom 2/3: rectangle with line chart of savings history ---
         chart_card = create_savings_history_chart_card(self, target, format_currency)
 
         main_col.addWidget(top_card, 1)
@@ -216,7 +192,7 @@ class SavingsAccountPage(BasePage):
 
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
-                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+                self._sidebar.update_accounts(self._accounts)
             except Exception:
                 pass
 
@@ -239,9 +215,9 @@ class SavingsAccountPage(BasePage):
             date_edit.setDate(QDate.currentDate())
             try:
                 try:
-                    heb = QLocale(QLocale.Language.Hebrew, QLocale.Country.Israel)  # type: ignore[attr-defined]
+                    heb = QLocale(QLocale.Language.Hebrew, QLocale.Country.Israel)
                 except Exception:
-                    heb = QLocale(QLocale.Hebrew, QLocale.Israel)  # type: ignore[attr-defined]
+                    heb = QLocale(QLocale.Hebrew, QLocale.Israel)
                 date_edit.setLocale(heb)
                 date_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 cal = date_edit.calendarWidget()
@@ -270,7 +246,6 @@ class SavingsAccountPage(BasePage):
         amount_row.addWidget(amount_label, 0)
         amount_row.addWidget(amount_edit, 1)
 
-        # Date picker for the initial history record, defaulting to today.
         date_row = QHBoxLayout()
         date_label = QLabel("תאריך:", dlg)
         date_edit = self._build_hebrew_date_edit(dlg)
@@ -304,14 +279,12 @@ class SavingsAccountPage(BasePage):
                 error_label.show()
                 return
 
-            # Date for the first history entry
             try:
                 date_qt = date_edit.date()
                 date_str = date_qt.toString("yyyy-MM-dd")
             except Exception:
                 date_str = ""
 
-            # Prevent duplicate saving names inside this account
             if any(s.name == name for s in account.savings):
                 error_label.setText("קיים חסכון עם שם זהה בחשבון.")
                 error_label.show()
@@ -330,8 +303,8 @@ class SavingsAccountPage(BasePage):
 
             dlg.accept()
 
-        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        ok_btn.clicked.connect(on_accept)
+        cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()
 
     def _handle_update_saving(self, account: SavingsAccount) -> None:
@@ -348,7 +321,7 @@ class SavingsAccountPage(BasePage):
             savings_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                savings_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                savings_combo.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         for s in account.savings:
@@ -359,7 +332,6 @@ class SavingsAccountPage(BasePage):
         amount_row = QHBoxLayout()
         amount_label = QLabel("סכום חדש:", dlg)
         amount_edit = QLineEdit(dlg)
-        # Pre-fill with current amount of first saving
         try:
             first = account.savings[0]
             amount_edit.setText(str(first.amount))
@@ -368,7 +340,6 @@ class SavingsAccountPage(BasePage):
         amount_row.addWidget(amount_label, 0)
         amount_row.addWidget(amount_edit, 1)
 
-        # Date picker for the new history record
         date_row = QHBoxLayout()
         date_label = QLabel("תאריך:", dlg)
         date_edit = self._build_hebrew_date_edit(dlg)
@@ -405,7 +376,6 @@ class SavingsAccountPage(BasePage):
                 error_label.show()
                 return
 
-            # Use the chosen date for the new history entry
             try:
                 date_qt = date_edit.date()
                 date_str = date_qt.toString("yyyy-MM-dd")
@@ -425,8 +395,8 @@ class SavingsAccountPage(BasePage):
 
             dlg.accept()
 
-        ok_btn.clicked.connect(on_accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        ok_btn.clicked.connect(on_accept)
+        cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()
 
     def _handle_delete_saving(self, account: SavingsAccount) -> None:
@@ -443,7 +413,7 @@ class SavingsAccountPage(BasePage):
             savings_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                savings_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                savings_combo.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         for s in account.savings:
@@ -481,6 +451,6 @@ class SavingsAccountPage(BasePage):
 
             dlg.accept()
 
-        delete_btn.clicked.connect(on_delete)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(dlg.reject)  # type: ignore[arg-type]
+        delete_btn.clicked.connect(on_delete)
+        cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()

@@ -17,10 +17,8 @@ def load_sidebar_light_styles() -> str:
         margin-top: 4px;
     }
     QLabel#AvatarCircle {
-        min-width: 72px;
-        min-height: 72px;
-        max-width: 72px;
-        max-height: 72px;
+        width: 72px;
+        height: 72px;
         border-radius: 36px;
         background: #bfdbfe;
         border: 2px solid #93c5fd;
@@ -169,8 +167,14 @@ def load_sidebar_dark_styles() -> str:
         color: #e5e7eb;
     }
     QLabel#AvatarCircle {
+        width: 72px;
+        height: 72px;
+        border-radius: 36px;
+        background: #111827;
         border: 2px solid #4b5563;
         color: #e5e7eb;
+        font-size: 26px;
+        font-weight: 800;
     }
     QPushButton#SidebarNavButton {
         background: #111827;

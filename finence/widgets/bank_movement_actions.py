@@ -32,7 +32,7 @@ class BankMovementActions(QWidget):
         except Exception:
             pass
         if on_add_income is not None:
-            self._income_btn.clicked.connect(on_add_income)  # type: ignore[arg-type]
+            self._income_btn.clicked.connect(on_add_income)
 
         self._outcome_btn = QPushButton("הוספת הוצאה", self)
         self._outcome_btn.setObjectName("SidebarOutcomeButton")
@@ -43,7 +43,7 @@ class BankMovementActions(QWidget):
         except Exception:
             pass
         if on_add_outcome is not None:
-            self._outcome_btn.clicked.connect(on_add_outcome)  # type: ignore[arg-type]
+            self._outcome_btn.clicked.connect(on_add_outcome)
 
         layout.addWidget(self._income_btn)
         layout.addWidget(self._outcome_btn)

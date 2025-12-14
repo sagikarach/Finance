@@ -9,8 +9,6 @@ from ..data.user_profile_store import UserProfileStore
 
 
 class SidebarAvatar:
-    """Handles avatar display and upload functionality for the sidebar."""
-
     def __init__(
         self,
         parent: QWidget,
@@ -29,7 +27,6 @@ class SidebarAvatar:
         self._setup()
 
     def _setup(self) -> None:
-        """Setup avatar label and user name."""
         self._avatar_label = QLabel(self._parent)
         self._avatar_label.setObjectName("AvatarCircle")
         initial = (self._user.full_name or " ")[0]
@@ -52,17 +49,14 @@ class SidebarAvatar:
         self._layout.addWidget(self._name_label, 0, Qt.AlignmentFlag.AlignHCenter)
         self._layout.addSpacing(24)
 
-        # Make avatar clickable
         self._avatar_label.mousePressEvent = self._on_avatar_clicked  # type: ignore[assignment]
 
-        # Load avatar if already set
         if self._user.avatar_path:
             self.set_avatar_from_path(self._user.avatar_path)
 
-    def _on_avatar_clicked(self, event) -> None:  # type: ignore[override]
-        """Open a file dialog and update the avatar image, saving a copy."""
+    def _on_avatar_clicked(self, event) -> None:
         try:
-            from PySide6.QtWidgets import QFileDialog  # type: ignore
+            from PySide6.QtWidgets import QFileDialog
         except Exception:
             try:
                 from PyQt6.QtWidgets import QFileDialog  # type: ignore
@@ -85,7 +79,6 @@ class SidebarAvatar:
                 pass
 
     def set_avatar_from_path(self, file_name: Optional[str]) -> bool:
-        """Load avatar from disk and apply it as background inside the circle."""
         if not file_name or not self._avatar_label:
             return False
 
@@ -94,7 +87,7 @@ class SidebarAvatar:
             return False
 
         try:
-            from PySide6.QtGui import QPixmap  # type: ignore
+            from PySide6.QtGui import QPixmap
         except Exception:
             try:
                 from PyQt6.QtGui import QPixmap  # type: ignore
@@ -117,7 +110,6 @@ class SidebarAvatar:
             ),
         )
 
-        # Save a copy inside the app
         try:
             data_dir = Path.cwd() / "data" / "avatars"
             data_dir.mkdir(parents=True, exist_ok=True)
@@ -133,11 +125,9 @@ class SidebarAvatar:
         self._avatar_label.setPixmap(QPixmap())
         self._avatar_label.setStyleSheet(
             f"""
-            QLabel#AvatarCircle {{
-                min-width: {size}px;
-                min-height: {size}px;
-                max-width: {size}px;
-                max-height: {size}px;
+            QLabel {{
+                width: {size}px;
+                height: {size}px;
                 border-radius: {radius}px;
                 background-color: transparent;
                 background-image: url('{url}');
@@ -149,7 +139,6 @@ class SidebarAvatar:
         return True
 
     def refresh(self) -> None:
-        """Refresh displayed name (and placeholder avatar if no image) from the user object."""
         if not self._name_label or not self._avatar_label:
             return
 

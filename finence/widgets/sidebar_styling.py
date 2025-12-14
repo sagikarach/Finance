@@ -2,7 +2,6 @@
 
 
 def get_toggle_style_expanded(is_dark: bool) -> str:
-    """Get toggle button style when expanded."""
     if is_dark:
         return """
             QPushButton#SidebarNavToggle {
@@ -46,7 +45,6 @@ def get_toggle_style_expanded(is_dark: bool) -> str:
 
 
 def get_toggle_style_checked(is_dark: bool) -> str:
-    """Get toggle button style when savings button is checked but not expanded."""
     if is_dark:
         return """
             QPushButton#SidebarNavToggle {
@@ -80,7 +78,6 @@ def get_toggle_style_checked(is_dark: bool) -> str:
 
 
 def get_toggle_style_normal(is_dark: bool) -> str:
-    """Get toggle button style when savings button is not checked."""
     if is_dark:
         return """
             QPushButton#SidebarNavToggle {
@@ -118,7 +115,6 @@ def apply_toggle_button_style(
     savings_btn,
     is_expanded: bool,
 ) -> None:
-    """Apply styling to toggle button to match savings button state."""
     if not toggle_btn or not savings_btn:
         return
 

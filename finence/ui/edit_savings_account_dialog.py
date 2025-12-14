@@ -9,6 +9,7 @@ from ..qt import (
     QLineEdit,
     QCheckBox,
     QComboBox,
+    QWidget,
     Qt,
 )
 from .dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
@@ -21,13 +22,11 @@ from ..models.savings_dialogs import (
 
 
 class EditSavingsAccountDialog(QDialog):
-    """Dialog for editing a SavingsAccount with account selection dropdown."""
-
     def __init__(
         self,
         accounts: List[SavingsAccount],
         existing_names: Optional[List[str]] = None,
-        parent: Optional[QDialog] = None,
+        parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
         self._accounts = accounts
@@ -41,10 +40,8 @@ class EditSavingsAccountDialog(QDialog):
         except Exception:
             pass
 
-        # Use shared RTL dialog configuration so margins/spacing match other dialogs.
         layout = setup_standard_rtl_dialog(self)
 
-        # Account selection dropdown
         account_label = QLabel("בחר חשבון:", self)
         account_label.setObjectName("StatTitle")
         account_label.setMinimumWidth(100)
@@ -54,34 +51,27 @@ class EditSavingsAccountDialog(QDialog):
             pass
 
         self._account_combo = QComboBox(self)
-        # Use default combo styling like the transfer dialog (avoid the
-        # Savings page's special AccountComboBox theme).
         self._account_combo.setObjectName("DialogAccountCombo")
-        # Ensure dropdown text flows LTR.
         try:
             self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._account_combo.setLayoutDirection(Qt.LeftToRight)
+                self._account_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
             except Exception:
                 pass
         for account in accounts:
-            self._account_combo.addItem(
-                account.name, account
-            )  # Store account object as data
+            self._account_combo.addItem(account.name, account)
         if accounts:
             self._account_combo.setCurrentIndex(0)
             self._selected_account = accounts[0]
 
-        # Connect combo box change to update form
-        self._account_combo.currentIndexChanged.connect(self._on_account_changed)  # type: ignore[arg-type]
+        self._account_combo.currentIndexChanged.connect(self._on_account_changed)
 
         account_row = QHBoxLayout()
         account_row.setSpacing(8)
         account_row.addWidget(account_label, 0)
         account_row.addWidget(self._account_combo, 1)
 
-        # Name field
         name_row = QHBoxLayout()
         name_row.setSpacing(8)
 
@@ -90,7 +80,6 @@ class EditSavingsAccountDialog(QDialog):
         name_label.setMinimumWidth(60)
 
         self._name_edit = QLineEdit(self)
-        # Match transfer dialog: text typed RTL and right-aligned.
         try:
             self._name_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
@@ -105,19 +94,17 @@ class EditSavingsAccountDialog(QDialog):
         name_row.addWidget(name_label, 0)
         name_row.addWidget(self._name_edit, 1)
 
-        # Is liquid checkbox
         self._is_liquid_checkbox = QCheckBox("נזיל", self)
         try:
             self._is_liquid_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)
+                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
             except Exception:
                 pass
         if self._selected_account:
             self._is_liquid_checkbox.setChecked(self._selected_account.is_liquid)
 
-        # Error label
         self._error_label = QLabel("", self)
         self._error_label.setStyleSheet("color: #b91c1c;")
         self._error_label.setWordWrap(True)
@@ -127,7 +114,7 @@ class EditSavingsAccountDialog(QDialog):
             self._error_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._error_label.setLayoutDirection(Qt.LeftToRight)
+                self._error_label.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
             except Exception:
                 pass
         try:
@@ -187,30 +174,25 @@ class EditSavingsAccountDialog(QDialog):
             self.adjustSize()
             self.accept()
 
-        save_btn.clicked.connect(validate_and_accept)  # type: ignore[arg-type]
-        cancel_btn.clicked.connect(self.reject)  # type: ignore[arg-type]
+        save_btn.clicked.connect(validate_and_accept)
+        cancel_btn.clicked.connect(self.reject)
 
     def _on_account_changed(self, index: int) -> None:
-        """Update form when account selection changes."""
         if 0 <= index < len(self._accounts):
             account = self._accounts[index]
             self._selected_account = account
             self._name_edit.setText(account.name)
             self._is_liquid_checkbox.setChecked(account.is_liquid)
-            # Clear error when switching accounts
             self._error_label.setText("")
             self._error_label.hide()
             self._error_label.setMinimumHeight(0)
             self.adjustSize()
 
     def get_selected_account(self) -> Optional[SavingsAccount]:
-        """Get the currently selected account."""
         return self._selected_account
 
     def get_name(self) -> str:
-        """Get the entered name."""
         return self._name_edit.text().strip()
 
     def get_is_liquid(self) -> bool:
-        """Get the is_liquid value."""
         return self._is_liquid_checkbox.isChecked()

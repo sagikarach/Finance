@@ -46,7 +46,7 @@ class HomePage(BasePage):
         settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))  # type: ignore[arg-type]
+            settings_btn.clicked.connect(lambda: self._navigate("settings"))
         buttons.append(settings_btn)
         return buttons
 
@@ -149,7 +149,6 @@ class HomePage(BasePage):
         except Exception:
             history = []
 
-        # Get categories and movement provider for editing
         categories = []
         movement_provider = None
         try:
@@ -161,23 +160,21 @@ class HomePage(BasePage):
                 if hasattr(movement_provider, "list_categories_for_type"):
                     categories = movement_provider.list_categories_for_type(
                         is_income=False
-                    )  # type: ignore[attr-defined]
+                    )
                 elif hasattr(movement_provider, "list_categories"):
-                    categories = movement_provider.list_categories()  # type: ignore[attr-defined]
+                    categories = movement_provider.list_categories()
         except Exception:
             pass
 
         def on_saved() -> None:
-            """Refresh history after saving changes."""
             try:
-                # Reload history from file to get updated entries
                 history = self._history_provider.list_history()
                 history_table.set_history(history)
-                # Also refresh the accounts to ensure consistency
-                try:
-                    self._accounts = self._accounts_service.load_accounts()
-                except Exception:
-                    pass
+                if self._accounts_service is not None:
+                    try:
+                        self._accounts = self._accounts_service.load_accounts()
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
@@ -201,13 +198,14 @@ class HomePage(BasePage):
 
     def on_route_activated(self) -> None:
         try:
-            self._accounts = self._accounts_service.load_accounts()
+            if self._accounts_service is not None:
+                self._accounts = self._accounts_service.load_accounts()
         except Exception:
             pass
 
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
-                self._sidebar.update_accounts(self._accounts)  # type: ignore[arg-type]
+                self._sidebar.update_accounts(self._accounts)
             except Exception:
                 pass
 

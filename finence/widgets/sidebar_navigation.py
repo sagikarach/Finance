@@ -6,8 +6,6 @@ from ..qt import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSizePolicy, Qt
 
 
 class SidebarNavigation:
-    """Handles navigation buttons (dashboard and savings) for the sidebar."""
-
     def __init__(
         self,
         parent: QWidget,
@@ -34,7 +32,6 @@ class SidebarNavigation:
         self._setup_savings_button()
 
     def _setup_dashboard_button(self) -> None:
-        """Setup the dashboard navigation button."""
         button_container = QWidget(self._parent)
         button_container_layout = QHBoxLayout(button_container)
         button_container_layout.setContentsMargins(0, 0, 0, 0)
@@ -51,9 +48,8 @@ class SidebarNavigation:
             pass
 
         if self._navigate is not None:
-            self._dashboard_btn.clicked.connect(lambda: self._navigate("home"))  # type: ignore[arg-type]
+            self._dashboard_btn.clicked.connect(lambda: self._navigate("home"))
 
-        # Placeholder to reserve space
         placeholder = QWidget(button_container)
         placeholder.setMinimumHeight(40)
         button_container_layout.addWidget(placeholder)
@@ -62,7 +58,6 @@ class SidebarNavigation:
         self._layout.addWidget(button_container)
 
     def _setup_bank_button(self) -> None:
-        """Setup the bank-accounts navigation button with its own toggle."""
         button_container = QWidget(self._parent)
         button_container_layout = QHBoxLayout(button_container)
         button_container_layout.setContentsMargins(0, 0, 0, 0)
@@ -82,11 +77,8 @@ class SidebarNavigation:
             pass
 
         if self._navigate is not None:
-            self._bank_btn.clicked.connect(  # type: ignore[arg-type]
-                lambda: self._navigate("bank_accounts")
-            )
+            self._bank_btn.clicked.connect(lambda: self._navigate("bank_accounts"))
 
-        # Toggle button (arrow) for expanding/collapsing the bank list.
         self._bank_toggle_btn = QPushButton("▼", self._parent)
         self._bank_toggle_btn.setObjectName("SidebarNavToggle")
         self._bank_toggle_btn.setFixedWidth(32)
@@ -106,7 +98,6 @@ class SidebarNavigation:
         self._layout.addWidget(button_container)
 
     def _setup_savings_button(self) -> None:
-        """Setup the savings navigation button with expand/collapse toggle."""
         savings_button_container = QWidget(self._parent)
         try:
             savings_button_container.setAttribute(
@@ -119,10 +110,8 @@ class SidebarNavigation:
         savings_button_layout.setContentsMargins(0, 0, 0, 0)
         savings_button_layout.setSpacing(0)
 
-        # Main savings button
         is_savings = self._current_route == "savings"
         self._savings_btn = QPushButton("חסכונות", self._parent)
-        # Use a dedicated object name so we can style it differently from the home button.
         self._savings_btn.setObjectName("SidebarNavButtonSavings")
         self._savings_btn.setCheckable(True)
         self._savings_btn.setChecked(is_savings)
@@ -134,7 +123,6 @@ class SidebarNavigation:
         except Exception:
             pass
 
-        # Toggle button (arrow)
         self._savings_toggle_btn = QPushButton("▼", self._parent)
         self._savings_toggle_btn.setObjectName("SidebarNavToggle")
         self._savings_toggle_btn.setFixedWidth(32)
@@ -146,7 +134,6 @@ class SidebarNavigation:
         except Exception:
             pass
 
-        # Placeholder to reserve space
         placeholder = QWidget(savings_button_container)
         placeholder.setMinimumHeight(40)
         savings_button_layout.addWidget(placeholder)
@@ -155,35 +142,27 @@ class SidebarNavigation:
         self._layout.addWidget(savings_button_container)
 
     def get_dashboard_button(self) -> Optional[QPushButton]:
-        """Get the dashboard button."""
         return self._dashboard_btn
 
     def get_dashboard_container(self) -> Optional[QWidget]:
-        """Get the dashboard button container."""
         return self._button_container
 
     def get_bank_button(self) -> Optional[QPushButton]:
-        """Get the bank-accounts button."""
         return self._bank_btn
 
     def get_bank_toggle_button(self) -> Optional[QPushButton]:
-        """Get the bank-accounts toggle button."""
         return self._bank_toggle_btn
 
     def get_bank_container(self) -> Optional[QWidget]:
-        """Get the bank-accounts button container."""
         return self._bank_button_container
 
     def get_savings_button(self) -> Optional[QPushButton]:
-        """Get the savings button."""
         return self._savings_btn
 
     def get_savings_toggle_button(self) -> Optional[QPushButton]:
-        """Get the savings toggle button."""
         return self._savings_toggle_btn
 
     def get_savings_container(self) -> Optional[QWidget]:
-        """Get the savings button container."""
         return self._savings_button_container
 
     def connect_savings_handlers(
@@ -192,17 +171,15 @@ class SidebarNavigation:
         on_savings_click: Callable[[], None],
         on_toggle_style: Callable[[], None],
     ) -> None:
-        """Connect handlers for savings button interactions."""
         if self._savings_toggle_btn:
-            self._savings_toggle_btn.clicked.connect(on_toggle)  # type: ignore[arg-type]
+            self._savings_toggle_btn.clicked.connect(on_toggle)
         if self._savings_btn:
-            self._savings_btn.clicked.connect(on_savings_click)  # type: ignore[arg-type]
-            self._savings_btn.toggled.connect(lambda checked: on_toggle_style())  # type: ignore[arg-type]
+            self._savings_btn.clicked.connect(on_savings_click)
+            self._savings_btn.toggled.connect(lambda checked: on_toggle_style())
 
     def connect_bank_handlers(
         self,
         on_toggle: Callable[[], None],
     ) -> None:
-        """Connect handlers for bank-accounts toggle interactions."""
         if self._bank_toggle_btn:
-            self._bank_toggle_btn.clicked.connect(on_toggle)  # type: ignore[arg-type]
+            self._bank_toggle_btn.clicked.connect(on_toggle)

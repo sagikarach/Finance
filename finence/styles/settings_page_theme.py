@@ -2,7 +2,6 @@ from __future__ import annotations
 
 
 def load_settings_page_light_styles() -> str:
-    """Styles specific to the settings page in light mode."""
     return """
     QPushButton#SaveButton {
         background: #a3baed; /* slightly lighter blue */
@@ -21,7 +20,6 @@ def load_settings_page_light_styles() -> str:
 
 
 def load_settings_page_dark_styles() -> str:
-    """Styles specific to the settings page in dark mode."""
     return """
     QPushButton#SaveButton {
         background: #1d4ed8;
