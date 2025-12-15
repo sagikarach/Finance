@@ -11,6 +11,7 @@ from ..qt import (
     Qt,
     QToolButton,
     QPushButton,
+    QSizePolicy,
 )
 from ..data.provider import AccountsProvider
 from ..models.accounts import BankAccount
@@ -101,29 +102,41 @@ class BankAccountPage(BasePage):
         name_label.setObjectName("HeaderTitle")
         total_label = QLabel(format_currency(target.total_amount), top_card)
         total_label.setObjectName("StatValueLarge")
-        liquid_text = "נזיל" if target.is_liquid else "לא נזיל"
-        liquid_label = QLabel(liquid_text, top_card)
-        liquid_label.setObjectName("StatTitle")
 
-        name_liquid_row = QHBoxLayout()
-        name_liquid_row.setSpacing(8)
-        name_liquid_row.addWidget(liquid_label, 0, Qt.AlignmentFlag.AlignRight)
-        name_liquid_row.addStretch(1)
-        name_liquid_row.addWidget(name_label, 0, Qt.AlignmentFlag.AlignLeft)
+        name_row = QHBoxLayout()
+        name_row.setSpacing(8)
+        name_row.addStretch(1)
+        name_row.addWidget(name_label, 0, Qt.AlignmentFlag.AlignLeft)
 
-        summary_col.addLayout(name_liquid_row)
+        summary_col.addLayout(name_row)
         summary_col.addWidget(total_label, 0, Qt.AlignmentFlag.AlignRight)
 
-        import_btn = QPushButton("ייבוא הוצאות מ־CSV", top_card)
-        import_btn.setObjectName("AddButton")
-        try:
-            import_btn.clicked.connect(
-                lambda _=None, acc=target: self._on_import_csv(acc)
-            )
-        except Exception:
-            pass
-        summary_col.addWidget(import_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        buttons_row = QHBoxLayout()
+        buttons_row.setSpacing(8)
 
+        if target.name == "בנק":
+            import_btn = QPushButton("ייבוא הוצאות מ־CSV", top_card)
+            import_btn.setObjectName("AddButton")
+            try:
+                import_btn.clicked.connect(
+                    lambda _=None, acc=target: self._on_import_csv(acc)
+                )
+            except Exception:
+                pass
+            try:
+                import_btn.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+                )
+            except Exception:
+                pass
+            buttons_row.addWidget(import_btn, 0, Qt.AlignmentFlag.AlignLeft)
+
+        buttons_col = QVBoxLayout()
+        buttons_col.setSpacing(0)
+        buttons_col.addStretch(1)
+        buttons_col.addLayout(buttons_row)
+
+        top_layout.addLayout(buttons_col, 0)
         top_layout.addStretch(1)
         top_layout.addLayout(summary_col, 1)
 
