@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Callable, Optional, Dict, List
 
 from ..qt import (
@@ -17,8 +15,10 @@ from ..qt import (
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.user_profile_store import UserProfileStore
 from ..models.user import UserProfile
+from ..utils.defaults import load_defaults
 from ..widgets.sidebar import Sidebar
 from ..widgets.bank_movement_actions import BankMovementActions
+from ..widgets.action_history_table import ActionHistoryTable
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..models.accounts import BankAccount
 from ..data.action_history_provider import JsonFileActionHistoryProvider
@@ -27,25 +27,6 @@ from ..models.bank_movement_service import BankMovementService
 from ..models.movement_classifier import SimilarityBasedClassifier
 from ..ui.bank_movement_dialog import BankMovementDialog
 from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
-
-
-def _load_default_full_name() -> str:
-    defaults_path = Path.cwd() / "defaults.json"
-    default_full_name = "אורח"
-
-    if defaults_path.exists():
-        try:
-            with defaults_path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict):
-                    user_defaults = data.get("user", {})
-                    default_full_name = str(
-                        user_defaults.get("default_full_name", default_full_name)
-                    )
-        except Exception:
-            pass
-
-    return default_full_name
 
 
 class BasePage(QWidget):
@@ -64,7 +45,10 @@ class BasePage(QWidget):
         self._accounts: List = self._provider.list_accounts()
         self._navigate = navigate
         self._user_store = UserProfileStore()
-        default_name = self._app_context.get("userName") or _load_default_full_name()
+        defaults = load_defaults()
+        default_name = self._app_context.get("userName") or defaults.get(
+            "default_full_name", "אורח"
+        )
         self._user: UserProfile = self._user_store.load(
             default_full_name=default_name,
             accounts=self._accounts,
@@ -274,9 +258,7 @@ class BasePage(QWidget):
                 pass
 
         try:
-            from ..widgets.action_history_table import ActionHistoryTable
-
-            history_table = self.findChild(ActionHistoryTable)
+            history_table = self._find_history_table()
             if history_table is not None and hasattr(
                 self._history_provider, "list_history"
             ):
@@ -292,6 +274,19 @@ class BasePage(QWidget):
             pass
 
         self._save_and_refresh_accounts()
+
+    def _load_and_refresh_accounts(self) -> None:
+        if self._accounts_service is not None:
+            try:
+                self._accounts = self._accounts_service.load_accounts()
+            except Exception:
+                pass
+
+        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
+            try:
+                self._sidebar.update_accounts(self._accounts)
+            except Exception:
+                pass
 
     def _save_and_refresh_accounts(self) -> None:
         svc = self._accounts_service
@@ -309,16 +304,8 @@ class BasePage(QWidget):
                 svc.save_all(self._accounts)
             except Exception:
                 pass
-            try:
-                self._accounts = svc.load_accounts()
-            except Exception:
-                pass
 
-        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
-            try:
-                self._sidebar.update_accounts(self._accounts)
-            except Exception:
-                pass
+        self._load_and_refresh_accounts()
 
         if isinstance(self._content_col, QVBoxLayout):
             layout = self._content_col
@@ -403,9 +390,7 @@ class BasePage(QWidget):
                     pass
 
         try:
-            from ..widgets.action_history_table import ActionHistoryTable
-
-            history_table = self.findChild(ActionHistoryTable)
+            history_table = self._find_history_table()
             if history_table is not None and hasattr(history_table, "_update_table"):
                 history_table._update_table()
         except Exception:
@@ -429,6 +414,17 @@ class BasePage(QWidget):
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         raise NotImplementedError("Subclasses must implement _build_content()")
+
+    def _find_history_table(self) -> Optional[ActionHistoryTable]:
+        widget = self.findChild(ActionHistoryTable)
+        if widget is not None:
+            return widget
+        top_level = self.window()
+        if top_level is not None:
+            for child in top_level.findChildren(ActionHistoryTable):
+                if child is not None:
+                    return child
+        return None
 
     def set_selected_savings_account(self, account_name: str) -> None:
         try:

@@ -16,6 +16,7 @@ from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..widgets.action_history_table import ActionHistoryTable
+from ..utils.formatting import format_currency
 from .base_page import BasePage
 
 
@@ -197,29 +198,12 @@ class HomePage(BasePage):
         main_col.addLayout(chart_row, 1)
 
     def on_route_activated(self) -> None:
-        try:
-            if self._accounts_service is not None:
-                self._accounts = self._accounts_service.load_accounts()
-        except Exception:
-            pass
-
-        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
-            try:
-                self._sidebar.update_accounts(self._accounts)
-            except Exception:
-                pass
+        self._load_and_refresh_accounts()
 
         try:
             history = self._history_provider.list_history()
-            history_table = self.findChild(ActionHistoryTable)
+            history_table = self._find_history_table()
             if history_table is not None:
                 history_table.set_history(history)
         except Exception:
             pass
-
-
-def format_currency(value: float) -> str:
-    try:
-        return f"₪{value:,.2f}"
-    except Exception:
-        return f"₪{value}"

@@ -34,6 +34,7 @@ from ..ui.savings_account_dialog import SavingsAccountDialog
 from ..ui.edit_savings_account_dialog import EditSavingsAccountDialog
 from ..ui.delete_savings_account_dialog import DeleteSavingsAccountDialog
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
+from ..utils.formatting import format_currency
 from .base_page import BasePage
 
 
@@ -565,10 +566,3 @@ class SavingsPage(BasePage):
         ok_btn.clicked.connect(on_accept)
         cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()
-
-
-def format_currency(value: float) -> str:
-    try:
-        return f"₪{value:,.2f}"
-    except Exception:
-        return f"₪{value}"

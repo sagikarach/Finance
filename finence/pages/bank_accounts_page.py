@@ -17,6 +17,7 @@ from ..models.accounts import BankAccount
 from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
 from ..widgets.accounts_pie_chart import AccountsPieChart
+from ..utils.formatting import format_currency
 from .base_page import BasePage
 
 
@@ -41,17 +42,7 @@ class BankAccountsPage(BasePage):
         )
 
     def on_route_activated(self) -> None:
-        if self._accounts_service is not None:
-            try:
-                self._accounts = self._accounts_service.load_accounts()
-            except Exception:
-                pass
-
-        if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
-            try:
-                self._sidebar.update_accounts(self._accounts)
-            except Exception:
-                pass
+        self._load_and_refresh_accounts()
 
         app = QApplication.instance()
         is_dark = False
@@ -166,10 +157,3 @@ class BankAccountsPage(BasePage):
             placeholder.setObjectName("Subtitle")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main_col.addWidget(placeholder, 1)
-
-
-def format_currency(value: float) -> str:
-    try:
-        return f"₪{value:,.2f}"
-    except Exception:
-        return f"₪{value}"

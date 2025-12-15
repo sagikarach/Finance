@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt, QComboBox
+from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt, QComboBox, QWidget
 
 
 def setup_standard_rtl_dialog(
@@ -31,6 +31,26 @@ def setup_standard_rtl_dialog(
     layout.setContentsMargins(*margins)
     layout.setSpacing(spacing)
     return layout
+
+
+def set_layout_direction_rtl(widget: QWidget) -> None:
+    try:
+        widget.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+    except Exception:
+        try:
+            widget.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+
+def set_layout_direction_ltr(widget: QWidget) -> None:
+    try:
+        widget.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+    except Exception:
+        try:
+            widget.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
 
 def create_standard_buttons_row(

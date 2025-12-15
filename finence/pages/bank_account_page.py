@@ -23,8 +23,8 @@ from ..models.action_history import (
     get_current_timestamp,
 )
 from ..widgets.bank_history_chart import create_bank_history_chart_card
+from ..utils.formatting import format_currency
 from .base_page import BasePage
-from .savings_page import format_currency
 
 
 class BankAccountPage(BasePage):
@@ -312,29 +312,15 @@ class BankAccountPage(BasePage):
                 pass
 
         try:
-            from ..widgets.action_history_table import ActionHistoryTable
-
-            def find_history_table(widget) -> Optional[ActionHistoryTable]:
-                if isinstance(widget, ActionHistoryTable):
-                    return widget
-                for child in widget.children():
-                    if isinstance(child, QWidget):
-                        result = find_history_table(child)
-                        if result is not None:
-                            return result
-                return None
-
-            top_level = self.window()
-            if top_level is not None:
-                history_table = find_history_table(top_level)
-                if history_table is not None and hasattr(
-                    self._history_provider, "list_history"
-                ):
-                    try:
-                        history = self._history_provider.list_history()
-                        history_table.set_history(history)
-                    except Exception:
-                        pass
+            history_table = self._find_history_table()
+            if history_table is not None and hasattr(
+                self._history_provider, "list_history"
+            ):
+                try:
+                    history = self._history_provider.list_history()
+                    history_table.set_history(history)
+                except Exception:
+                    pass
         except Exception:
             pass
 

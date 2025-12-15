@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
 import os
 import socket
 import subprocess
 import sys
 from io import TextIOWrapper
-from pathlib import Path
 from typing import Optional
 
 from .qt import QApplication
@@ -14,6 +12,7 @@ from .styles.theme import load_default_stylesheet
 from .ui.main_window import MainWindow
 from .ui.lock_dialog import LockDialog
 from .data.user_profile_store import UserProfileStore
+from .utils.defaults import load_defaults
 
 
 class FilteredStderr:
@@ -29,33 +28,6 @@ class FilteredStderr:
 
     def __getattr__(self, name: str) -> object:
         return getattr(self.original_stderr, name)
-
-
-def _load_defaults() -> dict:
-    defaults_path = Path.cwd() / "defaults.json"
-    default_theme = "light"
-    default_full_name = "אורח"
-
-    if defaults_path.exists():
-        try:
-            with defaults_path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict):
-                    user_defaults = data.get("user", {})
-                    app_defaults = data.get("app", {})
-                    default_full_name = str(
-                        user_defaults.get("default_full_name", default_full_name)
-                    )
-                    default_theme = str(
-                        app_defaults.get("default_theme", default_theme)
-                    )
-        except Exception:
-            pass
-
-    return {
-        "default_full_name": default_full_name,
-        "default_theme": default_theme,
-    }
 
 
 def _ensure_ollama_running() -> None:
@@ -100,7 +72,7 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     app.setApplicationName("Finence")
     app.setOrganizationName("Finence")
 
-    defaults = _load_defaults()
+    defaults = load_defaults()
 
     app.setStyleSheet(load_default_stylesheet())
     try:

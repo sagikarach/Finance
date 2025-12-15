@@ -24,8 +24,8 @@ from ..models.accounts import SavingsAccount
 from ..models.accounts_service import AccountsService
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..widgets.savings_history_chart import create_savings_history_chart_card
+from ..utils.formatting import format_currency
 from .base_page import BasePage
-from .savings_page import format_currency
 
 
 class SavingsAccountPage(BasePage):

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional
 
 from ..models.accounts import MoneyAccount
+from ..utils.formatting import format_currency as format_currency_compact
 from ..qt import (
     QLabel,
     QVBoxLayout,
@@ -241,7 +242,7 @@ class AccountsPieChart(QWidget):
                       <div style='font-weight:700; margin-bottom:4px;'>{name}</div>
                       <div>
                         <span style='display:inline-block;width:10px;height:10px;background:{_qcolor_to_hex(slice_obj.brush().color())};margin-left:6px;border-radius:2px;'></span>
-                        {percent:.1f}% · {format_currency(amount)}
+                        {percent:.1f}% · {format_currency_compact(amount, use_compact=True)}
                       </div>
                     </div>
                     """
@@ -270,13 +271,6 @@ class AccountsPieChart(QWidget):
                 pass
         except Exception:
             pass
-
-
-def format_currency(value: float) -> str:
-    try:
-        return f"₪{value:,.0f}" if abs(value) >= 1000 else f"₪{value:,.2f}"
-    except Exception:
-        return f"₪{value}"
 
 
 def _qcolor_to_hex(c: QColor) -> str:

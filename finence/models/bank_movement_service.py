@@ -206,7 +206,6 @@ class BankMovementService:
         is_income_hint: Optional[bool] = None,
         record_history: bool = True,
     ) -> List[MoneyAccount]:
-        movement = self._classify_if_needed(movement, is_income_hint)
         try:
             self.movement_provider.add_movement(movement)
         except Exception:
@@ -338,11 +337,6 @@ class BankMovementService:
                 updated_accounts.append(acc)
 
         return updated_accounts
-
-    def _classify_if_needed(
-        self, movement: BankMovement, is_income_hint: Optional[bool]
-    ) -> BankMovement:
-        return movement
 
     def import_outcome_csv(
         self,
