@@ -6,6 +6,13 @@ from .monthly_report import (
     CategoryMonthlyBreakdown,
     MonthlyReport,
 )
+from .yearly_report import (
+    YearlyMovementSummary,
+    CategoryYearlyBreakdown,
+    MonthlyInYearSummary,
+    YearlyReport,
+    MonthTypeSummary,
+)
 
 __all__ = [
     "BankAccount",
@@ -18,4 +25,9 @@ __all__ = [
     "MonthlyMovementSummary",
     "CategoryMonthlyBreakdown",
     "MonthlyReport",
+    "YearlyMovementSummary",
+    "CategoryYearlyBreakdown",
+    "MonthlyInYearSummary",
+    "YearlyReport",
+    "MonthTypeSummary",
 ]

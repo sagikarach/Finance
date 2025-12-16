@@ -28,11 +28,15 @@ class SidebarNavigation:
         self._savings_button_container: Optional[QWidget] = None
         self._monthly_data_btn: Optional[QPushButton] = None
         self._monthly_data_container: Optional[QWidget] = None
+        self._yearly_summary_btn: Optional[QPushButton] = None
+        self._yearly_summary_toggle_btn: Optional[QPushButton] = None
+        self._yearly_summary_container: Optional[QWidget] = None
 
         self._setup_dashboard_button()
         self._setup_bank_button()
         self._setup_savings_button()
         self._setup_monthly_data_button()
+        self._setup_yearly_summary_button()
 
     def _setup_dashboard_button(self) -> None:
         button_container = QWidget(self._parent)
@@ -175,6 +179,46 @@ class SidebarNavigation:
         self._monthly_data_container = button_container
         self._layout.addWidget(button_container)
 
+    def _setup_yearly_summary_button(self) -> None:
+        button_container = QWidget(self._parent)
+        button_container_layout = QHBoxLayout(button_container)
+        button_container_layout.setContentsMargins(0, 0, 0, 0)
+        button_container_layout.setSpacing(0)
+
+        is_yearly_section = self._current_route in (
+            "yearly_data",
+            "yearly_category_trends",
+        )
+        self._yearly_summary_btn = QPushButton("סיכום שנתי", self._parent)
+        self._yearly_summary_btn.setObjectName("SidebarNavButton")
+        self._yearly_summary_btn.setCheckable(True)
+        self._yearly_summary_btn.setChecked(is_yearly_section)
+        self._yearly_summary_btn.setEnabled(True)
+        try:
+            self._yearly_summary_btn.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
+        except Exception:
+            pass
+
+        self._yearly_summary_toggle_btn = QPushButton("▼", self._parent)
+        self._yearly_summary_toggle_btn.setObjectName("SidebarNavToggle")
+        self._yearly_summary_toggle_btn.setFixedWidth(32)
+        self._yearly_summary_toggle_btn.setCheckable(True)
+        self._yearly_summary_toggle_btn.setChecked(False)
+        self._yearly_summary_toggle_btn.setVisible(is_yearly_section)
+        try:
+            self._yearly_summary_toggle_btn.raise_()
+        except Exception:
+            pass
+
+        placeholder = QWidget(button_container)
+        placeholder.setMinimumHeight(40)
+        button_container_layout.addWidget(placeholder)
+
+        self._yearly_summary_container = button_container
+        self._layout.addWidget(button_container)
+
     def get_dashboard_button(self) -> Optional[QPushButton]:
         return self._dashboard_btn
 
@@ -204,6 +248,15 @@ class SidebarNavigation:
 
     def get_monthly_data_container(self) -> Optional[QWidget]:
         return self._monthly_data_container
+
+    def get_yearly_summary_button(self) -> Optional[QPushButton]:
+        return self._yearly_summary_btn
+
+    def get_yearly_summary_toggle_button(self) -> Optional[QPushButton]:
+        return self._yearly_summary_toggle_btn
+
+    def get_yearly_summary_container(self) -> Optional[QWidget]:
+        return self._yearly_summary_container
 
     def connect_savings_handlers(
         self,

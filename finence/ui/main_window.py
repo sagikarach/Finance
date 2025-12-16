@@ -9,6 +9,8 @@ from ..pages.savings_account_page import SavingsAccountPage
 from ..pages.bank_accounts_page import BankAccountsPage
 from ..pages.bank_account_page import BankAccountPage
 from ..pages.monthly_data_page import MonthlyDataPage
+from ..pages.yearly_summary_page import YearlySummaryPage
+from ..pages.yearly_category_trends_page import YearlyCategoryTrendsPage
 from ..qt import QAction, QMainWindow, QStackedWidget
 from .router import Router
 
@@ -83,6 +85,22 @@ class MainWindow(QMainWindow):
         self.router.register(
             "monthly_data",
             lambda: MonthlyDataPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
+            "yearly_data",
+            lambda: YearlySummaryPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
+            "yearly_category_trends",
+            lambda: YearlyCategoryTrendsPage(
                 app_context=self._app_context,
                 parent=self._stack,
                 navigate=self.router.navigate,

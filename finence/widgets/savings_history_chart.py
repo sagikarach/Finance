@@ -42,12 +42,19 @@ class ShadowChartView(QChartView):
         tooltip_specs: List[tuple[QLineSeries, str, List[float]]],
         format_amount: Callable[[float], str],
         parent: Optional[QWidget] = None,
+        *,
+        x_labels: Optional[List[str]] = None,
+        on_series_clicked: Optional[Callable[[str], None]] = None,
+        click_threshold_px: int = 26,
     ) -> None:
         super().__init__(chart, parent)
         self._shadows: List[tuple[QLineSeries, QColor]] = shadows
         self._month_keys: List[tuple[int, int]] = month_keys
         self._tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = tooltip_specs
         self._format_amount = format_amount
+        self._x_labels: Optional[List[str]] = x_labels
+        self._on_series_clicked = on_series_clicked
+        self._click_threshold2 = int(click_threshold_px) * int(click_threshold_px)
         try:
             self.setMouseTracking(True)
         except Exception:
@@ -134,10 +141,12 @@ class ShadowChartView(QChartView):
             try:
                 painter.setPen(Qt.PenStyle.NoPen)
             except Exception:
-                try:
-                    painter.setPen(Qt.NoPen)  # type: ignore[attr-defined]
-                except Exception:
-                    pass
+                no_pen = getattr(Qt, "NoPen", None)
+                if no_pen is not None:
+                    try:
+                        painter.setPen(no_pen)
+                    except Exception:
+                        pass
             if gradient is not None:
                 painter.setBrush(gradient)
             else:
@@ -209,15 +218,82 @@ class ShadowChartView(QChartView):
         if best_name is None or best_amount is None:
             return
 
-        year, month = self._month_keys[idx]
-        if year > 0:
-            month_label = f"{month:02d}/{year % 100:02d}"
-        else:
-            month_label = str(idx)
+        month_label = None
+        if self._x_labels is not None and idx < len(self._x_labels):
+            month_label = str(self._x_labels[idx])
+        if month_label is None:
+            year, month = self._month_keys[idx]
+            if year > 0:
+                month_label = f"{month:02d}/{year % 100:02d}"
+            else:
+                month_label = str(idx)
 
         text = f"{best_name}\n{month_label}: {self._format_amount(best_amount)}"
         try:
             QToolTip.showText(QCursor.pos(), text, self)
+        except Exception:
+            pass
+
+    def mousePressEvent(self, event) -> None:
+        try:
+            super().mousePressEvent(event)
+        except Exception:
+            pass
+
+        if self._on_series_clicked is None:
+            return
+        if not self._month_keys or not self._tooltip_specs:
+            return
+
+        chart = None
+        try:
+            chart = self.chart()
+        except Exception:
+            chart = None
+        if chart is None:
+            return
+
+        try:
+            pos = event.position()
+        except Exception:
+            pos = event.pos()
+
+        best_name: Optional[str] = None
+        best_dist2: Optional[float] = None
+
+        for series, name, _values in self._tooltip_specs:
+            pts = []
+            try:
+                pts = list(series.points())
+            except Exception:
+                try:
+                    pts = list(series.pointsVector())
+                except Exception:
+                    pts = []
+            if not pts:
+                continue
+
+            for pt in pts:
+                try:
+                    series_pos = chart.mapToPosition(pt, series)
+                except Exception:
+                    continue
+                dx = float(series_pos.x() - pos.x())
+                dy = float(series_pos.y() - pos.y())
+                dist2 = dx * dx + dy * dy
+                if best_dist2 is None or dist2 < best_dist2:
+                    best_dist2 = dist2
+                    best_name = name
+                    if best_dist2 <= float(self._click_threshold2) * 0.25:
+                        break
+
+        if best_name is None or best_dist2 is None:
+            return
+        if float(best_dist2) > float(self._click_threshold2):
+            return
+
+        try:
+            self._on_series_clicked(best_name)
         except Exception:
             pass
 

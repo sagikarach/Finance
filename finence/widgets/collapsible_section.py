@@ -83,46 +83,10 @@ class CollapsibleButtonList(QWidget):
         self._title_btn.clicked.connect(self._on_header_clicked)
 
     def set_items(self, items: Iterable[Tuple[str, Callable[[], None]]]) -> None:
-        while self._content_layout.count():
-            item = self._content_layout.takeAt(0)
-            w = item.widget()
-            if w is not None:
-                w.deleteLater()
-
+        self.clear_content()
         self._items = list(items)
-
         for label, callback in self._items:
-            row = QWidget(self._content)
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 8, 0)
-            row_layout.setSpacing(0)
-
-            left_spacer = QLabel("", row)
-            left_spacer.setFixedWidth(24)
-
-            btn = QPushButton(label, row)
-            btn.setObjectName("SidebarNavSubButton")
-            btn.setCheckable(False)
-            try:
-                btn.setSizePolicy(
-                    QSizePolicy.Policy.Expanding,
-                    QSizePolicy.Policy.Preferred,
-                )
-            except Exception:
-                pass
-
-            right_arrow = QLabel("", row)
-            right_arrow.setObjectName("SidebarNavSubArrow")
-            right_arrow.setFixedWidth(20)
-            right_arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-            row_layout.addWidget(left_spacer, 0)
-            row_layout.addWidget(btn, 1)
-            row_layout.addWidget(right_arrow, 0)
-
-            btn.clicked.connect(lambda _=False, cb=callback: cb())
-
-            self._content_layout.addWidget(row)
+            self.add_button_item(label, callback)
 
         if self._items and self._layout_index is not None:
             parent = self.parentWidget()
@@ -163,6 +127,56 @@ class CollapsibleButtonList(QWidget):
             except Exception:
                 pass
 
+    def clear_content(self) -> None:
+        while self._content_layout.count():
+            item = self._content_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+
+    def add_widget(self, widget: QWidget) -> None:
+        try:
+            widget.setParent(self._content)
+        except Exception:
+            pass
+        self._content_layout.addWidget(widget)
+        self._apply_visibility()
+
+    def add_button_item(self, label: str, callback: Callable[[], None]) -> None:
+        row = QWidget(self._content)
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 8, 0)
+        row_layout.setSpacing(0)
+
+        left_spacer = QLabel("", row)
+        left_spacer.setFixedWidth(24)
+
+        btn = QPushButton(label, row)
+        btn.setObjectName("SidebarNavSubButton")
+        btn.setCheckable(False)
+        try:
+            btn.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Preferred,
+            )
+        except Exception:
+            pass
+
+        right_arrow = QLabel("", row)
+        right_arrow.setObjectName("SidebarNavSubArrow")
+        right_arrow.setFixedWidth(20)
+        right_arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        row_layout.addWidget(left_spacer, 0)
+        row_layout.addWidget(btn, 1)
+        row_layout.addWidget(right_arrow, 0)
+
+        btn.clicked.connect(lambda _=False, cb=callback: cb())
+
+        self._content_layout.addWidget(row)
+        self._apply_visibility()
+
     def set_expanded(self, expanded: bool) -> None:
         if self._expanded == expanded:
             return
@@ -187,7 +201,7 @@ class CollapsibleButtonList(QWidget):
         self._apply_visibility()
 
     def refresh_theme(self) -> None:
-        has_items = bool(self._items)
+        has_items = self._has_content()
         show_content = self._expanded and has_items
 
         if show_content:
@@ -196,7 +210,7 @@ class CollapsibleButtonList(QWidget):
             self._apply_collapsed_style()
 
     def _apply_visibility(self) -> None:
-        has_items = bool(self._items)
+        has_items = self._has_content()
         show_content = self._expanded and has_items
 
         self._content.setVisible(show_content)
@@ -215,12 +229,24 @@ class CollapsibleButtonList(QWidget):
             if show_content:
                 self.setMinimumHeight(0)
                 self.setMaximumHeight(16777215)
+                try:
+                    self._header.setMinimumHeight(0)
+                    self._header.setMaximumHeight(16777215)
+                except Exception:
+                    pass
                 self.show()
                 self._apply_pressed_style()
             else:
                 h = self._header.sizeHint().height()
-                self.setMinimumHeight(0)
+                if h <= 0:
+                    h = 40
+                self.setMinimumHeight(h)
                 self.setMaximumHeight(h)
+                try:
+                    self._header.setMinimumHeight(h)
+                    self._header.setMaximumHeight(h)
+                except Exception:
+                    pass
                 self._apply_collapsed_style()
                 self.show()
         else:
@@ -286,6 +312,12 @@ class CollapsibleButtonList(QWidget):
                 self.setMaximumHeight(0)
                 self.hide()
                 self.updateGeometry()
+
+    def _has_content(self) -> bool:
+        try:
+            return self._content_layout.count() > 0
+        except Exception:
+            return bool(self._items)
 
     def _on_header_clicked(self) -> None:
         self.toggle()

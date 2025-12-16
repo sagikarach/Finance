@@ -10,6 +10,42 @@ def load_home_page_light_styles() -> str:
         letter-spacing: .2px;
         background: transparent;
     }
+    QWidget#TrendsControlsBar QLabel {
+        font-size: 18px;
+        font-weight: 600;
+        color: #0b1220;
+        background: transparent;
+    }
+    QWidget#TrendsControlsBar QCheckBox {
+        font-size: 18px;
+        font-weight: 600;
+        color: #0b1220;
+        background: transparent;
+        spacing: 0px;
+        padding: 0px;
+        margin: 0px;
+    }
+    QWidget#TrendsControlsBar QCheckBox::indicator {
+        width: 18px;
+        height: 18px;
+        margin-left: 6px;
+        margin-right: 6px;
+    }
+    QWidget#TrendsControlsBar QComboBox {
+        font-size: 18px;
+        font-weight: 600;
+        color: #0b1220;
+    }
+    QLabel#TrendsControlsLabel {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0b1220;
+        background: transparent;
+    }
+    QWidget#TrendsControlsDividerLine {
+        background: #0b1220;
+        border-radius: 1px;
+    }
     QLabel#StatValueLarge {
         font-size: 56px;
         font-weight: 900;
@@ -119,6 +155,42 @@ def load_home_page_dark_styles() -> str:
         color: #e5e7eb;
         letter-spacing: .2px;
         background: transparent;
+    }
+    QWidget#TrendsControlsBar QLabel {
+        font-size: 18px;
+        font-weight: 600;
+        color: #e5e7eb;
+        background: transparent;
+    }
+    QWidget#TrendsControlsBar QCheckBox {
+        font-size: 18px;
+        font-weight: 600;
+        color: #e5e7eb;
+        background: transparent;
+        spacing: 0px;
+        padding: 0px;
+        margin: 0px;
+    }
+    QWidget#TrendsControlsBar QCheckBox::indicator {
+        width: 18px;
+        height: 18px;
+        margin-left: 6px;
+        margin-right: 6px;
+    }
+    QWidget#TrendsControlsBar QComboBox {
+        font-size: 18px;
+        font-weight: 600;
+        color: #e5e7eb;
+    }
+    QLabel#TrendsControlsLabel {
+        font-size: 18px;
+        font-weight: 700;
+        color: #e5e7eb;
+        background: transparent;
+    }
+    QWidget#TrendsControlsDividerLine {
+        background: #e5e7eb;
+        border-radius: 1px;
     }
     QLabel#StatValueLarge {
         font-size: 56px;

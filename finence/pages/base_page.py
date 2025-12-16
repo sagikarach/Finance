@@ -189,6 +189,37 @@ class BasePage(QWidget):
     def _build_header_left_buttons(self) -> List[QToolButton]:
         return []
 
+    def _clear_content_layout(self, layout: QVBoxLayout) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+            else:
+                sub_layout = item.layout()
+                if sub_layout is not None:
+                    self._clear_layout_recursive(sub_layout)
+                    sub_layout.deleteLater()
+
+        try:
+            QApplication.processEvents()
+        except Exception:
+            pass
+
+    def _clear_layout_recursive(self, layout) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+            else:
+                sub_layout = item.layout()
+                if sub_layout is not None:
+                    self._clear_layout_recursive(sub_layout)
+                    sub_layout.deleteLater()
+
     def _on_add_income(self) -> None:
         self._open_bank_movement_dialog(is_income=True)
 
@@ -339,12 +370,12 @@ class BasePage(QWidget):
                 return
             try:
                 if checked:
-                    app_.setStyleSheet(load_dark_stylesheet())  # type: ignore[attr-defined]
                     app_.setProperty("theme", "dark")
+                    app_.setStyleSheet(load_dark_stylesheet())  # type: ignore[attr-defined]
                     theme_btn.setText("🌙")
                 else:
-                    app_.setStyleSheet(load_default_stylesheet())  # type: ignore[attr-defined]
                     app_.setProperty("theme", "light")
+                    app_.setStyleSheet(load_default_stylesheet())  # type: ignore[attr-defined]
                     theme_btn.setText("☀")
                 self._on_theme_changed(checked)
             except Exception:

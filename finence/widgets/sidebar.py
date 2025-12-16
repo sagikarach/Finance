@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional
 
-from ..qt import Qt, QVBoxLayout, QWidget
+from ..qt import Qt, QVBoxLayout, QWidget, QScrollArea, QFrame
 from ..models.accounts import BankAccount, MoneyAccount, SavingsAccount
 from ..models.sidebar import SidebarSectionState
 from ..models.user import UserProfile
@@ -16,6 +16,7 @@ from .sidebar_positioning import (
     update_bank_button_width,
     update_dashboard_button_width,
     update_monthly_data_button_width,
+    update_yearly_summary_button_width,
     update_savings_accounts_container_width,
     update_savings_button_width,
 )
@@ -41,11 +42,14 @@ class Sidebar(QWidget):
         self._selected_savings_account = selected_savings_account
         self._setup_sidebar()
         layout = self._create_layout()
-        self._avatar = SidebarAvatar(self, user, store, layout)
-        self._navigation = SidebarNavigation(self, layout, navigate, current_route)
+        content_parent = getattr(self, "_scroll_content", self)
+        self._avatar = SidebarAvatar(content_parent, user, store, layout)
+        self._navigation = SidebarNavigation(
+            content_parent, layout, navigate, current_route
+        )
 
         self._bank_section = CollapsibleButtonList(
-            self,
+            content_parent,
             title="חשבונות",
             header_object_name="SidebarNavButton",
             header_tooltip="חשבונות בנק",
@@ -57,7 +61,7 @@ class Sidebar(QWidget):
             pass
 
         self._savings_section = CollapsibleButtonList(
-            self,
+            content_parent,
             title="חסכונות",
             header_object_name="SidebarNavButtonSavings",
             header_tooltip="חסכונות",
@@ -94,6 +98,46 @@ class Sidebar(QWidget):
         else:
             layout.addWidget(self._savings_section)
 
+        self._yearly_summary_section = CollapsibleButtonList(
+            content_parent,
+            title="סיכום שנתי",
+            header_object_name="SidebarNavButton",
+            header_tooltip="סיכום שנתי",
+        )
+        try:
+            self._yearly_summary_section.set_header_visible(False)
+            self._yearly_summary_section.set_expanded(False)
+        except Exception:
+            pass
+        try:
+            nav = self._navigate
+            if nav is not None:
+                self._yearly_summary_section.set_items(
+                    [
+                        ("סיכום ע״פ קטגוריות", lambda: nav("yearly_category_trends")),
+                        ("פירוט שנה", lambda: nav("yearly_data")),
+                    ]
+                )
+        except Exception:
+            pass
+
+        yearly_container = (
+            self._navigation.get_yearly_summary_container()
+            if hasattr(self._navigation, "get_yearly_summary_container")
+            else None
+        )
+        if yearly_container is not None:
+            try:
+                idx_yearly = layout.indexOf(yearly_container)
+                if idx_yearly != -1:
+                    layout.insertWidget(idx_yearly + 1, self._yearly_summary_section)
+                else:
+                    layout.addWidget(self._yearly_summary_section)
+            except Exception:
+                layout.addWidget(self._yearly_summary_section)
+        else:
+            layout.addWidget(self._yearly_summary_section)
+
         layout.addStretch(1)
 
         self._rebuild_bank_items()
@@ -126,6 +170,26 @@ class Sidebar(QWidget):
             except Exception:
                 pass
 
+        try:
+            layout.invalidate()
+            layout.activate()
+        except Exception:
+            pass
+        try:
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(0, self._update_button_width)
+        except Exception:
+            try:
+                from PyQt6.QtCore import QTimer  # type: ignore
+
+                QTimer.singleShot(0, self._update_button_width)
+            except Exception:
+                try:
+                    self._update_button_width()
+                except Exception:
+                    pass
+
     def _setup_sidebar(self) -> None:
         self.setObjectName("Sidebar")
         try:
@@ -134,10 +198,123 @@ class Sidebar(QWidget):
             pass
 
     def _create_layout(self) -> QVBoxLayout:
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 16, 0, 16)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 16, 0, 16)
+        root.setSpacing(0)
+
+        self._scroll = QScrollArea(self)
+        self._scroll.setObjectName("SidebarScrollArea")
+        self._scroll.setWidgetResizable(True)
+        try:
+            self._scroll.setFrameShape(QFrame.Shape.NoFrame)
+        except Exception:
+            try:
+                self._scroll.setFrameShape(QFrame.NoFrame)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        try:
+            self._scroll.setHorizontalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+            )
+            self._scroll.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAsNeeded
+            )
+        except Exception:
+            try:
+                self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # type: ignore[attr-defined]
+                self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        self._schedule_sidebar_scrollbar_style_update(delay_ms=0)
+
+        self._scroll_content = QWidget(self._scroll)
+        layout = QVBoxLayout(self._scroll_content)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        self._scroll.setWidget(self._scroll_content)
+        root.addWidget(self._scroll, 1)
         return layout
+
+    def _schedule_sidebar_scrollbar_style_update(self, *, delay_ms: int = 0) -> None:
+        try:
+            from PySide6.QtCore import QTimer
+
+            QTimer.singleShot(delay_ms, self._apply_sidebar_scrollbar_style)
+            return
+        except Exception:
+            pass
+        try:
+            from PyQt6.QtCore import QTimer  # type: ignore
+
+            QTimer.singleShot(delay_ms, self._apply_sidebar_scrollbar_style)
+            return
+        except Exception:
+            pass
+        try:
+            self._apply_sidebar_scrollbar_style()
+        except Exception:
+            pass
+
+    def _apply_sidebar_scrollbar_style(self) -> None:
+        try:
+            from ..qt import QApplication
+        except Exception:
+            QApplication = None  # type: ignore
+
+        is_dark = False
+        try:
+            if QApplication is not None:
+                app = QApplication.instance()
+                if app is not None:
+                    is_dark = str(app.property("theme") or "light") == "dark"
+        except Exception:
+            is_dark = False
+
+        handle = "#4b5563" if is_dark else "#9fc6f7"
+        handle_hover = "#6b7280" if is_dark else "#9fc6f7"
+
+        try:
+            if hasattr(self, "_scroll") and self._scroll is not None:
+                self._scroll.setStyleSheet(
+                    f"""
+                    QScrollArea#SidebarScrollArea QScrollBar:vertical {{
+                        background: transparent;
+                        width: 8px;
+                        margin: 8px 2px 8px 2px;
+                        border: none;
+                    }}
+                    QScrollArea#SidebarScrollArea QScrollBar::handle:vertical {{
+                        background: {handle};
+                        border-radius: 999px;
+                        min-height: 24px;
+                    }}
+                    QScrollArea#SidebarScrollArea QScrollBar::handle:vertical:hover {{
+                        background: {handle_hover};
+                    }}
+                    QScrollArea#SidebarScrollArea QScrollBar::add-line:vertical,
+                    QScrollArea#SidebarScrollArea QScrollBar::sub-line:vertical {{
+                        background: transparent;
+                        border: none;
+                        height: 0px;
+                        width: 0px;
+                    }}
+                    QScrollArea#SidebarScrollArea QScrollBar::up-arrow,
+                    QScrollArea#SidebarScrollArea QScrollBar::down-arrow {{
+                        background: none;
+                        border: none;
+                        width: 0px;
+                        height: 0px;
+                    }}
+                    QScrollArea#SidebarScrollArea QScrollBar:horizontal {{
+                        height: 0px;
+                    }}
+                    QScrollArea#SidebarScrollArea::corner {{
+                        background: transparent;
+                    }}
+                    """
+                )
+        except Exception:
+            pass
 
     def _connect_handlers(self) -> None:
         self._navigation.connect_savings_handlers(
@@ -153,6 +330,62 @@ class Sidebar(QWidget):
                 )
             except Exception:
                 pass
+        try:
+            yearly_btn = (
+                self._navigation.get_yearly_summary_button()
+                if hasattr(self._navigation, "get_yearly_summary_button")
+                else None
+            )
+            yearly_toggle = (
+                self._navigation.get_yearly_summary_toggle_button()
+                if hasattr(self._navigation, "get_yearly_summary_toggle_button")
+                else None
+            )
+            if yearly_btn is not None:
+                yearly_btn.clicked.connect(self._on_yearly_clicked)
+            if yearly_toggle is not None:
+                yearly_toggle.clicked.connect(self._on_toggle_yearly_summary)
+        except Exception:
+            pass
+
+    def _on_yearly_clicked(self) -> None:
+        if self._navigate is not None:
+            self._navigate("yearly_data")
+        try:
+            if not self._yearly_summary_section.is_expanded():
+                self._on_toggle_yearly_summary()
+        except Exception:
+            pass
+
+    def _on_toggle_yearly_summary(self) -> None:
+        if not hasattr(self, "_yearly_summary_section"):
+            return
+        toggle_btn = (
+            self._navigation.get_yearly_summary_toggle_button()
+            if hasattr(self._navigation, "get_yearly_summary_toggle_button")
+            else None
+        )
+        yearly_btn = (
+            self._navigation.get_yearly_summary_button()
+            if hasattr(self._navigation, "get_yearly_summary_button")
+            else None
+        )
+        is_expanded = False
+        try:
+            currently = self._yearly_summary_section.is_expanded()
+            self._yearly_summary_section.set_expanded(not currently)
+            is_expanded = self._yearly_summary_section.is_expanded()
+        except Exception:
+            return
+        if toggle_btn:
+            toggle_btn.setChecked(is_expanded)
+            toggle_btn.setText("▲" if is_expanded else "▼")
+            toggle_btn.setVisible(True)
+        if yearly_btn:
+            yearly_btn.setStyleSheet(
+                "border-bottom-color: transparent;" if is_expanded else ""
+            )
+        self._update_button_width()
 
     def _on_toggle_savings_list(self) -> None:
         if not hasattr(self, "_savings_section"):
@@ -338,6 +571,11 @@ class Sidebar(QWidget):
                     QTimer.singleShot(50, self._update_button_width)
                     self._apply_toggle_button_style()
                     self._refresh_collapsible_sections()
+                    try:
+                        self._apply_sidebar_scrollbar_style()
+                    except Exception:
+                        pass
+                    QTimer.singleShot(0, self._apply_sidebar_scrollbar_style)
             except Exception:
                 try:
                     from PyQt6.QtCore import QEvent, QTimer  # type: ignore
@@ -346,6 +584,11 @@ class Sidebar(QWidget):
                         QTimer.singleShot(50, self._update_button_width)
                         self._apply_toggle_button_style()
                         self._refresh_collapsible_sections()
+                        try:
+                            self._apply_sidebar_scrollbar_style()
+                        except Exception:
+                            pass
+                        QTimer.singleShot(0, self._apply_sidebar_scrollbar_style)
                 except Exception:
                     pass
 
@@ -360,6 +603,11 @@ class Sidebar(QWidget):
         if hasattr(self, "_bank_section"):
             try:
                 self._bank_section.refresh_theme()
+            except Exception:
+                pass
+        if hasattr(self, "_yearly_summary_section"):
+            try:
+                self._yearly_summary_section.refresh_theme()
             except Exception:
                 pass
 
@@ -394,6 +642,15 @@ class Sidebar(QWidget):
             sidebar_width,
             getattr(self._navigation, "get_monthly_data_container", lambda: None)(),
             getattr(self._navigation, "get_monthly_data_button", lambda: None)(),
+        )
+        update_yearly_summary_button_width(
+            self,
+            sidebar_width,
+            getattr(self._navigation, "get_yearly_summary_container", lambda: None)(),
+            getattr(self._navigation, "get_yearly_summary_button", lambda: None)(),
+            getattr(
+                self._navigation, "get_yearly_summary_toggle_button", lambda: None
+            )(),
         )
 
         update_savings_accounts_container_width(
@@ -438,6 +695,8 @@ class Sidebar(QWidget):
         is_savings = route == "savings"
         is_savings_section = route in ("savings", "savings_account")
         is_monthly_data = route == "monthly_data"
+        is_yearly_root = route == "yearly_data"
+        is_yearly_section = route in ("yearly_data", "yearly_category_trends")
 
         dashboard_btn.blockSignals(True)
         dashboard_btn.setChecked(is_home)
@@ -497,6 +756,43 @@ class Sidebar(QWidget):
             monthly_data_btn.setChecked(is_monthly_data)
             monthly_data_btn.setEnabled(not is_monthly_data)
             monthly_data_btn.blockSignals(False)
+
+        yearly_toggle = (
+            self._navigation.get_yearly_summary_toggle_button()
+            if hasattr(self._navigation, "get_yearly_summary_toggle_button")
+            else None
+        )
+        yearly_btn = (
+            self._navigation.get_yearly_summary_button()
+            if hasattr(self._navigation, "get_yearly_summary_button")
+            else None
+        )
+        if yearly_btn:
+            yearly_btn.blockSignals(True)
+            yearly_btn.setChecked(is_yearly_section)
+            yearly_btn.setEnabled(not is_yearly_root)
+            yearly_btn.blockSignals(False)
+        if hasattr(self, "_yearly_summary_section"):
+            try:
+                if is_yearly_section:
+                    self._yearly_summary_section.set_expanded(True)
+                else:
+                    self._yearly_summary_section.set_expanded(False)
+            except Exception:
+                pass
+
+        if hasattr(self, "_yearly_summary_section") and yearly_toggle is not None:
+            try:
+                is_expanded = self._yearly_summary_section.is_expanded()
+                yearly_toggle.setChecked(is_expanded)
+                yearly_toggle.setText("▲" if is_expanded else "▼")
+                yearly_toggle.setVisible(is_yearly_section)
+                if yearly_btn:
+                    yearly_btn.setStyleSheet(
+                        "border-bottom-color: transparent;" if is_expanded else ""
+                    )
+            except Exception:
+                pass
 
         savings_btn = self._navigation.get_savings_button()
         if savings_btn:
