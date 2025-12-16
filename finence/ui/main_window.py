@@ -8,6 +8,7 @@ from ..pages.savings_page import SavingsPage
 from ..pages.savings_account_page import SavingsAccountPage
 from ..pages.bank_accounts_page import BankAccountsPage
 from ..pages.bank_account_page import BankAccountPage
+from ..pages.monthly_data_page import MonthlyDataPage
 from ..qt import QAction, QMainWindow, QStackedWidget
 from .router import Router
 
@@ -74,6 +75,14 @@ class MainWindow(QMainWindow):
         self.router.register(
             "bank_account",
             lambda: BankAccountPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
+            "monthly_data",
+            lambda: MonthlyDataPage(
                 app_context=self._app_context,
                 parent=self._stack,
                 navigate=self.router.navigate,

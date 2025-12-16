@@ -15,6 +15,7 @@ from .sidebar_styling import apply_toggle_button_style
 from .sidebar_positioning import (
     update_bank_button_width,
     update_dashboard_button_width,
+    update_monthly_data_button_width,
     update_savings_accounts_container_width,
     update_savings_button_width,
 )
@@ -388,6 +389,13 @@ class Sidebar(QWidget):
             self._navigation.get_savings_toggle_button(),
         )
 
+        update_monthly_data_button_width(
+            self,
+            sidebar_width,
+            getattr(self._navigation, "get_monthly_data_container", lambda: None)(),
+            getattr(self._navigation, "get_monthly_data_button", lambda: None)(),
+        )
+
         update_savings_accounts_container_width(
             self,
             sidebar_width,
@@ -429,6 +437,7 @@ class Sidebar(QWidget):
         is_bank_section = route in ("bank_accounts", "bank_account")
         is_savings = route == "savings"
         is_savings_section = route in ("savings", "savings_account")
+        is_monthly_data = route == "monthly_data"
 
         dashboard_btn.blockSignals(True)
         dashboard_btn.setChecked(is_home)
@@ -477,6 +486,17 @@ class Sidebar(QWidget):
                     bank_toggle_btn.setVisible(False)
                     bank_toggle_btn.setChecked(False)
                     bank_toggle_btn.setText("▼")
+
+        monthly_data_btn = (
+            self._navigation.get_monthly_data_button()
+            if hasattr(self._navigation, "get_monthly_data_button")
+            else None
+        )
+        if monthly_data_btn:
+            monthly_data_btn.blockSignals(True)
+            monthly_data_btn.setChecked(is_monthly_data)
+            monthly_data_btn.setEnabled(not is_monthly_data)
+            monthly_data_btn.blockSignals(False)
 
         savings_btn = self._navigation.get_savings_button()
         if savings_btn:

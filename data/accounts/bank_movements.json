@@ -628,5 +628,59 @@
     "type": "חודשי",
     "description": "מוסלין ירושלים",
     "id": "b74e1643-1309-4248-b2b8-564e8454019a"
+  },
+  {
+    "amount": 200.0,
+    "date": "2025-12-16",
+    "account_name": "בנק",
+    "category": "מתנה",
+    "type": "חד פעמי",
+    "description": null,
+    "id": "0a4f2147-888d-406b-83bc-58f1176cf91c"
+  },
+  {
+    "amount": 300.0,
+    "date": "2025-12-16",
+    "account_name": "בנק",
+    "category": "משכורת",
+    "type": "חד פעמי",
+    "description": null,
+    "id": "0eb7e642-c31d-4704-b94b-e07c75ce5482"
+  },
+  {
+    "amount": 23.0,
+    "date": "2025-12-16",
+    "account_name": "בנק",
+    "category": "מתנה",
+    "type": "חודשי",
+    "description": null,
+    "id": "e52483e8-9b82-445c-bedd-89d11428d5ee"
+  },
+  {
+    "amount": -500.0,
+    "date": "2025-12-16",
+    "account_name": "בנק",
+    "category": "מגורים",
+    "type": "חודשי",
+    "description": null,
+    "id": "2454a7fe-5177-4c63-8c21-622e5c545427"
+  },
+  {
+    "amount": -312.0,
+    "date": "2025-12-16",
+    "account_name": "בנק",
+    "category": "קניות",
+    "type": "חודשי",
+    "description": null,
+    "id": "364a2bae-389a-4fd0-95db-f5ca9bd60890"
+  },
+  {
+    "amount": -213.0,
+    "date": "2025-12-16",
+    "account_name": "בנק",
+    "category": "מגורים",
+    "type": "שנתי",
+    "description": null,
+    "id": "76661560-152f-4932-902e-6aa7f35fd258"
   }
 ]

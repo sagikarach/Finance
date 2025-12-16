@@ -17,6 +17,13 @@ def load_home_page_light_styles() -> str:
         padding: 6px 8px;
         background: transparent;
     }
+    QLabel#StatValueCard {
+        font-size: 28px;
+        font-weight: 900;
+        color: #0b1220;
+        padding: 0px;
+        background: transparent;
+    }
     QTableWidget#ActionHistoryTableWidget {
         background: transparent !important;
         border: none;
@@ -118,6 +125,13 @@ def load_home_page_dark_styles() -> str:
         font-weight: 900;
         color: #e5e7eb;
         padding: 6px 8px;
+        background: transparent;
+    }
+    QLabel#StatValueCard {
+        font-size: 28px;
+        font-weight: 900;
+        color: #e5e7eb;
+        padding: 0px;
         background: transparent;
     }
     QWidget#StatCardGreen {

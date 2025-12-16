@@ -82,7 +82,13 @@ def parse_iso_date(value: str) -> datetime:
         try:
             return datetime.strptime(value, "%Y-%m-%d")
         except Exception:
-            return datetime.min
+            try:
+                return datetime.strptime(value, "%d/%m/%Y")
+            except Exception:
+                try:
+                    return datetime.strptime(value, "%d.%m.%Y")
+                except Exception:
+                    return datetime.min
 
 
 def latest_amount_from_history(history: Iterable[MoneySnapshot]) -> Optional[float]:

@@ -97,6 +97,32 @@ def update_savings_button_width(
                 pass
 
 
+def update_monthly_data_button_width(
+    sidebar: Any,
+    sidebar_width: int,
+    monthly_data_container: Any,
+    monthly_data_btn: Any,
+) -> None:
+    if not monthly_data_container or not monthly_data_container.isVisible():
+        return
+
+    container_rect = monthly_data_container.geometry()
+    if container_rect.height() > 0:
+        monthly_data_container.setGeometry(
+            -16, container_rect.y(), sidebar_width + 32, container_rect.height()
+        )
+        if monthly_data_btn:
+            monthly_data_btn.setGeometry(
+                0, container_rect.y(), sidebar_width, container_rect.height()
+            )
+            try:
+                monthly_data_btn.raise_()
+                monthly_data_btn.update()
+                monthly_data_btn.repaint()
+            except Exception:
+                pass
+
+
 def update_savings_accounts_container_width(
     sidebar: Any,
     sidebar_width: int,

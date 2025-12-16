@@ -26,10 +26,13 @@ class SidebarNavigation:
         self._savings_btn: Optional[QPushButton] = None
         self._savings_toggle_btn: Optional[QPushButton] = None
         self._savings_button_container: Optional[QWidget] = None
+        self._monthly_data_btn: Optional[QPushButton] = None
+        self._monthly_data_container: Optional[QWidget] = None
 
         self._setup_dashboard_button()
         self._setup_bank_button()
         self._setup_savings_button()
+        self._setup_monthly_data_button()
 
     def _setup_dashboard_button(self) -> None:
         button_container = QWidget(self._parent)
@@ -141,6 +144,37 @@ class SidebarNavigation:
         self._savings_button_container = savings_button_container
         self._layout.addWidget(savings_button_container)
 
+    def _setup_monthly_data_button(self) -> None:
+        button_container = QWidget(self._parent)
+        button_container_layout = QHBoxLayout(button_container)
+        button_container_layout.setContentsMargins(0, 0, 0, 0)
+        button_container_layout.setSpacing(0)
+
+        is_monthly_data = self._current_route == "monthly_data"
+        self._monthly_data_btn = QPushButton("סיכום חודשי", self._parent)
+        self._monthly_data_btn.setObjectName("SidebarNavButton")
+        self._monthly_data_btn.setCheckable(True)
+        self._monthly_data_btn.setChecked(is_monthly_data)
+        self._monthly_data_btn.setEnabled(not is_monthly_data)
+        try:
+            self._monthly_data_btn.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
+        except Exception:
+            pass
+
+        if self._navigate is not None:
+            self._monthly_data_btn.clicked.connect(
+                lambda: self._navigate("monthly_data")
+            )
+
+        placeholder = QWidget(button_container)
+        placeholder.setMinimumHeight(40)
+        button_container_layout.addWidget(placeholder)
+
+        self._monthly_data_container = button_container
+        self._layout.addWidget(button_container)
+
     def get_dashboard_button(self) -> Optional[QPushButton]:
         return self._dashboard_btn
 
@@ -164,6 +198,12 @@ class SidebarNavigation:
 
     def get_savings_container(self) -> Optional[QWidget]:
         return self._savings_button_container
+
+    def get_monthly_data_button(self) -> Optional[QPushButton]:
+        return self._monthly_data_btn
+
+    def get_monthly_data_container(self) -> Optional[QWidget]:
+        return self._monthly_data_container
 
     def connect_savings_handlers(
         self,

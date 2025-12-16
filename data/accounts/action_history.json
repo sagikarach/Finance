@@ -196,5 +196,59 @@
         "b74e1643-1309-4248-b2b8-564e8454019a"
       ]
     }
+  },
+  {
+    "id": "9ce74930-5521-4208-92ce-30bc31d0d35c",
+    "timestamp": "2025-12-16",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "movement_id": "0a4f2147-888d-406b-83bc-58f1176cf91c"
+    }
+  },
+  {
+    "id": "9d339ab6-5354-4f4c-b8d0-c197f146debe",
+    "timestamp": "2025-12-16",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "movement_id": "0eb7e642-c31d-4704-b94b-e07c75ce5482"
+    }
+  },
+  {
+    "id": "b0d93ec3-425a-4c53-b692-38566f7784ea",
+    "timestamp": "2025-12-16",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "movement_id": "e52483e8-9b82-445c-bedd-89d11428d5ee"
+    }
+  },
+  {
+    "id": "e653b17e-1645-49d7-a7ab-319b34d0cc9d",
+    "timestamp": "2025-12-16",
+    "action": {
+      "action_name": "add_outcome_movement",
+      "success": true,
+      "movement_id": "2454a7fe-5177-4c63-8c21-622e5c545427"
+    }
+  },
+  {
+    "id": "b3ae3fcf-95e9-4189-aa38-fb21e039b4b0",
+    "timestamp": "2025-12-16",
+    "action": {
+      "action_name": "add_outcome_movement",
+      "success": true,
+      "movement_id": "364a2bae-389a-4fd0-95db-f5ca9bd60890"
+    }
+  },
+  {
+    "id": "0d950509-d73e-46c0-a146-dc5605712826",
+    "timestamp": "2025-12-16",
+    "action": {
+      "action_name": "add_outcome_movement",
+      "success": true,
+      "movement_id": "76661560-152f-4932-902e-6aa7f35fd258"
+    }
   }
 ]
