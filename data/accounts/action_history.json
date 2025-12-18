@@ -250,5 +250,23 @@
       "success": true,
       "movement_id": "76661560-152f-4932-902e-6aa7f35fd258"
     }
+  },
+  {
+    "id": "22bee773-982f-4219-8891-1da8f6b2c81a",
+    "timestamp": "2025-12-17",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "movement_id": "91661597-4de2-4a25-9ab6-cb832b8187a9"
+    }
+  },
+  {
+    "id": "81e1b4e7-10c1-4135-a22c-c5bdd14bdb3e",
+    "timestamp": "2025-12-17",
+    "action": {
+      "action_name": "add_income_movement",
+      "success": true,
+      "movement_id": "52bd245b-8ff9-41b3-87ac-428eda1b5c5e"
+    }
   }
 ]

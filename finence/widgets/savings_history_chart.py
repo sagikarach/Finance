@@ -46,6 +46,7 @@ class ShadowChartView(QChartView):
         x_labels: Optional[List[str]] = None,
         on_series_clicked: Optional[Callable[[str], None]] = None,
         click_threshold_px: int = 26,
+        baseline_value: Optional[float] = None,
     ) -> None:
         super().__init__(chart, parent)
         self._shadows: List[tuple[QLineSeries, QColor]] = shadows
@@ -55,6 +56,7 @@ class ShadowChartView(QChartView):
         self._x_labels: Optional[List[str]] = x_labels
         self._on_series_clicked = on_series_clicked
         self._click_threshold2 = int(click_threshold_px) * int(click_threshold_px)
+        self._baseline_value: Optional[float] = baseline_value
         try:
             self.setMouseTracking(True)
         except Exception:
@@ -98,6 +100,16 @@ class ShadowChartView(QChartView):
             path.moveTo(first_pos)
             last_pos = first_pos
             min_y = first_pos.y()
+            max_y = first_pos.y()
+            baseline_y = bottom_y
+            baseline_val = self._baseline_value
+            if baseline_val is not None:
+                try:
+                    baseline_y = chart.mapToPosition(
+                        QPointF(float(pts[0].x()), float(baseline_val)), series
+                    ).y()
+                except Exception:
+                    baseline_y = bottom_y
 
             for pt in pts[1:]:
                 try:
@@ -108,10 +120,12 @@ class ShadowChartView(QChartView):
                 last_pos = pos
                 if pos.y() < min_y:
                     min_y = pos.y()
+                if pos.y() > max_y:
+                    max_y = pos.y()
 
             try:
-                path.lineTo(QPointF(last_pos.x(), bottom_y))
-                path.lineTo(QPointF(first_pos.x(), bottom_y))
+                path.lineTo(QPointF(last_pos.x(), baseline_y))
+                path.lineTo(QPointF(first_pos.x(), baseline_y))
             except Exception:
                 pass
             try:
@@ -121,13 +135,30 @@ class ShadowChartView(QChartView):
 
             gradient = None
             try:
-                gradient = QLinearGradient(QPointF(0.0, min_y), QPointF(0.0, bottom_y))
+                y_top = float(min(min_y, baseline_y))
+                y_bottom = float(max(max_y, baseline_y))
+                gradient = QLinearGradient(QPointF(0.0, y_top), QPointF(0.0, y_bottom))
                 top_col = QColor(base_color)
-                top_col.setAlpha(180)
                 bottom_col = QColor(base_color)
-                bottom_col.setAlpha(0)
-                gradient.setColorAt(0.0, top_col)
-                gradient.setColorAt(1.0, bottom_col)
+                try:
+                    above = True
+                    if baseline_val is not None:
+                        above = all(float(p.y()) >= float(baseline_val) for p in pts)
+                    if above:
+                        top_col.setAlpha(180)
+                        bottom_col.setAlpha(0)
+                        gradient.setColorAt(0.0, top_col)
+                        gradient.setColorAt(1.0, bottom_col)
+                    else:
+                        top_col.setAlpha(0)
+                        bottom_col.setAlpha(180)
+                        gradient.setColorAt(0.0, top_col)
+                        gradient.setColorAt(1.0, bottom_col)
+                except Exception:
+                    top_col.setAlpha(180)
+                    bottom_col.setAlpha(0)
+                    gradient.setColorAt(0.0, top_col)
+                    gradient.setColorAt(1.0, bottom_col)
             except Exception:
                 gradient = None
 

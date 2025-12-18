@@ -2,7 +2,7 @@
   {
     "name": "בנק",
     "is_liquid": true,
-    "total_amount": 17643.0,
+    "total_amount": 29643.0,
     "active": true,
     "history": [
       {
@@ -6588,6 +6588,14 @@
       {
         "date": "2025-12-16",
         "amount": 17643.0
+      },
+      {
+        "date": "2025-12-17",
+        "amount": 19643.0
+      },
+      {
+        "date": "2025-12-17",
+        "amount": 29643.0
       }
     ]
   },

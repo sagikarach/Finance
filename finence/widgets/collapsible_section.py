@@ -10,7 +10,13 @@ from ..qt import (
     QLabel,
     QSizePolicy,
     Qt,
+    QApplication,
 )
+
+
+class _NoAutoToggleButton(QPushButton):
+    def nextCheckState(self) -> None:
+        return
 
 
 class CollapsibleButtonList(QWidget):
@@ -25,8 +31,11 @@ class CollapsibleButtonList(QWidget):
         super().__init__(parent)
 
         self._expanded: bool = False
+        self._active: bool = False
+        self._batching_items: bool = False
         self._items: List[Tuple[str, Callable[[], None]]] = []
         self._layout_index: Optional[int] = None
+        self._header_click_handler: Optional[Callable[[], None]] = None
 
         self._root_layout = QVBoxLayout(self)
         self._root_layout.setContentsMargins(0, 0, 0, 0)
@@ -48,7 +57,7 @@ class CollapsibleButtonList(QWidget):
         except Exception:
             pass
 
-        self._title_btn = QPushButton(title, self._header)
+        self._title_btn = _NoAutoToggleButton(title, self._header)
         self._title_btn.setObjectName(header_object_name)
         self._title_btn.setCheckable(True)
         if header_tooltip:
@@ -79,28 +88,41 @@ class CollapsibleButtonList(QWidget):
 
         self._apply_visibility()
 
-        self._toggle_btn.clicked.connect(self._on_header_clicked)
-        self._title_btn.clicked.connect(self._on_header_clicked)
+        self._toggle_btn.clicked.connect(self.toggle)
+        self._title_btn.clicked.connect(self._on_title_clicked)
+
+    def set_arrow_visible(self, visible: bool) -> None:
+        vis = bool(visible)
+        self._toggle_btn.setVisible(vis)
+        if vis:
+            self._toggle_btn.setFixedWidth(32)
+        else:
+            self._toggle_btn.setFixedWidth(0)
+        self._apply_visibility()
+
+    def set_header_click_handler(self, handler: Optional[Callable[[], None]]) -> None:
+        self._header_click_handler = handler
+
+    def _on_title_clicked(self) -> None:
+        if self._header_click_handler is not None:
+            self._header_click_handler()
+            return
+        self.toggle()
 
     def set_items(self, items: Iterable[Tuple[str, Callable[[], None]]]) -> None:
-        self.clear_content()
-        self._items = list(items)
-        for label, callback in self._items:
-            self.add_button_item(label, callback)
+        self._batching_items = True
+        try:
+            self.clear_content()
+            self._items = list(items)
+            for label, callback in self._items:
+                self.add_button_item(label, callback)
+        finally:
+            self._batching_items = False
 
         if self._items and self._layout_index is not None:
             parent = self.parentWidget()
             parent_layout = parent.layout() if parent is not None else None
-            try:
-                from ..qt import QVBoxLayout as _QVBoxLayout
-            except Exception:
-                _QVBoxLayout = None  # type: ignore
-
-            if (
-                parent_layout is not None
-                and _QVBoxLayout is not None
-                and isinstance(parent_layout, _QVBoxLayout)
-            ):
+            if parent_layout is not None and isinstance(parent_layout, QVBoxLayout):
                 try:
                     idx_current = parent_layout.indexOf(self)
                 except Exception:
@@ -141,7 +163,8 @@ class CollapsibleButtonList(QWidget):
         except Exception:
             pass
         self._content_layout.addWidget(widget)
-        self._apply_visibility()
+        if not self._batching_items:
+            self._apply_visibility()
 
     def add_button_item(self, label: str, callback: Callable[[], None]) -> None:
         row = QWidget(self._content)
@@ -175,12 +198,20 @@ class CollapsibleButtonList(QWidget):
         btn.clicked.connect(lambda _=False, cb=callback: cb())
 
         self._content_layout.addWidget(row)
-        self._apply_visibility()
+        if not self._batching_items:
+            self._apply_visibility()
 
     def set_expanded(self, expanded: bool) -> None:
         if self._expanded == expanded:
             return
         self._expanded = expanded
+        self._apply_visibility()
+
+    def set_active(self, active: bool) -> None:
+        active_ = bool(active)
+        if self._active == active_:
+            return
+        self._active = active_
         self._apply_visibility()
 
     def toggle(self) -> None:
@@ -209,6 +240,27 @@ class CollapsibleButtonList(QWidget):
         else:
             self._apply_collapsed_style()
 
+    def _refresh_parent_layout(self) -> None:
+        parent = self.parentWidget()
+        parent_layout = parent.layout() if parent is not None else None
+        try:
+            if parent_layout is not None:
+                parent_layout.invalidate()
+                parent_layout.activate()
+        except Exception:
+            pass
+        try:
+            self.updateGeometry()
+        except Exception:
+            pass
+        try:
+            if parent is not None:
+                parent.updateGeometry()
+                parent.update()
+                parent.repaint()
+        except Exception:
+            pass
+
     def _apply_visibility(self) -> None:
         has_items = self._has_content()
         show_content = self._expanded and has_items
@@ -218,13 +270,19 @@ class CollapsibleButtonList(QWidget):
         self._toggle_btn.setChecked(self._expanded)
         self._toggle_btn.setText("▲" if show_content else "▼")
 
-        self._title_btn.setChecked(self._expanded)
-        if show_content:
-            self._title_btn.setStyleSheet("border-bottom-color: transparent;")
-        else:
-            self._title_btn.setStyleSheet("")
+        self._title_btn.setChecked(bool(self._expanded or self._active))
+        try:
+            self._title_btn.setProperty(
+                "collapsibleExpanded", "true" if bool(show_content) else "false"
+            )
+            st = self._title_btn.style()
+            st.unpolish(self._title_btn)
+            st.polish(self._title_btn)
+            self._title_btn.update()
+        except Exception:
+            pass
 
-        header_visible = self._header.isVisible()
+        header_visible = not self._header.isHidden()
         if header_visible:
             if show_content:
                 self.setMinimumHeight(0)
@@ -236,6 +294,7 @@ class CollapsibleButtonList(QWidget):
                     pass
                 self.show()
                 self._apply_pressed_style()
+                self._refresh_parent_layout()
             else:
                 h = self._header.sizeHint().height()
                 if h <= 0:
@@ -249,20 +308,12 @@ class CollapsibleButtonList(QWidget):
                     pass
                 self._apply_collapsed_style()
                 self.show()
+                self._refresh_parent_layout()
         else:
             parent = self.parentWidget()
             parent_layout = parent.layout() if parent is not None else None
-            try:
-                from ..qt import QVBoxLayout as _QVBoxLayout
-            except Exception:
-                _QVBoxLayout = None  # type: ignore
-
             if show_content:
-                if (
-                    parent_layout is not None
-                    and _QVBoxLayout is not None
-                    and isinstance(parent_layout, _QVBoxLayout)
-                ):
+                if parent_layout is not None and isinstance(parent_layout, QVBoxLayout):
                     try:
                         idx_current = parent_layout.indexOf(self)
                     except Exception:
@@ -275,6 +326,12 @@ class CollapsibleButtonList(QWidget):
                         )
                         try:
                             parent_layout.insertWidget(insert_at, self)
+                            parent_layout.invalidate()
+                            parent_layout.activate()
+                            if parent is not None:
+                                parent.updateGeometry()
+                                parent.update()
+                                parent.repaint()
                         except Exception:
                             pass
 
@@ -283,12 +340,9 @@ class CollapsibleButtonList(QWidget):
                 self.show()
                 self.updateGeometry()
                 self._apply_pressed_style()
+                self._refresh_parent_layout()
             else:
-                if (
-                    parent_layout is not None
-                    and _QVBoxLayout is not None
-                    and isinstance(parent_layout, _QVBoxLayout)
-                ):
+                if parent_layout is not None and isinstance(parent_layout, QVBoxLayout):
                     try:
                         idx_current = parent_layout.indexOf(self)
                     except Exception:
@@ -312,6 +366,7 @@ class CollapsibleButtonList(QWidget):
                 self.setMaximumHeight(0)
                 self.hide()
                 self.updateGeometry()
+                self._refresh_parent_layout()
 
     def _has_content(self) -> bool:
         try:
@@ -323,14 +378,6 @@ class CollapsibleButtonList(QWidget):
         self.toggle()
 
     def _apply_pressed_style(self) -> None:
-        try:
-            from PySide6.QtWidgets import QApplication
-        except Exception:
-            try:
-                from PyQt6.QtWidgets import QApplication  # type: ignore
-            except Exception:
-                return
-
         app = QApplication.instance()
         if app is None:
             return
@@ -358,16 +405,12 @@ class CollapsibleButtonList(QWidget):
         self._content.setStyleSheet(
             f"QWidget#SidebarSavingsList {{ background: {container_bg}; {border_css}}}"
         )
+        try:
+            self.setStyleSheet("")
+        except Exception:
+            pass
 
     def _apply_collapsed_style(self) -> None:
-        try:
-            from PySide6.QtWidgets import QApplication
-        except Exception:
-            try:
-                from PyQt6.QtWidgets import QApplication  # type: ignore
-            except Exception:
-                return
-
         app = QApplication.instance()
         if app is None:
             return
@@ -383,4 +426,7 @@ class CollapsibleButtonList(QWidget):
         self._content.setStyleSheet(
             f"QWidget#SidebarSavingsList {{ background: {container_bg}; }}"
         )
-        self.setStyleSheet(f"background: {container_bg};")
+        try:
+            self.setStyleSheet("")
+        except Exception:
+            pass

@@ -121,6 +121,7 @@ class BasePage(QWidget):
             self._user,
             self._user_store,
             self,
+            app_context=self._app_context,
             navigate=self._navigate,
             current_route=self._current_route,
             accounts=self._accounts,
@@ -371,11 +372,11 @@ class BasePage(QWidget):
             try:
                 if checked:
                     app_.setProperty("theme", "dark")
-                    app_.setStyleSheet(load_dark_stylesheet())  # type: ignore[attr-defined]
+                    app_.setStyleSheet(load_dark_stylesheet())
                     theme_btn.setText("🌙")
                 else:
                     app_.setProperty("theme", "light")
-                    app_.setStyleSheet(load_default_stylesheet())  # type: ignore[attr-defined]
+                    app_.setStyleSheet(load_default_stylesheet())
                     theme_btn.setText("☀")
                 self._on_theme_changed(checked)
             except Exception:
@@ -397,17 +398,11 @@ class BasePage(QWidget):
                     QTimer.singleShot(100, self._sidebar._update_button_width)
                 except Exception:
                     try:
-                        from PyQt6.QtCore import QTimer  # type: ignore
+                        from ..qt import QTimer
 
                         QTimer.singleShot(100, self._sidebar._update_button_width)
                     except Exception:
                         pass
-
-            if hasattr(self._sidebar, "_apply_toggle_button_style"):
-                try:
-                    self._sidebar._apply_toggle_button_style()
-                except Exception:
-                    pass
 
             if hasattr(self._sidebar, "_savings_section"):
                 try:

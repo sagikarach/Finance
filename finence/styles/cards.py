@@ -13,13 +13,21 @@ def load_cards_light_styles() -> str:
         border: 1px solid #22c55e;
         border-radius: 20px;
     }
+    QWidget#StatCardRed {
+        background: #ef4444;
+        border: 1px solid #ef4444;
+        border-radius: 20px;
+    }
     QWidget#StatCardPurple {
         background: #6366f1;
         border: 1px solid #6366f1;
         border-radius: 20px;
     }
-    QWidget#StatCardGreen *, QWidget#StatCardPurple * {
+    QWidget#StatCardGreen *, QWidget#StatCardRed *, QWidget#StatCardPurple * {
         background: transparent;
+    }
+    QWidget#StatCardGreen QLabel#Subtitle, QWidget#StatCardRed QLabel#Subtitle, QWidget#StatCardPurple QLabel#Subtitle {
+        color: #0f172a;
     }
     QWidget#PageCard {
         background: #dbeafe;
@@ -39,12 +47,26 @@ def load_cards_dark_styles() -> str:
         border: 1px solid #16a34a;
         border-radius: 20px;
     }
+    QWidget#StatCardRed {
+        background: #dc2626;
+        border: 1px solid #dc2626;
+        border-radius: 20px;
+    }
     QWidget#StatCardPurple {
         background: #4f46e5;
         border: 1px solid #4f46e5;
         border-radius: 20px;
     }
-    QWidget#StatCardGreen *, QWidget#StatCardPurple * {
+    QWidget#StatCardGreen *, QWidget#StatCardRed *, QWidget#StatCardPurple * {
         background: transparent;
+    }
+    QWidget#StatCardGreen QLabel#Subtitle, QWidget#StatCardRed QLabel#Subtitle, QWidget#StatCardPurple QLabel#Subtitle {
+        color: #0f172a;
+    }
+    QWidget#StatCardGreen QLabel#StatValueLarge, QWidget#StatCardRed QLabel#StatValueLarge, QWidget#StatCardPurple QLabel#StatValueLarge {
+        color: #e5e7eb;
+    }
+    QWidget#StatCardGreen QLabel#Subtitle, QWidget#StatCardRed QLabel#Subtitle, QWidget#StatCardPurple QLabel#Subtitle {
+        color: #f8fafc;
     }
     """

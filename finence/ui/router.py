@@ -24,14 +24,21 @@ class Router:
             self._ensure_created(route_name)
 
         index = self._route_name_to_index[route_name]
-        self._stack.setCurrentIndex(index)
-
         widget = self._stack.widget(index)
         if widget is not None and hasattr(widget, "on_route_activated"):
             try:
                 widget.on_route_activated()
             except Exception:
                 pass
+        if widget is not None and hasattr(widget, "_sidebar"):
+            try:
+                sidebar = getattr(widget, "_sidebar", None)
+                if sidebar is not None and hasattr(sidebar, "update_route"):
+                    sidebar.update_route(route_name)
+            except Exception:
+                pass
+
+        self._stack.setCurrentIndex(index)
 
     def previous_route(self) -> str:
         return self._previous_route or "home"

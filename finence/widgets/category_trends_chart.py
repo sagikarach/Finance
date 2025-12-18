@@ -261,7 +261,7 @@ class CategoryTrendsChart(QWidget):
         self._animate_swap(old_view=old_view, new_view=view)
 
     def _nice_y_axis(self, max_val: float) -> tuple[float, float]:
-        step = 250.0
+        step = 1000.0
         v = float(max(0.0, max_val))
         if v <= 0.0:
             return step, step

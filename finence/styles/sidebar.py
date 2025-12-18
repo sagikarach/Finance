@@ -52,6 +52,15 @@ def load_sidebar_light_styles() -> str:
         border-right: none;
         padding: 10px 16px;
     }
+    QPushButton#SidebarNavButton[collapsibleExpanded="true"] {
+        background: #dcecff;
+        color: #0f172a;
+        border-top: 2px solid #a0bce2;
+        border-bottom: none;
+        border-left: none;
+        border-right: none;
+        padding: 10px 16px;
+    }
     QPushButton#SidebarNavButton:disabled {
         background: #dbeafe;
         color: #0f172a;
@@ -83,6 +92,15 @@ def load_sidebar_light_styles() -> str:
         color: #0f172a;
         border-top: 2px solid #a0bce2;
         border-bottom: 2px solid #a0bce2;
+        border-left: none;
+        border-right: none;
+        padding: 10px 16px;
+    }
+    QPushButton#SidebarNavButtonSavings[collapsibleExpanded="true"] {
+        background: #dcecff;
+        color: #0f172a;
+        border-top: 2px solid #a0bce2;
+        border-bottom: none;
         border-left: none;
         border-right: none;
         padding: 10px 16px;
@@ -151,7 +169,7 @@ def load_sidebar_light_styles() -> str:
         background: rgba(201, 225, 254, 0.35);
     }
     QWidget#SidebarActions QPushButton:pressed {
-        background: #dbeafe; /* app light background */
+        background: #dbeafe;
     }
     """
 
@@ -198,6 +216,13 @@ def load_sidebar_dark_styles() -> str:
         color: #e5e7eb;
         border-top: 2px solid #1f2937;
         border-bottom: 2px solid #1f2937;
+        padding: 10px 16px;
+    }
+    QPushButton#SidebarNavButton[collapsibleExpanded="true"] {
+        background: #020617;
+        color: #e5e7eb;
+        border-top: 2px solid #1f2937;
+        border-bottom: none;
         padding: 10px 16px;
     }
     QPushButton#SidebarNavButton:disabled {
@@ -262,7 +287,7 @@ def load_sidebar_dark_styles() -> str:
         background: rgba(15, 23, 42, 0.6);
     }
     QWidget#SidebarActions QPushButton:pressed {
-        background: #020617; /* app dark background */
+        background: #020617;
     }
     QLabel#UserName {
         font-size: 16px;
@@ -292,6 +317,13 @@ def load_sidebar_dark_styles() -> str:
         color: #e5e7eb;
         border-top: 2px solid #1f2937;
         border-bottom: 2px solid #1f2937;
+        padding: 10px 16px;
+    }
+    QPushButton#SidebarNavButtonSavings[collapsibleExpanded="true"] {
+        background: #020617;
+        color: #e5e7eb;
+        border-top: 2px solid #1f2937;
+        border-bottom: none;
         padding: 10px 16px;
     }
     QPushButton#SidebarNavButtonSavings:disabled {

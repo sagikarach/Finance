@@ -682,5 +682,23 @@
     "type": "שנתי",
     "description": null,
     "id": "76661560-152f-4932-902e-6aa7f35fd258"
+  },
+  {
+    "amount": 2000.0,
+    "date": "2025-12-17",
+    "account_name": "בנק",
+    "category": "משכורת",
+    "type": "חודשי",
+    "description": null,
+    "id": "91661597-4de2-4a25-9ab6-cb832b8187a9"
+  },
+  {
+    "amount": 10000.0,
+    "date": "2025-12-17",
+    "account_name": "בנק",
+    "category": "משכורת",
+    "type": "חודשי",
+    "description": null,
+    "id": "52bd245b-8ff9-41b3-87ac-428eda1b5c5e"
   }
 ]
