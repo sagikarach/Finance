@@ -10,6 +10,21 @@ def load_buttons_light_styles() -> str:
         border-radius: 8px;
         border: 1px solid #1d4ed8;
     }
+    QPushButton#MonthEditButton {
+        background: #d1e6ff;
+        color: #0f172a;
+        border: 1px solid #87aeda important;
+        border-radius: 10px;
+        padding: 8px 12px;
+    }
+    QPushButton#MonthEditButton:hover {
+        background: #bfdbfe;
+        border: 1px solid #87aeda important;
+    }
+    QPushButton#MonthEditButton:pressed {
+        background: #87aeda;
+        border: 1px solid #87aeda important;
+    }
     QPushButton:hover {
         background: #1d4ed8;
     }
@@ -53,6 +68,21 @@ def load_buttons_dark_styles() -> str:
         padding: 8px 14px;
         border-radius: 8px;
         border: 1px solid #1e3a8a;
+    }
+    QPushButton#MonthEditButton {
+        background: #111827;
+        color: #e5e7eb;
+        border: 1px solid #334155 important;
+        border-radius: 10px;
+        padding: 8px 12px;
+    }
+    QPushButton#MonthEditButton:hover {
+        background: #1f2937;
+        border: 1px solid #475569 important;
+    }
+    QPushButton#MonthEditButton:pressed {
+        background: #0b1220;
+        border: 1px solid #64748b important;
     }
     QPushButton:hover {
         background: #2563eb;

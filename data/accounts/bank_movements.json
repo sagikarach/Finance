@@ -22,7 +22,7 @@
     "date": "2025-12-14",
     "account_name": "בנק",
     "category": "מגורים",
-    "type": "חד פעמי",
+    "type": "חודשי",
     "description": "תשלום מעון",
     "id": "1ef1937e-685f-45a9-92b4-8bab39e89b14"
   },
@@ -635,7 +635,7 @@
     "account_name": "בנק",
     "category": "מתנה",
     "type": "חד פעמי",
-    "description": null,
+    "description": "",
     "id": "0a4f2147-888d-406b-83bc-58f1176cf91c"
   },
   {
@@ -644,7 +644,7 @@
     "account_name": "בנק",
     "category": "משכורת",
     "type": "חד פעמי",
-    "description": null,
+    "description": "",
     "id": "0eb7e642-c31d-4704-b94b-e07c75ce5482"
   },
   {
@@ -653,7 +653,7 @@
     "account_name": "בנק",
     "category": "מתנה",
     "type": "חודשי",
-    "description": null,
+    "description": "",
     "id": "e52483e8-9b82-445c-bedd-89d11428d5ee"
   },
   {
@@ -662,7 +662,7 @@
     "account_name": "בנק",
     "category": "מגורים",
     "type": "חודשי",
-    "description": null,
+    "description": "",
     "id": "2454a7fe-5177-4c63-8c21-622e5c545427"
   },
   {
@@ -670,8 +670,8 @@
     "date": "2025-12-16",
     "account_name": "בנק",
     "category": "קניות",
-    "type": "חודשי",
-    "description": null,
+    "type": "חד פעמי",
+    "description": "",
     "id": "364a2bae-389a-4fd0-95db-f5ca9bd60890"
   },
   {
@@ -680,7 +680,7 @@
     "account_name": "בנק",
     "category": "מגורים",
     "type": "שנתי",
-    "description": null,
+    "description": "",
     "id": "76661560-152f-4932-902e-6aa7f35fd258"
   },
   {
@@ -689,7 +689,7 @@
     "account_name": "בנק",
     "category": "משכורת",
     "type": "חודשי",
-    "description": null,
+    "description": "",
     "id": "91661597-4de2-4a25-9ab6-cb832b8187a9"
   },
   {
@@ -698,7 +698,7 @@
     "account_name": "בנק",
     "category": "משכורת",
     "type": "חודשי",
-    "description": null,
+    "description": "",
     "id": "52bd245b-8ff9-41b3-87ac-428eda1b5c5e"
   }
 ]

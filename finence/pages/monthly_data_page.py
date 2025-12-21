@@ -10,6 +10,7 @@ from ..qt import (
     Qt,
     QSizePolicy,
     QToolButton,
+    QPushButton,
 )
 from ..data.provider import AccountsProvider
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
@@ -21,6 +22,7 @@ from ..utils.formatting import format_currency
 from ..widgets.category_pie_chart import CategoryPieChart
 from ..widgets.month_picker import MonthPickerWidget, MonthKey
 from ..widgets.movements_table_card import MovementsTableCard
+from ..ui.month_movements_dialog import MonthMovementsDialog
 from .base_page import BasePage
 
 
@@ -94,7 +96,30 @@ class MonthlyDataPage(BasePage):
             left_container,
             on_changed=self._on_month_changed,
         )
-        left_layout.addWidget(self._month_picker, 0, Qt.AlignmentFlag.AlignHCenter)
+        month_row_container = QWidget(left_container)
+        try:
+            month_row_container.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        except Exception:
+            pass
+        month_row = QHBoxLayout(month_row_container)
+        month_row.setContentsMargins(0, 0, 0, 0)
+        month_row.setSpacing(10)
+        edit_btn = QPushButton(month_row_container)
+        edit_btn.setObjectName("MonthEditButton")
+        edit_btn.setText("✎ עריכת תנועות חודשיות")
+        edit_btn.setToolTip("עריכת הכנסות/הוצאות לחודש")
+        edit_btn.clicked.connect(self._on_edit_month_clicked)
+        try:
+            edit_btn.setMinimumHeight(32)
+            edit_btn.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+            )
+        except Exception:
+            pass
+        month_row.addWidget(edit_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        month_row.addStretch(1)
+        month_row.addWidget(self._month_picker, 0, Qt.AlignmentFlag.AlignRight)
+        left_layout.addWidget(month_row_container, 0)
 
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
@@ -170,6 +195,22 @@ class MonthlyDataPage(BasePage):
             )
 
         self._refresh_report_content()
+
+    def _on_edit_month_clicked(self) -> None:
+        if self._current_year is None or self._current_month is None:
+            return
+
+        def _after_save() -> None:
+            self._refresh_report_content()
+
+        dlg = MonthMovementsDialog(
+            year=self._current_year,
+            month=self._current_month,
+            movement_provider=self._bank_movement_provider,
+            parent=None,
+            on_saved=_after_save,
+        )
+        dlg.exec()
 
     def _refresh_report_content(self) -> None:
         if (

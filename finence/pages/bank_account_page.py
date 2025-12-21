@@ -115,7 +115,7 @@ class BankAccountPage(BasePage):
         buttons_row.setSpacing(8)
 
         if target.name == "בנק":
-            import_btn = QPushButton("ייבוא הוצאות מ־CSV", top_card)
+            import_btn = QPushButton("ייבוא קובץ הוצאות", top_card)
             import_btn.setObjectName("AddButton")
             try:
                 import_btn.clicked.connect(
