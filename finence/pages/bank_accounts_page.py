@@ -42,6 +42,7 @@ class BankAccountsPage(BasePage):
         )
 
     def on_route_activated(self) -> None:
+        super().on_route_activated()
         self._load_and_refresh_accounts()
 
         app = QApplication.instance()

@@ -8,9 +8,12 @@ from ..qt import (
     QHBoxLayout,
     QLabel,
     QToolButton,
+    QDialog,
+    QPushButton,
     Qt,
     QSizePolicy,
     QApplication,
+    QTimer,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.user_profile_store import UserProfileStore
@@ -26,7 +29,9 @@ from ..models.accounts_service import AccountsService
 from ..models.bank_movement_service import BankMovementService
 from ..models.movement_classifier import SimilarityBasedClassifier
 from ..ui.bank_movement_dialog import BankMovementDialog
+from ..ui.notifications_dialog import NotificationsDialog
 from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
+from ..models.notifications_service import NotificationsService
 
 
 class BasePage(QWidget):
@@ -60,7 +65,7 @@ class BasePage(QWidget):
         self._content_col: Optional[QVBoxLayout] = None
         self._bank_movement_provider = JsonFileBankMovementProvider()
         self._history_provider = JsonFileActionHistoryProvider()
-        self._accounts_service: Optional[AccountsService] = AccountsService(
+        self._accounts_service: AccountsService = AccountsService(
             self._provider, history_provider=self._history_provider
         )
         classifier = None
@@ -69,13 +74,18 @@ class BasePage(QWidget):
             classifier.initialize()
         except Exception:
             classifier = None
-        self._bank_movement_service: Optional[BankMovementService] = (
-            BankMovementService(
-                self._bank_movement_provider,
-                self._history_provider,
-                classifier=classifier,
-            )
+        self._bank_movement_service: BankMovementService = BankMovementService(
+            self._bank_movement_provider,
+            self._history_provider,
+            classifier=classifier,
         )
+        self._notifications_service = NotificationsService(
+            accounts_provider=self._provider,
+            movement_provider=self._bank_movement_provider,
+            history_provider=self._history_provider,
+        )
+        self._bell_btn: Optional[QToolButton] = None
+        self._bell_badge: Optional[QLabel] = None
 
         self._build_ui()
 
@@ -170,11 +180,42 @@ class BasePage(QWidget):
         for btn in left_buttons:
             header_layout.addWidget(btn)
 
-        bell_btn = QToolButton(self)
-        bell_btn.setObjectName("IconButton")
-        bell_btn.setText("🔔")
-        bell_btn.setToolTip("התראות")
-        header_layout.addWidget(bell_btn)
+        bell_wrap = QWidget(header_container)
+        try:
+            bell_wrap.setFixedSize(36, 36)
+        except Exception:
+            pass
+
+        self._bell_btn = QToolButton(bell_wrap)
+        self._bell_btn.setObjectName("IconButton")
+        self._bell_btn.setText("🔔")
+        self._bell_btn.setToolTip("התראות")
+        self._bell_btn.clicked.connect(self._open_notifications)
+        try:
+            self._bell_btn.setGeometry(0, 0, 36, 36)
+        except Exception:
+            pass
+
+        self._bell_badge = QLabel(bell_wrap)
+        self._bell_badge.setObjectName("NotificationsBadge")
+        try:
+            self._bell_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self._bell_badge.setAttribute(
+                Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
+            )
+        except Exception:
+            pass
+        try:
+            self._bell_badge.setVisible(False)
+        except Exception:
+            pass
+        try:
+            self._bell_badge.adjustSize()
+            self._bell_badge.move(22, -2)
+        except Exception:
+            pass
+
+        header_layout.addWidget(bell_wrap)
 
         self._theme_btn = self._build_theme_toggle_button()
         header_layout.addWidget(self._theme_btn)
@@ -186,6 +227,78 @@ class BasePage(QWidget):
         header_layout.addWidget(header_title)
 
         return header_container
+
+    def on_route_activated(self) -> None:
+        self._refresh_notifications_badge()
+
+    def _open_notifications(self) -> None:
+        try:
+            if not bool(self._notifications_service.is_enabled()):
+                dlg = QDialog(self)
+                dlg.setWindowTitle("התראות")
+                try:
+                    dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                except Exception:
+                    try:
+                        dlg.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+                layout = QVBoxLayout(dlg)
+                layout.setContentsMargins(24, 20, 24, 20)
+                layout.setSpacing(12)
+
+                msg = QLabel("ההתראות כבויות. ניתן להפעיל אותן בעמוד ההגדרות.", dlg)
+                try:
+                    msg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+                except Exception:
+                    pass
+                layout.addWidget(msg)
+
+                close_btn = QPushButton("סגור", dlg)
+                close_btn.clicked.connect(dlg.accept)
+                try:
+                    layout.addWidget(close_btn, 0, Qt.AlignmentFlag.AlignHCenter)
+                except Exception:
+                    layout.addWidget(close_btn)
+
+                dlg.exec()
+                return
+        except Exception:
+            pass
+        try:
+            dlg = NotificationsDialog(service=self._notifications_service, parent=None)
+            dlg.exec()
+        except Exception:
+            return
+        self._refresh_notifications_badge()
+
+    def _refresh_notifications_badge(self) -> None:
+        if self._bell_btn is None:
+            return
+        try:
+            self._notifications_service.refresh()
+            count = int(self._notifications_service.unread_count())
+            tip = "התראות" if count <= 0 else f"התראות ({count})"
+            self._bell_btn.setToolTip(tip)
+            if self._bell_badge is not None:
+                if count <= 0:
+                    self._bell_badge.setVisible(False)
+                else:
+                    text = str(count) if count < 100 else "99+"
+                    self._bell_badge.setText(text)
+                    try:
+                        if count < 10:
+                            w = 16
+                        else:
+                            self._bell_badge.adjustSize()
+                            w = max(16, int(self._bell_badge.sizeHint().width()) + 10)
+                        self._bell_badge.setFixedSize(w, 16)
+                        self._bell_badge.move(36 - w + 2, -2)
+                    except Exception:
+                        pass
+                    self._bell_badge.setVisible(True)
+        except Exception:
+            pass
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         return []
@@ -371,12 +484,20 @@ class BasePage(QWidget):
                 return
             try:
                 if checked:
-                    app_.setProperty("theme", "dark")
-                    app_.setStyleSheet(load_dark_stylesheet())
+                    setter = getattr(app_, "setProperty", None)
+                    if callable(setter):
+                        setter("theme", "dark")
+                    ss = getattr(app_, "setStyleSheet", None)
+                    if callable(ss):
+                        ss(load_dark_stylesheet())
                     theme_btn.setText("🌙")
                 else:
-                    app_.setProperty("theme", "light")
-                    app_.setStyleSheet(load_default_stylesheet())
+                    setter = getattr(app_, "setProperty", None)
+                    if callable(setter):
+                        setter("theme", "light")
+                    ss = getattr(app_, "setStyleSheet", None)
+                    if callable(ss):
+                        ss(load_default_stylesheet())
                     theme_btn.setText("☀")
                 self._on_theme_changed(checked)
             except Exception:
@@ -393,16 +514,9 @@ class BasePage(QWidget):
         if self._sidebar is not None:
             if hasattr(self._sidebar, "_update_button_width"):
                 try:
-                    from PySide6.QtCore import QTimer
-
                     QTimer.singleShot(100, self._sidebar._update_button_width)
                 except Exception:
-                    try:
-                        from ..qt import QTimer
-
-                        QTimer.singleShot(100, self._sidebar._update_button_width)
-                    except Exception:
-                        pass
+                    pass
 
             if hasattr(self._sidebar, "_savings_section"):
                 try:

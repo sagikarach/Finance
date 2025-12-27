@@ -57,6 +57,15 @@ def load_buttons_light_styles() -> str:
         background: rgba(0,0,0,0.05);
         border-radius: 8px;
     }
+    QLabel#NotificationsBadge {
+        background: #ef4444;
+        color: white;
+        border-radius: 8px;
+        min-width: 16px;
+        min-height: 16px;
+        font-size: 10px;
+        padding: 0px;
+    }
     """
 
 
@@ -108,5 +117,14 @@ def load_buttons_dark_styles() -> str:
     QToolButton#PasswordEye:hover {
         background: rgba(255,255,255,0.06);
         border-radius: 8px;
+    }
+    QLabel#NotificationsBadge {
+        background: #ef4444;
+        color: white;
+        border-radius: 8px;
+        min-width: 16px;
+        min-height: 16px;
+        font-size: 10px;
+        padding: 0px;
     }
     """

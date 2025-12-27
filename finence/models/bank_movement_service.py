@@ -16,6 +16,7 @@ from .classified_expense import ClassifiedExpense
 from .parsed_expense import ParsedExpense
 from .action_history import (
     ActionHistory,
+    Action,
     AddIncomeMovementAction,
     AddOutcomeMovementAction,
     generate_action_id,
@@ -219,7 +220,7 @@ class BankMovementService:
                     is_income_movement = bool(is_income_hint)
 
                 if is_income_movement:
-                    action_obj: object = AddIncomeMovementAction(
+                    action_obj: Action = AddIncomeMovementAction(
                         action_name="add_income_movement",
                         movement_id=movement.id,
                     )

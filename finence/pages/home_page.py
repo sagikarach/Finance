@@ -198,6 +198,7 @@ class HomePage(BasePage):
         main_col.addLayout(chart_row, 1)
 
     def on_route_activated(self) -> None:
+        super().on_route_activated()
         self._load_and_refresh_accounts()
 
         try:

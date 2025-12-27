@@ -13,6 +13,8 @@ from ..qt import (
     QColor,
     QMarginsF,
     QSizePolicy,
+    QToolTip,
+    QCursor,
     charts_available,
     QChart,
     QChartView,
@@ -252,23 +254,15 @@ class CategoryPieChart(QWidget):
                 </div>
                 """
                 try:
-                    from PySide6.QtWidgets import QToolTip
+                    pos = QCursor.pos()
+                    QToolTip.showText(pos, html, self._chart_view)
                 except Exception:
-                    try:
-                        from PyQt6.QtWidgets import QToolTip  # type: ignore
-                    except Exception:
-                        return
-                try:
-                    from PySide6.QtGui import QCursor
-                except Exception:
-                    try:
-                        from PyQt6.QtGui import QCursor  # type: ignore
-                    except Exception:
-                        return
-                pos = QCursor.pos()
-                QToolTip.showText(pos, html, self._chart_view)
+                    return
             else:
-                QToolTip.hideText()
+                try:
+                    QToolTip.hideText()
+                except Exception:
+                    pass
         except Exception:
             pass
 

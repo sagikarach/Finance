@@ -69,7 +69,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                 )
                 movement_id = item.get("id")
                 if not movement_id:
-                    from .bank_movement import generate_movement_id
+                    from ..models.bank_movement import generate_movement_id
 
                     movement_id = generate_movement_id()
 

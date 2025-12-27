@@ -152,6 +152,7 @@ class SavingsAccountPage(BasePage):
         main_col.addWidget(chart_card, 2)
 
     def on_route_activated(self) -> None:
+        super().on_route_activated()
         if isinstance(self._content_col, QVBoxLayout):
             self._build_content(self._content_col)
 

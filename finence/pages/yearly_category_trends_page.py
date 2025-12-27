@@ -381,6 +381,7 @@ class YearlyCategoryTrendsPage(BasePage):
         self._refresh()
 
     def on_route_activated(self) -> None:
+        super().on_route_activated()
         if isinstance(self._content_col, QVBoxLayout):
             self._build_content(self._content_col)
 

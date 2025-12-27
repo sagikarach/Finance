@@ -24,6 +24,7 @@ from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import BankAccount
 from ..models.bank_settings import BankSettingsRowInput
 from ..models.accounts_service import AccountsService
+from ..models.notifications import RuleType
 from .base_page import BasePage
 
 
@@ -221,16 +222,11 @@ class SettingsPage(BasePage):
                             pass
 
                 try:
-                    from PySide6.QtCore import QTimer
+                    from ..qt import QTimer
 
                     QTimer.singleShot(50, update_sidebar)
                 except Exception:
-                    try:
-                        from PyQt6.QtCore import QTimer
-
-                        QTimer.singleShot(50, update_sidebar)
-                    except Exception:
-                        update_sidebar()
+                    update_sidebar()
 
                 for account_name, widgets in account_widgets.items():
                     checkbox = widgets["checkbox"]
@@ -270,6 +266,106 @@ class SettingsPage(BasePage):
         except Exception:
             layout.addWidget(save_button)
 
+        return card
+
+    def _build_notifications_card(self) -> QWidget:
+        card = QWidget(self)
+        card.setObjectName("Sidebar")
+        try:
+            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        try:
+            card.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                card.setLayoutDirection(Qt.RightToLeft)
+            except Exception:
+                pass
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+
+        title_label = QLabel("התראות", card)
+        try:
+            title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        except Exception:
+            pass
+        layout.addWidget(title_label)
+        layout.addSpacing(8)
+
+        try:
+            self._notifications_service.ensure_defaults()
+        except Exception:
+            pass
+
+        master_cb = QCheckBox("הפעל התראות", card)
+        try:
+            master_cb.setChecked(bool(self._notifications_service.is_enabled()))
+        except Exception:
+            master_cb.setChecked(True)
+        layout.addWidget(master_cb)
+        layout.addSpacing(6)
+
+        rule_label_map: dict[RuleType, str] = {
+            RuleType.UNEXPECTED_EXPENSE: "הוצאות חריגות / כפולות",
+            RuleType.MISSING_MONTHLY_UPLOAD: "תזכורת העלאת קובץ הוצאות חודשי",
+            RuleType.MISSING_SAVINGS_UPDATE: "תזכורת עדכון חסכונות",
+        }
+
+        rules = []
+        try:
+            rules = self._notifications_service.list_rules()
+        except Exception:
+            rules = []
+
+        rule_checkboxes: dict[str, QCheckBox] = {}
+        for r in rules:
+            label = rule_label_map.get(r.type, r.id)
+            cb = QCheckBox(label, card)
+            cb.setChecked(bool(r.enabled))
+            rule_checkboxes[r.id] = cb
+            layout.addWidget(cb)
+
+            def make_rule_toggle(rule_id: str) -> Callable[[bool], None]:
+                def _handler(checked: bool) -> None:
+                    try:
+                        self._notifications_service.set_rule_enabled(
+                            rule_id, bool(checked)
+                        )
+                        self._notifications_service.refresh()
+                        refresher = getattr(self, "_refresh_notifications_badge", None)
+                        if callable(refresher):
+                            refresher()
+                        QToolTip.showText(QCursor.pos(), "הגדרות התראות נשמרו")
+                    except Exception:
+                        pass
+
+                return _handler
+
+            cb.toggled.connect(make_rule_toggle(r.id))
+
+        def apply_enabled_state(enabled: bool) -> None:
+            for cb in rule_checkboxes.values():
+                cb.setEnabled(bool(enabled))
+
+        def on_master_toggled(checked: bool) -> None:
+            try:
+                self._notifications_service.set_enabled(bool(checked))
+                apply_enabled_state(bool(checked))
+                self._notifications_service.refresh()
+                refresher = getattr(self, "_refresh_notifications_badge", None)
+                if callable(refresher):
+                    refresher()
+                QToolTip.showText(QCursor.pos(), "הגדרות התראות נשמרו")
+            except Exception:
+                pass
+
+        master_cb.toggled.connect(on_master_toggled)
+        apply_enabled_state(master_cb.isChecked())
+
+        layout.addStretch(1)
         return card
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
@@ -363,7 +459,7 @@ class SettingsPage(BasePage):
             pixmap = QPixmap(str(eye_icon_path))
             if not pixmap.isNull():
                 try:
-                    from PySide6.QtCore import QSize
+                    from ..qt import QSize
 
                     scaled_pixmap = pixmap.scaled(
                         QSize(24, 24),
@@ -372,22 +468,12 @@ class SettingsPage(BasePage):
                     )
                     eye_button.setIconSize(QSize(24, 24))
                 except Exception:
-                    try:
-                        from PyQt6.QtCore import QSize
-
-                        scaled_pixmap = pixmap.scaled(
-                            QSize(24, 24),
-                            Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation,
-                        )
-                        eye_button.setIconSize(QSize(24, 24))
-                    except Exception:
-                        scaled_pixmap = pixmap.scaled(
-                            24,
-                            24,
-                            Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation,
-                        )
+                    scaled_pixmap = pixmap.scaled(
+                        24,
+                        24,
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
                 icon = QIcon(scaled_pixmap)
                 eye_button.setIcon(icon)
                 eye_button.setText("")
@@ -426,7 +512,7 @@ class SettingsPage(BasePage):
                 pixmap_ = QPixmap(str(eye_icon_path_))
                 if not pixmap_.isNull():
                     try:
-                        from PySide6.QtCore import QSize
+                        from ..qt import QSize
 
                         scaled_pixmap_ = pixmap_.scaled(
                             QSize(24, 24),
@@ -435,22 +521,12 @@ class SettingsPage(BasePage):
                         )
                         eye_button.setIconSize(QSize(24, 24))
                     except Exception:
-                        try:
-                            from PyQt6.QtCore import QSize
-
-                            scaled_pixmap_ = pixmap_.scaled(
-                                QSize(24, 24),
-                                Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation,
-                            )
-                            eye_button.setIconSize(QSize(24, 24))
-                        except Exception:
-                            scaled_pixmap_ = pixmap_.scaled(
-                                24,
-                                24,
-                                Qt.AspectRatioMode.KeepAspectRatio,
-                                Qt.TransformationMode.SmoothTransformation,
-                            )
+                        scaled_pixmap_ = pixmap_.scaled(
+                            24,
+                            24,
+                            Qt.AspectRatioMode.KeepAspectRatio,
+                            Qt.TransformationMode.SmoothTransformation,
+                        )
                     icon_ = QIcon(scaled_pixmap_)
                     eye_button.setIcon(icon_)
                     eye_button.setText("")
@@ -568,7 +644,7 @@ class SettingsPage(BasePage):
             return card
 
         bank_accounts_card = self._build_bank_accounts_card()
-        extra_card_bottom_left = _make_extra_card("הגדרה פנויה")
+        extra_card_bottom_left = self._build_notifications_card()
         extra_card_bottom_right = _make_extra_card("הגדרה פנויה")
 
         row1 = QHBoxLayout()

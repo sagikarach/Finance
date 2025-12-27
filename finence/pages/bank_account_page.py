@@ -146,16 +146,25 @@ class BankAccountPage(BasePage):
         main_col.addWidget(chart_card, 2)
 
     def _on_import_csv(self, account: BankAccount) -> None:
+        QFileDialogCls = None
         try:
-            from PySide6.QtWidgets import QFileDialog
+            import importlib
+
+            QtWidgets = importlib.import_module("PySide6.QtWidgets")
+            QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
         except Exception:
             try:
-                from PyQt6.QtWidgets import QFileDialog  # type: ignore
+                import importlib
+
+                QtWidgets = importlib.import_module("PyQt6.QtWidgets")
+                QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
             except Exception:
-                return
+                QFileDialogCls = None
+        if QFileDialogCls is None:
+            return
 
         try:
-            file_path, _ = QFileDialog.getOpenFileName(
+            file_path, _ = QFileDialogCls.getOpenFileName(
                 self,
                 "ייבוא הוצאות מקובץ CSV",
                 "",
@@ -348,6 +357,7 @@ class BankAccountPage(BasePage):
             pass
 
     def on_route_activated(self) -> None:
+        super().on_route_activated()
         svc = getattr(self, "_accounts_service", None)
         if svc is not None:
             try:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from ..qt import QWidget, QVBoxLayout, QLabel, Qt
+from ..qt import QWidget, QVBoxLayout, QLabel, Qt, QPixmap
 from ..models.user import UserProfile
 from ..data.user_profile_store import UserProfileStore
 
@@ -55,15 +55,24 @@ class SidebarAvatar:
             self.set_avatar_from_path(self._user.avatar_path)
 
     def _on_avatar_clicked(self, event) -> None:
+        QFileDialogCls = None
         try:
-            from PySide6.QtWidgets import QFileDialog
+            import importlib
+
+            QtWidgets = importlib.import_module("PySide6.QtWidgets")
+            QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
         except Exception:
             try:
-                from PyQt6.QtWidgets import QFileDialog  # type: ignore
-            except Exception:
-                return
+                import importlib
 
-        file_name, _ = QFileDialog.getOpenFileName(
+                QtWidgets = importlib.import_module("PyQt6.QtWidgets")
+                QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
+            except Exception:
+                QFileDialogCls = None
+        if QFileDialogCls is None:
+            return
+
+        file_name, _ = QFileDialogCls.getOpenFileName(
             self._parent,
             "בחר תמונת פרופיל",
             "",
@@ -85,14 +94,6 @@ class SidebarAvatar:
         src_path = Path(file_name)
         if not src_path.exists():
             return False
-
-        try:
-            from PySide6.QtGui import QPixmap
-        except Exception:
-            try:
-                from PyQt6.QtGui import QPixmap  # type: ignore
-            except Exception:
-                return False
 
         pix = QPixmap(str(src_path))
         if pix.isNull():

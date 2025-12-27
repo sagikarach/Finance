@@ -60,6 +60,7 @@ class SavingsPage(BasePage):
         )
 
     def on_route_activated(self) -> None:
+        super().on_route_activated()
         app = QApplication.instance()
         is_dark = False
         if app is not None:

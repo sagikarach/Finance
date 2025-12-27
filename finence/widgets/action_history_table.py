@@ -13,31 +13,11 @@ from ..qt import (
     QSizePolicy,
     QColor,
     QApplication,
+    QStyledItemDelegate,
+    QPainter,
+    QTimer,
+    QPalette,
 )
-
-try:
-    from PySide6.QtWidgets import QStyledItemDelegate
-except Exception:
-    try:
-        from PyQt6.QtWidgets import QStyledItemDelegate  # type: ignore
-    except Exception:
-        QStyledItemDelegate = None  # type: ignore
-try:
-    from PySide6.QtGui import QPainter
-except Exception:
-    try:
-        from PyQt6.QtGui import QPainter  # type: ignore
-    except Exception:
-        QPainter = None  # type: ignore
-        QPaintEvent = None
-        QRect = None
-try:
-    from PySide6.QtCore import QTimer
-except Exception:
-    try:
-        from PyQt6.QtCore import QTimer  # type: ignore
-    except Exception:
-        QTimer = None  # type: ignore
 from ..models.action_history import ActionHistory
 from ..ui.action_history_details_dialog import ActionHistoryDetailsDialog
 
@@ -243,13 +223,9 @@ class ActionHistoryTable(QWidget):
         except Exception:
             pass
         try:
-            try:
-                from PySide6.QtGui import QPalette as _QPalette
-            except Exception:
-                from PyQt6.QtGui import QPalette as _QPalette  # type: ignore
             palette = app.palette()  # type: ignore[attr-defined]
             try:
-                window_color = palette.color(_QPalette.ColorRole.Window)
+                window_color = palette.color(QPalette.ColorRole.Window)
             except Exception:
                 try:
                     window_color = palette.window().color()

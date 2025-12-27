@@ -66,7 +66,8 @@ class CategoryTrendsChart(QWidget):
     def _setup_view_stack(self) -> None:
         QStackedLayoutCls: Any = None
         try:
-            from PySide6.QtWidgets import QStackedLayout as QStackedLayoutCls
+            QtWidgets = importlib.import_module("PySide6.QtWidgets")
+            QStackedLayoutCls = getattr(QtWidgets, "QStackedLayout", None)
         except Exception:
             try:
                 QtWidgets = importlib.import_module("PyQt6.QtWidgets")
@@ -116,10 +117,12 @@ class CategoryTrendsChart(QWidget):
         QEasingCurveCls: Any = None
         QGraphicsOpacityEffectCls: Any = None
         try:
-            from PySide6.QtCore import QPropertyAnimation as QPropertyAnimationCls
-            from PySide6.QtCore import QEasingCurve as QEasingCurveCls
-            from PySide6.QtWidgets import (
-                QGraphicsOpacityEffect as QGraphicsOpacityEffectCls,
+            QtCore = importlib.import_module("PySide6.QtCore")
+            QtWidgets = importlib.import_module("PySide6.QtWidgets")
+            QPropertyAnimationCls = getattr(QtCore, "QPropertyAnimation", None)
+            QEasingCurveCls = getattr(QtCore, "QEasingCurve", None)
+            QGraphicsOpacityEffectCls = getattr(
+                QtWidgets, "QGraphicsOpacityEffect", None
             )
         except Exception:
             try:
