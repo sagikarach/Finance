@@ -15,11 +15,16 @@ from ..pages.yearly_category_trends_page import YearlyCategoryTrendsPage
 from ..pages.yearly_overview_page import YearlyOverviewPage
 from ..qt import QAction, QMainWindow, QStackedWidget
 from .router import Router
+from ..utils.app_paths import migrate_legacy_accounts_data
 
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
+        try:
+            migrate_legacy_accounts_data()
+        except Exception:
+            pass
         self.setWindowTitle("Finence")
         self.resize(1024, 720)
 

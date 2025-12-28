@@ -14,6 +14,7 @@ from ..models.notifications import (
     NotificationType,
     RuleType,
 )
+from ..utils.app_paths import accounts_data_dir
 
 
 class NotificationsProvider(ABC):
@@ -52,11 +53,7 @@ class NotificationsProvider(ABC):
 
 class JsonFileNotificationsProvider(NotificationsProvider):
     def __init__(self, path: Optional[Union[str, Path]] = None) -> None:
-        self._path = (
-            Path(path)
-            if path
-            else Path.cwd() / "data" / "accounts" / "notifications.json"
-        )
+        self._path = Path(path) if path else accounts_data_dir() / "notifications.json"
 
     def list_notifications(self) -> List[Notification]:
         data = self._read()

@@ -6,11 +6,12 @@ from typing import List, Optional
 
 from ..models.accounts import MoneyAccount
 from ..models.user import UserProfile
+from ..utils.app_paths import user_profile_path
 
 
 class UserProfileStore:
     def __init__(self, path: Optional[Path] = None) -> None:
-        self._path = path or (Path.cwd() / "user_profile.json")
+        self._path = path or user_profile_path()
 
     def load(self, default_full_name: str, accounts: List[MoneyAccount]) -> UserProfile:
         full_name = default_full_name

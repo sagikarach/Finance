@@ -9,6 +9,7 @@ class NotificationType(str, Enum):
     UNEXPECTED_EXPENSE = "unexpected_expense"
     MISSING_SAVINGS_UPDATE = "missing_savings_update"
     MISSING_MONTHLY_UPLOAD = "missing_monthly_upload"
+    EVENT_OVER_BUDGET = "event_over_budget"
 
 
 class NotificationSeverity(str, Enum):
@@ -28,6 +29,7 @@ class RuleType(str, Enum):
     UNEXPECTED_EXPENSE = "unexpected_expense"
     MISSING_SAVINGS_UPDATE = "missing_savings_update"
     MISSING_MONTHLY_UPLOAD = "missing_monthly_upload"
+    EVENT_OVER_BUDGET = "event_over_budget"
 
 
 @dataclass(frozen=True)

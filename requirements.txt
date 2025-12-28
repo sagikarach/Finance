@@ -1,5 +1,3 @@
 PySide6>=6.7
-# If you prefer PyQt6 instead of PySide6, comment the line above and uncomment:
-# PyQt6>=6.7,<6.8
-
+platformdirs>=4.0
 

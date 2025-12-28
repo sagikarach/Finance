@@ -103,6 +103,45 @@ class UploadOutcomeFileAction(Action):
 
 
 @dataclass(frozen=True)
+class AddOneTimeEventAction(Action):
+    event_id: str = field(default="")
+    event_name: str = field(default="")
+    budget: float = field(default=0.0)
+    status: str = field(default="")
+
+
+@dataclass(frozen=True)
+class EditOneTimeEventAction(Action):
+    event_id: str = field(default="")
+    event_name: str = field(default="")
+    old_name: Optional[str] = field(default=None)
+    new_name: Optional[str] = field(default=None)
+    old_budget: Optional[float] = field(default=None)
+    new_budget: Optional[float] = field(default=None)
+    old_status: Optional[str] = field(default=None)
+    new_status: Optional[str] = field(default=None)
+
+
+@dataclass(frozen=True)
+class DeleteOneTimeEventAction(Action):
+    event_id: str = field(default="")
+    event_name: str = field(default="")
+    unassigned_movement_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class AssignMovementToOneTimeEventAction(Action):
+    movement_id: str = field(default="")
+    event_id: str = field(default="")
+
+
+@dataclass(frozen=True)
+class UnassignMovementFromOneTimeEventAction(Action):
+    movement_id: str = field(default="")
+    previous_event_id: Optional[str] = field(default=None)
+
+
+@dataclass(frozen=True)
 class ActionHistory:
     id: str
     timestamp: str

@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 import json
 
 from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus
+from ..utils.app_paths import accounts_data_dir
 
 
 class OneTimeEventProvider(ABC):
@@ -30,9 +31,7 @@ class OneTimeEventProvider(ABC):
 class JsonFileOneTimeEventProvider(OneTimeEventProvider):
     def __init__(self, path: Optional[Union[str, Path]] = None) -> None:
         self._path = (
-            Path(path)
-            if path
-            else Path.cwd() / "data" / "accounts" / "one_time_events.json"
+            Path(path) if path else accounts_data_dir() / "one_time_events.json"
         )
 
     def list_events(self) -> List[OneTimeEvent]:

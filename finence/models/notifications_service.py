@@ -14,7 +14,9 @@ from ..data.notifications_provider import (
 from ..data.provider import AccountsProvider
 from ..models.accounts import SavingsAccount, parse_iso_date
 from ..models.action_history import ActionHistory
-from ..models.bank_movement import BankMovement
+from ..models.bank_movement import BankMovement, MovementType
+from ..data.one_time_event_provider import JsonFileOneTimeEventProvider
+from ..models.one_time_event import OneTimeEvent
 from .notifications import (
     Notification,
     NotificationRule,
@@ -47,9 +49,12 @@ class NotificationsService:
         self._history_provider = history_provider
 
     def ensure_defaults(self) -> None:
-        rules = self._provider.list_rules()
-        if rules:
-            return
+        try:
+            rules = list(self._provider.list_rules())
+        except Exception:
+            rules = []
+        by_id = {r.id: r for r in rules if getattr(r, "id", None)}
+
         defaults: List[NotificationRule] = [
             NotificationRule(
                 id="unexpected_expense",
@@ -69,8 +74,21 @@ class NotificationsService:
                 enabled=True,
                 params={"days_since_update": 30},
             ),
+            NotificationRule(
+                id="event_over_budget",
+                type=RuleType.EVENT_OVER_BUDGET,
+                enabled=True,
+                params={},
+            ),
         ]
-        self._provider.save_rules(defaults)
+        changed = False
+        merged: List[NotificationRule] = list(rules)
+        for d in defaults:
+            if d.id not in by_id:
+                merged.append(d)
+                changed = True
+        if changed or not rules:
+            self._provider.save_rules(merged)
 
     def is_enabled(self) -> bool:
         getter = getattr(self._provider, "is_enabled", None)
@@ -171,6 +189,10 @@ class NotificationsService:
                         rule, history, existing_by_key, active_keys
                     )
                 )
+            elif rule.type == RuleType.EVENT_OVER_BUDGET:
+                created.extend(
+                    self._rule_event_over_budget(rule, existing_by_key, active_keys)
+                )
 
         for n in created:
             self._provider.upsert(n)
@@ -225,6 +247,7 @@ class NotificationsService:
             if n.type in (
                 NotificationType.MISSING_MONTHLY_UPLOAD,
                 NotificationType.MISSING_SAVINGS_UPDATE,
+                NotificationType.EVENT_OVER_BUDGET,
             ):
                 if n.key not in active_keys and n.status not in (
                     NotificationStatus.DISMISSED,
@@ -233,6 +256,124 @@ class NotificationsService:
                     self._provider.update_status(
                         key=n.key, status=NotificationStatus.RESOLVED
                     )
+
+    def _rule_event_over_budget(
+        self,
+        rule: NotificationRule,
+        existing_by_key: dict[str, Notification],
+        active_keys: set[str],
+    ) -> List[Notification]:
+        out: List[Notification] = []
+        try:
+            events = JsonFileOneTimeEventProvider().list_events()
+        except Exception:
+            events = []
+
+        movements = (
+            self._movement_provider.list_movements() if self._movement_provider else []
+        )
+
+        for event in events:
+            try:
+                key = f"event_over_budget:{event.id}"
+                spent = self._event_spent(event, movements)
+                budget = float(getattr(event, "budget", 0.0) or 0.0)
+                if budget <= 0:
+                    continue
+                if spent <= budget:
+                    continue
+                active_keys.add(key)
+
+                existing = existing_by_key.get(key)
+                if existing is not None:
+                    # If it was auto-resolved earlier and the event is over again, re-open it.
+                    if existing.status == NotificationStatus.RESOLVED:
+                        try:
+                            self._provider.update_status(
+                                key=key, status=NotificationStatus.UNREAD
+                            )
+                        except Exception:
+                            pass
+                    continue
+
+                over = spent - budget
+                title = "חריגה מתקציב אירוע"
+                name = str(getattr(event, "name", "") or "").strip() or "אירוע"
+                msg = (
+                    f"האירוע {unwrap_rtl(name)} חרג מהתקציב.\n"
+                    f"תקציב: {budget:,.0f} | הוצאות: {spent:,.0f} | חריגה: {over:,.0f}"
+                )
+
+                out.append(
+                    Notification(
+                        id=str(uuid.uuid4()),
+                        key=key,
+                        type=NotificationType.EVENT_OVER_BUDGET,
+                        title=title,
+                        message=msg,
+                        severity=NotificationSeverity.CRITICAL,
+                        created_at=_today_iso(),
+                        status=NotificationStatus.UNREAD,
+                        due_at=None,
+                        source=f"rule:{rule.id}",
+                        context={
+                            "event_id": str(event.id),
+                            "event_name": name,
+                            "budget": budget,
+                            "spent": spent,
+                            "over": over,
+                        },
+                    )
+                )
+            except Exception:
+                continue
+
+        return out
+
+    def _event_spent(self, event: OneTimeEvent, movements: List[BankMovement]) -> float:
+        spent = 0.0
+        for m in movements:
+            try:
+                if getattr(m, "type", None) != MovementType.ONE_TIME:
+                    continue
+            except Exception:
+                continue
+            try:
+                if getattr(m, "event_id", None) != event.id:
+                    continue
+            except Exception:
+                continue
+
+            try:
+                if not self._event_in_range(event, m):
+                    continue
+            except Exception:
+                pass
+
+            try:
+                amt = float(getattr(m, "amount", 0.0))
+            except Exception:
+                continue
+            if amt < 0:
+                spent += abs(amt)
+        return float(spent)
+
+    def _event_in_range(self, event: OneTimeEvent, movement: BankMovement) -> bool:
+        try:
+            start = getattr(event, "start_date", None)
+            end = getattr(event, "end_date", None)
+        except Exception:
+            start, end = None, None
+        if not start and not end:
+            return True
+        dt = parse_iso_date(getattr(movement, "date", ""))
+        if start:
+            if dt < parse_iso_date(str(start)):
+                return False
+        if end:
+            if dt > parse_iso_date(str(end)):
+                return False
+        return True
 
     def _rule_unexpected_expense(
         self,

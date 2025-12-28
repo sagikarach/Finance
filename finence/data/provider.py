@@ -13,6 +13,7 @@ from ..models.accounts import (
     BankAccount,
     latest_amount_from_history,
 )
+from ..utils.app_paths import accounts_data_dir
 
 
 class AccountsProvider(ABC):
@@ -30,16 +31,12 @@ class JsonFileAccountsProvider(AccountsProvider):
         if bank_accounts_path:
             self._bank_accounts_path = Path(bank_accounts_path)
         else:
-            self._bank_accounts_path = (
-                Path.cwd() / "data" / "accounts" / "bank_accounts.json"
-            )
+            self._bank_accounts_path = accounts_data_dir() / "bank_accounts.json"
 
         if savings_accounts_path:
             self._savings_accounts_path = Path(savings_accounts_path)
         else:
-            self._savings_accounts_path = (
-                Path.cwd() / "data" / "accounts" / "savings_accounts.json"
-            )
+            self._savings_accounts_path = accounts_data_dir() / "savings_accounts.json"
 
     def list_accounts(self) -> List[MoneyAccount]:
         accounts: List[MoneyAccount] = []

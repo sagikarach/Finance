@@ -7,12 +7,13 @@ import sys
 from io import TextIOWrapper
 from typing import Optional
 
-from .qt import QApplication
+from .qt import QApplication, QIcon
 from .styles.theme import load_default_stylesheet
 from .ui.main_window import MainWindow
 from .ui.lock_dialog import LockDialog
 from .data.user_profile_store import UserProfileStore
 from .utils.defaults import load_defaults
+from .utils.resources import find_first_existing
 
 
 class FilteredStderr:
@@ -71,6 +72,12 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     app = QApplication(argv)
     app.setApplicationName("Finence")
     app.setOrganizationName("Finence")
+    try:
+        icon_path = find_first_existing(["app-icon.icns", "app-icon.ico"])
+        if icon_path is not None:
+            app.setWindowIcon(QIcon(str(icon_path)))
+    except Exception:
+        pass
 
     defaults = load_defaults()
 
@@ -98,6 +105,11 @@ def run_app(argv: Optional[list[str]] = None) -> None:
             sys.exit(0)
 
     window = MainWindow()
+    try:
+        if "icon_path" in locals() and icon_path is not None:
+            window.setWindowIcon(QIcon(str(icon_path)))
+    except Exception:
+        pass
     window.show()
 
     sys.exit(app.exec())

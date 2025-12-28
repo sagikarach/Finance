@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Dict, List, Optional
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
+from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..data.one_time_event_provider import JsonFileOneTimeEventProvider
 from ..models.one_time_event import OneTimeEvent
 from ..models.one_time_events_service import OneTimeEventsService
@@ -38,6 +39,7 @@ class OneTimeEventsPage(BasePage):
         self._service = OneTimeEventsService(
             events_provider=JsonFileOneTimeEventProvider(),
             movements_provider=JsonFileBankMovementProvider(),
+            history_provider=JsonFileActionHistoryProvider(),
         )
         self._events: List[OneTimeEvent] = []
         self._selected_event_id: Optional[str] = None

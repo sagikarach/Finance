@@ -25,7 +25,11 @@ from ..models.accounts import BankAccount
 from ..models.bank_settings import BankSettingsRowInput
 from ..models.accounts_service import AccountsService
 from ..models.notifications import RuleType
+from ..models.update_service import UpdateService
+from ..__version__ import __version__
 from .base_page import BasePage
+import os
+import webbrowser
 
 
 class SettingsPage(BasePage):
@@ -312,6 +316,7 @@ class SettingsPage(BasePage):
             RuleType.UNEXPECTED_EXPENSE: "הוצאות חריגות / כפולות",
             RuleType.MISSING_MONTHLY_UPLOAD: "תזכורת העלאת קובץ הוצאות חודשי",
             RuleType.MISSING_SAVINGS_UPDATE: "תזכורת עדכון חסכונות",
+            RuleType.EVENT_OVER_BUDGET: "חריגה מתקציב אירוע",
         }
 
         rules = []
@@ -645,7 +650,76 @@ class SettingsPage(BasePage):
 
         bank_accounts_card = self._build_bank_accounts_card()
         extra_card_bottom_left = self._build_notifications_card()
-        extra_card_bottom_right = _make_extra_card("הגדרה פנויה")
+        updates_card = QWidget(self)
+        updates_card.setObjectName("Sidebar")
+        try:
+            updates_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        updates_layout = QVBoxLayout(updates_card)
+        updates_layout.setContentsMargins(24, 24, 24, 24)
+        updates_layout.setSpacing(12)
+
+        updates_title = QLabel("עדכונים", updates_card)
+        try:
+            updates_title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        except Exception:
+            pass
+        updates_layout.addWidget(updates_title)
+
+        ver_lbl = QLabel(f"גרסה נוכחית: {__version__}", updates_card)
+        updates_layout.addWidget(ver_lbl)
+
+        repo = str(os.environ.get("FINENCE_UPDATE_REPO", "") or "").strip()
+        repo_lbl = QLabel(
+            f"מקור עדכון: {repo if repo else 'לא הוגדר (FINENCE_UPDATE_REPO)'}",
+            updates_card,
+        )
+        repo_lbl.setObjectName("Subtitle")
+        updates_layout.addWidget(repo_lbl)
+
+        status_lbl = QLabel("", updates_card)
+        status_lbl.setObjectName("Subtitle")
+        updates_layout.addWidget(status_lbl)
+
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(10)
+        check_btn = QPushButton("בדוק עדכונים", updates_card)
+        check_btn.setObjectName("SaveButton")
+        open_btn = QPushButton("פתח דף הורדה", updates_card)
+        btn_row.addWidget(check_btn)
+        btn_row.addWidget(open_btn)
+        btn_row.addStretch(1)
+        updates_layout.addLayout(btn_row)
+
+        def open_download_page() -> None:
+            if repo:
+                webbrowser.open(f"https://github.com/{repo}/releases")
+            else:
+                webbrowser.open("https://github.com/")
+
+        def check_updates() -> None:
+            status_lbl.setText("בודק עדכונים...")
+            QApplication.processEvents()
+            if not repo:
+                status_lbl.setText("כדי לאפשר בדיקת עדכונים, הגדר FINENCE_UPDATE_REPO.")
+                return
+            svc = UpdateService(repo=repo)
+            latest = svc.latest_release()
+            if latest is None:
+                status_lbl.setText("לא ניתן לבדוק עדכונים כרגע.")
+                return
+            if svc.is_newer(current=__version__, latest=latest.version):
+                status_lbl.setText(f"גרסה חדשה זמינה: {latest.version}")
+                webbrowser.open(latest.html_url)
+            else:
+                status_lbl.setText("אתה על הגרסה העדכנית.")
+
+        open_btn.clicked.connect(open_download_page)
+        check_btn.clicked.connect(check_updates)
+
+        updates_layout.addStretch(1)
+        extra_card_bottom_right = updates_card
 
         row1 = QHBoxLayout()
         row1.setSpacing(16)

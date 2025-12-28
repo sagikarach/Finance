@@ -6,6 +6,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Tuple
 import json
 
 from .bank_movement import BankMovement, MovementType
+from ..utils.app_paths import app_data_dir
 
 
 @dataclass
@@ -25,7 +26,7 @@ class SimilarityBasedClassifier:
     }
 
     training_data_path: Path = field(
-        default_factory=lambda: Path.cwd() / "data" / "expenses.json"
+        default_factory=lambda: app_data_dir() / "training" / "expenses.json"
     )
     _training_data: List[Dict[str, Any]] = field(default_factory=list, init=False)
     _is_initialized: bool = field(default=False, init=False)
@@ -37,8 +38,6 @@ class SimilarityBasedClassifier:
         candidate_paths = [
             self.training_data_path,
             Path.cwd() / "data" / "expenses.json",
-            Path.home() / "Desktop" / "data" / "expenses.json",
-            Path("/Users/sagikarach/Desktop/data/expenses.json"),
         ]
 
         loaded = False

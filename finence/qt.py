@@ -2,6 +2,20 @@ from __future__ import annotations
 
 from typing import Any, Optional
 import importlib
+import sys
+
+if getattr(sys, "frozen", False):
+    try:
+        import PySide6.QtCore  # noqa: F401
+        import PySide6.QtGui  # noqa: F401
+        import PySide6.QtWidgets  # noqa: F401
+
+        try:
+            import PySide6.QtCharts  # noqa: F401
+        except Exception:
+            pass
+    except Exception:
+        pass
 
 
 def _import_module(name: str) -> Optional[Any]:

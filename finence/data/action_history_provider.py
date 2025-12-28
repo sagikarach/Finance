@@ -22,7 +22,13 @@ from ..models.action_history import (
     AddIncomeMovementAction,
     AddOutcomeMovementAction,
     UploadOutcomeFileAction,
+    AddOneTimeEventAction,
+    EditOneTimeEventAction,
+    DeleteOneTimeEventAction,
+    AssignMovementToOneTimeEventAction,
+    UnassignMovementFromOneTimeEventAction,
 )
+from ..utils.app_paths import accounts_data_dir
 
 
 class ActionHistoryProvider(ABC):
@@ -47,9 +53,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         if history_path:
             self._history_path = Path(history_path)
         else:
-            self._history_path = (
-                Path.cwd() / "data" / "accounts" / "action_history.json"
-            )
+            self._history_path = accounts_data_dir() / "action_history.json"
 
     def list_history(self) -> List[ActionHistory]:
         history: List[ActionHistory] = []
@@ -153,6 +157,11 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             "add_income_movement": AddIncomeMovementAction,
             "add_outcome_movement": AddOutcomeMovementAction,
             "upload_outcome_file": UploadOutcomeFileAction,
+            "add_one_time_event": AddOneTimeEventAction,
+            "edit_one_time_event": EditOneTimeEventAction,
+            "delete_one_time_event": DeleteOneTimeEventAction,
+            "assign_movement_to_one_time_event": AssignMovementToOneTimeEventAction,
+            "unassign_movement_from_one_time_event": UnassignMovementFromOneTimeEventAction,
         }
 
         action_class = action_class_map.get(action_name)

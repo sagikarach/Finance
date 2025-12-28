@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 import json
 
 from ..models.bank_movement import BankMovement, MovementType
+from ..utils.app_paths import accounts_data_dir
 
 
 class BankMovementProvider(ABC):
@@ -28,9 +29,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         if movements_path:
             self._movements_path = Path(movements_path)
         else:
-            self._movements_path = (
-                Path.cwd() / "data" / "accounts" / "bank_movements.json"
-            )
+            self._movements_path = accounts_data_dir() / "bank_movements.json"
         self._categories_path = self._movements_path.with_name(
             "bank_movement_categories.json"
         )

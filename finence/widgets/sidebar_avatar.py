@@ -6,6 +6,7 @@ from typing import Optional
 from ..qt import QWidget, QVBoxLayout, QLabel, Qt, QPixmap
 from ..models.user import UserProfile
 from ..data.user_profile_store import UserProfileStore
+from ..utils.app_paths import avatars_data_dir
 
 
 class SidebarAvatar:
@@ -112,9 +113,7 @@ class SidebarAvatar:
         )
 
         try:
-            data_dir = Path.cwd() / "data" / "avatars"
-            data_dir.mkdir(parents=True, exist_ok=True)
-            target_path = data_dir / "user_avatar.png"
+            target_path = avatars_data_dir() / "user_avatar.png"
             pix.save(str(target_path), "PNG")
             self._user.avatar_path = str(target_path)
         except Exception:
