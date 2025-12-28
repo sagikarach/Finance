@@ -67,6 +67,12 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                     if isinstance(description_value, str)
                     else None
                 )
+                event_id_value = item.get("event_id")
+                event_id = (
+                    str(event_id_value).strip()
+                    if isinstance(event_id_value, str) and str(event_id_value).strip()
+                    else None
+                )
                 movement_id = item.get("id")
                 if not movement_id:
                     from ..models.bank_movement import generate_movement_id
@@ -84,6 +90,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                         category=category,
                         type=movement_type,
                         description=description,
+                        event_id=event_id,
                         id=movement_id,
                     )
                 )

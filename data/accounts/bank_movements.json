@@ -6,6 +6,7 @@
     "category": "משכורת",
     "type": "חודשי",
     "description": "משכורת שגיא",
+    "event_id": null,
     "id": "b175e60e-418b-445e-bf3d-37e71faaa9be"
   },
   {
@@ -15,6 +16,7 @@
     "category": "קצבה",
     "type": "חד פעמי",
     "description": "משכורת חן",
+    "event_id": null,
     "id": "43e2b602-a20a-4358-ae10-b1008c087b79"
   },
   {
@@ -24,6 +26,7 @@
     "category": "מגורים",
     "type": "חודשי",
     "description": "תשלום מעון",
+    "event_id": null,
     "id": "1ef1937e-685f-45a9-92b4-8bab39e89b14"
   },
   {
@@ -33,6 +36,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "מעבר דירה",
+    "event_id": null,
     "id": "0bccee16-d838-496b-b60e-6e96f0ba903c"
   },
   {
@@ -42,6 +46,7 @@
     "category": "שונות",
     "type": "חודשי",
     "description": "היפר רוזנפלד",
+    "event_id": null,
     "id": "d270b0d5-39f0-486c-9c0d-3e0c72e8ef14"
   },
   {
@@ -51,6 +56,7 @@
     "category": "בנק",
     "type": "חודשי",
     "description": "הפניקס חיים ובריאות",
+    "event_id": null,
     "id": "b76200d5-e216-4d24-85cc-a56bcec1142a"
   },
   {
@@ -60,6 +66,7 @@
     "category": "מגורים",
     "type": "חודשי",
     "description": "מי לוד בעמ",
+    "event_id": null,
     "id": "152b509b-6627-4e62-97d4-a5d8ec996132"
   },
   {
@@ -69,6 +76,7 @@
     "category": "בנק",
     "type": "חודשי",
     "description": "דמי כרטיס ויזה",
+    "event_id": null,
     "id": "49c8c3d1-830e-49e5-a644-a9b0a841fd41"
   },
   {
@@ -78,6 +86,7 @@
     "category": "חינוך",
     "type": "שנתי",
     "description": "המרכז לחינוך וחברה בלוד",
+    "event_id": null,
     "id": "1b8a09b5-254e-489e-80de-9f5bd0ccf873"
   },
   {
@@ -87,6 +96,7 @@
     "category": "מגורים",
     "type": "חודשי",
     "description": "חברת החשמל לישראל בעמ",
+    "event_id": null,
     "id": "5bb632e2-e8ce-44a9-bfec-5ac34db7602b"
   },
   {
@@ -96,6 +106,7 @@
     "category": "בנק",
     "type": "חודשי",
     "description": "הפניקס חיים ובריאות",
+    "event_id": null,
     "id": "194c7bdd-bcaf-476b-a390-2581341b1c5c"
   },
   {
@@ -105,6 +116,7 @@
     "category": "בנק",
     "type": "חודשי",
     "description": "דמי כרטיס בנק לאומי ויזה",
+    "event_id": null,
     "id": "4b5c6d33-c493-4d42-a83c-83f1d07d5136"
   },
   {
@@ -114,6 +126,7 @@
     "category": "תחבורה",
     "type": "חודשי",
     "description": "מ. התחבורה - פנגו מוביט",
+    "event_id": null,
     "id": "b0f0c792-6956-4319-8947-2aca09e253b2"
   },
   {
@@ -123,6 +136,7 @@
     "category": "קניות",
     "type": "חד פעמי",
     "description": "Test",
+    "event_id": null,
     "id": "eec2f031-6259-4e6d-a326-87263812bb10"
   },
   {
@@ -132,6 +146,7 @@
     "category": "שונות",
     "type": "חודשי",
     "description": "סולתם רדד )כלי בית( בעמ-צמרת",
+    "event_id": null,
     "id": "de95560a-09a4-4322-bcdf-4b8bfa8e2625"
   },
   {
@@ -141,6 +156,7 @@
     "category": "ביגוד",
     "type": "חודשי",
     "description": "RONI KHAN עיר ימים",
+    "event_id": null,
     "id": "f89d0a97-be21-4c6f-9063-ad920adf8fe6"
   },
   {
@@ -150,6 +166,7 @@
     "category": "ביגוד",
     "type": "חודשי",
     "description": "roni khan רחובות",
+    "event_id": null,
     "id": "beae5761-b672-44b9-bf16-d0abda475a6c"
   },
   {
@@ -159,6 +176,7 @@
     "category": "בילויים",
     "type": "חודשי",
     "description": "בראנץ קייטרינג",
+    "event_id": null,
     "id": "e01e3abc-6801-4852-8572-c31cb0d95d08"
   },
   {
@@ -168,6 +186,7 @@
     "category": "בילויים",
     "type": "שנתי",
     "description": "המרכז הזואולוגי רמת גן בעמ",
+    "event_id": null,
     "id": "61336040-1657-43cb-8a51-c977c4c8d2b0"
   },
   {
@@ -177,6 +196,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "יעד מור תחנת דלק-צמרת",
+    "event_id": null,
     "id": "cad5bef9-08fa-4ef5-a049-f9845d6c9b00"
   },
   {
@@ -186,6 +206,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "סופר פארם רמלוד",
+    "event_id": null,
     "id": "8309de71-dda8-4386-94f2-7d55b0c631c0"
   },
   {
@@ -195,6 +216,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "שופרסל דיל רמלה לוד הצפונ",
+    "event_id": null,
     "id": "cc488350-9828-44b2-9216-8ba31287ae54"
   },
   {
@@ -204,6 +226,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "פינת הנשיא לוד",
+    "event_id": null,
     "id": "31e5389a-8221-46fb-93ce-4ced3b2a916b"
   },
   {
@@ -213,6 +236,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "אושר עד לוד",
+    "event_id": null,
     "id": "19445498-1940-41c8-8929-55d9b0883423"
   },
   {
@@ -222,6 +246,7 @@
     "category": "בנק",
     "type": "חודשי",
     "description": "דמי כרטיס ויזה",
+    "event_id": null,
     "id": "5d3a2b0f-bbfe-42bf-9b0a-877264d26595"
   },
   {
@@ -231,6 +256,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "מכולת הבנים- מוחמד ערפאת",
+    "event_id": null,
     "id": "cd31d159-62e1-4917-a7e6-0df1f82538b8"
   },
   {
@@ -240,6 +266,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "פינת הנשיא לוד",
+    "event_id": null,
     "id": "50ecbdb2-b282-4a66-aa87-57d3a26a99ca"
   },
   {
@@ -249,6 +276,7 @@
     "category": "חינוך",
     "type": "שנתי",
     "description": "המרכז לחינוך וחברה בלוד",
+    "event_id": null,
     "id": "249edc8c-01d8-40f3-abfe-fb3cd8fcc7d3"
   },
   {
@@ -258,6 +286,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "FREE-FIT",
+    "event_id": null,
     "id": "2061886c-e2a3-4592-9707-b1fd2136d7f6"
   },
   {
@@ -267,6 +296,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "FREE-FIT",
+    "event_id": null,
     "id": "64a287ee-3839-4079-bd49-6c6054979a79"
   },
   {
@@ -276,6 +306,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "סופרפארם לוד",
+    "event_id": null,
     "id": "19afa061-565d-40d7-a3db-60dd57ece387"
   },
   {
@@ -285,6 +316,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "דודי פיט",
+    "event_id": null,
     "id": "8e70ea86-8d1b-492b-b184-37aa3d3b4bec"
   },
   {
@@ -294,6 +326,7 @@
     "category": "ביגוד",
     "type": "שנתי",
     "description": "יריד נשימה",
+    "event_id": null,
     "id": "b480330e-7e37-44cb-8db5-ac8e4b557933"
   },
   {
@@ -303,6 +336,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "יעד מור תחנת דלק-צמרת",
+    "event_id": null,
     "id": "8a4db6dd-8b5d-464b-8078-80cf62b453e6"
   },
   {
@@ -312,6 +346,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "אושר עד לוד",
+    "event_id": null,
     "id": "f5d8ddb3-dd10-4eb7-8198-424e4a4dcfc7"
   },
   {
@@ -321,6 +356,7 @@
     "category": "בילויים",
     "type": "חודשי",
     "description": "בריסטה קפה",
+    "event_id": null,
     "id": "e9eb64ad-87f4-4fc3-b8e7-0357e5bda6bf"
   },
   {
@@ -330,6 +366,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "מקס רמלה בעמ",
+    "event_id": null,
     "id": "764a35dd-2f23-4ea7-9453-eef2a239e212"
   },
   {
@@ -339,6 +376,7 @@
     "category": "קניות",
     "type": "חד פעמי",
     "description": "Test save",
+    "event_id": null,
     "id": "3f3e5db2-e7ec-43d6-9feb-b8b8d6d9521a"
   },
   {
@@ -348,6 +386,7 @@
     "category": "ביגוד",
     "type": "חודשי",
     "description": "טס״ט",
+    "event_id": null,
     "id": "06fa3909-6e10-4eda-9a8a-1343b6bd21fd"
   },
   {
@@ -357,6 +396,7 @@
     "category": "ביגוד",
     "type": "חודשי",
     "description": "טס״ט",
+    "event_id": null,
     "id": "ff105756-21c0-42f3-9d32-c47a0a99c5da"
   },
   {
@@ -366,6 +406,7 @@
     "category": "חינוך",
     "type": "חודשי",
     "description": "טס״ט",
+    "event_id": null,
     "id": "9f7f1713-91a4-4671-9b56-2d198a33304a"
   },
   {
@@ -375,6 +416,7 @@
     "category": "שונות",
     "type": "חד פעמי",
     "description": "מבחן",
+    "event_id": null,
     "id": "834420db-2292-4ab6-8eaf-0cfe61e6c08d"
   },
   {
@@ -384,6 +426,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "מבחן",
+    "event_id": null,
     "id": "f06b36cd-469e-447d-a706-d538eeff9cff"
   },
   {
@@ -393,6 +436,7 @@
     "category": "בילויים",
     "type": "חודשי",
     "description": "הפתעה",
+    "event_id": null,
     "id": "36b33cc7-dd7c-448a-94b6-d685ab8249c3"
   },
   {
@@ -402,6 +446,7 @@
     "category": "שונות",
     "type": "חודשי",
     "description": "(רנן - פירסינגים (רננה לו",
+    "event_id": null,
     "id": "72c58441-19b0-43d3-a5c8-948d440e0d6a"
   },
   {
@@ -411,6 +456,7 @@
     "category": "ביגוד",
     "type": "חודשי",
     "description": "roni khan רחובות",
+    "event_id": null,
     "id": "4ff6b576-e7fb-4421-a360-d5cbc767c57a"
   },
   {
@@ -420,6 +466,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "רמי לוי - לוד",
+    "event_id": null,
     "id": "871f5a80-ba85-4fa1-ac40-233ef49e4dcb"
   },
   {
@@ -429,6 +476,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "יעד מור תחנת דלק-צמרת",
+    "event_id": null,
     "id": "cd6fee3d-3a0f-4cb0-aca0-dac913676c6b"
   },
   {
@@ -438,6 +486,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "רמלה MOOOB",
+    "event_id": null,
     "id": "1c4a33c4-d8a3-4b64-9931-3923e0080032"
   },
   {
@@ -447,6 +496,7 @@
     "category": "שונות",
     "type": "חודשי",
     "description": "איקאה IKEA",
+    "event_id": null,
     "id": "bfef07ac-9ba8-4bf5-b13a-091d5a946f3d"
   },
   {
@@ -456,6 +506,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "יעד מור תחנת דלק-צמרת",
+    "event_id": null,
     "id": "4b72bebb-ed10-4fc3-8647-4632d0797611"
   },
   {
@@ -465,6 +516,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "רמלה CARREFOUR MARKET",
+    "event_id": null,
     "id": "79df40d1-ed69-4826-9630-83aa271386f0"
   },
   {
@@ -474,6 +526,7 @@
     "category": "תחבורה",
     "type": "חודשי",
     "description": "מ. התחבורה - פנגו מוביט",
+    "event_id": null,
     "id": "2328f7f3-9472-41ff-91ee-e04402a0aa60"
   },
   {
@@ -483,6 +536,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "סופרפארם לוד",
+    "event_id": null,
     "id": "1dcc059b-4254-452f-a1f8-84fd6586622a"
   },
   {
@@ -492,6 +546,7 @@
     "category": "בנק",
     "type": "חודשי",
     "description": "דמי כרטיס ויזה",
+    "event_id": null,
     "id": "218aad08-4cf1-4c05-9203-a78d6b0c9f52"
   },
   {
@@ -501,6 +556,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "תחנת דלק שלמה המלך",
+    "event_id": null,
     "id": "7aabe373-041a-4b0a-ad75-76445583e3e7"
   },
   {
@@ -510,6 +566,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "אושר עד לוד",
+    "event_id": null,
     "id": "ff688a92-3618-4e64-bc01-93cdc1beba87"
   },
   {
@@ -519,6 +576,7 @@
     "category": "בילויים",
     "type": "חודשי",
     "description": "HELEN",
+    "event_id": null,
     "id": "44e4f4f6-cd74-4d21-8834-94bc8c4a971c"
   },
   {
@@ -528,6 +586,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "סופר פארם רמלוד",
+    "event_id": null,
     "id": "f63b67ba-548c-451a-8972-1c31e1de0dbe"
   },
   {
@@ -537,6 +596,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "אושר עד לוד",
+    "event_id": null,
     "id": "af0ff120-6ae9-4f6f-bcc8-3b0343d8050d"
   },
   {
@@ -546,6 +606,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "דודי פיט",
+    "event_id": null,
     "id": "bd1e3527-9312-4e68-adeb-0ea361fd03de"
   },
   {
@@ -555,6 +616,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "יוחננוף רמלה",
+    "event_id": null,
     "id": "d76eee5c-a14b-4353-a2ea-5b81bda2b822"
   },
   {
@@ -564,6 +626,7 @@
     "category": "חינוך",
     "type": "שנתי",
     "description": "המרכז לחינוך וחברה בלוד",
+    "event_id": null,
     "id": "562c6f88-fb78-43d1-b2d6-4dd4de70c514"
   },
   {
@@ -573,6 +636,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "פז YELLOW רמלה",
+    "event_id": null,
     "id": "3f909e5e-8276-425e-853b-0ba7324f2c09"
   },
   {
@@ -582,6 +646,7 @@
     "category": "בריאות",
     "type": "חודשי",
     "description": "סופרפארם לוד",
+    "event_id": null,
     "id": "5c71617e-40d7-4376-9c0c-b381a4f370a3"
   },
   {
@@ -591,6 +656,7 @@
     "category": "קניות",
     "type": "חודשי",
     "description": "מרקט ליז",
+    "event_id": null,
     "id": "67a25a08-ff43-45f8-98a2-3204a5a51577"
   },
   {
@@ -600,6 +666,7 @@
     "category": "רכב",
     "type": "חודשי",
     "description": "סונול מפגש אמיתי",
+    "event_id": null,
     "id": "08d1e6c3-2b04-4957-bf38-d66918a6f6bc"
   },
   {
@@ -609,6 +676,7 @@
     "category": "ביגוד",
     "type": "חודשי",
     "description": "תמנון רמלוד-גמא",
+    "event_id": null,
     "id": "3a2248f4-bb9f-4bd2-b668-e5fff415d47f"
   },
   {
@@ -618,6 +686,7 @@
     "category": "קניות",
     "type": "חד פעמי",
     "description": "איקאה IKEA",
+    "event_id": "7df49a2c-98fd-41a7-93c0-14a3573ca8bb",
     "id": "dde60129-627f-4a13-adc6-53ec15f2778e"
   },
   {
@@ -627,6 +696,7 @@
     "category": "בילויים",
     "type": "חודשי",
     "description": "מוסלין ירושלים",
+    "event_id": null,
     "id": "b74e1643-1309-4248-b2b8-564e8454019a"
   },
   {
@@ -636,6 +706,7 @@
     "category": "מתנה",
     "type": "חד פעמי",
     "description": "",
+    "event_id": null,
     "id": "0a4f2147-888d-406b-83bc-58f1176cf91c"
   },
   {
@@ -645,6 +716,7 @@
     "category": "משכורת",
     "type": "חד פעמי",
     "description": "",
+    "event_id": null,
     "id": "0eb7e642-c31d-4704-b94b-e07c75ce5482"
   },
   {
@@ -654,6 +726,7 @@
     "category": "מתנה",
     "type": "חודשי",
     "description": "",
+    "event_id": null,
     "id": "e52483e8-9b82-445c-bedd-89d11428d5ee"
   },
   {
@@ -663,6 +736,7 @@
     "category": "מגורים",
     "type": "חודשי",
     "description": "",
+    "event_id": null,
     "id": "2454a7fe-5177-4c63-8c21-622e5c545427"
   },
   {
@@ -672,6 +746,7 @@
     "category": "קניות",
     "type": "חד פעמי",
     "description": "",
+    "event_id": "7df49a2c-98fd-41a7-93c0-14a3573ca8bb",
     "id": "364a2bae-389a-4fd0-95db-f5ca9bd60890"
   },
   {
@@ -681,6 +756,7 @@
     "category": "מגורים",
     "type": "שנתי",
     "description": "",
+    "event_id": null,
     "id": "76661560-152f-4932-902e-6aa7f35fd258"
   },
   {
@@ -690,6 +766,7 @@
     "category": "משכורת",
     "type": "חודשי",
     "description": "",
+    "event_id": null,
     "id": "91661597-4de2-4a25-9ab6-cb832b8187a9"
   },
   {
@@ -699,6 +776,7 @@
     "category": "משכורת",
     "type": "חודשי",
     "description": "",
+    "event_id": null,
     "id": "52bd245b-8ff9-41b3-87ac-428eda1b5c5e"
   }
 ]

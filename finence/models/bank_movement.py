@@ -23,4 +23,5 @@ class BankMovement:
     category: str
     type: MovementType
     description: str | None = None
+    event_id: str | None = None
     id: str = field(default_factory=generate_movement_id)

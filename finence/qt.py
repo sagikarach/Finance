@@ -52,6 +52,7 @@ QDialog = _get(_widgets, "QDialog")
 QListWidget = _get(_widgets, "QListWidget")
 QComboBox = _get(_widgets, "QComboBox")
 QMenu = _get(_widgets, "QMenu")
+QWidgetAction = _get(_widgets, "QWidgetAction")
 QMenuBar = _get(_widgets, "QMenuBar")
 QGraphicsDropShadowEffect = _get(_widgets, "QGraphicsDropShadowEffect")
 QToolTip = _get(_widgets, "QToolTip")
@@ -118,6 +119,7 @@ __all__ = [
     "QListWidget",
     "QComboBox",
     "QMenu",
+    "QWidgetAction",
     "QMenuBar",
     "QAction",
     "Signal",

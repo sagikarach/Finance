@@ -57,6 +57,19 @@ def load_buttons_light_styles() -> str:
         background: rgba(0,0,0,0.05);
         border-radius: 8px;
     }
+    QToolButton#EventSelectorButton {
+        background: transparent;
+        border: none;
+        padding: 4px 8px;
+        font-size: 22px;
+        font-weight: 800;
+        color: #0b1220;
+    }
+    QToolButton#EventSelectorButton::menu-indicator {
+        image: none;
+        width: 0px;
+        height: 0px;
+    }
     QLabel#NotificationsBadge {
         background: #ef4444;
         color: white;
@@ -117,6 +130,19 @@ def load_buttons_dark_styles() -> str:
     QToolButton#PasswordEye:hover {
         background: rgba(255,255,255,0.06);
         border-radius: 8px;
+    }
+    QToolButton#EventSelectorButton {
+        background: transparent;
+        border: none;
+        padding: 4px 8px;
+        font-size: 22px;
+        font-weight: 800;
+        color: #e5e7eb;
+    }
+    QToolButton#EventSelectorButton::menu-indicator {
+        image: none;
+        width: 0px;
+        height: 0px;
     }
     QLabel#NotificationsBadge {
         background: #ef4444;

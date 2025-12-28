@@ -31,6 +31,8 @@ class SidebarNavigation:
         self._savings_button_container: Optional[QWidget] = None
         self._monthly_data_btn: Optional[QPushButton] = None
         self._monthly_data_container: Optional[QWidget] = None
+        self._one_time_events_btn: Optional[QPushButton] = None
+        self._one_time_events_container: Optional[QWidget] = None
         self._yearly_summary_btn: Optional[QPushButton] = None
         self._yearly_summary_container: Optional[QWidget] = None
 
@@ -39,6 +41,7 @@ class SidebarNavigation:
         self._setup_savings_button()
         self._setup_monthly_data_button()
         self._setup_yearly_summary_button()
+        self._setup_one_time_events_button()
 
     def _setup_dashboard_button(self) -> None:
         button_container = QWidget(self._parent)
@@ -155,6 +158,36 @@ class SidebarNavigation:
         self._monthly_data_container = button_container
         self._layout.addWidget(button_container)
 
+    def _setup_one_time_events_button(self) -> None:
+        button_container = QWidget(self._parent)
+        button_container_layout = QHBoxLayout(button_container)
+        button_container_layout.setContentsMargins(0, 0, 0, 0)
+        button_container_layout.setSpacing(0)
+
+        is_active = self._current_route == "one_time_events"
+        self._one_time_events_btn = QPushButton("אירועים", button_container)
+        self._one_time_events_btn.setObjectName("SidebarNavButton")
+        self._one_time_events_btn.setCheckable(True)
+        self._one_time_events_btn.setChecked(is_active)
+        self._one_time_events_btn.setEnabled(not is_active)
+        try:
+            self._one_time_events_btn.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
+        except Exception:
+            pass
+
+        if self._navigate is not None:
+            self._one_time_events_btn.clicked.connect(
+                lambda: self._navigate("one_time_events")
+            )
+
+        self._one_time_events_btn.setMinimumHeight(40)
+        button_container_layout.addWidget(self._one_time_events_btn)
+
+        self._one_time_events_container = button_container
+        self._layout.addWidget(button_container)
+
     def _setup_yearly_summary_button(self) -> None:
         button_container = QWidget(self._parent)
         button_container_layout = QHBoxLayout(button_container)
@@ -207,6 +240,12 @@ class SidebarNavigation:
 
     def get_monthly_data_container(self) -> Optional[QWidget]:
         return self._monthly_data_container
+
+    def get_one_time_events_button(self) -> Optional[QPushButton]:
+        return self._one_time_events_btn
+
+    def get_one_time_events_container(self) -> Optional[QWidget]:
+        return self._one_time_events_container
 
     def get_yearly_summary_button(self) -> Optional[QPushButton]:
         return self._yearly_summary_btn

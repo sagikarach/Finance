@@ -1,0 +1,20 @@
+[
+  {
+    "id": "7df49a2c-98fd-41a7-93c0-14a3573ca8bb",
+    "name": "בריתה שחר",
+    "budget": 5000.0,
+    "status": "פעיל",
+    "start_date": "2025-09-09",
+    "end_date": "2026-01-01",
+    "notes": null
+  },
+  {
+    "id": "644bba7f-e444-4ae9-92c8-5dcce851f860",
+    "name": "טיול לסלובניה",
+    "budget": 0.0,
+    "status": "פעיל",
+    "start_date": null,
+    "end_date": null,
+    "notes": null
+  }
+]
