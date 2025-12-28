@@ -30,27 +30,23 @@ Finence is a Qt-based desktop application scaffolded to support multiple pages. 
 python main.py
 ```
 
-### User data (accounts.json)
+### User data (safe across app updates)
 
-- The Home page loads accounts from a JSON file at the project root: `accounts.json`.
-- Edit this file to update your data; the app will reflect totals and the pie chart.
-- Format:
-  ```json
-  [
-    {
-      "name": "Checking",
-      "is_liquid": true,
-      "history": [
-        { "date": "2025-01-01", "amount": 2100.0 },
-        { "date": "2025-02-01", "amount": 2450.0 }
-      ]
-    }
-  ]
-  ```
-  - `name`: string
-  - `is_liquid`: boolean
-  - `history` (optional): array of `{ "date": ISO date string, "amount": number }`
-  - `amount` (optional): number (float). If `history` is present, the app uses the latest snapshot by date as the current amount.
+Finence stores all user data **outside** the app bundle so you can replace/update the app without losing data.
+
+- **macOS**: `~/Library/Application Support/Finence/`
+  - Accounts JSON: `~/Library/Application Support/Finence/accounts/`
+- On first launch, the app will migrate legacy `./data/accounts/*.json` into the per-user folder.
+
+### Build macOS `.app` (unsigned, for personal use)
+
+```bash
+./scripts/build_macos_app.sh
+```
+
+Output:
+- `dist/Finence.app` (double-clickable app)
+- `dist/Finence-mac.zip` (easy to share)
 
 ### Notes
 
