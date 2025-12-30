@@ -9,6 +9,8 @@ from ..qt import (
     QHBoxLayout,
     QWidget,
     QDialog,
+    QListWidget,
+    QStackedWidget,
     Qt,
     QLineEdit,
     QPushButton,
@@ -382,6 +384,7 @@ class SettingsPage(BasePage):
         return card
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
+        self._clear_content_layout(main_col)
         content_card = QWidget(self)
         content_card.setObjectName("Sidebar")
         try:
@@ -1044,16 +1047,87 @@ class SettingsPage(BasePage):
 
         refresh_status()
 
-        row1 = QHBoxLayout()
-        row1.setSpacing(16)
-        row1.addWidget(bank_accounts_card, 1)
-        row1.addWidget(content_card, 1)
+        # Internal settings navigation: small menu on the left, content on the right.
+        container = QWidget(self)
+        try:
+            # Keep menu on the left even in RTL app.
+            container.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        except Exception:
+            try:
+                container.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+            except Exception:
+                pass
 
-        row2 = QHBoxLayout()
-        row2.setSpacing(16)
-        row2.addWidget(extra_card_bottom_left, 1)
-        row2.addWidget(extra_card_bottom_right, 1)
+        container_l = QHBoxLayout(container)
+        container_l.setContentsMargins(0, 0, 0, 0)
+        container_l.setSpacing(16)
 
-        main_col.addLayout(row1, 1)
-        main_col.addLayout(row2, 1)
-        main_col.addWidget(firebase_card, 0)
+        menu = QListWidget(container)
+        menu.setObjectName("SettingsMenu")
+        try:
+            menu.setFixedWidth(210)
+        except Exception:
+            pass
+        try:
+            menu.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                menu.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+
+        menu.addItem("כללי")
+        menu.addItem("חשבונות")
+        menu.addItem("התראות")
+        menu.addItem("שיתוף וסנכרון")
+        menu.addItem("עדכונים")
+
+        stack = QStackedWidget(container)
+
+        def _wrap_page(child: QWidget) -> QWidget:
+            page = QWidget(stack)
+            try:
+                page.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            except Exception:
+                try:
+                    page.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            lay = QVBoxLayout(page)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(16)
+            lay.addWidget(child, 0)
+            lay.addStretch(1)
+            return page
+
+        stack.addWidget(_wrap_page(content_card))
+        stack.addWidget(_wrap_page(bank_accounts_card))
+        stack.addWidget(_wrap_page(extra_card_bottom_left))
+        stack.addWidget(_wrap_page(firebase_card))
+        stack.addWidget(_wrap_page(extra_card_bottom_right))
+
+        def _save_selected(idx: int) -> None:
+            try:
+                self._app_context["settings_section"] = str(int(idx))
+            except Exception:
+                pass
+
+        menu.currentRowChanged.connect(stack.setCurrentIndex)
+        menu.currentRowChanged.connect(_save_selected)
+
+        initial = 0
+        try:
+            initial = int(str(self._app_context.get("settings_section", "0") or "0"))
+        except Exception:
+            initial = 0
+        if initial < 0 or initial >= stack.count():
+            initial = 0
+        try:
+            menu.setCurrentRow(initial)
+        except Exception:
+            pass
+
+        container_l.addWidget(menu, 0)
+        container_l.addWidget(stack, 1)
+
+        main_col.addWidget(container, 1)

@@ -38,7 +38,6 @@ class _MovementsScreenState extends State<MovementsScreen> {
         'deleted': true,
       }, SetOptions(merge: true));
 
-      // Log action to shared workspace history (so desktop can pull it).
       final actionId = const Uuid().v4();
       final today = DateTime.now().toIso8601String().split('T').first;
       await FirebaseFirestore.instance
