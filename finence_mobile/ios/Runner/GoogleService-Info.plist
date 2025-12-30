@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyCaM1AhTW1w6sQAs8sU88gGFaTG0IbnZVo</string>
+	<key>GCM_SENDER_ID</key>
+	<string>315375720464</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.finenceMobile</string>
+	<key>PROJECT_ID</key>
+	<string>finance-app-49ffa</string>
+	<key>STORAGE_BUCKET</key>
+	<string>finance-app-49ffa.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:315375720464:ios:ae3020e1914dbe4d3ed295</string>
+</dict>
+</plist>

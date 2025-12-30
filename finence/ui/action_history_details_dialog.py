@@ -91,6 +91,12 @@ class ActionHistoryDetailsDialog(QDialog):
             "set_starter_amount": "הגדרת סכום התחלתי",
             "add_income_movement": "הוספת הכנסה",
             "add_outcome_movement": "הוספת הוצאה",
+            "delete_movement": "מחיקת תנועה",
+            "add_one_time_event": "יצירת אירוע חד־פעמי",
+            "edit_one_time_event": "עריכת אירוע חד־פעמי",
+            "delete_one_time_event": "מחיקת אירוע חד־פעמי",
+            "assign_movement_to_one_time_event": "שיוך תנועה לאירוע",
+            "unassign_movement_from_one_time_event": "הסרת שיוך תנועה מאירוע",
         }
         action_key = entry.action.action_name
         action_title = action_name_map.get(action_key, action_key)
@@ -575,6 +581,14 @@ class ActionHistoryDetailsDialog(QDialog):
 
                 self._movement_provider.save_movements(all_movements)
 
+                # Push updated movement to Firebase workspace immediately (if configured).
+                try:
+                    from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                    FirebaseWorkspaceWriter().upsert_movement(updated_movement)
+                except Exception:
+                    pass
+
                 from ..qt import QDialog, QVBoxLayout, QLabel, QPushButton
 
                 success_dlg = QDialog(self)
@@ -673,6 +687,19 @@ class ActionHistoryDetailsDialog(QDialog):
 
             if updated_count > 0:
                 self._movement_provider.save_movements(all_movements)
+
+                # Push updated movements to Firebase workspace immediately (if configured).
+                try:
+                    from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                    w = FirebaseWorkspaceWriter()
+                    for m in all_movements:
+                        try:
+                            w.upsert_movement(m)
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
 
                 if self._on_saved:
                     try:

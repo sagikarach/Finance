@@ -180,9 +180,13 @@ class SavingsAccountPage(BasePage):
         if not isinstance(self._provider, JsonFileAccountsProvider):
             return
 
-        savings_accounts = self._get_savings_accounts()
+        # Save through AccountsService so it also pushes account definitions to Firebase.
         try:
-            self._provider.save_savings_accounts(savings_accounts)
+            if self._accounts_service is not None:
+                self._accounts_service.save_all(self._accounts)
+            else:
+                savings_accounts = self._get_savings_accounts()
+                self._provider.save_savings_accounts(savings_accounts)
         except Exception:
             return
 

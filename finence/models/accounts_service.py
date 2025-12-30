@@ -473,3 +473,11 @@ class AccountsService:
             self.provider.save_bank_accounts(bank_accounts)
         except Exception:
             pass
+
+        # Immediate push of account definitions to Firebase workspace.
+        try:
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            FirebaseWorkspaceWriter().upsert_accounts_snapshot(accounts)
+        except Exception:
+            pass

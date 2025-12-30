@@ -21,6 +21,7 @@ from ..models.action_history import (
     SetStarterAmountAction,
     AddIncomeMovementAction,
     AddOutcomeMovementAction,
+    DeleteMovementAction,
     UploadOutcomeFileAction,
     AddOneTimeEventAction,
     EditOneTimeEventAction,
@@ -29,6 +30,7 @@ from ..models.action_history import (
     UnassignMovementFromOneTimeEventAction,
 )
 from ..utils.app_paths import accounts_data_dir
+from ..models.firebase_session import current_firebase_workspace_id, current_firebase_uid
 
 
 class ActionHistoryProvider(ABC):
@@ -53,7 +55,13 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         if history_path:
             self._history_path = Path(history_path)
         else:
-            self._history_path = accounts_data_dir() / "action_history.json"
+            wid = current_firebase_workspace_id()
+            uid = current_firebase_uid()
+            key = wid or uid
+            if key:
+                self._history_path = accounts_data_dir() / f"action_history_{key}.json"
+            else:
+                self._history_path = accounts_data_dir() / "action_history.json"
 
     def list_history(self) -> List[ActionHistory]:
         history: List[ActionHistory] = []
@@ -114,6 +122,13 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         current_history = self.list_history()
         current_history.append(action_history)
         self.save_history(current_history)
+        # Immediate push to Firebase (workspace) for every action.
+        try:
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            FirebaseWorkspaceWriter().upsert_action_history(action_history)
+        except Exception:
+            pass
 
     def _serialize_action(self, action: Action) -> dict:
         action_dict: dict = {
@@ -156,6 +171,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             "set_starter_amount": SetStarterAmountAction,
             "add_income_movement": AddIncomeMovementAction,
             "add_outcome_movement": AddOutcomeMovementAction,
+            "delete_movement": DeleteMovementAction,
             "upload_outcome_file": UploadOutcomeFileAction,
             "add_one_time_event": AddOneTimeEventAction,
             "edit_one_time_event": EditOneTimeEventAction,

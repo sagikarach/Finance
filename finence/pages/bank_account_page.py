@@ -118,6 +118,14 @@ class BankAccountPage(BasePage):
             import_btn = QPushButton("ייבוא קובץ הוצאות", top_card)
             import_btn.setObjectName("AddButton")
             try:
+                if not bool(getattr(target, "active", False)):
+                    import_btn.setEnabled(False)
+                    import_btn.setToolTip(
+                        "החשבון אינו פעיל. הפעל אותו בהגדרות כדי לייבא קובץ."
+                    )
+            except Exception:
+                pass
+            try:
                 import_btn.clicked.connect(
                     lambda _=None, acc=target: self._on_import_csv(acc)
                 )
@@ -146,6 +154,20 @@ class BankAccountPage(BasePage):
         main_col.addWidget(chart_card, 2)
 
     def _on_import_csv(self, account: BankAccount) -> None:
+        try:
+            if not bool(getattr(account, "active", False)):
+                try:
+                    from ..qt import QToolTip, QCursor
+
+                    QToolTip.showText(
+                        QCursor.pos(),
+                        "החשבון אינו פעיל. הפעל אותו בהגדרות כדי לייבא קובץ.",
+                    )
+                except Exception:
+                    pass
+                return
+        except Exception:
+            return
         QFileDialogCls = None
         try:
             import importlib
@@ -212,6 +234,15 @@ class BankAccountPage(BasePage):
                     def _on_cat_added(name: str, *, _prov=provider) -> None:
                         try:
                             _prov.add_category_for_type(name, False)
+                        except Exception:
+                            pass
+                        # Immediately push categories to Firebase so mobile sees them.
+                        try:
+                            from ..models.firebase_movements_sync import (
+                                FirebaseMovementsSyncService,
+                            )
+
+                            FirebaseMovementsSyncService().sync_categories_only()
                         except Exception:
                             pass
 

@@ -14,6 +14,9 @@ from ..qt import (
     QSizePolicy,
     QApplication,
     QTimer,
+    QToolTip,
+    QCursor,
+    Signal,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.user_profile_store import UserProfileStore
@@ -35,6 +38,11 @@ from ..models.notifications_service import NotificationsService
 
 
 class BasePage(QWidget):
+    try:
+        _sync_finished = Signal(int, str)  # pulled_count, error_message
+    except Exception:
+        _sync_finished = None
+
     def __init__(
         self,
         app_context: Optional[Dict[str, str]] = None,
@@ -86,8 +94,15 @@ class BasePage(QWidget):
         )
         self._bell_btn: Optional[QToolButton] = None
         self._bell_badge: Optional[QLabel] = None
+        self._sync_btn: Optional[QToolButton] = None
+        self._sync_in_progress: bool = False
 
         self._build_ui()
+        try:
+            if self._sync_finished is not None:
+                self._sync_finished.connect(self._on_sync_finished)  # type: ignore[union-attr]
+        except Exception:
+            pass
 
     def _build_ui(self) -> None:
         layout = QHBoxLayout()
@@ -217,6 +232,22 @@ class BasePage(QWidget):
 
         header_layout.addWidget(bell_wrap)
 
+        sync_wrap = QWidget(header_container)
+        try:
+            sync_wrap.setFixedSize(36, 36)
+        except Exception:
+            pass
+        self._sync_btn = QToolButton(sync_wrap)
+        self._sync_btn.setObjectName("IconButton")
+        self._sync_btn.setText("🔄")
+        self._sync_btn.setToolTip("סנכרן עכשיו")
+        self._sync_btn.clicked.connect(self._on_sync_clicked)
+        try:
+            self._sync_btn.setGeometry(0, 0, 36, 36)
+        except Exception:
+            pass
+        header_layout.addWidget(sync_wrap)
+
         self._theme_btn = self._build_theme_toggle_button()
         header_layout.addWidget(self._theme_btn)
 
@@ -230,6 +261,139 @@ class BasePage(QWidget):
 
     def on_route_activated(self) -> None:
         self._refresh_notifications_badge()
+        self._refresh_sync_button_state()
+
+    def _refresh_sync_button_state(self) -> None:
+        btn = self._sync_btn
+        if btn is None:
+            return
+        if self._sync_in_progress:
+            try:
+                btn.setEnabled(False)
+                btn.setToolTip("מסנכרן...")
+            except Exception:
+                pass
+            return
+        try:
+            from ..models.firebase_session import FirebaseSessionStore
+
+            s = FirebaseSessionStore().load()
+            ok = bool(s.is_logged_in and str(getattr(s, "workspace_id", "") or "").strip())
+            btn.setEnabled(bool(ok))
+            btn.setToolTip("סנכרן עכשיו" if ok else "התחבר ל-Firebase ובחר Workspace בהגדרות")
+        except Exception:
+            try:
+                btn.setEnabled(False)
+            except Exception:
+                pass
+
+    def _on_sync_clicked(self) -> None:
+        if self._sync_in_progress:
+            return
+        # check session quickly
+        try:
+            from ..models.firebase_session import FirebaseSessionStore
+
+            s = FirebaseSessionStore().load()
+            wid = str(getattr(s, "workspace_id", "") or "").strip()
+            if not (s.is_logged_in and wid):
+                try:
+                    QToolTip.showText(
+                        QCursor.pos(),
+                        "כדי לסנכרן צריך להתחבר ל-Firebase ולבחור Workspace בהגדרות",
+                    )
+                except Exception:
+                    pass
+                return
+        except Exception:
+            return
+
+        self._sync_in_progress = True
+        try:
+            if self._sync_btn is not None:
+                self._sync_btn.setEnabled(False)
+                self._sync_btn.setText("⏳")
+                self._sync_btn.setToolTip("מסנכרן...")
+        except Exception:
+            pass
+
+        def _run() -> None:
+            pulled = 0
+            err: Optional[str] = None
+            try:
+                from ..models.firebase_movements_sync import FirebaseMovementsSyncService
+
+                pulled, _ = FirebaseMovementsSyncService().sync_now()
+            except Exception as e:
+                err = str(e)
+            try:
+                if self._sync_finished is not None:
+                    self._sync_finished.emit(int(pulled), str(err or ""))  # type: ignore[union-attr]
+                    return
+            except Exception:
+                pass
+            # Fallback: best-effort reset (may run off-main-thread on some backends).
+            try:
+                self._on_sync_finished(int(pulled), str(err or ""))
+            except Exception:
+                pass
+
+        try:
+            import threading
+
+            threading.Thread(target=_run, daemon=True).start()
+        except Exception:
+            _run()
+
+    def _on_sync_finished(self, pulled: int, err: str) -> None:
+        self._sync_in_progress = False
+        try:
+            if self._sync_btn is not None:
+                self._sync_btn.setText("🔄")
+        except Exception:
+            pass
+        self._refresh_sync_button_state()
+
+        # Refresh in-memory accounts + sidebar from local cache updated by sync.
+        try:
+            self._load_and_refresh_accounts()
+        except Exception:
+            pass
+
+        # Refresh action history table (if present on current page).
+        try:
+            history_table = self._find_history_table()
+            if history_table is not None and hasattr(self._history_provider, "list_history"):
+                try:
+                    history = self._history_provider.list_history()
+                except Exception:
+                    history = []
+                try:
+                    history_table.set_history(history)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            self._refresh_notifications_badge()
+        except Exception:
+            pass
+
+        if err:
+            try:
+                QToolTip.showText(QCursor.pos(), f"שגיאת סנכרון: {err}")
+            except Exception:
+                pass
+        else:
+            try:
+                QToolTip.showText(QCursor.pos(), f"סונכרן בהצלחה ({int(pulled)})")
+            except Exception:
+                pass
+        try:
+            self.on_route_activated()
+        except Exception:
+            pass
 
     def _open_notifications(self) -> None:
         try:
@@ -343,7 +507,9 @@ class BasePage(QWidget):
     def _open_bank_movement_dialog(self, is_income: bool) -> None:
         try:
             bank_accounts: List[BankAccount] = [
-                acc for acc in self._accounts if isinstance(acc, BankAccount)
+                acc
+                for acc in self._accounts
+                if isinstance(acc, BankAccount) and bool(getattr(acc, "active", False))
             ]
         except Exception:
             bank_accounts = []
@@ -367,6 +533,16 @@ class BasePage(QWidget):
                 ) -> None:
                     try:
                         _prov.add_category_for_type(name, _is_income)
+                    except Exception:
+                        pass
+                    # If Firebase is configured/logged in, immediately sync categories so
+                    # mobile sees new categories without needing a manual "Sync now".
+                    try:
+                        from ..models.firebase_movements_sync import (
+                            FirebaseMovementsSyncService,
+                        )
+
+                        FirebaseMovementsSyncService().sync_categories_only()
                     except Exception:
                         pass
 

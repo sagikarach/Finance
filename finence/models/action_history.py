@@ -94,6 +94,14 @@ class AddOutcomeMovementAction(Action):
 
 
 @dataclass(frozen=True)
+class DeleteMovementAction(Action):
+    movement_id: str = field(default="")
+    account_name: str = field(default="")
+    amount: float = field(default=0.0)
+    date: str = field(default="")
+
+
+@dataclass(frozen=True)
 class UploadOutcomeFileAction(Action):
     account_name: str = field(default="")
     file_name: str = field(default="")

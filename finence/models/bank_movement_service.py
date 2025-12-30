@@ -19,6 +19,7 @@ from .action_history import (
     Action,
     AddIncomeMovementAction,
     AddOutcomeMovementAction,
+    DeleteMovementAction,
     generate_action_id,
     get_current_timestamp,
 )
@@ -212,6 +213,14 @@ class BankMovementService:
         except Exception:
             pass
 
+        # Immediate push-on-write (desktop -> Firebase workspace).
+        try:
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            FirebaseWorkspaceWriter().upsert_movement(movement)
+        except Exception:
+            pass
+
         if record_history:
             try:
                 try:
@@ -338,6 +347,123 @@ class BankMovementService:
                 updated_accounts.append(acc)
 
         return updated_accounts
+
+    def delete_movement(
+        self,
+        accounts: List[MoneyAccount],
+        *,
+        movement_id: str,
+        record_history: bool = True,
+    ) -> List[MoneyAccount]:
+        movement_id = str(movement_id or "").strip()
+        if not movement_id:
+            return accounts
+
+        try:
+            all_movements = list(self.movement_provider.list_movements())
+        except Exception:
+            return accounts
+
+        target: Optional[BankMovement] = None
+        for m in all_movements:
+            if str(getattr(m, "id", "") or "") == movement_id:
+                target = m
+                break
+        if target is None:
+            return accounts
+
+        # baseline = current_total - sum(all movements)
+        sum_by_account: Dict[str, float] = {}
+        for m in all_movements:
+            try:
+                name = str(m.account_name or "").strip()
+                if not name:
+                    continue
+                sum_by_account[name] = sum_by_account.get(name, 0.0) + float(m.amount)
+            except Exception:
+                continue
+
+        baseline_by_account: Dict[str, float] = {}
+        for acc in accounts:
+            if isinstance(acc, BankAccount):
+                try:
+                    baseline_by_account[acc.name] = float(acc.total_amount) - float(
+                        sum_by_account.get(acc.name, 0.0)
+                    )
+                except Exception:
+                    baseline_by_account[acc.name] = 0.0
+
+        updated_movements = [m for m in all_movements if str(m.id) != movement_id]
+        try:
+            self.movement_provider.save_movements(updated_movements)
+        except Exception:
+            return accounts
+
+        try:
+            from .firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            FirebaseWorkspaceWriter().delete_movement(movement_id=movement_id)
+        except Exception:
+            pass
+
+        if record_history:
+            try:
+                action = DeleteMovementAction(
+                    action_name="delete_movement",
+                    movement_id=movement_id,
+                    account_name=str(target.account_name),
+                    amount=float(target.amount),
+                    date=str(target.date),
+                )
+                self.history_provider.add_action(
+                    ActionHistory(
+                        id=generate_action_id(),
+                        timestamp=get_current_timestamp(),
+                        action=action,
+                    )
+                )
+            except Exception:
+                pass
+
+        new_sum_by_account: Dict[str, float] = {}
+        for m in updated_movements:
+            try:
+                name = str(m.account_name or "").strip()
+                if not name:
+                    continue
+                new_sum_by_account[name] = new_sum_by_account.get(name, 0.0) + float(
+                    m.amount
+                )
+            except Exception:
+                continue
+
+        try:
+            from datetime import date as _date
+
+            today = _date.today().isoformat()
+        except Exception:
+            today = ""
+
+        out: List[MoneyAccount] = []
+        for acc in accounts:
+            if isinstance(acc, BankAccount):
+                base = float(baseline_by_account.get(acc.name, 0.0))
+                total = base + float(new_sum_by_account.get(acc.name, 0.0))
+                new_history = list(acc.history)
+                if today:
+                    new_history.append(MoneySnapshot(date=today, amount=total))
+                out.append(
+                    BankAccount(
+                        name=acc.name,
+                        total_amount=total,
+                        is_liquid=acc.is_liquid,
+                        history=new_history,
+                        active=acc.active,
+                    )
+                )
+            else:
+                out.append(acc)
+        return out
 
     def import_outcome_csv(
         self,

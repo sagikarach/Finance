@@ -8,6 +8,7 @@ from ..qt import (
     QVBoxLayout,
     QHBoxLayout,
     QWidget,
+    QDialog,
     Qt,
     QLineEdit,
     QPushButton,
@@ -30,6 +31,11 @@ from ..__version__ import __version__
 from .base_page import BasePage
 import os
 import webbrowser
+from ..models.firebase_session import FirebaseSessionStore, FirebaseSession
+from ..models.firebase_client import FirebaseAuthClient, FirestoreClient
+from ..models.firebase_movements_sync import FirebaseMovementsSyncService
+import secrets
+import string
 
 
 class SettingsPage(BasePage):
@@ -201,11 +207,12 @@ class SettingsPage(BasePage):
                     )
 
                 merged_accounts = self._accounts_service.apply_bank_settings_rows(rows)
-                updated_bank_accounts: List[BankAccount] = [
-                    acc for acc in merged_accounts if isinstance(acc, BankAccount)
-                ]
-                if isinstance(self._provider, JsonFileAccountsProvider):
-                    self._provider.save_bank_accounts(updated_bank_accounts)
+                # IMPORTANT: Save through AccountsService so it also pushes account definitions
+                # to Firebase (workspace) immediately.
+                try:
+                    self._accounts_service.save_all(merged_accounts)
+                except Exception:
+                    pass
 
                 try:
                     self._accounts = self._provider.list_accounts()
@@ -232,14 +239,15 @@ class SettingsPage(BasePage):
                 except Exception:
                     update_sidebar()
 
+                saved_bank_by_name = {
+                    acc.name: acc
+                    for acc in merged_accounts
+                    if isinstance(acc, BankAccount)
+                }
                 for account_name, widgets in account_widgets.items():
                     checkbox = widgets["checkbox"]
                     amount_edit = widgets["amount_edit"]
-                    saved_account = None
-                    for acc in updated_bank_accounts:
-                        if acc.name == account_name:
-                            saved_account = acc
-                            break
+                    saved_account = saved_bank_by_name.get(account_name)
                     if saved_account:
                         checkbox.blockSignals(True)
                         checkbox.setChecked(saved_account.active)
@@ -721,6 +729,321 @@ class SettingsPage(BasePage):
         updates_layout.addStretch(1)
         extra_card_bottom_right = updates_card
 
+        firebase_card = QWidget(self)
+        firebase_card.setObjectName("Sidebar")
+        try:
+            firebase_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        try:
+            firebase_card.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            try:
+                firebase_card.setLayoutDirection(Qt.RightToLeft)
+            except Exception:
+                pass
+
+        fb_l = QVBoxLayout(firebase_card)
+        fb_l.setContentsMargins(24, 24, 24, 24)
+        fb_l.setSpacing(10)
+
+        fb_title = QLabel("שיתוף וסנכרון", firebase_card)
+        try:
+            fb_title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        except Exception:
+            pass
+        fb_l.addWidget(fb_title)
+
+        store = FirebaseSessionStore()
+        session = store.load()
+
+        email_edit = QLineEdit(firebase_card)
+        email_edit.setPlaceholderText("אימייל (Firebase)")
+        email_edit.setText(session.email or "")
+
+        password_edit = QLineEdit(firebase_card)
+        password_edit.setPlaceholderText("סיסמה (Firebase)")
+        try:
+            password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        except Exception:
+            try:
+                password_edit.setEchoMode(QLineEdit.Password)
+            except Exception:
+                pass
+
+        # Project config is advanced; show as read-only + "change" dialog.
+        project_row = QHBoxLayout()
+        project_row.setSpacing(10)
+        project_lbl = QLabel("", firebase_card)
+        project_lbl.setObjectName("Subtitle")
+        change_project_btn = QPushButton("שנה פרויקט", firebase_card)
+        project_row.addWidget(project_lbl, 1)
+        project_row.addWidget(change_project_btn, 0)
+        fb_l.addLayout(project_row)
+
+        fb_l.addWidget(email_edit)
+        fb_l.addWidget(password_edit)
+
+        workspace_edit = QLineEdit(firebase_card)
+        workspace_edit.setPlaceholderText("קוד שיתוף (Workspace)")
+        try:
+            workspace_edit.setText(str(getattr(session, "workspace_id", "") or ""))
+        except Exception:
+            workspace_edit.setText("")
+        fb_l.addWidget(workspace_edit)
+
+        fb_status = QLabel("", firebase_card)
+        fb_status.setObjectName("Subtitle")
+        fb_l.addWidget(fb_status)
+
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(10)
+        login_btn = QPushButton("התחבר", firebase_card)
+        login_btn.setObjectName("SaveButton")
+        create_ws_btn = QPushButton("צור קוד", firebase_card)
+        join_ws_btn = QPushButton("הצטרף", firebase_card)
+        clear_ws_btn = QPushButton("נתק שיתוף", firebase_card)
+        logout_btn = QPushButton("התנתק", firebase_card)
+        btn_row.addWidget(login_btn)
+        btn_row.addWidget(create_ws_btn)
+        btn_row.addWidget(join_ws_btn)
+        btn_row.addWidget(clear_ws_btn)
+        btn_row.addWidget(logout_btn)
+        btn_row.addStretch(1)
+        fb_l.addLayout(btn_row)
+
+        def refresh_status() -> None:
+            s = store.load()
+            try:
+                pid = str(getattr(s, "project_id", "") or "").strip()
+            except Exception:
+                pid = ""
+            project_lbl.setText(f"פרויקט: {pid}" if pid else "פרויקט: לא הוגדר")
+            try:
+                has_api = bool(str(getattr(s, "api_key", "") or "").strip())
+                has_pid = bool(pid)
+                change_project_btn.setEnabled(True)
+                if not (has_api and has_pid):
+                    change_project_btn.setText("הגדר פרויקט")
+                else:
+                    change_project_btn.setText("שנה פרויקט")
+            except Exception:
+                pass
+            if s.is_logged_in:
+                wid = str(getattr(s, "workspace_id", "") or "").strip()
+                if wid:
+                    fb_status.setText(f"מחובר: {s.email} | שיתוף: {wid}")
+                else:
+                    fb_status.setText(f"מחובר: {s.email} | ללא שיתוף")
+            else:
+                fb_status.setText("לא מחובר")
+
+        def edit_project_settings() -> None:
+            s = store.load()
+            dlg = QDialog(self)
+            dlg.setWindowTitle("הגדרת פרויקט Firebase")
+            try:
+                dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            except Exception:
+                try:
+                    dlg.setLayoutDirection(Qt.RightToLeft)
+                except Exception:
+                    pass
+            lay = QVBoxLayout(dlg)
+            lay.setContentsMargins(24, 20, 24, 20)
+            lay.setSpacing(10)
+
+            info = QLabel(
+                "השדות האלו הם טכניים. בדרך כלל מגדירים אותם פעם אחת.\n"
+                "אם תשנה אותם תצטרך להתחבר מחדש.",
+                dlg,
+            )
+            info.setWordWrap(True)
+            lay.addWidget(info)
+
+            api_key_edit = QLineEdit(dlg)
+            api_key_edit.setPlaceholderText("Firebase API Key")
+            api_key_edit.setText(str(getattr(s, "api_key", "") or ""))
+            project_id_edit = QLineEdit(dlg)
+            project_id_edit.setPlaceholderText("Firebase Project ID")
+            project_id_edit.setText(str(getattr(s, "project_id", "") or ""))
+            lay.addWidget(api_key_edit)
+            lay.addWidget(project_id_edit)
+
+            row = QHBoxLayout()
+            row.setSpacing(10)
+            cancel_btn = QPushButton("ביטול", dlg)
+            save_btn = QPushButton("שמור", dlg)
+            save_btn.setObjectName("SaveButton")
+            row.addWidget(cancel_btn)
+            row.addStretch(1)
+            row.addWidget(save_btn)
+            lay.addLayout(row)
+
+            cancel_btn.clicked.connect(dlg.reject)
+
+            def _save_project() -> None:
+                api_key = api_key_edit.text().strip()
+                project_id = project_id_edit.text().strip()
+                if not api_key or not project_id:
+                    fb_status.setText("חובה למלא API key ו-project id")
+                    return
+                # Changing project requires re-login.
+                s.api_key = api_key
+                s.project_id = project_id
+                s.uid = ""
+                s.id_token = ""
+                s.refresh_token = ""
+                s.expires_at = 0.0
+                store.save(s)
+                dlg.accept()
+                refresh_status()
+
+            save_btn.clicked.connect(_save_project)
+            dlg.exec()
+
+        def do_login() -> None:
+            current = store.load()
+            api_key = str(getattr(current, "api_key", "") or "").strip()
+            project_id = str(getattr(current, "project_id", "") or "").strip()
+            email = email_edit.text().strip()
+            pw = password_edit.text()
+            if not api_key or not project_id:
+                fb_status.setText("חובה להגדיר פרויקט (API key + project id) לפני התחברות")
+                return
+            if not email or not pw:
+                fb_status.setText("חובה למלא אימייל וסיסמה")
+                return
+            fb_status.setText("מתחבר...")
+            QApplication.processEvents()
+            try:
+                auth = FirebaseAuthClient(api_key=api_key)
+                res = auth.sign_in_with_password(email=email, password=pw)
+                s = FirebaseSession(
+                    api_key=api_key,
+                    project_id=project_id,
+                    email=email,
+                    uid=res.uid,
+                    workspace_id=workspace_edit.text().strip(),
+                    refresh_token=res.refresh_token,
+                    id_token=res.id_token,
+                    expires_at=__import__("time").time() + float(res.expires_in),
+                )
+                store.save(s)
+                try:
+                    key = str(getattr(s, "workspace_id", "") or "").strip() or res.uid
+                    FirebaseMovementsSyncService().ensure_user_local_file(key)
+                except Exception:
+                    pass
+            except Exception as e:
+                fb_status.setText(f"שגיאת התחברות: {str(e)}")
+                return
+            refresh_status()
+
+        def _random_workspace_code() -> str:
+            alphabet = string.ascii_uppercase + string.digits
+            raw = "".join(secrets.choice(alphabet) for _ in range(12))
+            return f"{raw[:4]}-{raw[4:8]}-{raw[8:12]}"
+
+        def _ensure_workspace_membership(
+            *, s: FirebaseSession, workspace_id: str, role: str
+        ) -> None:
+            fs = FirestoreClient(project_id=s.project_id)
+            fs.upsert_document(
+                document_path=f"workspaces/{workspace_id}",
+                id_token=s.id_token,
+                fields={
+                    "created_by": s.uid,
+                    "name": "Workspace",
+                    "version": 1,
+                },
+            )
+            fs.upsert_document(
+                document_path=f"workspaces/{workspace_id}/members/{s.uid}",
+                id_token=s.id_token,
+                fields={"role": role},
+            )
+            fs.upsert_document(
+                document_path=f"users/{s.uid}",
+                id_token=s.id_token,
+                fields={"active_workspace_id": workspace_id},
+            )
+
+        def do_create_workspace() -> None:
+            s = store.load()
+            if not s.is_logged_in:
+                fb_status.setText("יש להתחבר לפני יצירת שיתוף")
+                return
+            code = _random_workspace_code()
+            fb_status.setText("יוצר שיתוף...")
+            QApplication.processEvents()
+            try:
+                _ensure_workspace_membership(s=s, workspace_id=code, role="owner")
+                s.workspace_id = code
+                store.save(s)
+                workspace_edit.setText(code)
+                fb_status.setText(f"שיתוף נוצר. קוד: {code}")
+                try:
+                    FirebaseMovementsSyncService().ensure_user_local_file(code)
+                except Exception:
+                    pass
+            except Exception as e:
+                fb_status.setText(f"שגיאת שיתוף: {str(e)}")
+                return
+            refresh_status()
+
+        def do_join_workspace() -> None:
+            s = store.load()
+            if not s.is_logged_in:
+                fb_status.setText("יש להתחבר לפני הצטרפות לשיתוף")
+                return
+            code = workspace_edit.text().strip()
+            if not code:
+                fb_status.setText("יש להזין קוד שיתוף")
+                return
+            fb_status.setText("מצטרף לשיתוף...")
+            QApplication.processEvents()
+            try:
+                # Validate workspace exists (best-effort)
+                fs = FirestoreClient(project_id=s.project_id)
+                fs.get_document(document_path=f"workspaces/{code}", id_token=s.id_token)
+                _ensure_workspace_membership(s=s, workspace_id=code, role="editor")
+                s.workspace_id = code
+                store.save(s)
+                fb_status.setText(f"הצטרפת לשיתוף: {code}")
+                try:
+                    FirebaseMovementsSyncService().ensure_user_local_file(code)
+                except Exception:
+                    pass
+            except Exception as e:
+                fb_status.setText(f"שגיאת שיתוף: {str(e)}")
+                return
+            refresh_status()
+
+        def do_clear_workspace() -> None:
+            s = store.load()
+            if not s.is_logged_in:
+                workspace_edit.setText("")
+                return
+            s.workspace_id = ""
+            store.save(s)
+            workspace_edit.setText("")
+            fb_status.setText("שיתוף נותק (מקומי בלבד)")
+            refresh_status()
+
+        def do_logout() -> None:
+            store.clear()
+            refresh_status()
+
+        login_btn.clicked.connect(do_login)
+        create_ws_btn.clicked.connect(do_create_workspace)
+        join_ws_btn.clicked.connect(do_join_workspace)
+        clear_ws_btn.clicked.connect(do_clear_workspace)
+        logout_btn.clicked.connect(do_logout)
+        change_project_btn.clicked.connect(edit_project_settings)
+
+        refresh_status()
+
         row1 = QHBoxLayout()
         row1.setSpacing(16)
         row1.addWidget(bank_accounts_card, 1)
@@ -733,3 +1056,4 @@ class SettingsPage(BasePage):
 
         main_col.addLayout(row1, 1)
         main_col.addLayout(row2, 1)
+        main_col.addWidget(firebase_card, 0)

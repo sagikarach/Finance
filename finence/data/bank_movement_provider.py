@@ -8,6 +8,7 @@ import json
 
 from ..models.bank_movement import BankMovement, MovementType
 from ..utils.app_paths import accounts_data_dir
+from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
 
 
 class BankMovementProvider(ABC):
@@ -26,16 +27,36 @@ class BankMovementProvider(ABC):
 
 class JsonFileBankMovementProvider(BankMovementProvider):
     def __init__(self, movements_path: Optional[Union[str, Path]] = None) -> None:
-        if movements_path:
-            self._movements_path = Path(movements_path)
-        else:
-            self._movements_path = accounts_data_dir() / "bank_movements.json"
-        self._categories_path = self._movements_path.with_name(
-            "bank_movement_categories.json"
+        self._movements_path_override: Optional[Path] = (
+            Path(movements_path) if movements_path else None
         )
+        self._movements_path, self._categories_path = self._paths()
+
+    def _paths(self) -> tuple[Path, Path]:
+        if self._movements_path_override is not None:
+            movements_path = self._movements_path_override
+            categories_path = movements_path.with_name("bank_movement_categories.json")
+            return movements_path, categories_path
+        else:
+            wid = current_firebase_workspace_id()
+            uid = current_firebase_uid()
+            key = wid or uid
+            if key:
+                movements_path = accounts_data_dir() / f"bank_movements_{key}.json"
+                categories_path = (
+                    accounts_data_dir() / f"bank_movement_categories_{key}.json"
+                )
+            else:
+                movements_path = accounts_data_dir() / "bank_movements.json"
+                categories_path = accounts_data_dir() / "bank_movement_categories.json"
+            return movements_path, categories_path
+
+    def _ensure_paths(self) -> None:
+        self._movements_path, self._categories_path = self._paths()
 
     def list_movements(self) -> List[BankMovement]:
         movements: List[BankMovement] = []
+        self._ensure_paths()
 
         if not self._movements_path.exists():
             return movements
@@ -99,6 +120,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         return movements
 
     def save_movements(self, movements: List[BankMovement]) -> None:
+        self._ensure_paths()
         self._movements_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []
@@ -116,6 +138,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         self.save_movements(current)
 
     def _load_categories_by_type(self) -> dict:
+        self._ensure_paths()
         if not self._categories_path.exists():
             return {"income": [], "outcome": []}
         try:
@@ -147,6 +170,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         return {"income": income, "outcome": outcome}
 
     def _save_categories_by_type(self, mapping: dict) -> None:
+        self._ensure_paths()
         income = mapping.get("income") or []
         outcome = mapping.get("outcome") or []
         income_list = [str(x) for x in income if isinstance(x, str)]

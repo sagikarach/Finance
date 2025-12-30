@@ -14,6 +14,7 @@ from ..models.accounts import (
     latest_amount_from_history,
 )
 from ..utils.app_paths import accounts_data_dir
+from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
 
 
 class AccountsProvider(ABC):
@@ -28,15 +29,21 @@ class JsonFileAccountsProvider(AccountsProvider):
         bank_accounts_path: Optional[Union[str, Path]] = None,
         savings_accounts_path: Optional[Union[str, Path]] = None,
     ) -> None:
+        key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
+        suffix = f"_{key}" if key else ""
         if bank_accounts_path:
             self._bank_accounts_path = Path(bank_accounts_path)
         else:
-            self._bank_accounts_path = accounts_data_dir() / "bank_accounts.json"
+            self._bank_accounts_path = (
+                accounts_data_dir() / f"bank_accounts{suffix}.json"
+            )
 
         if savings_accounts_path:
             self._savings_accounts_path = Path(savings_accounts_path)
         else:
-            self._savings_accounts_path = accounts_data_dir() / "savings_accounts.json"
+            self._savings_accounts_path = (
+                accounts_data_dir() / f"savings_accounts{suffix}.json"
+            )
 
     def list_accounts(self) -> List[MoneyAccount]:
         accounts: List[MoneyAccount] = []

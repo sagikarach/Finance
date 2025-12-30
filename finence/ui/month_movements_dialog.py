@@ -94,9 +94,9 @@ class MonthMovementsDialog(QDialog):
 
     def _build_table(self, parent: QDialog) -> QTableWidget:
         t = QTableWidget(parent)
-        t.setColumnCount(6)
+        t.setColumnCount(7)
         t.setRowCount(0)
-        headers = ["תאריך", "חשבון", "סכום", "קטגוריה", "סוג", "תיאור"]
+        headers = ["תאריך", "חשבון", "סכום", "קטגוריה", "סוג", "תיאור", "מחק"]
         t.setHorizontalHeaderLabels(headers)
         try:
             t.verticalHeader().setVisible(False)
@@ -218,6 +218,15 @@ class MonthMovementsDialog(QDialog):
             table.setCellWidget(row, 3, cat_combo)
             table.setCellWidget(row, 4, type_combo)
             table.setItem(row, 5, desc_item)
+            delete_btn = QPushButton("מחק", table)
+            delete_btn.setObjectName("DeleteButton")
+            try:
+                delete_btn.clicked.connect(
+                    lambda _=False, mid=str(m.id): self._delete_movement(mid)
+                )
+            except Exception:
+                pass
+            table.setCellWidget(row, 6, delete_btn)
 
         try:
             table.resizeColumnsToContents()
@@ -306,9 +315,81 @@ class MonthMovementsDialog(QDialog):
         except Exception:
             return
 
+        # Push updated movements to Firebase workspace immediately (if configured).
+        try:
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            w = FirebaseWorkspaceWriter()
+            for m in updated:
+                try:
+                    w.upsert_movement(m)
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
         if self._on_saved is not None:
             try:
                 self._on_saved()
             except Exception:
                 pass
         self.accept()
+
+    def _delete_movement(self, movement_id: str) -> None:
+        movement_id = str(movement_id or "").strip()
+        if not movement_id:
+            return
+        # confirm
+        try:
+            dlg = QDialog(self)
+            dlg.setWindowTitle("מחיקת תנועה")
+            lay = QVBoxLayout(dlg)
+            lay.setContentsMargins(24, 18, 24, 18)
+            msg = QLabel("האם למחוק את התנועה הזו?", dlg)
+            msg.setWordWrap(True)
+            lay.addWidget(msg)
+            row = QHBoxLayout()
+            cancel_btn = QPushButton("ביטול", dlg)
+            del_btn = QPushButton("מחק", dlg)
+            del_btn.setObjectName("DeleteButton")
+            row.addWidget(cancel_btn)
+            row.addStretch(1)
+            row.addWidget(del_btn)
+            lay.addLayout(row)
+            cancel_btn.clicked.connect(dlg.reject)
+            del_btn.clicked.connect(dlg.accept)
+            if not dlg.exec():
+                return
+        except Exception:
+            return
+
+        try:
+            from ..data.provider import JsonFileAccountsProvider
+            from ..data.bank_movement_provider import JsonFileBankMovementProvider
+            from ..data.action_history_provider import JsonFileActionHistoryProvider
+            from ..models.accounts_service import AccountsService
+            from ..models.bank_movement_service import BankMovementService
+
+            accounts_provider = JsonFileAccountsProvider()
+            history_provider = JsonFileActionHistoryProvider()
+            accounts_service = AccountsService(accounts_provider, history_provider)
+            accounts = accounts_service.load_accounts()
+
+            movement_provider = JsonFileBankMovementProvider()
+            svc = BankMovementService(movement_provider, history_provider)
+            updated_accounts = svc.delete_movement(
+                accounts, movement_id=movement_id, record_history=True
+            )
+            accounts_service.save_all(updated_accounts)
+        except Exception:
+            return
+
+        try:
+            self._load()
+        except Exception:
+            pass
+        if self._on_saved is not None:
+            try:
+                self._on_saved()
+            except Exception:
+                pass

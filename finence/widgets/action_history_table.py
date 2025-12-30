@@ -398,7 +398,13 @@ class ActionHistoryTable(QWidget):
             "set_starter_amount": "הגדרת סכום התחלתי",
             "add_income_movement": "הוספת הכנסה",
             "add_outcome_movement": "הוספת הוצאה",
+            "delete_movement": "מחיקת תנועה",
             "upload_outcome_file": "ייבוא קובץ הוצאות",
+            "add_one_time_event": "יצירת אירוע חד־פעמי",
+            "edit_one_time_event": "עריכת אירוע חד־פעמי",
+            "delete_one_time_event": "מחיקת אירוע חד־פעמי",
+            "assign_movement_to_one_time_event": "שיוך תנועה לאירוע",
+            "unassign_movement_from_one_time_event": "הסרת שיוך תנועה מאירוע",
         }
 
         try:
