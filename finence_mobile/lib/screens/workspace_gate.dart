@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/workspace_facade.dart';
+import '../services/launch_target_service.dart';
 import 'movements_screen.dart';
 
 class WorkspaceGate extends StatefulWidget {
@@ -83,7 +84,11 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
     }
 
     if (_workspaceId != null && _workspaceId!.trim().isNotEmpty) {
-      return MovementsScreen(workspaceId: _workspaceId!);
+      final t = LaunchTargetService.instance.consumePending();
+      return MovementsScreen(
+        workspaceId: _workspaceId!,
+        openAddMovementOnStart: t == 'add_movement',
+      );
     }
 
     final codeCtrl = TextEditingController();

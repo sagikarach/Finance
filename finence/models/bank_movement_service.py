@@ -9,7 +9,7 @@ from io import StringIO
 
 from ..data.bank_movement_provider import BankMovementProvider
 from ..data.action_history_provider import ActionHistoryProvider
-from .accounts import MoneyAccount, BankAccount, MoneySnapshot
+from .accounts import MoneyAccount, BankAccount, BudgetAccount, MoneySnapshot
 from .bank_movement import BankMovement, MovementType
 from .movement_classifier import SimilarityBasedClassifier
 from .classified_expense import ClassifiedExpense
@@ -253,6 +253,31 @@ class BankMovementService:
         is_income_hint: Optional[bool] = None,
         record_history: bool = True,
     ) -> List[MoneyAccount]:
+        target_acc: Optional[MoneyAccount] = None
+        try:
+            for acc in accounts:
+                if getattr(acc, "name", None) == getattr(
+                    movement, "account_name", None
+                ):
+                    target_acc = acc
+                    break
+        except Exception:
+            target_acc = None
+
+        if isinstance(target_acc, BudgetAccount):
+            try:
+                amt = float(movement.amount)
+            except Exception:
+                amt = 0.0
+            if amt > 0:
+                raise ValueError("לא ניתן להוסיף הכנסה לחשבון תקציב")
+            try:
+                current_total = float(target_acc.total_amount)
+            except Exception:
+                current_total = 0.0
+            if current_total + amt < 0:
+                raise ValueError(f"אין מספיק תקציב בחשבון {target_acc.name}")
+
         try:
             self.movement_provider.add_movement(movement)
         except Exception:
@@ -292,14 +317,14 @@ class BankMovementService:
             except Exception:
                 pass
 
-        if not accounts:
-            return accounts
-
         updated_accounts: List[MoneyAccount] = []
         account_updated = False
 
         for acc in accounts:
-            if isinstance(acc, BankAccount) and acc.name == movement.account_name:
+            if (
+                isinstance(acc, (BankAccount, BudgetAccount))
+                and acc.name == movement.account_name
+            ):
                 try:
                     current_total = float(acc.total_amount)
                 except Exception:
@@ -322,15 +347,28 @@ class BankMovementService:
                         date_str = ""
 
                 snap = MoneySnapshot(date=date_str, amount=new_total)
-                new_history = list(acc.history) + [snap]
+                new_history = list(getattr(acc, "history", []) or []) + [snap]
 
-                updated_acc = BankAccount(
-                    name=acc.name,
-                    total_amount=new_total,
-                    is_liquid=acc.is_liquid,
-                    history=new_history,
-                    active=acc.active,
-                )
+                updated_acc: MoneyAccount
+                if isinstance(acc, BudgetAccount):
+                    updated_acc = BudgetAccount(
+                        name=acc.name,
+                        total_amount=new_total,
+                        is_liquid=False,
+                        history=new_history,
+                        active=acc.active,
+                        monthly_budget=float(acc.monthly_budget),
+                        reset_day=int(acc.reset_day),
+                        last_reset_period=str(acc.last_reset_period or ""),
+                    )
+                else:
+                    updated_acc = BankAccount(
+                        name=acc.name,
+                        total_amount=new_total,
+                        is_liquid=acc.is_liquid,
+                        history=new_history,
+                        active=acc.active,
+                    )
                 updated_accounts.append(updated_acc)
                 account_updated = True
             else:

@@ -20,7 +20,7 @@ from .dialog_utils import (
     wrap_hebrew_rtl,
     apply_rtl_alignment,
 )
-from ..models.accounts import BankAccount
+from ..models.accounts import BudgetAccount, MoneyAccount
 from ..models.bank_movement import BankMovement, MovementType
 
 
@@ -84,7 +84,7 @@ class NewCategoryDialog(QDialog):
 class BankMovementDialog(QDialog):
     def __init__(
         self,
-        accounts: List[BankAccount],
+        accounts: List[MoneyAccount],
         categories: List[str],
         is_income: bool,
         parent: Optional[QDialog] = None,
@@ -288,13 +288,34 @@ class BankMovementDialog(QDialog):
                 return
 
             if self._account_combo.count() == 0:
-                self._show_error("אין חשבון בנק זמין")
+                self._show_error("אין חשבון זמין")
                 return
 
             account_name = self._account_combo.currentText().strip()
             if not account_name:
-                self._show_error("יש לבחור חשבון בנק")
+                self._show_error("יש לבחור חשבון")
                 return
+
+            selected_acc: Optional[MoneyAccount] = None
+            try:
+                for a in self._accounts:
+                    if a.name == account_name:
+                        selected_acc = a
+                        break
+            except Exception:
+                selected_acc = None
+
+            if isinstance(selected_acc, BudgetAccount):
+                if self._is_income:
+                    self._show_error("לא ניתן להוסיף הכנסה לחשבון תקציב")
+                    return
+                try:
+                    current_total = float(selected_acc.total_amount)
+                except Exception:
+                    current_total = 0.0
+                if float(amount_value) > current_total:
+                    self._show_error(f"אין מספיק תקציב בחשבון {account_name}")
+                    return
 
             signed_amount = amount_value if self._is_income else -amount_value
 

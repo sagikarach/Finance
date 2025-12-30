@@ -11,6 +11,7 @@ import '../services/movements_service.dart';
 import '../services/action_history_service.dart';
 import '../services/session_service.dart';
 import '../widgets/select_field.dart';
+import '../widgets/category_picker.dart';
 
 class NewMovementScreen extends StatefulWidget {
   final String workspaceId;
@@ -113,14 +114,32 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
     });
 
     try {
-      final isActive = await _accountsMeta.isBankAccountActive(name: _accountName);
+      final row = await _accountsMeta.fetchBankAccountRow(name: _accountName);
+      final isActive = (row?['active'] as bool?) ?? false;
       if (!isActive) {
         if (mounted) {
           setState(() => _error = 'החשבון שנבחר אינו פעיל. הפעל אותו בהגדרות ואז נסה שוב.');
         }
         return;
       }
+
+      final kind = (row?['kind'] as String?)?.trim() ?? '';
       final amount = double.parse(_amountCtrl.text.trim());
+      if (kind == 'budget') {
+        if (_isIncome) {
+          if (mounted) {
+            setState(() => _error = 'לא ניתן להוסיף הכנסה לחשבון תקציב');
+          }
+          return;
+        }
+        final balance = (row?['total_amount'] as num?)?.toDouble() ?? 0.0;
+        if (amount.abs() > balance + 1e-9) {
+          if (mounted) {
+            setState(() => _error = 'אין מספיק תקציב בחשבון שנבחר');
+          }
+          return;
+        }
+      }
       final signedAmount = _isIncome ? amount.abs() : -amount.abs();
       final id = const Uuid().v4();
       final movement = Movement(
@@ -222,7 +241,7 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    _CategoryPicker(
+                    CategoryPicker(
                       isIncome: _isIncome,
                       selected: _category,
                       onSelected: (c) => setState(() => _category = c),
@@ -294,181 +313,6 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CategoryPicker extends StatefulWidget {
-  final bool isIncome;
-  final String selected;
-  final void Function(String) onSelected;
-  final CategoriesService service;
-
-  const _CategoryPicker({
-    required this.isIncome,
-    required this.selected,
-    required this.onSelected,
-    required this.service,
-  });
-
-  @override
-  State<_CategoryPicker> createState() => _CategoryPickerState();
-}
-
-class _CategoryPickerState extends State<_CategoryPicker> {
-  bool _loading = true;
-  String? _error;
-  List<String> _income = <String>[];
-  List<String> _outcome = <String>[];
-
-  @override
-  void initState() {
-    super.initState();
-    _pull(showToast: false);
-  }
-
-  Future<void> _pull({required bool showToast}) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final lists = await widget.service.fetch(source: Source.server);
-      if (!mounted) return;
-      setState(() {
-        _income = lists.income;
-        _outcome = lists.outcome;
-        _loading = false;
-      });
-      if (showToast) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('קטגוריות סונכרנו')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = '$e';
-        _loading = false;
-      });
-      if (showToast) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('שגיאת סנכרון קטגוריות: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _addCategory(BuildContext context) async {
-    final ctrl = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('הוספת קטגוריה'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'שם קטגוריה'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(null),
-            child: const Text('ביטול'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(ctrl.text),
-            child: const Text('הוסף'),
-          ),
-        ],
-      ),
-    );
-
-    final n = (name ?? '').trim();
-    if (n.isEmpty) return;
-    await widget.service.addCategory(isIncome: widget.isIncome, name: n);
-    if (!mounted) return;
-    setState(() {
-      if (widget.isIncome) {
-        if (!_income.contains(n)) _income = <String>[..._income, n]..sort();
-      } else {
-        if (!_outcome.contains(n)) _outcome = <String>[..._outcome, n]..sort();
-      }
-    });
-    widget.onSelected(n);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const fallback = <String>[];
-
-    Widget dropdownFor(List<String> cats) {
-      final list = cats.isNotEmpty ? cats : fallback;
-      final sel = list.contains(widget.selected)
-          ? widget.selected
-          : (list.isNotEmpty ? list.first : '');
-      if (list.isEmpty) {
-        return const InputDecorator(
-          decoration: InputDecoration(
-            labelText: 'קטגוריה',
-            border: OutlineInputBorder(),
-          ),
-          child: Text('אין קטגוריות עדיין — לחץ "הוסף קטגוריה"'),
-        );
-      }
-      return SelectField(
-        label: 'קטגוריה',
-        value: sel,
-        placeholder: 'בחר קטגוריה',
-        onTap: () async {
-          final picked = await showStringPickerBottomSheet(
-            context: context,
-            title: 'בחירת קטגוריה',
-            items: list,
-            selected: sel,
-          );
-          if (picked != null) widget.onSelected(picked);
-        },
-      );
-    }
-
-    final cats = widget.isIncome ? _income : _outcome;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            const Expanded(child: SizedBox()),
-            IconButton(
-              tooltip: 'סנכרן קטגוריות',
-              onPressed: _loading ? null : () => _pull(showToast: true),
-              icon: _loading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync),
-            ),
-          ],
-        ),
-        if (_error != null) ...[
-          Text('שגיאה: $_error', style: const TextStyle(color: Colors.red)),
-          const SizedBox(height: 8),
-        ],
-        if (_loading)
-          const Center(child: CircularProgressIndicator())
-        else
-          dropdownFor(cats.isNotEmpty ? cats : fallback),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => _addCategory(context),
-            icon: const Icon(Icons.add),
-            label: const Text('הוסף קטגוריה'),
-          ),
-        ),
-      ],
     );
   }
 }

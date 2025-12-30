@@ -55,6 +55,32 @@ class ActionHistoryService {
       },
     }, SetOptions(merge: true));
   }
+
+  Future<void> logEditSaving({
+    required String savingsAccountName,
+    required String savingName,
+    required double oldAmount,
+    required double newAmount,
+    required String date,
+  }) async {
+    final actionId = const Uuid().v4();
+    final today = DateTime.now().toIso8601String().split('T').first;
+    final uid = _session.uid;
+    final dateStr = date.trim().isEmpty ? today : date.trim();
+    await _ref().doc(actionId).set(<String, Object?>{
+      'id': actionId,
+      'timestamp': today,
+      if (uid != null) 'uid': uid,
+      'action': <String, Object?>{
+        'action_name': 'edit_saving',
+        'account_name': savingsAccountName,
+        'saving_name': savingName,
+        'old_amount': oldAmount,
+        'new_amount': newAmount,
+        'date': dateStr,
+      },
+    }, SetOptions(merge: true));
+  }
 }
 
 

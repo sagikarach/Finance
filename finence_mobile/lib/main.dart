@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/workspace_gate.dart';
+import 'services/launch_target_service.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -15,6 +16,7 @@ Future<void> main() async {
   } catch (_) {
     await Firebase.initializeApp();
   }
+  await LaunchTargetService.instance.init();
   runApp(const FinenceMobileApp());
 }
 

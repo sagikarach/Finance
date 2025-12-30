@@ -13,6 +13,7 @@ from ..qt import (
     QPushButton,
 )
 from ..data.provider import AccountsProvider
+from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..models.monthly_report_service import MonthlyReportService
 from ..models.monthly_report import MonthlyReport
 from ..models.bank_movement import BankMovement, MovementType
@@ -34,7 +35,9 @@ class MonthlyDataPage(BasePage):
         navigate: Optional[Callable[[str], None]] = None,
         monthly_service: Optional[MonthlyReportService] = None,
     ) -> None:
-        self._monthly_service: MonthlyReportService
+        self._monthly_service = monthly_service or MonthlyReportService(
+            JsonFileBankMovementProvider()
+        )
         self._current_year: Optional[int] = None
         self._current_month: Optional[int] = None
         self._current_report: Optional[MonthlyReport] = None
@@ -54,9 +57,6 @@ class MonthlyDataPage(BasePage):
             navigate=navigate,
             page_title="סיכום חודשי",
             current_route="monthly_data",
-        )
-        self._monthly_service = monthly_service or MonthlyReportService(
-            self._bank_movement_provider
         )
 
     def _build_header_left_buttons(self) -> List[QToolButton]:

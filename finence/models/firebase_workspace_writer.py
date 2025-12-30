@@ -8,7 +8,13 @@ from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_session_manager import FirebaseSessionManager
 from ..models.bank_movement import BankMovement
 from ..models.one_time_event import OneTimeEvent
-from ..models.accounts import MoneyAccount, BankAccount, SavingsAccount
+from ..models.accounts import (
+    MoneyAccount,
+    BankAccount,
+    BudgetAccount,
+    SavingsAccount,
+    MoneySnapshot,
+)
 
 
 class FirebaseWorkspaceWriter:
@@ -114,9 +120,44 @@ class FirebaseWorkspaceWriter:
             if isinstance(acc, BankAccount):
                 bank.append(
                     {
+                        "kind": "bank",
                         "name": acc.name,
                         "is_liquid": bool(acc.is_liquid),
                         "active": bool(getattr(acc, "active", False)),
+                    }
+                )
+            elif isinstance(acc, BudgetAccount):
+                hist: List[Dict[str, Any]] = []
+                try:
+                    for h in list(getattr(acc, "history", []) or []):
+                        if isinstance(h, MoneySnapshot):
+                            hist.append(
+                                {"date": str(h.date), "amount": float(h.amount)}
+                            )
+                        elif isinstance(h, dict):
+                            hist.append(
+                                {
+                                    "date": str(h.get("date", "") or ""),
+                                    "amount": float(h.get("amount", 0.0) or 0.0),
+                                }
+                            )
+                except Exception:
+                    hist = []
+                bank.append(
+                    {
+                        "kind": "budget",
+                        "name": acc.name,
+                        "is_liquid": False,
+                        "active": bool(getattr(acc, "active", False)),
+                        "monthly_budget": float(
+                            getattr(acc, "monthly_budget", 0.0) or 0.0
+                        ),
+                        "reset_day": int(getattr(acc, "reset_day", 1) or 1),
+                        "last_reset_period": str(
+                            getattr(acc, "last_reset_period", "") or ""
+                        ),
+                        "total_amount": float(getattr(acc, "total_amount", 0.0) or 0.0),
+                        "history": hist,
                     }
                 )
             elif isinstance(acc, SavingsAccount):

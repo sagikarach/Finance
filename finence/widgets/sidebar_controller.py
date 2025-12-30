@@ -305,14 +305,23 @@ class SidebarController:
         return section
 
     def _rebuild_bank_items(self) -> None:
+        from ..models.accounts import BudgetAccount
+
         expanded = bool(self._bank_section.is_expanded())
         section = self._build_section_state(
             section_id="bank_accounts",
             title="חשבונות",
-            account_type=BankAccount,
+            account_type=MoneyAccount,
             expanded=expanded,
             click_handler=self._on_bank_account_clicked,
-            account_filter=lambda a: isinstance(a, BankAccount) and a.active,
+            account_filter=lambda a: (
+                (isinstance(a, BankAccount) and bool(getattr(a, "active", False)))
+                or (
+                    isinstance(a, BudgetAccount)
+                    and bool(getattr(a, "active", False))
+                    and str(getattr(a, "name", "") or "").strip() != ""
+                )
+            ),
         )
         self._bank_section.set_items(section.as_collapsible_items())
         self._bank_section.set_expanded(section.expanded)

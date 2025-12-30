@@ -18,7 +18,7 @@ from ..qt import (
     QPainter,
     charts_available,
 )
-from ..models.accounts import BankAccount
+from ..models.accounts import BankAccount, BudgetAccount
 from ..models.charts import (
     build_month_axis_from_history,
     build_base_values,
@@ -30,7 +30,7 @@ from .savings_history_chart import ShadowChartView
 
 def create_bank_history_chart_card(
     parent: QWidget,
-    account: BankAccount,
+    account: BankAccount | BudgetAccount,
     format_amount: Callable[[float], str],
 ) -> QWidget:
     chart_card = QWidget(parent)

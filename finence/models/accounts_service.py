@@ -5,7 +5,13 @@ from typing import List, Optional
 
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.action_history_provider import ActionHistoryProvider
-from .accounts import BankAccount, MoneyAccount, SavingsAccount
+from .accounts import (
+    BankAccount,
+    BudgetAccount,
+    MoneyAccount,
+    MoneySnapshot,
+    SavingsAccount,
+)
 from .bank_settings import BankSettingsRowInput, apply_bank_settings
 from .savings_dialogs import (
     SavingsAccountForm,
@@ -37,7 +43,76 @@ class AccountsService:
     history_provider: Optional[ActionHistoryProvider] = None
 
     def load_accounts(self) -> List[MoneyAccount]:
-        return self.provider.list_accounts()
+        accounts = self.provider.list_accounts()
+        updated = self._apply_budget_account_resets(accounts)
+        if updated is not accounts and isinstance(
+            self.provider, JsonFileAccountsProvider
+        ):
+            try:
+                self.save_all(updated)
+            except Exception:
+                pass
+        return updated
+
+    def _apply_budget_account_resets(
+        self, accounts: List[MoneyAccount]
+    ) -> List[MoneyAccount]:
+        from datetime import date as _date
+
+        if not accounts:
+            return accounts
+        today = _date.today()
+
+        def _prev_year_month(y: int, m: int) -> tuple[int, int]:
+            if m <= 1:
+                return y - 1, 12
+            return y, m - 1
+
+        out: List[MoneyAccount] = []
+        changed = False
+        for acc in accounts:
+            if not isinstance(acc, BudgetAccount):
+                out.append(acc)
+                continue
+
+            reset_day = int(acc.reset_day)
+            if reset_day < 1:
+                reset_day = 1
+            if reset_day > 28:
+                reset_day = 28
+
+            if today.day >= reset_day:
+                period_y, period_m = today.year, today.month
+            else:
+                period_y, period_m = _prev_year_month(today.year, today.month)
+            period = f"{period_y:04d}-{period_m:02d}"
+
+            if str(acc.last_reset_period or "").strip() == period:
+                out.append(acc)
+                continue
+
+            try:
+                reset_date = _date(period_y, period_m, reset_day).isoformat()
+            except Exception:
+                reset_date = today.isoformat()
+            new_history = list(acc.history) + [
+                MoneySnapshot(date=reset_date, amount=float(acc.monthly_budget))
+            ]
+            out.append(
+                BudgetAccount(
+                    name=acc.name,
+                    total_amount=float(acc.monthly_budget),
+                    is_liquid=False,
+                    history=new_history,
+                    active=bool(acc.active),
+                    monthly_budget=float(acc.monthly_budget),
+                    reset_day=int(reset_day),
+                    last_reset_period=period,
+                )
+            )
+            changed = True
+
+        return out if changed else accounts
 
     def add_savings_account(
         self,
@@ -463,7 +538,9 @@ class AccountsService:
             return
 
         savings_accounts = [acc for acc in accounts if isinstance(acc, SavingsAccount)]
-        bank_accounts = [acc for acc in accounts if isinstance(acc, BankAccount)]
+        bank_accounts: List[MoneyAccount] = [
+            acc for acc in accounts if isinstance(acc, (BankAccount, BudgetAccount))
+        ]
 
         try:
             self.provider.save_savings_accounts(savings_accounts)

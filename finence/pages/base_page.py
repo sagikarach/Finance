@@ -26,7 +26,7 @@ from ..widgets.sidebar import Sidebar
 from ..widgets.bank_movement_actions import BankMovementActions
 from ..widgets.action_history_table import ActionHistoryTable
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
-from ..models.accounts import BankAccount
+from ..models.accounts import BankAccount, BudgetAccount, MoneyAccount
 from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts_service import AccountsService
 from ..models.bank_movement_service import BankMovementService
@@ -526,10 +526,11 @@ class BasePage(QWidget):
 
     def _open_bank_movement_dialog(self, is_income: bool) -> None:
         try:
-            bank_accounts: List[BankAccount] = [
+            bank_accounts: List[MoneyAccount] = [
                 acc
                 for acc in self._accounts
-                if isinstance(acc, BankAccount) and bool(getattr(acc, "active", False))
+                if isinstance(acc, (BankAccount, BudgetAccount))
+                and bool(getattr(acc, "active", False))
             ]
         except Exception:
             bank_accounts = []
@@ -593,8 +594,12 @@ class BasePage(QWidget):
                     is_income_hint=is_income,
                     record_history=True,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                try:
+                    QToolTip.showText(QCursor.pos(), str(e))
+                except Exception:
+                    pass
+                return
 
         try:
             history_table = self._find_history_table()

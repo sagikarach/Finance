@@ -11,6 +11,7 @@ from ..models.accounts import (
     Savings,
     SavingsAccount,
     BankAccount,
+    BudgetAccount,
     latest_amount_from_history,
 )
 from ..utils.app_paths import accounts_data_dir
@@ -78,6 +79,7 @@ class JsonFileAccountsProvider(AccountsProvider):
                 if not name:
                     continue
 
+                kind = str(item.get("kind", "") or "").strip().lower()
                 is_liquid = bool(item.get("is_liquid", False))
                 raw_history = item.get("history", [])
                 account_history: List[MoneySnapshot] = []
@@ -102,15 +104,40 @@ class JsonFileAccountsProvider(AccountsProvider):
 
                 active = bool(item.get("active", False))
 
-                accounts.append(
-                    BankAccount(
-                        name=name,
-                        total_amount=float(total_amount),
-                        is_liquid=is_liquid,
-                        history=account_history,
-                        active=active,
+                if kind == "budget":
+                    try:
+                        monthly_budget = float(item.get("monthly_budget", 0.0) or 0.0)
+                    except Exception:
+                        monthly_budget = 0.0
+                    try:
+                        reset_day = int(item.get("reset_day", 1) or 1)
+                    except Exception:
+                        reset_day = 1
+                    last_reset_period = str(
+                        item.get("last_reset_period", "") or ""
+                    ).strip()
+                    accounts.append(
+                        BudgetAccount(
+                            name=name,
+                            total_amount=float(total_amount),
+                            is_liquid=False,
+                            history=account_history,
+                            active=active,
+                            monthly_budget=float(monthly_budget),
+                            reset_day=int(reset_day),
+                            last_reset_period=last_reset_period,
+                        )
                     )
-                )
+                else:
+                    accounts.append(
+                        BankAccount(
+                            name=name,
+                            total_amount=float(total_amount),
+                            is_liquid=is_liquid,
+                            history=account_history,
+                            active=active,
+                        )
+                    )
             except Exception:
                 continue
         return accounts
@@ -222,21 +249,28 @@ class JsonFileAccountsProvider(AccountsProvider):
         with self._savings_accounts_path.open("w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
 
-    def save_bank_accounts(self, accounts: List[BankAccount]) -> None:
+    def save_bank_accounts(self, accounts: List[MoneyAccount]) -> None:
         self._bank_accounts_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []
         for account in accounts:
+            if not isinstance(account, (BankAccount, BudgetAccount)):
+                continue
             account_dict = {
                 "name": account.name,
                 "is_liquid": account.is_liquid,
                 "total_amount": account.total_amount,
-                "active": account.active,
+                "active": bool(getattr(account, "active", False)),
                 "history": [
                     {"date": snap.date, "amount": snap.amount}
-                    for snap in account.history
+                    for snap in list(getattr(account, "history", []) or [])
                 ],
             }
+            if isinstance(account, BudgetAccount):
+                account_dict["kind"] = "budget"
+                account_dict["monthly_budget"] = float(account.monthly_budget)
+                account_dict["reset_day"] = int(account.reset_day)
+                account_dict["last_reset_period"] = str(account.last_reset_period or "")
             json_data.append(account_dict)
 
         with self._bank_accounts_path.open("w", encoding="utf-8") as f:

@@ -6,6 +6,7 @@ from typing import List
 from .accounts import (
     MoneyAccount,
     BankAccount,
+    BudgetAccount,
     compute_total_amount,
     compute_total_liquid_amount,
 )
@@ -20,7 +21,10 @@ class AccountsOverview:
     @classmethod
     def for_home(cls, accounts: List[MoneyAccount]) -> "AccountsOverview":
         active_accounts = [
-            acc for acc in accounts if not isinstance(acc, BankAccount) or acc.active
+            acc
+            for acc in accounts
+            if not isinstance(acc, BudgetAccount)
+            and (not isinstance(acc, BankAccount) or acc.active)
         ]
         total_all = compute_total_amount(active_accounts)
         total_liquid = compute_total_liquid_amount(active_accounts)

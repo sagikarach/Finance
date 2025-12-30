@@ -14,7 +14,7 @@ from ..qt import (
     QSizePolicy,
 )
 from ..data.provider import AccountsProvider
-from ..models.accounts import BankAccount
+from ..models.accounts import BankAccount, BudgetAccount
 from ..models.accounts_service import AccountsService
 from ..models.bank_movement import MovementType
 from ..models.action_history import (
@@ -72,9 +72,12 @@ class BankAccountPage(BasePage):
         except Exception:
             selected_name = ""
 
-        target: Optional[BankAccount] = None
+        target: Optional[BankAccount | BudgetAccount] = None
         for acc in self._accounts:
-            if isinstance(acc, BankAccount) and acc.name == selected_name:
+            if (
+                isinstance(acc, (BankAccount, BudgetAccount))
+                and acc.name == selected_name
+            ):
                 target = acc
                 break
 
@@ -100,7 +103,8 @@ class BankAccountPage(BasePage):
 
         name_label = QLabel(target.name, top_card)
         name_label.setObjectName("HeaderTitle")
-        total_label = QLabel(format_currency(target.total_amount), top_card)
+        main_value = float(getattr(target, "total_amount", 0.0) or 0.0)
+        total_label = QLabel(format_currency(main_value), top_card)
         total_label.setObjectName("StatValueLarge")
 
         name_row = QHBoxLayout()
@@ -111,10 +115,24 @@ class BankAccountPage(BasePage):
         summary_col.addLayout(name_row)
         summary_col.addWidget(total_label, 0, Qt.AlignmentFlag.AlignRight)
 
+        if isinstance(target, BudgetAccount):
+            budget = float(getattr(target, "monthly_budget", 0.0) or 0.0)
+            reset_day = int(getattr(target, "reset_day", 1) or 1)
+            remaining = float(getattr(target, "total_amount", 0.0) or 0.0)
+            used = max(0.0, budget - remaining)
+
+            meta_label = QLabel(
+                f"תקציב חודשי: {format_currency(budget)}  |  נוצל: {format_currency(used)}  |  איפוס: יום {reset_day}",
+                top_card,
+            )
+            meta_label.setObjectName("Subtitle")
+            meta_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+            summary_col.addWidget(meta_label, 0, Qt.AlignmentFlag.AlignRight)
+
         buttons_row = QHBoxLayout()
         buttons_row.setSpacing(8)
 
-        if target.name == "בנק":
+        if isinstance(target, BankAccount) and target.name == "בנק":
             import_btn = QPushButton("ייבוא קובץ הוצאות", top_card)
             import_btn.setObjectName("AddButton")
             try:

@@ -111,6 +111,28 @@ class AccountsMetaService {
     }
     return false;
   }
+
+  Future<Map<String, dynamic>?> fetchBankAccountRow({
+    required String name,
+    Source source = Source.server,
+  }) async {
+    final n = name.trim();
+    if (n.isEmpty) return null;
+    final snap = await _doc().get(GetOptions(source: source));
+    final data = snap.data() ?? <String, dynamic>{};
+    final raw = data['bank_accounts'];
+    if (raw is List) {
+      for (final it in raw) {
+        if (it is Map) {
+          final m = it.map((k, v) => MapEntry('$k', v));
+          if ((m['name'] as String?)?.trim() == n) {
+            return m;
+          }
+        }
+      }
+    }
+    return null;
+  }
 }
 
 

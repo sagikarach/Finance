@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -6,13 +8,20 @@ import '../services/bootstrap_service.dart';
 import '../services/movements_service.dart';
 import '../services/action_history_service.dart';
 import '../services/session_service.dart';
+import '../services/launch_target_service.dart';
 import 'new_movement_screen.dart';
+import 'savings_screen.dart';
 import 'workspace_screen.dart';
 
 class MovementsScreen extends StatefulWidget {
   final String workspaceId;
+  final bool openAddMovementOnStart;
 
-  const MovementsScreen({super.key, required this.workspaceId});
+  const MovementsScreen({
+    super.key,
+    required this.workspaceId,
+    this.openAddMovementOnStart = false,
+  });
 
   @override
   State<MovementsScreen> createState() => _MovementsScreenState();
@@ -28,6 +37,24 @@ class _MovementsScreenState extends State<MovementsScreen> {
   late final MovementsService _movements;
   late final ActionHistoryService _actions;
   late final BootstrapService _bootstrap;
+  StreamSubscription<String>? _launchSub;
+  bool _openingAdd = false;
+
+  Future<void> _openAddMovement() async {
+    if (_openingAdd) return;
+    _openingAdd = true;
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => NewMovementScreen(workspaceId: widget.workspaceId),
+        ),
+      );
+      if (!mounted) return;
+      await _pullFromServer(showToast: false);
+    } finally {
+      _openingAdd = false;
+    }
+  }
 
   Future<void> _deleteMovement(Movement m) async {
     try {
@@ -53,6 +80,22 @@ class _MovementsScreenState extends State<MovementsScreen> {
     _actions = ActionHistoryService(workspaceId: widget.workspaceId);
     _bootstrap = BootstrapService(workspaceId: widget.workspaceId);
     _pullFromServer(showToast: false);
+
+    _launchSub = LaunchTargetService.instance.targets.listen((t) {
+      if (!mounted) return;
+      if (t == 'add_movement') {
+        _openAddMovement();
+      }
+    });
+    if (widget.openAddMovementOnStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openAddMovement());
+    }
+  }
+
+  @override
+  void dispose() {
+    _launchSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _pullFromServer({required bool showToast}) async {
@@ -118,6 +161,15 @@ class _MovementsScreenState extends State<MovementsScreen> {
               );
             },
             icon: const Icon(Icons.group),
+          ),
+          IconButton(
+            tooltip: 'חסכונות',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SavingsScreen(workspaceId: widget.workspaceId),
+              ),
+            ),
+            icon: const Icon(Icons.savings),
           ),
           IconButton(
             onPressed: _syncing

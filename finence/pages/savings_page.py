@@ -61,6 +61,7 @@ class SavingsPage(BasePage):
 
     def on_route_activated(self) -> None:
         super().on_route_activated()
+        self._load_and_refresh_accounts()
         app = QApplication.instance()
         is_dark = False
         if app is not None:
@@ -70,6 +71,9 @@ class SavingsPage(BasePage):
                 is_dark = False
 
         self._on_theme_changed(is_dark)
+        if isinstance(self._content_col, QVBoxLayout):
+            self._clear_content_layout(self._content_col)
+            self._build_content(self._content_col)
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         buttons = []

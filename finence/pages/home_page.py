@@ -189,11 +189,6 @@ class HomePage(BasePage):
     def on_route_activated(self) -> None:
         super().on_route_activated()
         self._load_and_refresh_accounts()
-
-        try:
-            history = self._history_provider.list_history()
-            history_table = self._find_history_table()
-            if history_table is not None:
-                history_table.set_history(history)
-        except Exception:
-            pass
+        if isinstance(self._content_col, QVBoxLayout):
+            self._clear_content_layout(self._content_col)
+            self._build_content(self._content_col)

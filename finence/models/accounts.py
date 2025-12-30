@@ -44,6 +44,21 @@ class BankAccount(MoneyAccount):
 
 
 @dataclass(frozen=True)
+class BudgetAccount(MoneyAccount):
+    history: List[MoneySnapshot] = field(default_factory=list)
+    active: bool = False
+    monthly_budget: float = 0.0
+    reset_day: int = 1
+    last_reset_period: str = ""
+
+    def __post_init__(self) -> None:
+        if self.history:
+            latest = latest_amount_from_history(self.history)
+            if latest is not None:
+                object.__setattr__(self, "total_amount", float(latest))
+
+
+@dataclass(frozen=True)
 class SavingsAccount(MoneyAccount):
     savings: List[Savings] = field(default_factory=list)
 
