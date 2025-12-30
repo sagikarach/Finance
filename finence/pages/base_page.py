@@ -39,7 +39,7 @@ from ..models.notifications_service import NotificationsService
 
 class BasePage(QWidget):
     try:
-        _sync_finished = Signal(int, str)  # pulled_count, error_message
+        _sync_finished = Signal(int, str)
     except Exception:
         _sync_finished = None
 
@@ -100,7 +100,7 @@ class BasePage(QWidget):
         self._build_ui()
         try:
             if self._sync_finished is not None:
-                self._sync_finished.connect(self._on_sync_finished)  # type: ignore[union-attr]
+                self._sync_finished.connect(self._on_sync_finished)
         except Exception:
             pass
 
@@ -278,9 +278,13 @@ class BasePage(QWidget):
             from ..models.firebase_session import FirebaseSessionStore
 
             s = FirebaseSessionStore().load()
-            ok = bool(s.is_logged_in and str(getattr(s, "workspace_id", "") or "").strip())
+            ok = bool(
+                s.is_logged_in and str(getattr(s, "workspace_id", "") or "").strip()
+            )
             btn.setEnabled(bool(ok))
-            btn.setToolTip("סנכרן עכשיו" if ok else "התחבר ל-Firebase ובחר Workspace בהגדרות")
+            btn.setToolTip(
+                "סנכרן עכשיו" if ok else "התחבר ל-Firebase ובחר Workspace בהגדרות"
+            )
         except Exception:
             try:
                 btn.setEnabled(False)
@@ -290,7 +294,6 @@ class BasePage(QWidget):
     def _on_sync_clicked(self) -> None:
         if self._sync_in_progress:
             return
-        # check session quickly
         try:
             from ..models.firebase_session import FirebaseSessionStore
 
@@ -321,18 +324,19 @@ class BasePage(QWidget):
             pulled = 0
             err: Optional[str] = None
             try:
-                from ..models.firebase_movements_sync import FirebaseMovementsSyncService
+                from ..models.firebase_movements_sync import (
+                    FirebaseMovementsSyncService,
+                )
 
                 pulled, _ = FirebaseMovementsSyncService().sync_now()
             except Exception as e:
                 err = str(e)
             try:
                 if self._sync_finished is not None:
-                    self._sync_finished.emit(int(pulled), str(err or ""))  # type: ignore[union-attr]
+                    self._sync_finished.emit(int(pulled), str(err or ""))
                     return
             except Exception:
                 pass
-            # Fallback: best-effort reset (may run off-main-thread on some backends).
             try:
                 self._on_sync_finished(int(pulled), str(err or ""))
             except Exception:
@@ -354,16 +358,32 @@ class BasePage(QWidget):
             pass
         self._refresh_sync_button_state()
 
-        # Refresh in-memory accounts + sidebar from local cache updated by sync.
         try:
             self._load_and_refresh_accounts()
         except Exception:
             pass
 
-        # Refresh action history table (if present on current page).
+        try:
+            from ..models.workspace_ml_trainer import WorkspaceMLTrainer
+
+            trainer = WorkspaceMLTrainer()
+            cls = getattr(self._bank_movement_service, "classifier", None)
+            if cls is not None:
+                try:
+                    movements = self._bank_movement_service.list_movements()
+                except Exception:
+                    movements = []
+                trainer.rebuild_training_file(movements=movements, classifier=cls)
+                try:
+                    cls.reload()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         try:
             history_table = self._find_history_table()
-            if history_table is not None and hasattr(self._history_provider, "list_history"):
+            if history_table is not None:
                 try:
                     history = self._history_provider.list_history()
                 except Exception:
@@ -404,7 +424,7 @@ class BasePage(QWidget):
                     dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 except Exception:
                     try:
-                        dlg.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                        dlg.setLayoutDirection(Qt.RightToLeft)
                     except Exception:
                         pass
                 layout = QVBoxLayout(dlg)
@@ -535,8 +555,6 @@ class BasePage(QWidget):
                         _prov.add_category_for_type(name, _is_income)
                     except Exception:
                         pass
-                    # If Firebase is configured/logged in, immediately sync categories so
-                    # mobile sees new categories without needing a manual "Sync now".
                     try:
                         from ..models.firebase_movements_sync import (
                             FirebaseMovementsSyncService,

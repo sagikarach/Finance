@@ -43,7 +43,7 @@ class LockDialog(QDialog):
             password_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                password_edit.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                password_edit.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -54,7 +54,7 @@ class LockDialog(QDialog):
             password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         except Exception:
             try:
-                password_edit.setEchoMode(QLineEdit.Password)  # type: ignore[attr-defined]
+                password_edit.setEchoMode(QLineEdit.Password)
             except Exception:
                 pass
 

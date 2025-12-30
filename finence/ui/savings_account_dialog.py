@@ -49,7 +49,7 @@ class SavingsAccountDialog(QDialog):
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
 
@@ -69,7 +69,7 @@ class SavingsAccountDialog(QDialog):
             self._name_edit.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._name_edit.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                self._name_edit.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         try:
@@ -87,7 +87,7 @@ class SavingsAccountDialog(QDialog):
             self._is_liquid_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         if account:
@@ -114,7 +114,7 @@ class SavingsAccountDialog(QDialog):
             self._error_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._error_label.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                self._error_label.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         try:
@@ -123,7 +123,7 @@ class SavingsAccountDialog(QDialog):
             )
         except Exception:
             try:
-                self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # type: ignore[attr-defined]
+                self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
             except Exception:
                 pass
         self._error_label.hide()

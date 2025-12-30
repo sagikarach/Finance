@@ -8,7 +8,10 @@ import json
 
 from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus
 from ..utils.app_paths import accounts_data_dir
-from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
+from ..models.firebase_session import (
+    current_firebase_uid,
+    current_firebase_workspace_id,
+)
 
 
 class OneTimeEventProvider(ABC):
@@ -34,7 +37,9 @@ class JsonFileOneTimeEventProvider(OneTimeEventProvider):
         key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
         suffix = f"_{key}" if key else ""
         self._path = (
-            Path(path) if path else accounts_data_dir() / f"one_time_events{suffix}.json"
+            Path(path)
+            if path
+            else accounts_data_dir() / f"one_time_events{suffix}.json"
         )
 
     def list_events(self) -> List[OneTimeEvent]:

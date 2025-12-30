@@ -28,7 +28,9 @@ class FirebaseSession:
 
     @property
     def is_logged_in(self) -> bool:
-        return bool(self.uid and self.refresh_token and self.api_key and self.project_id)
+        return bool(
+            self.uid and self.refresh_token and self.api_key and self.project_id
+        )
 
     def is_id_token_valid(self) -> bool:
         try:
@@ -110,5 +112,3 @@ def current_firebase_workspace_id() -> Optional[str]:
         return wid if wid else None
     except Exception:
         return None
-
-

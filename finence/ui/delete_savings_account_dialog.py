@@ -40,7 +40,7 @@ class DeleteSavingsAccountDialog(QDialog):
             self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._account_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                self._account_combo.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         for account in accounts:
@@ -69,7 +69,7 @@ class DeleteSavingsAccountDialog(QDialog):
             )
         except Exception:
             try:
-                self._message_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # type: ignore[attr-defined]
+                self._message_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
             except Exception:
                 pass
         self._update_message()

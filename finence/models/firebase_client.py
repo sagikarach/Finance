@@ -40,8 +40,6 @@ def _http_json(
         except Exception:
             raw = ""
 
-        # Google APIs often return:
-        # {"error": {"code": 403, "message": "...", "status": "PERMISSION_DENIED", ...}}
         try:
             data = json.loads(raw) if raw else None
         except Exception:
@@ -186,6 +184,7 @@ def _fs_any(raw: Any) -> Any:
         return [_fs_any(v) for v in vals if isinstance(v, dict)]
     return None
 
+
 def _fs_get(fields: Dict[str, Any], key: str) -> Any:
     raw = fields.get(key)
     if not isinstance(raw, dict):
@@ -288,7 +287,9 @@ class FirestoreClient:
             params = {"pageSize": str(int(page_size))}
             if token:
                 params["pageToken"] = token
-            url = f"{self._doc_base()}/{collection_path}?{urllib.parse.urlencode(params)}"
+            url = (
+                f"{self._doc_base()}/{collection_path}?{urllib.parse.urlencode(params)}"
+            )
             resp = _http_json(
                 method="GET",
                 url=url,
@@ -333,7 +334,6 @@ class FirestoreClient:
         )
 
     def get_document(self, *, document_path: str, id_token: str) -> Dict[str, Any]:
-        # document_path example: "users/{uid}/meta/categories"
         url = f"{self._doc_base()}/{document_path.lstrip('/')}"
         resp = _http_json(
             method="GET",
@@ -403,5 +403,3 @@ class FirestoreClient:
         if not out.get("id") and movement_id:
             out["id"] = movement_id
         return movement_id or str(out.get("id", "") or ""), out
-
-

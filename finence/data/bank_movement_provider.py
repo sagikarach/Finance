@@ -8,7 +8,10 @@ import json
 
 from ..models.bank_movement import BankMovement, MovementType
 from ..utils.app_paths import accounts_data_dir
-from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
+from ..models.firebase_session import (
+    current_firebase_uid,
+    current_firebase_workspace_id,
+)
 
 
 class BankMovementProvider(ABC):

@@ -22,6 +22,7 @@ from ..models.action_history import (
     AddOutcomeMovementAction,
 )
 from ..models.bank_movement import MovementType
+from ..models.bank_movement_service import BankMovementService
 from .dialog_utils import wrap_hebrew_rtl, unwrap_rtl
 
 
@@ -31,14 +32,14 @@ class ActionHistoryDetailsDialog(QDialog):
         entry: ActionHistory,
         parent: Optional[QDialog] = None,
         categories: Opt[List[str]] = None,
-        movement_provider: Opt[Any] = None,
+        movement_service: Opt[BankMovementService] = None,
         on_saved: Opt[Callable[[], None]] = None,
         history_provider: Opt[Any] = None,
     ) -> None:
         super().__init__(parent)
         self._entry = entry
         self._categories = categories or []
-        self._movement_provider = movement_provider
+        self._movement_service = movement_service
         self._on_saved = on_saved
         self._history_provider = history_provider
         self._expenses_table: Opt[QTableWidget] = None
@@ -118,9 +119,9 @@ class ActionHistoryDetailsDialog(QDialog):
             details_layout.addWidget(header)
 
             expenses_data: List[dict] = []
-            if self._movement_provider and action.movement_ids:
+            if self._movement_service is not None and action.movement_ids:
                 try:
-                    all_movements = self._movement_provider.list_movements()
+                    all_movements = self._movement_service.list_movements()
                     movements_by_id = {m.id: m for m in all_movements}
 
                     for movement_id in action.movement_ids:
@@ -298,9 +299,9 @@ class ActionHistoryDetailsDialog(QDialog):
 
                 details_layout.addWidget(expenses_table)
         elif isinstance(action, (AddIncomeMovementAction, AddOutcomeMovementAction)):
-            if self._movement_provider and action.movement_id:
+            if self._movement_service is not None and action.movement_id:
                 try:
-                    all_movements = self._movement_provider.list_movements()
+                    all_movements = self._movement_service.list_movements()
                     movements_by_id = {m.id: m for m in all_movements}
                     movement = movements_by_id.get(action.movement_id)
 
@@ -431,9 +432,9 @@ class ActionHistoryDetailsDialog(QDialog):
                     pass
 
             if not self._expenses_table:
-                if self._movement_provider and action.movement_id:
+                if self._movement_service is not None and action.movement_id:
                     try:
-                        all_movements = self._movement_provider.list_movements()
+                        all_movements = self._movement_service.list_movements()
                         movements_by_id = {m.id: m for m in all_movements}
                         movement = movements_by_id.get(action.movement_id)
                         if movement and movement.account_name:
@@ -497,7 +498,7 @@ class ActionHistoryDetailsDialog(QDialog):
                 isinstance(action, (AddIncomeMovementAction, AddOutcomeMovementAction))
                 and action.movement_id
             )
-        ) and self._movement_provider:
+        ) and self._movement_service is not None:
             save_btn = QPushButton("שמור שינויים", self)
             save_btn.clicked.connect(self._on_save_changes)
             buttons_row.addWidget(save_btn)
@@ -509,27 +510,19 @@ class ActionHistoryDetailsDialog(QDialog):
         close_btn.clicked.connect(self.accept)
 
     def _get_categories_for_movement(self, is_income: bool) -> List[str]:
-        if not self._movement_provider:
+        if self._movement_service is None:
+            return self._categories or []
+        try:
+            return self._movement_service.list_categories(is_income)
+        except Exception:
             return self._categories or []
 
-        try:
-            if hasattr(self._movement_provider, "list_categories_for_type"):
-                return self._movement_provider.list_categories_for_type(
-                    is_income=is_income
-                )
-            elif hasattr(self._movement_provider, "list_categories"):
-                return self._movement_provider.list_categories()
-        except Exception:
-            pass
-
-        return self._categories or []
-
     def _on_save_changes(self) -> None:
-        if not self._expenses_table or not self._movement_provider:
+        if not self._expenses_table or self._movement_service is None:
             return
 
         try:
-            all_movements = self._movement_provider.list_movements()
+            all_movements = self._movement_service.list_movements()
 
             action = self._entry.action
 
@@ -579,15 +572,10 @@ class ActionHistoryDetailsDialog(QDialog):
                 )
                 all_movements[movement_index] = updated_movement
 
-                self._movement_provider.save_movements(all_movements)
-
-                # Push updated movement to Firebase workspace immediately (if configured).
-                try:
-                    from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
-
-                    FirebaseWorkspaceWriter().upsert_movement(updated_movement)
-                except Exception:
-                    pass
+                if self._movement_service is not None:
+                    self._movement_service.save_movements(
+                        all_movements, changed_movements=[updated_movement]
+                    )
 
                 from ..qt import QDialog, QVBoxLayout, QLabel, QPushButton
 
@@ -686,20 +674,17 @@ class ActionHistoryDetailsDialog(QDialog):
                     pass
 
             if updated_count > 0:
-                self._movement_provider.save_movements(all_movements)
-
-                # Push updated movements to Firebase workspace immediately (if configured).
-                try:
-                    from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
-
-                    w = FirebaseWorkspaceWriter()
-                    for m in all_movements:
-                        try:
-                            w.upsert_movement(m)
-                        except Exception:
-                            continue
-                except Exception:
-                    pass
+                if self._movement_service is not None:
+                    changed: List[Any] = []
+                    try:
+                        for m in all_movements:
+                            if getattr(m, "account_name", None) == account_name:
+                                changed.append(m)
+                    except Exception:
+                        changed = []
+                    self._movement_service.save_movements(
+                        all_movements, changed_movements=changed or None
+                    )
 
                 if self._on_saved:
                     try:

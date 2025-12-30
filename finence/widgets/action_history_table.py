@@ -20,6 +20,7 @@ from ..qt import (
 )
 from ..models.action_history import ActionHistory
 from ..ui.action_history_details_dialog import ActionHistoryDetailsDialog
+from ..models.bank_movement_service import BankMovementService
 
 
 class ColoredItemDelegate:
@@ -55,7 +56,7 @@ if QStyledItemDelegate is not None and QPainter is not None:
             try:
                 parent = self.parent()
                 if parent is not None:
-                    parent.viewport().update()  # type: ignore[attr-defined]
+                    parent.viewport().update()
             except Exception:
                 pass
 
@@ -69,7 +70,7 @@ if QStyledItemDelegate is not None and QPainter is not None:
                     try:
                         parent = self.parent()
                         if parent is not None:
-                            viewport = parent.viewport()  # type: ignore[attr-defined]
+                            viewport = parent.viewport()
                             if viewport is not None:
                                 viewport_width = viewport.width()
                                 full_rect = option.rect
@@ -106,7 +107,7 @@ class ActionHistoryTable(QWidget):
         max_rows: int = 10,
         parent: Optional[QWidget] = None,
         categories: Optional[List[str]] = None,
-        movement_provider: Optional[object] = None,
+        movement_service: Optional[BankMovementService] = None,
         on_saved: Optional[Callable[[], None]] = None,
         history_provider: Optional[object] = None,
     ) -> None:
@@ -120,7 +121,7 @@ class ActionHistoryTable(QWidget):
         self._max_rows = max_rows
         self._row_base_bg: dict[int, QColor] = {}
         self._categories = categories or []
-        self._movement_provider = movement_provider
+        self._movement_service = movement_service
         self._on_saved = on_saved
         self._history_provider = history_provider
 
@@ -223,7 +224,7 @@ class ActionHistoryTable(QWidget):
         except Exception:
             pass
         try:
-            palette = app.palette()  # type: ignore[attr-defined]
+            palette = app.palette()
             try:
                 window_color = palette.color(QPalette.ColorRole.Window)
             except Exception:
@@ -275,7 +276,7 @@ class ActionHistoryTable(QWidget):
                 entry,
                 None,
                 categories=self._categories,
-                movement_provider=self._movement_provider,
+                movement_service=self._movement_service,
                 on_saved=self._on_saved,
                 history_provider=self._history_provider,
             )

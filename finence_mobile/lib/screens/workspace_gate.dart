@@ -1,7 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../services/workspace_service.dart';
+import '../services/workspace_facade.dart';
 import 'movements_screen.dart';
 
 class WorkspaceGate extends StatefulWidget {
@@ -12,7 +11,7 @@ class WorkspaceGate extends StatefulWidget {
 }
 
 class _WorkspaceGateState extends State<WorkspaceGate> {
-  final _service = WorkspaceService();
+  final _workspaces = WorkspaceFacade();
   bool _loading = true;
   String? _workspaceId;
   String? _error;
@@ -24,14 +23,13 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
   }
 
   Future<void> _load() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_workspaces.isLoggedIn) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final wid = await _service.getActiveWorkspaceId(user.uid);
+      final wid = await _workspaces.getActiveWorkspaceId();
       setState(() => _workspaceId = wid);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -41,8 +39,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
   }
 
   Future<void> _joinByCode(String code) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_workspaces.isLoggedIn) return;
     final wid = code.trim();
     if (wid.isEmpty) return;
     setState(() {
@@ -50,9 +47,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
       _error = null;
     });
     try {
-      await _service.validateWorkspaceExists(wid);
-      await _service.ensureMembership(uid: user.uid, wid: wid, role: 'editor');
-      await _service.setActiveWorkspaceId(user.uid, wid);
+      await _workspaces.joinByCode(code: wid, role: 'editor');
       setState(() => _workspaceId = wid);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -62,16 +57,13 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
   }
 
   Future<void> _createWorkspace() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_workspaces.isLoggedIn) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final wid = _service.generateWorkspaceCode();
-      await _service.ensureMembership(uid: user.uid, wid: wid, role: 'owner');
-      await _service.setActiveWorkspaceId(user.uid, wid);
+      final wid = await _workspaces.createWorkspace();
       setState(() => _workspaceId = wid);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

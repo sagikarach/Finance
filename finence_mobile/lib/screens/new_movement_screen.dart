@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -7,6 +6,10 @@ import '../models/movement.dart';
 import '../constants/accounts.dart';
 import '../services/categories_service.dart';
 import '../services/accounts_meta_service.dart';
+import '../services/bootstrap_service.dart';
+import '../services/movements_service.dart';
+import '../services/action_history_service.dart';
+import '../services/session_service.dart';
 import '../widgets/select_field.dart';
 
 class NewMovementScreen extends StatefulWidget {
@@ -33,14 +36,20 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
   String? _error;
   late final CategoriesService _categoriesService;
   late final AccountsMetaService _accountsMeta;
+  late final BootstrapService _bootstrap;
+  late final MovementsService _movements;
+  late final ActionHistoryService _actions;
+  final SessionService _session = const SessionService();
 
   @override
   void initState() {
     super.initState();
     _categoriesService = CategoriesService(workspaceId: widget.workspaceId);
-    _categoriesService.ensureDoc();
     _accountsMeta = AccountsMetaService(workspaceId: widget.workspaceId);
-    _accountsMeta.ensureDoc();
+    _bootstrap = BootstrapService(workspaceId: widget.workspaceId);
+    _bootstrap.ensureWorkspaceMeta();
+    _movements = MovementsService(workspaceId: widget.workspaceId);
+    _actions = ActionHistoryService(workspaceId: widget.workspaceId);
     _loadActiveAccounts();
   }
 
@@ -64,7 +73,6 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
         }
       });
     } catch (_) {
-      // keep empty; user can sync accounts from desktop
     }
   }
 
@@ -85,8 +93,7 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
   }
 
   Future<void> _save() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    if (!_session.isLoggedIn) {
       setState(() => _error = 'לא מחובר');
       return;
     }
@@ -128,33 +135,8 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
         deleted: false,
       );
 
-      // Ensure workspace meta exists for desktop pulls (categories).
-      await _categoriesService.ensureDoc();
-
-      await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(widget.workspaceId)
-          .collection('movements')
-          .doc(id)
-          .set(movement.toFirestore(), SetOptions(merge: true));
-
-      // Log action to shared workspace history (so desktop can pull it).
-      final actionId = const Uuid().v4();
-      final today = DateTime.now().toIso8601String().split('T').first;
-      final actionName = signedAmount > 0 ? 'add_income_movement' : 'add_outcome_movement';
-      await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(widget.workspaceId)
-          .collection('actions')
-          .doc(actionId)
-          .set(<String, Object?>{
-        'id': actionId,
-        'timestamp': today,
-        'action': <String, Object?>{
-          'action_name': actionName,
-          'movement_id': id,
-        },
-      }, SetOptions(merge: true));
+      await _movements.upsert(movement);
+      await _actions.logAddMovement(movementId: id, isIncome: signedAmount > 0);
 
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
@@ -378,9 +360,6 @@ class _CategoryPickerState extends State<_CategoryPicker> {
   }
 
   Future<void> _addCategory(BuildContext context) async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
     final ctrl = TextEditingController();
     final name = await showDialog<String>(
       context: context,

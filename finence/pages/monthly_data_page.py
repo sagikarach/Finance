@@ -13,7 +13,6 @@ from ..qt import (
     QPushButton,
 )
 from ..data.provider import AccountsProvider
-from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..models.monthly_report_service import MonthlyReportService
 from ..models.monthly_report import MonthlyReport
 from ..models.bank_movement import BankMovement, MovementType
@@ -33,15 +32,9 @@ class MonthlyDataPage(BasePage):
         parent: Optional[QWidget] = None,
         provider: Optional[AccountsProvider] = None,
         navigate: Optional[Callable[[str], None]] = None,
-        movement_provider: Optional[JsonFileBankMovementProvider] = None,
         monthly_service: Optional[MonthlyReportService] = None,
     ) -> None:
-        self._bank_movement_provider = (
-            movement_provider or JsonFileBankMovementProvider()
-        )
-        self._monthly_service = monthly_service or MonthlyReportService(
-            self._bank_movement_provider
-        )
+        self._monthly_service: MonthlyReportService
         self._current_year: Optional[int] = None
         self._current_month: Optional[int] = None
         self._current_report: Optional[MonthlyReport] = None
@@ -61,6 +54,9 @@ class MonthlyDataPage(BasePage):
             navigate=navigate,
             page_title="סיכום חודשי",
             current_route="monthly_data",
+        )
+        self._monthly_service = monthly_service or MonthlyReportService(
+            self._bank_movement_provider
         )
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
@@ -206,11 +202,43 @@ class MonthlyDataPage(BasePage):
         dlg = MonthMovementsDialog(
             year=self._current_year,
             month=self._current_month,
-            movement_provider=self._bank_movement_provider,
+            movement_service=self._bank_movement_service,
             parent=None,
             on_saved=_after_save,
+            on_delete_movement=self._delete_movement_and_refresh,
         )
         dlg.exec()
+
+    def _delete_movement_and_refresh(self, movement_id: str) -> None:
+        movement_id = str(movement_id or "").strip()
+        if not movement_id:
+            return
+
+        try:
+            svc = self._bank_movement_service
+            if svc is None:
+                return
+            self._accounts = svc.delete_movement(
+                self._accounts, movement_id=movement_id, record_history=True
+            )
+        except Exception:
+            return
+
+        try:
+            if self._accounts_service is not None:
+                self._accounts_service.save_all(self._accounts)
+        except Exception:
+            pass
+
+        try:
+            self._load_and_refresh_accounts()
+        except Exception:
+            pass
+
+        try:
+            self._refresh_report_content()
+        except Exception:
+            pass
 
     def _refresh_report_content(self) -> None:
         if (
@@ -311,7 +339,7 @@ class MonthlyDataPage(BasePage):
         if self._current_year is None or self._current_month is None:
             return []
         try:
-            all_movements = self._bank_movement_provider.list_movements()
+            all_movements = self._bank_movement_service.list_movements()
             filtered = [
                 m
                 for m in all_movements

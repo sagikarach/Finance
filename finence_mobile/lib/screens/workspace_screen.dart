@@ -1,8 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/workspace_service.dart';
+import '../services/workspace_facade.dart';
 
 class WorkspaceScreen extends StatefulWidget {
   const WorkspaceScreen({super.key});
@@ -12,7 +11,7 @@ class WorkspaceScreen extends StatefulWidget {
 }
 
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
-  final _service = WorkspaceService();
+  final _workspaces = WorkspaceFacade();
   final _codeCtrl = TextEditingController();
   bool _loading = true;
   String? _currentWid;
@@ -31,14 +30,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   Future<void> _load() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_workspaces.isLoggedIn) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final wid = await _service.getActiveWorkspaceId(user.uid);
+      final wid = await _workspaces.getActiveWorkspaceId();
       setState(() => _currentWid = wid);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -48,8 +46,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   Future<void> _joinByCode() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_workspaces.isLoggedIn) return;
     final wid = _codeCtrl.text.trim();
     if (wid.isEmpty) return;
     setState(() {
@@ -57,9 +54,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       _error = null;
     });
     try {
-      await _service.validateWorkspaceExists(wid);
-      await _service.ensureMembership(uid: user.uid, wid: wid, role: 'editor');
-      await _service.setActiveWorkspaceId(user.uid, wid);
+      await _workspaces.joinByCode(code: wid, role: 'editor');
       if (!mounted) return;
       Navigator.of(context).pop(wid);
     } catch (e) {
@@ -69,16 +64,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   Future<void> _createWorkspace() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_workspaces.isLoggedIn) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final wid = _service.generateWorkspaceCode();
-      await _service.ensureMembership(uid: user.uid, wid: wid, role: 'owner');
-      await _service.setActiveWorkspaceId(user.uid, wid);
+      final wid = await _workspaces.createWorkspace();
       if (!mounted) return;
       await Clipboard.setData(ClipboardData(text: wid));
       if (!mounted) return;
@@ -90,14 +82,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   Future<void> _disconnect() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_workspaces.isLoggedIn) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      await _service.setActiveWorkspaceId(user.uid, '');
+      await _workspaces.disconnect();
       if (!mounted) return;
       Navigator.of(context).pop(null);
     } catch (e) {

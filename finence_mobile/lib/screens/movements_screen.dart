@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 
 import '../models/movement.dart';
-import '../services/accounts_meta_service.dart';
-import '../services/categories_service.dart';
+import '../services/bootstrap_service.dart';
+import '../services/movements_service.dart';
+import '../services/action_history_service.dart';
+import '../services/session_service.dart';
 import 'new_movement_screen.dart';
 import 'workspace_screen.dart';
 
@@ -24,38 +24,15 @@ class _MovementsScreenState extends State<MovementsScreen> {
   String? _error;
   List<Movement> _items = <Movement>[];
 
-  CollectionReference<Map<String, dynamic>> _ref() {
-    return FirebaseFirestore.instance
-        .collection('workspaces')
-        .doc(widget.workspaceId)
-        .collection('movements');
-  }
+  final SessionService _session = const SessionService();
+  late final MovementsService _movements;
+  late final ActionHistoryService _actions;
+  late final BootstrapService _bootstrap;
 
   Future<void> _deleteMovement(Movement m) async {
     try {
-      await _ref().doc(m.id).set(<String, Object?>{
-        'id': m.id,
-        'deleted': true,
-      }, SetOptions(merge: true));
-
-      final actionId = const Uuid().v4();
-      final today = DateTime.now().toIso8601String().split('T').first;
-      await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(widget.workspaceId)
-          .collection('actions')
-          .doc(actionId)
-          .set(<String, Object?>{
-        'id': actionId,
-        'timestamp': today,
-        'action': <String, Object?>{
-          'action_name': 'delete_movement',
-          'movement_id': m.id,
-          'account_name': m.accountName,
-          'amount': m.amount,
-          'date': m.date,
-        },
-      }, SetOptions(merge: true));
+      await _movements.tombstoneDelete(movementId: m.id);
+      await _actions.logDeleteMovement(m: m);
       if (!mounted) return;
       setState(() => _items = _items.where((x) => x.id != m.id).toList());
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,12 +49,14 @@ class _MovementsScreenState extends State<MovementsScreen> {
   @override
   void initState() {
     super.initState();
+    _movements = MovementsService(workspaceId: widget.workspaceId);
+    _actions = ActionHistoryService(workspaceId: widget.workspaceId);
+    _bootstrap = BootstrapService(workspaceId: widget.workspaceId);
     _pullFromServer(showToast: false);
   }
 
   Future<void> _pullFromServer({required bool showToast}) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (!_session.isLoggedIn) return;
 
     setState(() {
       _syncing = true;
@@ -85,17 +64,8 @@ class _MovementsScreenState extends State<MovementsScreen> {
       _error = null;
     });
     try {
-      // Ensure meta docs exist and force a network read (so we can show errors clearly).
-      await CategoriesService(workspaceId: widget.workspaceId).ensureDoc();
-      await AccountsMetaService(workspaceId: widget.workspaceId).ensureDoc();
-      final snap = await _ref()
-          .orderBy('date', descending: true)
-          .get(const GetOptions(source: Source.server));
-
-      final items = snap.docs
-          .map((d) => Movement.fromFirestore(d.data()))
-          .where((m) => m.id.isNotEmpty && !m.deleted)
-          .toList();
+      await _bootstrap.ensureWorkspaceMeta();
+      final items = await _movements.fetch(source: Source.server);
 
       if (!mounted) return;
       setState(() {
@@ -125,8 +95,7 @@ class _MovementsScreenState extends State<MovementsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    if (!_session.isLoggedIn) {
       return const Scaffold(body: Center(child: Text('לא מחובר')));
     }
 
@@ -164,7 +133,7 @@ class _MovementsScreenState extends State<MovementsScreen> {
             tooltip: 'סנכרן עכשיו',
           ),
           IconButton(
-            onPressed: () => FirebaseAuth.instance.signOut(),
+            onPressed: () => _session.signOut(),
             icon: const Icon(Icons.logout),
             tooltip: 'התנתק',
           ),

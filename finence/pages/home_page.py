@@ -151,21 +151,10 @@ class HomePage(BasePage):
             history = []
 
         categories = []
-        movement_provider = None
         try:
-            if (
-                hasattr(self, "_bank_movement_provider")
-                and self._bank_movement_provider
-            ):
-                movement_provider = self._bank_movement_provider
-                if hasattr(movement_provider, "list_categories_for_type"):
-                    categories = movement_provider.list_categories_for_type(
-                        is_income=False
-                    )
-                elif hasattr(movement_provider, "list_categories"):
-                    categories = movement_provider.list_categories()
+            categories = self._bank_movement_service.list_categories(is_income=False)
         except Exception:
-            pass
+            categories = []
 
         def on_saved() -> None:
             try:
@@ -184,7 +173,7 @@ class HomePage(BasePage):
             max_rows=10,
             parent=chart_side_card,
             categories=categories,
-            movement_provider=movement_provider,
+            movement_service=self._bank_movement_service,
             on_saved=on_saved,
             history_provider=self._history_provider,
         )

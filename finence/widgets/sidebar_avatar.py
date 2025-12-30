@@ -50,7 +50,7 @@ class SidebarAvatar:
         self._layout.addWidget(self._name_label, 0, Qt.AlignmentFlag.AlignHCenter)
         self._layout.addSpacing(24)
 
-        self._avatar_label.mousePressEvent = self._on_avatar_clicked  # type: ignore[assignment]
+        self._avatar_label.mousePressEvent = self._on_avatar_clicked
 
         if self._user.avatar_path:
             self.set_avatar_from_path(self._user.avatar_path)

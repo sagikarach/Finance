@@ -139,7 +139,7 @@ class BankAccountsPage(BasePage):
         main_col.addLayout(cards_row, 0)
 
         if bank_accounts:
-            chart = AccountsPieChart(accounts=bank_accounts, parent=self)  # type: ignore[arg-type]
+            chart = AccountsPieChart(accounts=bank_accounts, parent=self)
 
             chart_card = QWidget(self)
             chart_card.setObjectName("Sidebar")

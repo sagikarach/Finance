@@ -80,7 +80,7 @@ class OutcomeReviewDialog(QDialog):
             self._category_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._category_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._category_combo.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:
@@ -112,7 +112,7 @@ class OutcomeReviewDialog(QDialog):
             self._type_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._type_combo.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._type_combo.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         try:

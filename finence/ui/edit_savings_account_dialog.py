@@ -56,7 +56,7 @@ class EditSavingsAccountDialog(QDialog):
             self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._account_combo.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                self._account_combo.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         for account in accounts:
@@ -99,7 +99,7 @@ class EditSavingsAccountDialog(QDialog):
             self._is_liquid_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             try:
-                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+                self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
         if self._selected_account:
@@ -114,7 +114,7 @@ class EditSavingsAccountDialog(QDialog):
             self._error_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             try:
-                self._error_label.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                self._error_label.setLayoutDirection(Qt.LeftToRight)
             except Exception:
                 pass
         try:
@@ -123,7 +123,7 @@ class EditSavingsAccountDialog(QDialog):
             )
         except Exception:
             try:
-                self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # type: ignore[attr-defined]
+                self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
             except Exception:
                 pass
         self._error_label.hide()

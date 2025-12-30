@@ -201,6 +201,51 @@ class BankMovementService:
     csv_parser: CsvExpenseParser = field(default_factory=CsvExpenseParser)
     _imported_for_last_csv: List[BankMovement] = field(default_factory=list)
 
+    def list_movements(self) -> List[BankMovement]:
+        try:
+            return list(self.movement_provider.list_movements())
+        except Exception:
+            return []
+
+    def list_categories(self, is_income: bool) -> List[str]:
+        p = self.movement_provider
+        try:
+            if hasattr(p, "list_categories_for_type"):
+                return list(p.list_categories_for_type(is_income))
+            if hasattr(p, "list_categories"):
+                return list(p.list_categories())
+        except Exception:
+            return []
+        return []
+
+    def save_movements(
+        self,
+        all_movements: List[BankMovement],
+        *,
+        changed_movements: Optional[List[BankMovement]] = None,
+    ) -> None:
+        """
+        Persist a full movement snapshot locally, and push the snapshot to Firebase (best effort).
+        Intended for edits (category/type/description) where balances don't change.
+        """
+        try:
+            self.movement_provider.save_movements(list(all_movements))
+        except Exception:
+            return
+
+        to_push = changed_movements if changed_movements is not None else all_movements
+        try:
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            w = FirebaseWorkspaceWriter()
+            for m in to_push:
+                try:
+                    w.upsert_movement(m)
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
     def apply_movement(
         self,
         accounts: List[MoneyAccount],
@@ -213,7 +258,6 @@ class BankMovementService:
         except Exception:
             pass
 
-        # Immediate push-on-write (desktop -> Firebase workspace).
         try:
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
@@ -372,7 +416,6 @@ class BankMovementService:
         if target is None:
             return accounts
 
-        # baseline = current_total - sum(all movements)
         sum_by_account: Dict[str, float] = {}
         for m in all_movements:
             try:

@@ -10,8 +10,6 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Android can initialize from android/app/google-services.json (via google-services plugin),
-  // so we fallback to default initializeApp() if firebase_options.dart isn't generated yet.
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   } catch (_) {

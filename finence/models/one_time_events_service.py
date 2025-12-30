@@ -19,6 +19,7 @@ from .accounts import parse_iso_date
 from .bank_movement import BankMovement, MovementType
 from .action_history import (
     ActionHistory,
+    Action,
     AddOneTimeEventAction,
     EditOneTimeEventAction,
     DeleteOneTimeEventAction,
@@ -76,6 +77,7 @@ class OneTimeEventsService:
         except Exception:
             pass
         try:
+            action_obj: Action
             if old is None:
                 action_obj = AddOneTimeEventAction(
                     action_name="add_one_time_event",
@@ -143,7 +145,6 @@ class OneTimeEventsService:
             FirebaseWorkspaceWriter().delete_event(event_id=event_id)
         except Exception:
             pass
-        # Unassign movements from this event
         movements = self._movements_provider.list_movements()
         updated: List[BankMovement] = []
         changed = False
@@ -244,7 +245,6 @@ class OneTimeEventsService:
             changed = True
         if changed:
             self._movements_provider.save_movements(updated)
-            # Push updated movement assignment immediately (movement.event_id).
             try:
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
@@ -255,6 +255,7 @@ class OneTimeEventsService:
             except Exception:
                 pass
             try:
+                action_obj: Action
                 if event_id is None:
                     action_obj = UnassignMovementFromOneTimeEventAction(
                         action_name="unassign_movement_from_one_time_event",

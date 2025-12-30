@@ -236,7 +236,6 @@ class BankAccountPage(BasePage):
                             _prov.add_category_for_type(name, False)
                         except Exception:
                             pass
-                        # Immediately push categories to Firebase so mobile sees them.
                         try:
                             from ..models.firebase_movements_sync import (
                                 FirebaseMovementsSyncService,

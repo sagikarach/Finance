@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import json
 
 from ..models.accounts import (
@@ -14,7 +14,10 @@ from ..models.accounts import (
     latest_amount_from_history,
 )
 from ..utils.app_paths import accounts_data_dir
-from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
+from ..models.firebase_session import (
+    current_firebase_uid,
+    current_firebase_workspace_id,
+)
 
 
 class AccountsProvider(ABC):
@@ -195,16 +198,17 @@ class JsonFileAccountsProvider(AccountsProvider):
     def save_savings_accounts(self, accounts: List[SavingsAccount]) -> None:
         self._savings_accounts_path.parent.mkdir(parents=True, exist_ok=True)
 
-        json_data = []
+        json_data: List[Dict[str, Any]] = []
         for account in accounts:
-            account_dict = {
+            savings_list: List[Dict[str, Any]] = []
+            account_dict: Dict[str, Any] = {
                 "name": account.name,
                 "is_liquid": account.is_liquid,
                 "total_amount": account.total_amount,
-                "savings": [],
+                "savings": savings_list,
             }
             for savings_item in account.savings:
-                savings_dict = {
+                savings_dict: Dict[str, Any] = {
                     "name": savings_item.name,
                     "amount": savings_item.amount,
                     "history": [
@@ -212,7 +216,7 @@ class JsonFileAccountsProvider(AccountsProvider):
                         for snapshot in savings_item.history
                     ],
                 }
-                account_dict["savings"].append(savings_dict)  # type: ignore[attr-defined]
+                savings_list.append(savings_dict)
             json_data.append(account_dict)
 
         with self._savings_accounts_path.open("w", encoding="utf-8") as f:

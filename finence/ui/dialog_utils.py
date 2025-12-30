@@ -23,7 +23,7 @@ def setup_standard_rtl_dialog(
         dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
     except Exception:
         try:
-            dialog.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            dialog.setLayoutDirection(Qt.RightToLeft)
         except Exception:
             pass
 
@@ -38,7 +38,7 @@ def set_layout_direction_rtl(widget: QWidget) -> None:
         widget.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
     except Exception:
         try:
-            widget.setLayoutDirection(Qt.RightToLeft)  # type: ignore[attr-defined]
+            widget.setLayoutDirection(Qt.RightToLeft)
         except Exception:
             pass
 
@@ -48,7 +48,7 @@ def set_layout_direction_ltr(widget: QWidget) -> None:
         widget.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
     except Exception:
         try:
-            widget.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+            widget.setLayoutDirection(Qt.LeftToRight)
         except Exception:
             pass
 
@@ -104,7 +104,7 @@ def apply_rtl_alignment(combo: QComboBox) -> None:
         align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
     except Exception:
         try:
-            align = Qt.AlignRight  # type: ignore[attr-defined]
+            align = Qt.AlignRight
         except Exception:
             return
 
@@ -112,7 +112,7 @@ def apply_rtl_alignment(combo: QComboBox) -> None:
         role = Qt.ItemDataRole.TextAlignmentRole
     except Exception:
         try:
-            role = Qt.TextAlignmentRole  # type: ignore[attr-defined]
+            role = Qt.TextAlignmentRole
         except Exception:
             return
 

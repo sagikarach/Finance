@@ -286,7 +286,6 @@ class NotificationsService:
 
                 existing = existing_by_key.get(key)
                 if existing is not None:
-                    # If it was auto-resolved earlier and the event is over again, re-open it.
                     if existing.status == NotificationStatus.RESOLVED:
                         try:
                             self._provider.update_status(
@@ -417,7 +416,6 @@ class NotificationsService:
 
         out: List[Notification] = []
 
-        # Duplicate detection (same date + amount + description) in previous month
         groups: dict[tuple[str, float, str], List[BankMovement]] = {}
         for m in movements:
             try:

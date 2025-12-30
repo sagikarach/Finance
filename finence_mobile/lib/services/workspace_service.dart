@@ -22,7 +22,7 @@ class WorkspaceService {
   Future<void> ensureMembership({
     required String uid,
     required String wid,
-    required String role, // owner | editor | viewer
+    required String role,
   }) async {
     await _db.collection('workspaces').doc(wid).set(
       <String, Object?>{

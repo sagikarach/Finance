@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional
 import shutil
 
 import os
 import sys
 
+_platform_user_data_dir: Callable[..., str] | None
 try:
-    from platformdirs import user_data_dir as _platform_user_data_dir  # type: ignore
+    from platformdirs import user_data_dir as _platform_user_data_dir
 except Exception:
     _platform_user_data_dir = None
 

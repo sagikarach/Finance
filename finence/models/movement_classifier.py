@@ -4,9 +4,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
 import json
+import re
 
 from .bank_movement import BankMovement, MovementType
 from ..utils.app_paths import app_data_dir
+from .firebase_session import current_firebase_uid, current_firebase_workspace_id
 
 
 @dataclass
@@ -16,6 +18,27 @@ class SimilarityBasedClassifier:
     DEFAULT_TYPE: ClassVar[MovementType] = MovementType.MONTHLY
     DEFAULT_CONFIDENCE: ClassVar[float] = 0.3
     MAX_SIMILAR_EXPENSES: ClassVar[int] = 5
+    _NOISE_WORDS: ClassVar[set[str]] = {
+        "בעמ",
+        'בע"מ',
+        "בע׳מ",
+        "בע״מ",
+        "בע?מ",
+        "חברה",
+        "ישראלי",
+        "ישראל",
+        "תשלום",
+        "תשלומים",
+        "דמי",
+        "כרטיס",
+        "ויזה",
+        "לאומי",
+        "בנק",
+        "העברה",
+        "העברות",
+        "מפעולות",
+        "ישיר",
+    }
 
     TYPE_MAPPING: ClassVar[Dict[str, MovementType]] = {
         "חודשית": MovementType.MONTHLY,
@@ -23,11 +46,14 @@ class SimilarityBasedClassifier:
         "שנתי": MovementType.YEARLY,
         "שנתית": MovementType.YEARLY,
         "חד פעמי": MovementType.ONE_TIME,
+        "חד פעמית": MovementType.ONE_TIME,
+        "חד-פעמי": MovementType.ONE_TIME,
+        "חד-פעמית": MovementType.ONE_TIME,
+        "חד־פעמי": MovementType.ONE_TIME,
+        "חד־פעמית": MovementType.ONE_TIME,
     }
 
-    training_data_path: Path = field(
-        default_factory=lambda: app_data_dir() / "training" / "expenses.json"
-    )
+    training_data_path: Path = field(default_factory=lambda: _default_training_path())
     _training_data: List[Dict[str, Any]] = field(default_factory=list, init=False)
     _is_initialized: bool = field(default=False, init=False)
 
@@ -61,6 +87,21 @@ class SimilarityBasedClassifier:
             self._training_data = []
 
         self._is_initialized = True
+
+    def reload(self) -> None:
+        self._training_data = []
+        self._is_initialized = False
+        self.initialize()
+
+    def set_training_data(self, training: List[Dict[str, Any]]) -> None:
+        self._training_data = list(training)
+        self._is_initialized = True
+        try:
+            self.training_data_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.training_data_path.open("w", encoding="utf-8") as f:
+                json.dump(self._training_data, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
 
     def classify_outcome(
         self,
@@ -97,17 +138,13 @@ class SimilarityBasedClassifier:
             category = similar_expenses[0].get("category", "") or self.DEFAULT_CATEGORY
             expense_type_str = similar_expenses[0].get("expenseType", "") or "חודשית"
         else:
-            categories = [
-                e.get("category", "") for e in similar_expenses if e.get("category")
-            ]
-            types = [
-                e.get("expenseType", "")
-                for e in similar_expenses
-                if e.get("expenseType")
-            ]
-
-            category = self._get_most_common(categories) or self.DEFAULT_CATEGORY
-            expense_type_str = self._get_most_common(types) or "חודשית"
+            category = (
+                self._weighted_pick(similar_expenses, field="category")
+                or self.DEFAULT_CATEGORY
+            )
+            expense_type_str = (
+                self._weighted_pick(similar_expenses, field="expenseType") or "חודשית"
+            )
 
         movement_type = self.TYPE_MAPPING.get(expense_type_str, self.DEFAULT_TYPE)
 
@@ -158,20 +195,78 @@ class SimilarityBasedClassifier:
         similar.sort(key=lambda x: x.get("similarity", 0.0), reverse=True)
         return similar[: self.MAX_SIMILAR_EXPENSES]
 
+    def _normalize_text(self, s: str) -> str:
+        s = s.lower()
+        s = re.sub(r"[^0-9a-zא-ת]+", " ", s, flags=re.IGNORECASE)
+        s = re.sub(r"\s+", " ", s).strip()
+        return s
+
+    def _tokens(self, s: str) -> set[str]:
+        s = self._normalize_text(s)
+        toks: set[str] = set()
+        for w in s.split():
+            if len(w) <= 1:
+                continue
+            if w.isdigit():
+                continue
+            if w in self._NOISE_WORDS:
+                continue
+            toks.add(w)
+        return toks
+
+    def _token_overlap(self, a: str, b: str) -> float:
+        t1 = self._tokens(a)
+        t2 = self._tokens(b)
+        if not t1 or not t2:
+            return 0.0
+        inter = len(t1 & t2)
+        union = len(t1 | t2)
+        if union <= 0:
+            return 0.0
+        return float(inter) / float(union)
+
+    def _weighted_pick(self, rows: List[Dict[str, Any]], *, field: str) -> str:
+        scores: Dict[str, float] = {}
+        for r in rows:
+            try:
+                v = str(r.get(field, "") or "").strip()
+                if not v:
+                    continue
+                sim = float(r.get("similarity", 0.0) or 0.0)
+                scores[v] = scores.get(v, 0.0) + max(0.0, sim)
+            except Exception:
+                continue
+        if not scores:
+            return ""
+        return max(scores.items(), key=lambda x: x[1])[0]
+
     def _calculate_similarity(
         self, expense1: BankMovement, expense2: Dict[str, Any]
     ) -> float:
-        score = 0.0
+        desc_score = 0.0
+        amount_score = 0.0
 
-        desc1 = (expense1.description or "").lower()
-        desc2 = str(expense2.get("description", "")).lower()
+        desc1 = str(expense1.description or "")
+        desc2 = str(expense2.get("description", "") or "")
 
-        if desc1 == desc2:
-            score += 0.6
-        elif desc1 in desc2 or desc2 in desc1:
-            score += 0.4
-        elif self._has_common_words(desc1, desc2):
-            score += 0.3
+        n1 = self._normalize_text(desc1)
+        n2 = self._normalize_text(desc2)
+
+        if n1 and n2 and n1 == n2:
+            desc_score += 0.6
+        elif n1 and n2 and (n1 in n2 or n2 in n1):
+            desc_score += 0.4
+        else:
+            overlap = self._token_overlap(desc1, desc2)
+            if overlap >= 0.5:
+                desc_score += 0.6
+            elif overlap >= 0.25:
+                desc_score += 0.4
+            elif overlap >= 0.12:
+                desc_score += 0.3
+
+        if desc_score <= 0.0:
+            return 0.0
 
         try:
             amount1 = abs(expense1.amount)
@@ -179,20 +274,18 @@ class SimilarityBasedClassifier:
             amount_diff = abs(amount1 - amount2)
 
             if amount_diff < 10:
-                score += 0.4
+                amount_score += 0.4
             elif amount_diff < 50:
-                score += 0.3
+                amount_score += 0.3
             elif amount_diff < 100:
-                score += 0.2
+                amount_score += 0.2
         except (ValueError, TypeError):
             pass
 
-        return score
+        return desc_score + amount_score
 
     def _has_common_words(self, str1: str, str2: str) -> bool:
-        words1 = set(str1.split())
-        words2 = set(str2.split())
-        return bool(words1 & words2)
+        return bool(self._tokens(str1) & self._tokens(str2))
 
     def _get_most_common(self, array: List[str]) -> Optional[str]:
         if not array:
@@ -229,3 +322,9 @@ class SimilarityBasedClassifier:
                     json.dump(self._training_data, f, ensure_ascii=False, indent=2)
             except Exception:
                 pass
+
+
+def _default_training_path() -> Path:
+    key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
+    suffix = f"_{key}" if key else ""
+    return app_data_dir() / "training" / f"expenses{suffix}.json"

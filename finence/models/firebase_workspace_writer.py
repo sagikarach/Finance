@@ -3,44 +3,20 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, List, Optional
 
-from ..models.firebase_client import FirestoreClient, FirebaseAuthClient
+from ..models.firebase_client import FirestoreClient
 from ..models.firebase_session import FirebaseSessionStore
+from ..models.firebase_session_manager import FirebaseSessionManager
 from ..models.bank_movement import BankMovement
 from ..models.one_time_event import OneTimeEvent
 from ..models.accounts import MoneyAccount, BankAccount, SavingsAccount
 
 
-def _now_ts() -> float:
-    return float(__import__("time").time())
-
-
 class FirebaseWorkspaceWriter:
-    """
-    Push-on-write helper.
- remind: All local actions should be immediately written to Firestore.
- Pull happens only when pressing the explicit sync button.
-    """
-
     def __init__(self, session_store: Optional[FirebaseSessionStore] = None) -> None:
         self._store = session_store or FirebaseSessionStore()
 
     def _load_session_refresh_if_needed(self):
-        session = self._store.load()
-        if not session.is_logged_in or not session.id_token:
-            raise RuntimeError("Not logged in")
-        try:
-            if not session.is_id_token_valid():
-                auth = FirebaseAuthClient(api_key=session.api_key)
-                id_token, refresh_token, expires_in = auth.refresh_id_token(
-                    refresh_token=session.refresh_token
-                )
-                session.id_token = id_token
-                session.refresh_token = refresh_token
-                session.expires_at = _now_ts() + float(expires_in)
-                self._store.save(session)
-        except Exception:
-            pass
-        return session
+        return FirebaseSessionManager(store=self._store).get_valid_session()
 
     def _fs(self, project_id: str) -> FirestoreClient:
         return FirestoreClient(project_id=project_id)
@@ -128,11 +104,6 @@ class FirebaseWorkspaceWriter:
         )
 
     def upsert_accounts_snapshot(self, accounts: List[MoneyAccount]) -> None:
-        """
-        Store account definitions (not balances derived from movements).
-        For bank accounts, balance is derived from movements (user chose option A).
-        Savings accounts keep their own totals/history.
-        """
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)
         fs = self._fs(s.project_id)
@@ -149,9 +120,10 @@ class FirebaseWorkspaceWriter:
                     }
                 )
             elif isinstance(acc, SavingsAccount):
-                # keep full savings structure for now
                 try:
-                    savings.append(asdict(acc) if is_dataclass(acc) else {"name": acc.name})
+                    savings.append(
+                        asdict(acc) if is_dataclass(acc) else {"name": acc.name}
+                    )
                 except Exception:
                     savings.append({"name": getattr(acc, "name", "")})
 
@@ -167,7 +139,11 @@ class FirebaseWorkspaceWriter:
         fs = self._fs(s.project_id)
         try:
             action = entry.action
-            action_dict = asdict(action) if is_dataclass(action) else {"action_name": str(getattr(action, "action_name", ""))}
+            action_dict = (
+                asdict(action)
+                if is_dataclass(action) and not isinstance(action, type)
+                else {"action_name": str(getattr(action, "action_name", ""))}
+            )
         except Exception:
             action_dict = {"action_name": str(getattr(entry.action, "action_name", ""))}
         fs.upsert_document(
@@ -181,4 +157,12 @@ class FirebaseWorkspaceWriter:
             },
         )
 
-
+    def upsert_ml_seed(self, *, examples: List[Dict[str, Any]]) -> None:
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/meta/ml_seed",
+            id_token=s.id_token,
+            fields={"examples": list(examples), "version": 1},
+        )

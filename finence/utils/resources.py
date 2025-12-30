@@ -11,7 +11,6 @@ def _candidate_roots() -> Iterable[Path]:
         yield Path(meipass)
 
     try:
-        # .../finence/utils/resources.py -> project root is 2 levels up from finence/
         yield Path(__file__).resolve().parents[2]
     except Exception:
         pass

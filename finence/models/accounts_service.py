@@ -474,7 +474,6 @@ class AccountsService:
         except Exception:
             pass
 
-        # Immediate push of account definitions to Firebase workspace.
         try:
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 

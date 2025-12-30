@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from ..models.accounts import parse_iso_date
 from ..models.bank_movement import BankMovement, MovementType
+from ..models.bank_movement_service import BankMovementService
 from ..qt import (
     QComboBox,
     QDialog,
@@ -25,15 +26,17 @@ class MonthMovementsDialog(QDialog):
         *,
         year: int,
         month: int,
-        movement_provider: Any,
+        movement_service: BankMovementService,
         parent: Optional[QDialog] = None,
         on_saved: Optional[Callable[[], None]] = None,
+        on_delete_movement: Optional[Callable[[str], None]] = None,
     ) -> None:
         super().__init__(parent)
         self._year = year
         self._month = month
-        self._movement_provider = movement_provider
+        self._movement_service = movement_service
         self._on_saved = on_saved
+        self._on_delete_movement = on_delete_movement
 
         self._income_table: Optional[QTableWidget] = None
         self._expense_table: Optional[QTableWidget] = None
@@ -114,21 +117,14 @@ class MonthMovementsDialog(QDialog):
         return t
 
     def _list_categories(self, is_income: bool) -> List[str]:
-        p = self._movement_provider
         try:
-            if hasattr(p, "list_categories_for_type"):
-                return list(p.list_categories_for_type(is_income))
-            if hasattr(p, "list_categories"):
-                return list(p.list_categories())
+            return self._movement_service.list_categories(is_income)
         except Exception:
             return []
-        return []
 
     def _load(self) -> None:
         try:
-            all_movements: List[BankMovement] = list(
-                self._movement_provider.list_movements()
-            )
+            all_movements = list(self._movement_service.list_movements())
         except Exception:
             all_movements = []
 
@@ -261,20 +257,13 @@ class MonthMovementsDialog(QDialog):
         return None
 
     def _on_save(self) -> None:
-        if not hasattr(self._movement_provider, "list_movements") or not hasattr(
-            self._movement_provider, "save_movements"
-        ):
-            self.reject()
-            return
-
         try:
-            all_movements: List[BankMovement] = list(
-                self._movement_provider.list_movements()
-            )
+            all_movements = list(self._movement_service.list_movements())
         except Exception:
             all_movements = []
 
         by_id: Dict[str, BankMovement] = {m.id: m for m in all_movements}
+        changed: List[BankMovement] = []
 
         def apply_updates(table: Optional[QTableWidget]) -> None:
             if table is None:
@@ -303,6 +292,12 @@ class MonthMovementsDialog(QDialog):
                         type=mtype or m.type,
                     )
                     by_id[movement_id] = new_m
+                    if (
+                        new_m.category != m.category
+                        or new_m.description != m.description
+                        or new_m.type != m.type
+                    ):
+                        changed.append(new_m)
                 except Exception:
                     continue
 
@@ -311,22 +306,11 @@ class MonthMovementsDialog(QDialog):
 
         updated = list(by_id.values())
         try:
-            self._movement_provider.save_movements(updated)
+            self._movement_service.save_movements(
+                updated, changed_movements=changed or None
+            )
         except Exception:
             return
-
-        # Push updated movements to Firebase workspace immediately (if configured).
-        try:
-            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
-
-            w = FirebaseWorkspaceWriter()
-            for m in updated:
-                try:
-                    w.upsert_movement(m)
-                except Exception:
-                    continue
-        except Exception:
-            pass
 
         if self._on_saved is not None:
             try:
@@ -339,7 +323,6 @@ class MonthMovementsDialog(QDialog):
         movement_id = str(movement_id or "").strip()
         if not movement_id:
             return
-        # confirm
         try:
             dlg = QDialog(self)
             dlg.setWindowTitle("מחיקת תנועה")
@@ -363,25 +346,12 @@ class MonthMovementsDialog(QDialog):
         except Exception:
             return
 
-        try:
-            from ..data.provider import JsonFileAccountsProvider
-            from ..data.bank_movement_provider import JsonFileBankMovementProvider
-            from ..data.action_history_provider import JsonFileActionHistoryProvider
-            from ..models.accounts_service import AccountsService
-            from ..models.bank_movement_service import BankMovementService
-
-            accounts_provider = JsonFileAccountsProvider()
-            history_provider = JsonFileActionHistoryProvider()
-            accounts_service = AccountsService(accounts_provider, history_provider)
-            accounts = accounts_service.load_accounts()
-
-            movement_provider = JsonFileBankMovementProvider()
-            svc = BankMovementService(movement_provider, history_provider)
-            updated_accounts = svc.delete_movement(
-                accounts, movement_id=movement_id, record_history=True
-            )
-            accounts_service.save_all(updated_accounts)
-        except Exception:
+        if self._on_delete_movement is not None:
+            try:
+                self._on_delete_movement(movement_id)
+            except Exception:
+                return
+        else:
             return
 
         try:

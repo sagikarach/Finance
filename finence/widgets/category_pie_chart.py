@@ -67,13 +67,13 @@ class CategoryPieChart(QWidget):
             try:
                 self._chart_view.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             except AttributeError:
-                self._chart_view.setRenderHint(QPainter.Antialiasing, True)  # type: ignore[attr-defined]
+                self._chart_view.setRenderHint(QPainter.Antialiasing, True)
             try:
                 self._chart_view.setStyleSheet("background: transparent;")
                 try:
                     self._chart_view.setFrameShape(QFrame.Shape.NoFrame)
                 except AttributeError:
-                    self._chart_view.setFrameShape(QFrame.NoFrame)  # type: ignore[attr-defined]
+                    self._chart_view.setFrameShape(QFrame.NoFrame)
                 try:
                     self._chart_view.setAttribute(
                         Qt.WidgetAttribute.WA_TranslucentBackground, True
@@ -184,14 +184,14 @@ class CategoryPieChart(QWidget):
         try:
             alignment = Qt.AlignmentFlag.AlignBottom
         except AttributeError:
-            alignment = Qt.AlignBottom  # type: ignore[attr-defined]
+            alignment = Qt.AlignBottom
         chart.legend().setAlignment(alignment)
         try:
             chart.legend().setContentsMargins(0, 0, 0, 0)
         except Exception:
             pass
         try:
-            chart.setMargins(QMarginsF(0, 0, 0, 0))  # type: ignore[arg-type]
+            chart.setMargins(QMarginsF(0, 0, 0, 0))
         except Exception:
             pass
         try:
@@ -220,11 +220,11 @@ class CategoryPieChart(QWidget):
                 chart.setBackgroundPen(Qt.PenStyle.NoPen)
             except Exception:
                 try:
-                    chart.setBackgroundPen(Qt.NoPen)  # type: ignore[attr-defined]
+                    chart.setBackgroundPen(Qt.NoPen)
                 except Exception:
                     pass
             try:
-                series.setLabelsColor(QColor("#111827"))  # type: ignore[attr-defined]
+                series.setLabelsColor(QColor("#111827"))
             except Exception:
                 pass
         except Exception:

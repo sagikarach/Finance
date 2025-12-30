@@ -30,7 +30,10 @@ from ..models.action_history import (
     UnassignMovementFromOneTimeEventAction,
 )
 from ..utils.app_paths import accounts_data_dir
-from ..models.firebase_session import current_firebase_workspace_id, current_firebase_uid
+from ..models.firebase_session import (
+    current_firebase_workspace_id,
+    current_firebase_uid,
+)
 
 
 class ActionHistoryProvider(ABC):
@@ -122,7 +125,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         current_history = self.list_history()
         current_history.append(action_history)
         self.save_history(current_history)
-        # Immediate push to Firebase (workspace) for every action.
         try:
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
