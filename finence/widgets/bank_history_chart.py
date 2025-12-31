@@ -61,8 +61,6 @@ def create_bank_history_chart_card(
             pass
 
         if charts_available and spent_movements:
-            # "Budget month" spent: period is (reset_day+1 .. next reset_day) and
-            # the label is the month of the reset_day at the END of the period.
             reset_day = int(getattr(account, "reset_day", 1) or 1)
             if reset_day < 1:
                 reset_day = 1

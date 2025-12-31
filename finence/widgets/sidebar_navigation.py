@@ -33,6 +33,8 @@ class SidebarNavigation:
         self._monthly_data_container: Optional[QWidget] = None
         self._one_time_events_btn: Optional[QPushButton] = None
         self._one_time_events_container: Optional[QWidget] = None
+        self._installments_btn: Optional[QPushButton] = None
+        self._installments_container: Optional[QWidget] = None
         self._yearly_summary_btn: Optional[QPushButton] = None
         self._yearly_summary_container: Optional[QWidget] = None
 
@@ -42,6 +44,7 @@ class SidebarNavigation:
         self._setup_monthly_data_button()
         self._setup_yearly_summary_button()
         self._setup_one_time_events_button()
+        self._setup_installments_button()
 
     def _setup_dashboard_button(self) -> None:
         button_container = QWidget(self._parent)
@@ -217,6 +220,36 @@ class SidebarNavigation:
         self._yearly_summary_container = button_container
         self._layout.addWidget(button_container)
 
+    def _setup_installments_button(self) -> None:
+        button_container = QWidget(self._parent)
+        button_container_layout = QHBoxLayout(button_container)
+        button_container_layout.setContentsMargins(0, 0, 0, 0)
+        button_container_layout.setSpacing(0)
+
+        is_active = self._current_route == "installments"
+        self._installments_btn = QPushButton("תשלומים", button_container)
+        self._installments_btn.setObjectName("SidebarNavButton")
+        self._installments_btn.setCheckable(True)
+        self._installments_btn.setChecked(is_active)
+        self._installments_btn.setEnabled(not is_active)
+        try:
+            self._installments_btn.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
+        except Exception:
+            pass
+
+        if self._navigate is not None:
+            self._installments_btn.clicked.connect(
+                lambda: self._navigate("installments")
+            )
+
+        self._installments_btn.setMinimumHeight(40)
+        button_container_layout.addWidget(self._installments_btn)
+
+        self._installments_container = button_container
+        self._layout.addWidget(button_container)
+
     def get_dashboard_button(self) -> Optional[QPushButton]:
         return self._dashboard_btn
 
@@ -246,6 +279,12 @@ class SidebarNavigation:
 
     def get_one_time_events_container(self) -> Optional[QWidget]:
         return self._one_time_events_container
+
+    def get_installments_button(self) -> Optional[QPushButton]:
+        return self._installments_btn
+
+    def get_installments_container(self) -> Optional[QWidget]:
+        return self._installments_container
 
     def get_yearly_summary_button(self) -> Optional[QPushButton]:
         return self._yearly_summary_btn

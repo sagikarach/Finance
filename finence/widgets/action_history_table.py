@@ -406,6 +406,9 @@ class ActionHistoryTable(QWidget):
             "delete_one_time_event": "מחיקת אירוע חד־פעמי",
             "assign_movement_to_one_time_event": "שיוך תנועה לאירוע",
             "unassign_movement_from_one_time_event": "הסרת שיוך תנועה מאירוע",
+            "add_installment_plan": "יצירת תשלומים",
+            "edit_installment_plan": "עריכת תשלומים",
+            "delete_installment_plan": "מחיקת תשלומים",
         }
 
         try:

@@ -8,6 +8,7 @@ from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_session_manager import FirebaseSessionManager
 from ..models.bank_movement import BankMovement
 from ..models.one_time_event import OneTimeEvent
+from ..models.installment_plan import InstallmentPlan
 from ..models.accounts import (
     MoneyAccount,
     BankAccount,
@@ -108,6 +109,42 @@ class FirebaseWorkspaceWriter:
             document_path=f"workspaces/{wid}/events/{event_id}",
             id_token=s.id_token,
             fields={"id": event_id, "deleted": True},
+        )
+
+    def upsert_installment_plan(self, plan: InstallmentPlan) -> None:
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/installment_plans/{plan.id}",
+            id_token=s.id_token,
+            fields={
+                "id": plan.id,
+                "name": plan.name,
+                "vendor_query": plan.vendor_query,
+                "account_name": plan.account_name,
+                "start_date": plan.start_date,
+                "payments_count": int(plan.payments_count),
+                "original_amount": float(plan.original_amount),
+                "excluded_movement_ids": list(
+                    getattr(plan, "excluded_movement_ids", []) or []
+                ),
+                "archived": bool(getattr(plan, "archived", False)),
+                "deleted": False,
+            },
+        )
+
+    def delete_installment_plan(self, *, plan_id: str) -> None:
+        plan_id = str(plan_id or "").strip()
+        if not plan_id:
+            return
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/installment_plans/{plan_id}",
+            id_token=s.id_token,
+            fields={"id": plan_id, "deleted": True},
         )
 
     def upsert_accounts_snapshot(self, accounts: List[MoneyAccount]) -> None:

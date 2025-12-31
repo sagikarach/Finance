@@ -26,7 +26,11 @@ def pull_events_to_local_cache(
         return
     try:
         from ..data.one_time_event_provider import JsonFileOneTimeEventProvider
-        from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus
+        from ..models.one_time_event import (
+            OneTimeEvent,
+            OneTimeEventStatus,
+            parse_one_time_event_status,
+        )
 
         docs_events = fs.list_collection(
             collection_path=f"workspaces/{workspace_id}/events",
@@ -41,13 +45,9 @@ def pull_events_to_local_cache(
                 eid = str(parsed.get("id") or doc_id).strip()
                 name = str(parsed.get("name") or "").strip()
                 budget = float(parsed.get("budget") or 0.0)
-                status_raw = str(
+                status = parse_one_time_event_status(
                     parsed.get("status") or OneTimeEventStatus.ACTIVE.value
                 )
-                try:
-                    status = OneTimeEventStatus(status_raw)
-                except Exception:
-                    status = OneTimeEventStatus.ACTIVE
                 start_date = parsed.get("start_date")
                 end_date = parsed.get("end_date")
                 notes = parsed.get("notes")
@@ -71,5 +71,57 @@ def pull_events_to_local_cache(
             except Exception:
                 continue
         JsonFileOneTimeEventProvider().save_events(events)
+    except Exception:
+        pass
+
+
+def pull_installment_plans_to_local_cache(
+    *, fs: FirestoreClient, workspace_id: str, id_token: str
+) -> None:
+    workspace_id = str(workspace_id or "").strip()
+    if not workspace_id:
+        return
+    try:
+        from ..data.installment_plan_provider import JsonFileInstallmentPlanProvider
+        from ..models.installment_plan import InstallmentPlan
+
+        docs_plans = fs.list_collection(
+            collection_path=f"workspaces/{workspace_id}/installment_plans",
+            id_token=id_token,
+        )
+        plans: List[InstallmentPlan] = []
+        for d in docs_plans:
+            try:
+                doc_id, parsed = fs.parse_any_doc(d)
+                if bool(parsed.get("deleted", False)):
+                    continue
+                pid = str(parsed.get("id") or doc_id).strip()
+                name = str(parsed.get("name") or "").strip()
+                vendor_query = str(parsed.get("vendor_query") or "").strip()
+                account_name = str(parsed.get("account_name") or "").strip()
+                start_date = str(parsed.get("start_date") or "").strip()
+                payments_count = int(parsed.get("payments_count") or 0)
+                original_amount = float(parsed.get("original_amount") or 0.0)
+                excluded_raw = parsed.get("excluded_movement_ids") or []
+                excluded: list[str] = []
+                if isinstance(excluded_raw, list):
+                    excluded = [str(x) for x in excluded_raw if str(x).strip()]
+                archived = bool(parsed.get("archived", False))
+                plans.append(
+                    InstallmentPlan(
+                        id=pid,
+                        name=name,
+                        vendor_query=vendor_query,
+                        account_name=account_name,
+                        start_date=start_date,
+                        payments_count=payments_count,
+                        original_amount=original_amount,
+                        excluded_movement_ids=excluded,
+                        archived=archived,
+                    )
+                )
+            except Exception:
+                continue
+        JsonFileInstallmentPlanProvider().save_plans(plans)
     except Exception:
         pass

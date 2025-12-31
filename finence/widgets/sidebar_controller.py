@@ -64,6 +64,7 @@ class SidebarController:
         is_savings_section = route in ("savings", "savings_account")
         is_monthly_data = route == "monthly_data"
         is_one_time_events = route == "one_time_events"
+        is_installments = route == "installments"
         is_yearly_section = route in (
             "yearly_overview",
             "yearly_data",
@@ -96,6 +97,17 @@ class SidebarController:
             one_time_events_btn.setChecked(is_one_time_events)
             one_time_events_btn.setEnabled(not is_one_time_events)
             one_time_events_btn.blockSignals(False)
+
+        installments_btn = (
+            self._navigation.get_installments_button()
+            if hasattr(self._navigation, "get_installments_button")
+            else None
+        )
+        if installments_btn:
+            installments_btn.blockSignals(True)
+            installments_btn.setChecked(is_installments)
+            installments_btn.setEnabled(not is_installments)
+            installments_btn.blockSignals(False)
 
         self._bank_section.set_active(bool(is_bank_section))
         self._yearly_section.set_active(bool(is_yearly_section))
@@ -182,6 +194,17 @@ class SidebarController:
             one_time_events_btn.setChecked(False)
             one_time_events_btn.setEnabled(True)
             one_time_events_btn.blockSignals(False)
+
+        installments_btn = (
+            self._navigation.get_installments_button()
+            if hasattr(self._navigation, "get_installments_button")
+            else None
+        )
+        if installments_btn:
+            installments_btn.blockSignals(True)
+            installments_btn.setChecked(False)
+            installments_btn.setEnabled(True)
+            installments_btn.blockSignals(False)
 
     def _on_yearly_clicked(self) -> None:
         self._clear_page_button_presses()

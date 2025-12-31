@@ -13,6 +13,26 @@ class OneTimeEventStatus(StrEnum):
     ARCHIVED = "בארכיון"
 
 
+def parse_one_time_event_status(raw: object) -> OneTimeEventStatus:
+    text = str(raw or "").strip()
+    if not text:
+        return OneTimeEventStatus.ACTIVE
+    try:
+        return OneTimeEventStatus(text)
+    except Exception:
+        pass
+    upper = text.upper()
+    if upper in ("PLANNED", "PLAN"):
+        return OneTimeEventStatus.PLANNED
+    if upper in ("ACTIVE", "IN_PROGRESS"):
+        return OneTimeEventStatus.ACTIVE
+    if upper in ("FINISHED", "DONE", "COMPLETED"):
+        return OneTimeEventStatus.FINISHED
+    if upper in ("ARCHIVED", "ARCHIVE"):
+        return OneTimeEventStatus.ARCHIVED
+    return OneTimeEventStatus.ACTIVE
+
+
 def generate_event_id() -> str:
     return str(uuid.uuid4())
 

@@ -309,13 +309,6 @@ class BankMovementDialog(QDialog):
                 if self._is_income:
                     self._show_error("לא ניתן להוסיף הכנסה לחשבון תקציב")
                     return
-                try:
-                    current_total = float(selected_acc.total_amount)
-                except Exception:
-                    current_total = 0.0
-                if float(amount_value) > current_total:
-                    self._show_error(f"אין מספיק תקציב בחשבון {account_name}")
-                    return
 
             signed_amount = amount_value if self._is_income else -amount_value
 

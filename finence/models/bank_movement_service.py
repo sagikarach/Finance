@@ -3,14 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Union, Dict
-import csv
-import re
-from io import StringIO
 
 from ..data.bank_movement_provider import BankMovementProvider
 from ..data.action_history_provider import ActionHistoryProvider
 from .accounts import MoneyAccount, BankAccount, BudgetAccount, MoneySnapshot
+from .budget_period import budget_period_end_key, current_budget_period_end_key
 from .bank_movement import BankMovement, MovementType
+from .csv_expense_parser import CsvExpenseParser
 from .movement_classifier import SimilarityBasedClassifier
 from .classified_expense import ClassifiedExpense
 from .parsed_expense import ParsedExpense
@@ -24,171 +23,6 @@ from .action_history import (
     get_current_timestamp,
 )
 
-
-@dataclass
-class CsvExpenseParser:
-    @staticmethod
-    def clean_description(description: str) -> str:
-        if not description:
-            return ""
-        return (
-            description.replace('"', "")
-            .replace("'", "")
-            .replace('"', "")
-            .replace("\\", "")
-            .strip()
-        )
-
-    @staticmethod
-    def _normalize(s: str) -> str:
-        return (
-            s.replace("\ufeff", "").replace('"', "").replace(",", "").replace(" ", "")
-        )
-
-    def parse(self, csv_text: str) -> List[ParsedExpense]:
-        expenses = []
-        lines = csv_text.split("\n")
-
-        header_pattern = re.compile(
-            r"תאריך\s*עסק[אה]?\s*שם\s*בית\s*העסק\s*סכום\s*[הח]?עסקה"
-        )
-
-        preferred_header_pattern = re.compile(
-            r"תאריך\s*עסק[אה]?\s*שם\s*בית\s*העסק.*סכום\s*חיוב"
-        )
-
-        header_idx = -1
-        column_map: Dict[str, int] = {"date": 0, "desc": 1, "amount": 2}
-        preferred_header_idx = -1
-
-        for i, line in enumerate(lines):
-            normalized = self._normalize(line)
-            if preferred_header_pattern.search(normalized):
-                preferred_header_idx = i
-                break
-
-        if preferred_header_idx == -1:
-            for i, line in enumerate(lines):
-                normalized = self._normalize(line)
-                if header_pattern.search(normalized):
-                    preferred_header_idx = i
-                    break
-
-        if preferred_header_idx != -1:
-            header_idx = preferred_header_idx
-            line = lines[header_idx]
-            parts = line.replace("\ufeff", "").split(",")
-            parts = [p.strip() for p in parts]
-
-            for idx, header in enumerate(parts):
-                header_clean = header.strip().replace('"', "")
-                if "תאריך" in header_clean and "עסקה" in header_clean:
-                    column_map["date"] = idx
-                elif "שם בית העסק" in header_clean:
-                    column_map["desc"] = idx
-                elif "סכום חיוב" in header_clean:
-                    column_map["amount"] = idx
-                elif (
-                    "סכום העסקה" in header_clean
-                    and "amount" not in column_map
-                    or column_map.get("amount") == 2
-                ):
-                    column_map["amount"] = idx
-
-        if header_idx == -1:
-            date_regex = re.compile(r"\d{2}[/.]\d{2}[/.]\d{2,4}")
-            for i, line in enumerate(lines):
-                if date_regex.search(line):
-                    header_idx = i - 1 if i > 0 else 0
-                    break
-            if header_idx < 0:
-                header_idx = 0
-
-        for i in range(header_idx + 1, len(lines)):
-            raw_line = lines[i].strip()
-            if not raw_line or 'סה"כ' in raw_line or 'סה"כ' in raw_line:
-                continue
-
-            try:
-                reader = csv.reader(StringIO(raw_line))
-                parts = next(reader)
-            except Exception:
-                parts = raw_line.split(",")
-
-            if len(parts) < 3:
-                continue
-
-            date_idx = column_map.get("date", 0)
-            if date_idx >= len(parts):
-                continue
-            date_str = parts[date_idx].strip()
-
-            if "/" not in date_str and "." not in date_str:
-                continue
-
-            desc_idx = column_map.get("desc", 1)
-            if desc_idx >= len(parts):
-                continue
-            description = self.clean_description(parts[desc_idx])
-
-            if description and re.match(r"^\d{1,2}:\d{2}$", description.strip()):
-                for alt_idx in range(desc_idx + 1, min(desc_idx + 3, len(parts))):
-                    alt_desc = self.clean_description(parts[alt_idx])
-                    if alt_desc and not re.match(r"^\d{1,2}:\d{2}$", alt_desc.strip()):
-                        description = alt_desc
-                        break
-                else:
-                    continue
-
-            if not description:
-                continue
-
-            amount = None
-            amount_idx = column_map.get("amount", len(parts) - 1)
-
-            for idx in range(len(parts) - 1, max(0, len(parts) - 3), -1):
-                cell = parts[idx].strip() if idx < len(parts) else ""
-                if not cell:
-                    continue
-
-                amount_clean = (
-                    cell.replace('"', "")
-                    .replace(",", "")
-                    .replace(" ", "")
-                    .replace("=", "")
-                )
-                if not amount_clean:
-                    continue
-
-                try:
-                    amount_value = float(amount_clean)
-                    amount = -abs(amount_value)
-                    break
-                except ValueError:
-                    continue
-
-            if amount is None:
-                if amount_idx < len(parts):
-                    amount_str = (
-                        parts[amount_idx]
-                        .strip()
-                        .replace('"', "")
-                        .replace(",", "")
-                        .replace(" ", "")
-                        .replace("=", "")
-                    )
-                    try:
-                        amount = -abs(float(amount_str))
-                    except ValueError:
-                        continue
-                else:
-                    continue
-
-            expenses.append(
-                ParsedExpense(date=date_str, description=description, amount=amount)
-            )
-
-        return expenses
 
 
 @dataclass
@@ -264,6 +98,8 @@ class BankMovementService:
         except Exception:
             target_acc = None
 
+        movement_period_key: Optional[tuple[int, int]] = None
+        current_period_key: Optional[tuple[int, int]] = None
         if isinstance(target_acc, BudgetAccount):
             try:
                 amt = float(movement.amount)
@@ -271,12 +107,54 @@ class BankMovementService:
                 amt = 0.0
             if amt > 0:
                 raise ValueError("לא ניתן להוסיף הכנסה לחשבון תקציב")
+
+            reset_day = int(getattr(target_acc, "reset_day", 1) or 1)
+            if reset_day < 1:
+                reset_day = 1
+            if reset_day > 28:
+                reset_day = 28
+
+            current_period_key = current_budget_period_end_key(reset_day)
+            movement_period_key = budget_period_end_key(
+                str(getattr(movement, "date", "") or ""), reset_day
+            )
+            if movement_period_key is None:
+                movement_period_key = current_period_key
+
             try:
-                current_total = float(target_acc.total_amount)
+                budget = float(getattr(target_acc, "monthly_budget", 0.0) or 0.0)
             except Exception:
-                current_total = 0.0
-            if current_total + amt < 0:
-                raise ValueError(f"אין מספיק תקציב בחשבון {target_acc.name}")
+                budget = 0.0
+
+            spent_by_period: Dict[tuple[int, int], float] = {}
+            try:
+                existing = list(self.movement_provider.list_movements())
+            except Exception:
+                existing = []
+            for m in existing:
+                try:
+                    if str(getattr(m, "account_name", "") or "").strip() != str(
+                        getattr(target_acc, "name", "") or ""
+                    ).strip():
+                        continue
+                    if bool(getattr(m, "is_transfer", False)):
+                        continue
+                    a = float(getattr(m, "amount", 0.0) or 0.0)
+                    if a >= 0:
+                        continue
+                    k = budget_period_end_key(
+                        str(getattr(m, "date", "") or ""), reset_day
+                    )
+                    if k is None:
+                        continue
+                    spent_by_period[k] = float(spent_by_period.get(k, 0.0)) + abs(a)
+                except Exception:
+                    continue
+
+            already_spent = float(spent_by_period.get(movement_period_key, 0.0))
+            remaining = float(budget) - float(already_spent)
+            if abs(float(amt)) > remaining:
+                raise ValueError(f"אין מספיק תקציב בחודש הזה בחשבון {target_acc.name}")
 
         try:
             self.movement_provider.add_movement(movement)
@@ -330,9 +208,28 @@ class BankMovementService:
                 except Exception:
                     current_total = 0.0
                 try:
-                    new_total = current_total + float(movement.amount)
+                    move_amt = float(movement.amount)
                 except Exception:
-                    new_total = current_total
+                    move_amt = 0.0
+
+                if isinstance(acc, BudgetAccount):
+                    reset_day = int(getattr(acc, "reset_day", 1) or 1)
+                    if reset_day < 1:
+                        reset_day = 1
+                    if reset_day > 28:
+                        reset_day = 28
+                    cur_key = current_period_key or current_budget_period_end_key(
+                        reset_day
+                    )
+                    mov_key = movement_period_key or budget_period_end_key(
+                        str(getattr(movement, "date", "") or ""), reset_day
+                    )
+                    if mov_key is not None and mov_key == cur_key:
+                        new_total = current_total + float(move_amt)
+                    else:
+                        new_total = current_total
+                else:
+                    new_total = current_total + float(move_amt)
 
                 try:
                     date_str = movement.date
@@ -346,8 +243,9 @@ class BankMovementService:
                     except Exception:
                         date_str = ""
 
-                snap = MoneySnapshot(date=date_str, amount=new_total)
-                new_history = list(getattr(acc, "history", []) or []) + [snap]
+                new_history = list(getattr(acc, "history", []) or [])
+                if not (isinstance(acc, BudgetAccount) and new_total == current_total):
+                    new_history = new_history + [MoneySnapshot(date=date_str, amount=new_total)]
 
                 updated_acc: MoneyAccount
                 if isinstance(acc, BudgetAccount):
@@ -446,6 +344,71 @@ class BankMovementService:
                     baseline_amount=float(getattr(acc, "baseline_amount", 0.0) or 0.0),
                 )
                 updated_accounts.append(updated_acc)
+            elif isinstance(acc, BudgetAccount):
+                reset_day = int(getattr(acc, "reset_day", 1) or 1)
+                if reset_day < 1:
+                    reset_day = 1
+                if reset_day > 28:
+                    reset_day = 28
+
+                cur_key = current_budget_period_end_key(reset_day)
+                spent = 0.0
+                for m in all_movements:
+                    try:
+                        if str(getattr(m, "account_name", "") or "").strip() != str(
+                            getattr(acc, "name", "") or ""
+                        ).strip():
+                            continue
+                        if bool(getattr(m, "is_transfer", False)):
+                            continue
+                        a = float(getattr(m, "amount", 0.0) or 0.0)
+                        if a >= 0:
+                            continue
+                        k = budget_period_end_key(
+                            str(getattr(m, "date", "") or ""), reset_day
+                        )
+                        if k is None or k != cur_key:
+                            continue
+                        spent += abs(a)
+                    except Exception:
+                        continue
+
+                try:
+                    budget = float(getattr(acc, "monthly_budget", 0.0) or 0.0)
+                except Exception:
+                    budget = 0.0
+                remaining = float(budget) - float(spent)
+                if remaining < 0:
+                    remaining = 0.0
+
+                new_history = list(getattr(acc, "history", []) or [])
+                try:
+                    from datetime import date as _date
+
+                    date_str = _date.today().isoformat()
+                except Exception:
+                    date_str = ""
+                if date_str:
+                    try:
+                        if new_history and str(getattr(new_history[-1], "date", "")) == str(date_str):
+                            new_history[-1] = MoneySnapshot(date=date_str, amount=remaining)
+                        else:
+                            new_history.append(MoneySnapshot(date=date_str, amount=remaining))
+                    except Exception:
+                        new_history.append(MoneySnapshot(date=date_str, amount=remaining))
+
+                updated_accounts.append(
+                    BudgetAccount(
+                        name=acc.name,
+                        total_amount=float(remaining),
+                        is_liquid=False,
+                        history=new_history,
+                        active=bool(getattr(acc, "active", False)),
+                        monthly_budget=float(getattr(acc, "monthly_budget", 0.0) or 0.0),
+                        reset_day=int(getattr(acc, "reset_day", 1) or 1),
+                        last_reset_period=str(getattr(acc, "last_reset_period", "") or ""),
+                    )
+                )
             else:
                 updated_accounts.append(acc)
 
@@ -569,11 +532,22 @@ class BankMovementService:
             elif isinstance(acc, BudgetAccount) and str(
                 getattr(acc, "name", "")
             ) == str(getattr(target, "account_name", "")):
-                # Budget accounts keep an internal remaining balance; deleting an expense should restore it.
-                try:
-                    restored_total = float(acc.total_amount) - float(target.amount)
-                except Exception:
-                    restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
+                reset_day = int(getattr(acc, "reset_day", 1) or 1)
+                if reset_day < 1:
+                    reset_day = 1
+                if reset_day > 28:
+                    reset_day = 28
+                cur_key = current_budget_period_end_key(reset_day)
+                target_key = budget_period_end_key(
+                    str(getattr(target, "date", "") or ""), reset_day
+                )
+
+                restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
+                if target_key is not None and target_key == cur_key:
+                    try:
+                        restored_total = float(acc.total_amount) + abs(float(target.amount))
+                    except Exception:
+                        restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
                 new_history = list(getattr(acc, "history", []) or [])
                 if today:
                     new_history.append(MoneySnapshot(date=today, amount=restored_total))

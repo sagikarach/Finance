@@ -28,6 +28,9 @@ from ..models.action_history import (
     DeleteOneTimeEventAction,
     AssignMovementToOneTimeEventAction,
     UnassignMovementFromOneTimeEventAction,
+    AddInstallmentPlanAction,
+    EditInstallmentPlanAction,
+    DeleteInstallmentPlanAction,
 )
 from ..utils.app_paths import accounts_data_dir
 from ..models.firebase_session import (
@@ -180,6 +183,9 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             "delete_one_time_event": DeleteOneTimeEventAction,
             "assign_movement_to_one_time_event": AssignMovementToOneTimeEventAction,
             "unassign_movement_from_one_time_event": UnassignMovementFromOneTimeEventAction,
+            "add_installment_plan": AddInstallmentPlanAction,
+            "edit_installment_plan": EditInstallmentPlanAction,
+            "delete_installment_plan": DeleteInstallmentPlanAction,
         }
 
         action_class = action_class_map.get(action_name)

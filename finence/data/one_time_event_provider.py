@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
 
-from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus
+from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus, parse_one_time_event_status
 from ..utils.app_paths import accounts_data_dir
 from ..models.firebase_session import (
     current_firebase_uid,
@@ -94,11 +94,9 @@ class JsonFileOneTimeEventProvider(OneTimeEventProvider):
         if not isinstance(item, dict):
             return None
         try:
-            status_raw = item.get("status", OneTimeEventStatus.ACTIVE.value)
-            try:
-                status = OneTimeEventStatus(str(status_raw))
-            except Exception:
-                status = OneTimeEventStatus.ACTIVE
+            status = parse_one_time_event_status(
+                item.get("status", OneTimeEventStatus.ACTIVE.value)
+            )
             return OneTimeEvent(
                 id=str(item.get("id", "")) or OneTimeEvent().id,
                 name=str(item.get("name", "")),

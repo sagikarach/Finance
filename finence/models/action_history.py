@@ -150,6 +150,43 @@ class UnassignMovementFromOneTimeEventAction(Action):
 
 
 @dataclass(frozen=True)
+class AddInstallmentPlanAction(Action):
+    plan_id: str = field(default="")
+    plan_name: str = field(default="")
+    vendor_query: str = field(default="")
+    account_name: str = field(default="")
+    start_date: str = field(default="")
+    payments_count: int = field(default=0)
+    original_amount: float = field(default=0.0)
+
+
+@dataclass(frozen=True)
+class EditInstallmentPlanAction(Action):
+    plan_id: str = field(default="")
+    plan_name: str = field(default="")
+    old_name: Optional[str] = field(default=None)
+    new_name: Optional[str] = field(default=None)
+    old_vendor_query: Optional[str] = field(default=None)
+    new_vendor_query: Optional[str] = field(default=None)
+    old_account_name: Optional[str] = field(default=None)
+    new_account_name: Optional[str] = field(default=None)
+    old_start_date: Optional[str] = field(default=None)
+    new_start_date: Optional[str] = field(default=None)
+    old_payments_count: Optional[int] = field(default=None)
+    new_payments_count: Optional[int] = field(default=None)
+    old_original_amount: Optional[float] = field(default=None)
+    new_original_amount: Optional[float] = field(default=None)
+    old_archived: Optional[bool] = field(default=None)
+    new_archived: Optional[bool] = field(default=None)
+
+
+@dataclass(frozen=True)
+class DeleteInstallmentPlanAction(Action):
+    plan_id: str = field(default="")
+    plan_name: str = field(default="")
+
+
+@dataclass(frozen=True)
 class ActionHistory:
     id: str
     timestamp: str

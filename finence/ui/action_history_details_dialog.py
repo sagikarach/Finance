@@ -98,6 +98,9 @@ class ActionHistoryDetailsDialog(QDialog):
             "delete_one_time_event": "מחיקת אירוע חד־פעמי",
             "assign_movement_to_one_time_event": "שיוך תנועה לאירוע",
             "unassign_movement_from_one_time_event": "הסרת שיוך תנועה מאירוע",
+            "add_installment_plan": "יצירת תשלומים",
+            "edit_installment_plan": "עריכת תשלומים",
+            "delete_installment_plan": "מחיקת תשלומים",
         }
         action_key = entry.action.action_name
         action_title = action_name_map.get(action_key, action_key)
@@ -469,6 +472,24 @@ class ActionHistoryDetailsDialog(QDialog):
                 "file_name": "שם קובץ",
                 "expenses_count": "מספר הוצאות",
                 "total_amount": "סכום כולל",
+                "plan_id": "מזהה תכנית",
+                "plan_name": "שם תכנית",
+                "vendor_query": "חיפוש ספק",
+                "start_date": "תאריך התחלה",
+                "payments_count": "מספר תשלומים",
+                "original_amount": "סכום מקורי",
+                "old_vendor_query": "חיפוש ספק קודם",
+                "new_vendor_query": "חיפוש ספק חדש",
+                "old_account_name": "חשבון קודם",
+                "new_account_name": "חשבון חדש",
+                "old_start_date": "תאריך התחלה קודם",
+                "new_start_date": "תאריך התחלה חדש",
+                "old_payments_count": "מספר תשלומים קודם",
+                "new_payments_count": "מספר תשלומים חדש",
+                "old_original_amount": "סכום מקורי קודם",
+                "new_original_amount": "סכום מקורי חדש",
+                "old_archived": "בארכיון קודם",
+                "new_archived": "בארכיון חדש",
             }
             for field_info in fields(action):
                 name = field_info.name

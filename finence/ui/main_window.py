@@ -10,6 +10,7 @@ from ..pages.bank_accounts_page import BankAccountsPage
 from ..pages.bank_account_page import BankAccountPage
 from ..pages.monthly_data_page import MonthlyDataPage
 from ..pages.one_time_events_page import OneTimeEventsPage
+from ..pages.installments_page import InstallmentsPage
 from ..pages.yearly_summary_page import YearlySummaryPage
 from ..pages.yearly_category_trends_page import YearlyCategoryTrendsPage
 from ..pages.yearly_overview_page import YearlyOverviewPage
@@ -106,6 +107,14 @@ class MainWindow(QMainWindow):
             ),
         )
         self.router.register(
+            "installments",
+            lambda: InstallmentsPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
             "yearly_overview",
             lambda: YearlyOverviewPage(
                 app_context=self._app_context,
@@ -140,3 +149,8 @@ class MainWindow(QMainWindow):
         action_bank = QAction("חשבונות", self)
         action_bank.triggered.connect(lambda: self.router.navigate("bank_accounts"))
         nav_menu.addAction(action_bank)
+        action_installments = QAction("תשלומים", self)
+        action_installments.triggered.connect(
+            lambda: self.router.navigate("installments")
+        )
+        nav_menu.addAction(action_installments)

@@ -64,7 +64,9 @@ QLineEdit = _get(_widgets, "QLineEdit")
 QCheckBox = _get(_widgets, "QCheckBox")
 QDialog = _get(_widgets, "QDialog")
 QListWidget = _get(_widgets, "QListWidget")
+QListWidgetItem = _get(_widgets, "QListWidgetItem")
 QComboBox = _get(_widgets, "QComboBox")
+QSpinBox = _get(_widgets, "QSpinBox")
 QMenu = _get(_widgets, "QMenu")
 QWidgetAction = _get(_widgets, "QWidgetAction")
 QMenuBar = _get(_widgets, "QMenuBar")
@@ -76,6 +78,7 @@ QTableWidgetItem = _get(_widgets, "QTableWidgetItem")
 QHeaderView = _get(_widgets, "QHeaderView")
 QScrollArea = _get(_widgets, "QScrollArea")
 QProgressBar = _get(_widgets, "QProgressBar")
+QMessageBox = _get(_widgets, "QMessageBox")
 QFileDialog: Any = _get(_widgets, "QFileDialog")
 
 QAction: Any = _get(_gui, "QAction")
@@ -131,7 +134,9 @@ __all__ = [
     "QCheckBox",
     "QDialog",
     "QListWidget",
+    "QListWidgetItem",
     "QComboBox",
+    "QSpinBox",
     "QMenu",
     "QWidgetAction",
     "QMenuBar",
@@ -165,6 +170,7 @@ __all__ = [
     "QHeaderView",
     "QScrollArea",
     "QProgressBar",
+    "QMessageBox",
     "QFileDialog",
     "charts_available",
     "QChart",
