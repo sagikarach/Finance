@@ -35,6 +35,7 @@ class MoneyAccount:
 class BankAccount(MoneyAccount):
     history: List[MoneySnapshot] = field(default_factory=list)
     active: bool = False
+    baseline_amount: float = 0.0
 
     def __post_init__(self) -> None:
         if self.history:

@@ -36,6 +36,7 @@ class MonthlyReportService:
                 if m.account_name in account_set
                 and self._is_in_month(m.date, year, month)
                 and m.type == MovementType.MONTHLY
+                and not self._is_transfer(m)
             ]
         else:
             movements = [
@@ -43,6 +44,7 @@ class MonthlyReportService:
                 for m in all_movements
                 if self._is_in_month(m.date, year, month)
                 and m.type == MovementType.MONTHLY
+                and not self._is_transfer(m)
             ]
 
         if not movements:
@@ -112,6 +114,19 @@ class MonthlyReportService:
             return dt.year == year and dt.month == month
         except Exception:
             return False
+
+    def _is_transfer(self, movement: BankMovement) -> bool:
+        try:
+            if bool(getattr(movement, "is_transfer", False)):
+                return True
+        except Exception:
+            pass
+        try:
+            if str(getattr(movement, "category", "") or "").strip() == "העברה":
+                return True
+        except Exception:
+            pass
+        return False
 
     def _calculate_summary(
         self, movements: List[BankMovement], year: int, month: int

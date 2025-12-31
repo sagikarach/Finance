@@ -63,6 +63,13 @@ def merge_remote_into_local(
             category = str(f.get("category", "") or "").strip()
             t_raw = str(f.get("type", "") or "").strip()
             movement_type = parse_movement_type(t_raw)
+            is_transfer = bool(f.get("is_transfer", False))
+            if not is_transfer:
+                try:
+                    if str(category or "").strip() == "העברה":
+                        is_transfer = True
+                except Exception:
+                    pass
             description = f.get("description")
             desc_str = (
                 str(description)
@@ -85,6 +92,7 @@ def merge_remote_into_local(
                 account_name=account_name,
                 category=category,
                 type=movement_type,
+                is_transfer=is_transfer,
                 description=desc_str,
                 event_id=event_id_str,
                 id=mid,

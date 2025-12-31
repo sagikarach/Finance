@@ -50,6 +50,7 @@ class FirebaseWorkspaceWriter:
                 "account_name": str(movement.account_name),
                 "category": str(movement.category),
                 "type": str(getattr(movement.type, "value", movement.type)),
+                "is_transfer": bool(getattr(movement, "is_transfer", False)),
                 "description": movement.description,
                 "event_id": getattr(movement, "event_id", None),
                 "deleted": False,
@@ -124,6 +125,9 @@ class FirebaseWorkspaceWriter:
                         "name": acc.name,
                         "is_liquid": bool(acc.is_liquid),
                         "active": bool(getattr(acc, "active", False)),
+                        "baseline_amount": float(
+                            getattr(acc, "baseline_amount", 0.0) or 0.0
+                        ),
                     }
                 )
             elif isinstance(acc, BudgetAccount):

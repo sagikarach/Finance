@@ -17,8 +17,11 @@ from ...qt import (
     QWidget,
 )
 from ...data.provider import AccountsProvider, JsonFileAccountsProvider
+from ...data.bank_movement_provider import JsonFileBankMovementProvider
+from ...data.action_history_provider import JsonFileActionHistoryProvider
 from ...models.accounts import BankAccount, BudgetAccount, MoneyAccount, MoneySnapshot
 from ...models.accounts_service import AccountsService
+from ...models.bank_movement_service import BankMovementService
 from ...models.bank_settings import BankSettingsRowInput
 
 
@@ -86,7 +89,11 @@ class BankAccountsCard(QWidget):
         for account_name in default_account_names:
             account = bank_accounts.get(account_name)
             is_active = account.active if account else False
-            current_amount = account.total_amount if account else 0.0
+            baseline_amount = (
+                float(getattr(account, "baseline_amount", 0.0) or 0.0)
+                if account
+                else 0.0
+            )
 
             account_row = QWidget(self)
             account_row_layout = QVBoxLayout(account_row)
@@ -112,7 +119,7 @@ class BankAccountsCard(QWidget):
             except Exception:
                 pass
             if account:
-                amount_edit.setText(f"{current_amount:.2f}")
+                amount_edit.setText(f"{baseline_amount:.2f}")
             amount_edit.setEnabled(is_active)
             amount_edit.setPlaceholderText("0.00")
 
@@ -303,7 +310,19 @@ class BankAccountsCard(QWidget):
                         )
                     )
                 try:
+                    # Persist accounts, then recompute balances from movements + baseline_amount.
+                    # This fixes cases where an old "starter amount" save wrote a latest snapshot of 0.
                     self._accounts_service.save_all(out_accounts)
+                    try:
+                        movement_provider = JsonFileBankMovementProvider()
+                        history_provider = JsonFileActionHistoryProvider()
+                        mv_svc = BankMovementService(
+                            movement_provider, history_provider, classifier=None
+                        )
+                        out_accounts = mv_svc.recalculate_account_balances(out_accounts)
+                        self._accounts_service.save_all(out_accounts)
+                    except Exception:
+                        pass
                 except Exception:
                     pass
 
@@ -340,8 +359,14 @@ class BankAccountsCard(QWidget):
                         checkbox.blockSignals(True)
                         checkbox.setChecked(saved_account.active)
                         checkbox.blockSignals(False)
-                        if saved_account.active and saved_account.total_amount > 0:
-                            amount_edit.setText(f"{saved_account.total_amount:.2f}")
+                        try:
+                            ba = float(
+                                getattr(saved_account, "baseline_amount", 0.0) or 0.0
+                            )
+                        except Exception:
+                            ba = 0.0
+                        if saved_account.active:
+                            amount_edit.setText(f"{ba:.2f}")
                         amount_edit.setEnabled(saved_account.active)
 
                 try:

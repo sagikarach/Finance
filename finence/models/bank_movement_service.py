@@ -368,6 +368,9 @@ class BankMovementService:
                         is_liquid=acc.is_liquid,
                         history=new_history,
                         active=acc.active,
+                        baseline_amount=float(
+                            getattr(acc, "baseline_amount", 0.0) or 0.0
+                        ),
                     )
                 updated_accounts.append(updated_acc)
                 account_updated = True
@@ -404,6 +407,12 @@ class BankMovementService:
         for acc in accounts:
             if isinstance(acc, BankAccount):
                 calculated_balance = balance_by_account.get(acc.name, 0.0)
+                try:
+                    calculated_balance += float(
+                        getattr(acc, "baseline_amount", 0.0) or 0.0
+                    )
+                except Exception:
+                    pass
 
                 new_history = list(acc.history)
                 try:
@@ -413,9 +422,20 @@ class BankMovementService:
                 except Exception:
                     date_str = ""
 
-                new_history.append(
-                    MoneySnapshot(date=date_str, amount=calculated_balance)
-                )
+                if date_str:
+                    try:
+                        if new_history and str(new_history[-1].date) == str(date_str):
+                            new_history[-1] = MoneySnapshot(
+                                date=date_str, amount=calculated_balance
+                            )
+                        else:
+                            new_history.append(
+                                MoneySnapshot(date=date_str, amount=calculated_balance)
+                            )
+                    except Exception:
+                        new_history.append(
+                            MoneySnapshot(date=date_str, amount=calculated_balance)
+                        )
 
                 updated_acc = BankAccount(
                     name=acc.name,
@@ -423,6 +443,7 @@ class BankMovementService:
                     is_liquid=acc.is_liquid,
                     history=new_history,
                     active=acc.active,
+                    baseline_amount=float(getattr(acc, "baseline_amount", 0.0) or 0.0),
                 )
                 updated_accounts.append(updated_acc)
             else:
@@ -540,6 +561,32 @@ class BankMovementService:
                         is_liquid=acc.is_liquid,
                         history=new_history,
                         active=acc.active,
+                        baseline_amount=float(
+                            getattr(acc, "baseline_amount", 0.0) or 0.0
+                        ),
+                    )
+                )
+            elif isinstance(acc, BudgetAccount) and str(
+                getattr(acc, "name", "")
+            ) == str(getattr(target, "account_name", "")):
+                # Budget accounts keep an internal remaining balance; deleting an expense should restore it.
+                try:
+                    restored_total = float(acc.total_amount) - float(target.amount)
+                except Exception:
+                    restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
+                new_history = list(getattr(acc, "history", []) or [])
+                if today:
+                    new_history.append(MoneySnapshot(date=today, amount=restored_total))
+                out.append(
+                    BudgetAccount(
+                        name=acc.name,
+                        total_amount=restored_total,
+                        is_liquid=False,
+                        history=new_history,
+                        active=acc.active,
+                        monthly_budget=float(acc.monthly_budget),
+                        reset_day=int(acc.reset_day),
+                        last_reset_period=str(acc.last_reset_period or ""),
                     )
                 )
             else:

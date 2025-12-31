@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional
 import math
 
 from ..qt import (
@@ -24,11 +24,10 @@ from ..qt import (
     QCursor,
     charts_available,
 )
-from ..models.accounts import SavingsAccount
+from ..models.accounts import MoneySnapshot, SavingsAccount
 from ..models.charts import (
-    build_month_axis_from_histories,
     build_base_values,
-    latest_snapshots_by_month,
+    latest_snapshots_by_month_with_axis,
     catmull_rom_spline_samples,
 )
 
@@ -135,30 +134,39 @@ class ShadowChartView(QChartView):
 
             gradient = None
             try:
-                y_top = float(min(min_y, baseline_y))
-                y_bottom = float(max(max_y, baseline_y))
-                gradient = QLinearGradient(QPointF(0.0, y_top), QPointF(0.0, y_bottom))
-                top_col = QColor(base_color)
-                bottom_col = QColor(base_color)
-                try:
-                    above = True
-                    if baseline_val is not None:
-                        above = all(float(p.y()) >= float(baseline_val) for p in pts)
-                    if above:
-                        top_col.setAlpha(180)
-                        bottom_col.setAlpha(0)
-                        gradient.setColorAt(0.0, top_col)
-                        gradient.setColorAt(1.0, bottom_col)
-                    else:
-                        top_col.setAlpha(0)
-                        bottom_col.setAlpha(180)
-                        gradient.setColorAt(0.0, top_col)
-                        gradient.setColorAt(1.0, bottom_col)
-                except Exception:
-                    top_col.setAlpha(180)
-                    bottom_col.setAlpha(0)
-                    gradient.setColorAt(0.0, top_col)
-                    gradient.setColorAt(1.0, bottom_col)
+                if baseline_val is None:
+                    raise RuntimeError("no baseline")
+
+                min_y_val = min(float(p.y()) for p in pts)
+                max_y_val = max(float(p.y()) for p in pts)
+
+                # Anchor the fill to the baseline line (not the chart bottom).
+                # If the series crosses the baseline, fall back to a solid fill.
+                crosses = bool(min_y_val < float(baseline_val) < max_y_val)
+                if crosses:
+                    gradient = None
+                elif max_y_val <= float(baseline_val):
+                    # Entire series at/below baseline: fade from baseline -> downwards.
+                    y0 = float(baseline_y)
+                    y1 = float(max(max_y, baseline_y))
+                    gradient = QLinearGradient(QPointF(0.0, y0), QPointF(0.0, y1))
+                    c0 = QColor(base_color)
+                    c1 = QColor(base_color)
+                    c0.setAlpha(180)
+                    c1.setAlpha(0)
+                    gradient.setColorAt(0.0, c0)
+                    gradient.setColorAt(1.0, c1)
+                else:
+                    # Entire series at/above baseline: fade from baseline -> upwards.
+                    y0 = float(min(min_y, baseline_y))
+                    y1 = float(baseline_y)
+                    gradient = QLinearGradient(QPointF(0.0, y0), QPointF(0.0, y1))
+                    c0 = QColor(base_color)
+                    c1 = QColor(base_color)
+                    c0.setAlpha(0)
+                    c1.setAlpha(180)
+                    gradient.setColorAt(0.0, c0)
+                    gradient.setColorAt(1.0, c1)
             except Exception:
                 gradient = None
 
@@ -346,13 +354,45 @@ def create_savings_history_chart_card(
 
     if charts_available and account.savings:
         chart = QChart()
-        chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+        # Animations are pretty but expensive on large histories; disable for snappy navigation.
+        try:
+            chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+        except Exception:
+            try:
+                chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+            except Exception:
+                pass
         chart.legend().setVisible(False)
         chart.setBackgroundRoundness(0)
         chart.setBackgroundBrush(Qt.GlobalColor.transparent)
         chart.setPlotAreaBackgroundVisible(False)
 
-        axis = build_month_axis_from_histories([s.history for s in account.savings])
+        # One pass per saving: build latest-per-month and collect axis keys, without scanning history twice.
+        axis_seen: set[tuple[int, int]] = set()
+        axis_keys: List[tuple[int, int]] = []
+        latest_by_saving: Dict[str, Dict[tuple[int, int], MoneySnapshot]] = {}
+        for s in account.savings:
+            try:
+                axis_s, latest = latest_snapshots_by_month_with_axis(s.history)
+                latest_by_saving[str(s.name)] = latest
+                for k in axis_s.keys:
+                    if k not in axis_seen:
+                        axis_seen.add(k)
+                        axis_keys.append(k)
+            except Exception:
+                latest_by_saving[str(getattr(s, "name", "") or "")] = {}
+                continue
+        axis_keys.sort(key=lambda k: (k[0], k[1]))
+        if not axis_keys:
+            axis_keys = [(0, 1)]
+        axis = type(
+            "MonthAxisTmp",
+            (),
+            {
+                "keys": axis_keys,
+                "month_to_index": {k: i for i, k in enumerate(axis_keys)},
+            },
+        )()
         month_keys = axis.keys
         month_to_index = axis.month_to_index
 
@@ -371,7 +411,7 @@ def create_savings_history_chart_card(
             except Exception:
                 pass
 
-            latest_by_month = latest_snapshots_by_month(s.history)
+            latest_by_month = latest_by_saving.get(str(s.name), {}) or {}
             base_values, series_max = build_base_values(
                 axis=axis,
                 latest_by_month=latest_by_month,

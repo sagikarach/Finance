@@ -7,7 +7,7 @@ def load_base_light_styles() -> str:
         background: #dbeafe; /* light blue app background */
         color: #111827; /* near-black */
         font-size: 14px;
-        font-family: "Varela Round", "SF Pro Text", "SF Pro Display", "Arial Hebrew", "Helvetica Neue", Arial;
+        font-family: "Varela Round", "Arial Hebrew", "Helvetica Neue", Arial;
     }
     QMainWindow {
         background: #dbeafe; /* match app background */
@@ -21,7 +21,7 @@ def load_base_dark_styles() -> str:
         background: #020617;
         color: #e5e7eb;
         font-size: 14px;
-        font-family: "Varela Round", "SF Pro Text", "SF Pro Display", "Arial Hebrew", "Helvetica Neue", Arial;
+        font-family: "Varela Round", "Arial Hebrew", "Helvetica Neue", Arial;
     }
     QMainWindow {
         background: #020617;

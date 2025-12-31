@@ -45,14 +45,41 @@ class AccountsService:
     def load_accounts(self) -> List[MoneyAccount]:
         accounts = self.provider.list_accounts()
         updated = self._apply_budget_account_resets(accounts)
-        if updated is not accounts and isinstance(
+
+        # Migration / rule: "בנק" is always liquid (counts in totals).
+        # This keeps behavior consistent even if old snapshots had is_liquid=false.
+        changed = False
+        enforced: List[MoneyAccount] = []
+        for acc in updated:
+            if (
+                isinstance(acc, BankAccount)
+                and str(acc.name) == "בנק"
+                and not bool(getattr(acc, "is_liquid", False))
+            ):
+                enforced.append(
+                    BankAccount(
+                        name=acc.name,
+                        total_amount=float(acc.total_amount),
+                        is_liquid=True,
+                        history=list(acc.history),
+                        active=bool(getattr(acc, "active", False)),
+                        baseline_amount=float(
+                            getattr(acc, "baseline_amount", 0.0) or 0.0
+                        ),
+                    )
+                )
+                changed = True
+            else:
+                enforced.append(acc)
+
+        if (updated is not accounts or changed) and isinstance(
             self.provider, JsonFileAccountsProvider
         ):
             try:
-                self.save_all(updated)
+                self.save_all(enforced)
             except Exception:
                 pass
-        return updated
+        return enforced
 
     def _apply_budget_account_resets(
         self, accounts: List[MoneyAccount]
@@ -514,7 +541,7 @@ class AccountsService:
                     elif is_active and amount_text:
                         try:
                             starter_amount = float(amount_text)
-                            if starter_amount > 0:
+                            if starter_amount >= 0:
                                 set_amount_action = SetStarterAmountAction(
                                     action_name="set_starter_amount",
                                     account_name=row.name,

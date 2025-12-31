@@ -46,6 +46,21 @@ def load_buttons_light_styles() -> str:
         background: rgba(0,0,0,0.05);
         border-radius: 8px;
     }
+    QToolButton#HeaderIconButton {
+        background: transparent;
+        border: none;
+        padding: 0px;
+        font-size: 18px;
+        min-width: 44px;
+        max-width: 44px;
+        min-height: 44px;
+        max-height: 44px;
+        font-family: "Apple Color Emoji", "Varela Round", "Arial Hebrew", Arial;
+    }
+    QToolButton#HeaderIconButton:hover {
+        background: rgba(0,0,0,0.05);
+        border-radius: 10px;
+    }
     QToolButton#PasswordEye {
         background: transparent;
         border: none;
@@ -125,6 +140,22 @@ def load_buttons_dark_styles() -> str:
         max-width: 32px;
         min-height: 32px;
         max-height: 32px;
+    }
+    QToolButton#HeaderIconButton {
+        background: transparent;
+        border: none;
+        padding: 0px;
+        font-size: 18px;
+        min-width: 44px;
+        max-width: 44px;
+        min-height: 44px;
+        max-height: 44px;
+        color: #e5e7eb;
+        font-family: "Apple Color Emoji", "Varela Round", "Arial Hebrew", Arial;
+    }
+    QToolButton#HeaderIconButton:hover {
+        background: rgba(255,255,255,0.06);
+        border-radius: 10px;
     }
     QToolButton#IconButton:hover,
     QToolButton#PasswordEye:hover {

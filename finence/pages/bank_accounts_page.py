@@ -72,7 +72,6 @@ class BankAccountsPage(BasePage):
         ]
 
         total_all = overview.total_all
-        total_liquid = overview.total_liquid
 
         total_all_card = QWidget(self)
         total_all_card.setObjectName("StatCardGreen")
@@ -103,39 +102,9 @@ class BankAccountsPage(BasePage):
         )
         total_all_card_layout.addStretch(1)
 
-        total_liquid_card = QWidget(self)
-        total_liquid_card.setObjectName("StatCardPurple")
-        try:
-            total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            total_liquid_card.setAutoFillBackground(True)
-        except Exception:
-            pass
-        total_liquid_card_layout = QVBoxLayout(total_liquid_card)
-        total_liquid_card_layout.setContentsMargins(14, 14, 14, 14)
-        total_liquid_card_layout.setSpacing(6)
-        try:
-            total_liquid_card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-        except Exception:
-            pass
-        total_liquid_title = QLabel("סכום נזיל בחשבונות", total_liquid_card)
-        total_liquid_title.setObjectName("StatTitle")
-        total_liquid_label = QLabel(format_currency(total_liquid), total_liquid_card)
-        total_liquid_label.setObjectName("StatValueLarge")
-        total_liquid_card_layout.addStretch(1)
-        total_liquid_card_layout.addWidget(
-            total_liquid_title, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_liquid_card_layout.addWidget(
-            total_liquid_label, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_liquid_card_layout.addStretch(1)
-
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
         cards_row.addWidget(total_all_card, 1)
-        cards_row.addWidget(total_liquid_card, 1)
         main_col.addLayout(cards_row, 0)
 
         if bank_accounts:

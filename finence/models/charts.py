@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple
+from datetime import datetime
 
 from .accounts import MoneySnapshot, parse_iso_date
 
@@ -53,6 +54,37 @@ def latest_snapshots_by_month(
         if existing is None or parse_iso_date(str(existing.date)) < dt:
             latest[key] = snap
     return latest
+
+
+def latest_snapshots_by_month_with_axis(
+    history: Iterable[MoneySnapshot],
+) -> tuple[MonthAxis, Dict[MonthKey, MoneySnapshot]]:
+    """
+    One-pass helper for charts:
+    - builds the set of month keys
+    - tracks the latest snapshot per month
+    This avoids scanning + parsing the same history multiple times.
+    """
+    keys_seen: set[MonthKey] = set()
+    latest: Dict[MonthKey, MoneySnapshot] = {}
+    latest_dt_by_key: Dict[MonthKey, datetime] = {}
+
+    for snap in history:
+        try:
+            dt = parse_iso_date(str(snap.date))
+        except Exception:
+            continue
+        key = (dt.year, dt.month)
+        keys_seen.add(key)
+        prev_dt = latest_dt_by_key.get(key)
+        if prev_dt is None or prev_dt < dt:
+            latest_dt_by_key[key] = dt
+            latest[key] = snap
+
+    keys = sorted(keys_seen, key=lambda k: (k[0], k[1]))
+    if not keys:
+        keys = [(0, 1)]
+    return MonthAxis(keys=keys), latest
 
 
 def build_base_values(

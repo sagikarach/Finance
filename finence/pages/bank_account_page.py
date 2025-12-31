@@ -25,6 +25,8 @@ from ..models.action_history import (
 )
 from ..widgets.bank_history_chart import create_bank_history_chart_card
 from ..utils.formatting import format_currency
+from ..ui.sibus_expenses_dialog import SibusExpensesDialog
+from ..ui.account_movements_dialog import AccountMovementsDialog
 from .base_page import BasePage
 
 
@@ -132,6 +134,39 @@ class BankAccountPage(BasePage):
         buttons_row = QHBoxLayout()
         buttons_row.setSpacing(8)
 
+        if isinstance(target, BudgetAccount):
+            manage_btn = QPushButton("ניהול הוצאות", top_card)
+            manage_btn.setObjectName("AddButton")
+            try:
+                manage_btn.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+                )
+            except Exception:
+                pass
+            try:
+                manage_btn.clicked.connect(
+                    lambda _=None, acc=target: self._open_sibus_expenses_dialog(acc)
+                )
+            except Exception:
+                pass
+            buttons_row.addWidget(manage_btn, 0, Qt.AlignmentFlag.AlignLeft)
+        elif isinstance(target, BankAccount):
+            manage_btn = QPushButton("ניהול תנועות", top_card)
+            manage_btn.setObjectName("AddButton")
+            try:
+                manage_btn.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+                )
+            except Exception:
+                pass
+            try:
+                manage_btn.clicked.connect(
+                    lambda _=None, acc=target: self._open_account_movements_dialog(acc)
+                )
+            except Exception:
+                pass
+            buttons_row.addWidget(manage_btn, 0, Qt.AlignmentFlag.AlignLeft)
+
         if isinstance(target, BankAccount) and target.name == "בנק":
             import_btn = QPushButton("ייבוא קובץ הוצאות", top_card)
             import_btn.setObjectName("AddButton")
@@ -166,7 +201,18 @@ class BankAccountPage(BasePage):
         top_layout.addStretch(1)
         top_layout.addLayout(summary_col, 1)
 
-        chart_card = create_bank_history_chart_card(self, target, format_currency)
+        try:
+            svc = getattr(self, "_bank_movement_service", None)
+            all_movements = svc.list_movements() if svc is not None else []
+        except Exception:
+            all_movements = []
+
+        chart_card = create_bank_history_chart_card(
+            self,
+            target,
+            format_currency,
+            movements=list(all_movements),
+        )
 
         main_col.addWidget(top_card, 1)
         main_col.addWidget(chart_card, 2)
@@ -414,6 +460,55 @@ class BankAccountPage(BasePage):
                 pass
         if isinstance(self._content_col, QVBoxLayout):
             self._build_content(self._content_col)
+
+    def _open_sibus_expenses_dialog(self, account: BudgetAccount) -> None:
+        svc = getattr(self, "_bank_movement_service", None)
+        if svc is None:
+            return
+        try:
+            categories = svc.list_categories(is_income=False)
+        except Exception:
+            categories = []
+
+        dlg = SibusExpensesDialog(
+            account_name=str(getattr(account, "name", "") or ""),
+            movement_service=svc,
+            categories=list(categories),
+            accounts_getter=lambda: list(getattr(self, "_accounts", []) or []),
+            accounts_setter=lambda new_accounts: setattr(
+                self, "_accounts", list(new_accounts)
+            ),
+            parent=None,
+            on_changed=lambda: self._save_and_refresh_accounts(),
+        )
+        dlg.exec()
+
+    def _open_account_movements_dialog(self, account: BankAccount) -> None:
+        svc = getattr(self, "_bank_movement_service", None)
+        if svc is None:
+            return
+        try:
+            income_categories = svc.list_categories(is_income=True)
+        except Exception:
+            income_categories = []
+        try:
+            outcome_categories = svc.list_categories(is_income=False)
+        except Exception:
+            outcome_categories = []
+
+        dlg = AccountMovementsDialog(
+            account_name=str(getattr(account, "name", "") or ""),
+            movement_service=svc,
+            income_categories=list(income_categories),
+            outcome_categories=list(outcome_categories),
+            accounts_getter=lambda: list(getattr(self, "_accounts", []) or []),
+            accounts_setter=lambda new_accounts: setattr(
+                self, "_accounts", list(new_accounts)
+            ),
+            parent=None,
+            on_changed=lambda: self._save_and_refresh_accounts(),
+        )
+        dlg.exec()
 
     def _on_theme_changed(self, is_dark: bool) -> None:
         super()._on_theme_changed(is_dark)

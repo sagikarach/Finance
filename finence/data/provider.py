@@ -103,6 +103,10 @@ class JsonFileAccountsProvider(AccountsProvider):
                         total_amount = float(latest)
 
                 active = bool(item.get("active", False))
+                try:
+                    baseline_amount = float(item.get("baseline_amount", 0.0) or 0.0)
+                except Exception:
+                    baseline_amount = 0.0
 
                 if kind == "budget":
                     try:
@@ -136,6 +140,7 @@ class JsonFileAccountsProvider(AccountsProvider):
                             is_liquid=is_liquid,
                             history=account_history,
                             active=active,
+                            baseline_amount=float(baseline_amount),
                         )
                     )
             except Exception:
@@ -266,6 +271,10 @@ class JsonFileAccountsProvider(AccountsProvider):
                     for snap in list(getattr(account, "history", []) or [])
                 ],
             }
+            if isinstance(account, BankAccount):
+                account_dict["baseline_amount"] = float(
+                    getattr(account, "baseline_amount", 0.0) or 0.0
+                )
             if isinstance(account, BudgetAccount):
                 account_dict["kind"] = "budget"
                 account_dict["monthly_budget"] = float(account.monthly_budget)

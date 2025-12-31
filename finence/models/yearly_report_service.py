@@ -44,6 +44,8 @@ class YearlyReportService:
                     continue
                 if type_set is not None and m.type not in type_set:
                     continue
+                if self._is_transfer(m):
+                    continue
                 dt = parse_iso_date(m.date)
                 if dt.year != year:
                     continue
@@ -128,6 +130,8 @@ class YearlyReportService:
             try:
                 if account_set is not None and m.account_name not in account_set:
                     continue
+                if self._is_transfer(m):
+                    continue
                 dt = parse_iso_date(m.date)
                 if dt.year != year:
                     continue
@@ -184,6 +188,8 @@ class YearlyReportService:
                     continue
                 if type_set is not None and m.type not in type_set:
                     continue
+                if self._is_transfer(m):
+                    continue
                 dt = parse_iso_date(m.date)
                 if dt.year != year:
                     continue
@@ -210,6 +216,8 @@ class YearlyReportService:
 
         for m in movements:
             try:
+                if self._is_transfer(m):
+                    continue
                 amount = float(m.amount)
                 if amount > 0:
                     total_income += amount
@@ -236,6 +244,8 @@ class YearlyReportService:
         category_data: Dict[Tuple[str, bool], List[float]] = defaultdict(list)
         for m in movements:
             try:
+                if self._is_transfer(m):
+                    continue
                 amount = float(m.amount)
                 is_income = amount > 0
                 category = m.category or "שונות"
@@ -257,6 +267,19 @@ class YearlyReportService:
 
         out.sort(key=lambda x: (not x.is_income, -x.total_amount))
         return out
+
+    def _is_transfer(self, movement: BankMovement) -> bool:
+        try:
+            if bool(getattr(movement, "is_transfer", False)):
+                return True
+        except Exception:
+            pass
+        try:
+            if str(getattr(movement, "category", "") or "").strip() == "העברה":
+                return True
+        except Exception:
+            pass
+        return False
 
     def _calculate_account_breakdowns(
         self, movements: List[BankMovement], year: int

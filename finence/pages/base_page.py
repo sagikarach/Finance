@@ -16,6 +16,9 @@ from ..qt import (
     QTimer,
     QToolTip,
     QCursor,
+    QIcon,
+    QPixmap,
+    QSize,
     Signal,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
@@ -96,6 +99,15 @@ class BasePage(QWidget):
         self._bell_badge: Optional[QLabel] = None
         self._sync_btn: Optional[QToolButton] = None
         self._sync_in_progress: bool = False
+        try:
+            # Shared flag (across pages) to avoid expensive recalculation on every navigation.
+            if (
+                isinstance(self._app_context, dict)
+                and "_balances_dirty" not in self._app_context
+            ):
+                self._app_context["_balances_dirty"] = "1"
+        except Exception:
+            pass
 
         self._build_ui()
         try:
@@ -193,21 +205,40 @@ class BasePage(QWidget):
 
         left_buttons = self._build_header_left_buttons()
         for btn in left_buttons:
+            try:
+                self._style_header_button(btn)
+            except Exception:
+                pass
             header_layout.addWidget(btn)
 
         bell_wrap = QWidget(header_container)
         try:
-            bell_wrap.setFixedSize(36, 36)
+            bell_wrap.setFixedSize(44, 44)
         except Exception:
             pass
 
         self._bell_btn = QToolButton(bell_wrap)
-        self._bell_btn.setObjectName("IconButton")
+        self._bell_btn.setObjectName("HeaderIconButton")
         self._bell_btn.setText("🔔")
         self._bell_btn.setToolTip("התראות")
         self._bell_btn.clicked.connect(self._open_notifications)
         try:
-            self._bell_btn.setGeometry(0, 0, 36, 36)
+            self._bell_btn.setFixedSize(44, 44)
+        except Exception:
+            pass
+        try:
+            self._bell_btn.setStyleSheet("padding: 0px;")
+        except Exception:
+            pass
+        try:
+            self._bell_btn.setAutoRaise(True)
+        except Exception:
+            pass
+        try:
+            bell_layout = QHBoxLayout(bell_wrap)
+            bell_layout.setContentsMargins(0, 0, 0, 0)
+            bell_layout.setSpacing(0)
+            bell_layout.addWidget(self._bell_btn, 0, Qt.AlignmentFlag.AlignCenter)
         except Exception:
             pass
 
@@ -226,7 +257,7 @@ class BasePage(QWidget):
             pass
         try:
             self._bell_badge.adjustSize()
-            self._bell_badge.move(22, -2)
+            self._bell_badge.move(30, -2)
         except Exception:
             pass
 
@@ -234,16 +265,35 @@ class BasePage(QWidget):
 
         sync_wrap = QWidget(header_container)
         try:
-            sync_wrap.setFixedSize(36, 36)
+            sync_wrap.setFixedSize(44, 44)
         except Exception:
             pass
         self._sync_btn = QToolButton(sync_wrap)
-        self._sync_btn.setObjectName("IconButton")
-        self._sync_btn.setText("🔄")
+        self._sync_btn.setObjectName("HeaderIconButton")
+        self._sync_btn.setText("")
         self._sync_btn.setToolTip("סנכרן עכשיו")
         self._sync_btn.clicked.connect(self._on_sync_clicked)
         try:
-            self._sync_btn.setGeometry(0, 0, 36, 36)
+            self._sync_btn.setFixedSize(44, 44)
+        except Exception:
+            pass
+        try:
+            self._sync_btn.setStyleSheet("padding: 0px;")
+        except Exception:
+            pass
+        try:
+            self._sync_btn.setAutoRaise(True)
+        except Exception:
+            pass
+        try:
+            wrap_layout = QHBoxLayout(sync_wrap)
+            wrap_layout.setContentsMargins(0, 0, 0, 0)
+            wrap_layout.setSpacing(0)
+            wrap_layout.addWidget(self._sync_btn, 0, Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        try:
+            self._update_sync_icon()
         except Exception:
             pass
         header_layout.addWidget(sync_wrap)
@@ -315,7 +365,10 @@ class BasePage(QWidget):
         try:
             if self._sync_btn is not None:
                 self._sync_btn.setEnabled(False)
-                self._sync_btn.setText("⏳")
+                try:
+                    self._update_sync_icon()
+                except Exception:
+                    self._sync_btn.setText("⏳")
                 self._sync_btn.setToolTip("מסנכרן...")
         except Exception:
             pass
@@ -352,13 +405,21 @@ class BasePage(QWidget):
     def _on_sync_finished(self, pulled: int, err: str) -> None:
         self._sync_in_progress = False
         try:
-            if self._sync_btn is not None:
-                self._sync_btn.setText("🔄")
+            self._update_sync_icon()
         except Exception:
-            pass
+            try:
+                if self._sync_btn is not None:
+                    self._sync_btn.setText("🔄")
+            except Exception:
+                pass
         self._refresh_sync_button_state()
 
         try:
+            try:
+                if isinstance(self._app_context, dict):
+                    self._app_context["_balances_dirty"] = "1"
+            except Exception:
+                pass
             self._load_and_refresh_accounts()
         except Exception:
             pass
@@ -594,6 +655,11 @@ class BasePage(QWidget):
                     is_income_hint=is_income,
                     record_history=True,
                 )
+                try:
+                    if isinstance(self._app_context, dict):
+                        self._app_context["_balances_dirty"] = "1"
+                except Exception:
+                    pass
             except Exception as e:
                 try:
                     QToolTip.showText(QCursor.pos(), str(e))
@@ -625,6 +691,36 @@ class BasePage(QWidget):
                 self._accounts = self._accounts_service.load_accounts()
             except Exception:
                 pass
+
+        # Expensive: recompute derived balances from movements.
+        # Do it only when we know movements changed (or on first load).
+        try:
+            dirty = True
+            try:
+                if isinstance(self._app_context, dict):
+                    dirty = (
+                        str(self._app_context.get("_balances_dirty", "1") or "1") != "0"
+                    )
+            except Exception:
+                dirty = True
+
+            if (
+                dirty
+                and hasattr(self, "_bank_movement_service")
+                and self._bank_movement_service is not None
+            ):
+                self._accounts = (
+                    self._bank_movement_service.recalculate_account_balances(
+                        self._accounts
+                    )
+                )
+                try:
+                    if isinstance(self._app_context, dict):
+                        self._app_context["_balances_dirty"] = "0"
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
@@ -662,8 +758,20 @@ class BasePage(QWidget):
 
     def _build_theme_toggle_button(self) -> QToolButton:
         theme_btn = QToolButton(self)
-        theme_btn.setObjectName("IconButton")
+        theme_btn.setObjectName("HeaderIconButton")
         theme_btn.setCheckable(True)
+        try:
+            theme_btn.setFixedSize(44, 44)
+        except Exception:
+            pass
+        try:
+            theme_btn.setStyleSheet("padding: 0px;")
+        except Exception:
+            pass
+        try:
+            theme_btn.setAutoRaise(True)
+        except Exception:
+            pass
 
         app = QApplication.instance()
         current_theme = "light"
@@ -705,10 +813,135 @@ class BasePage(QWidget):
         theme_btn.toggled.connect(on_theme_toggled)
         return theme_btn
 
+    def _style_header_button(self, btn: QToolButton) -> None:
+        try:
+            current = str(btn.objectName() or "")
+        except Exception:
+            current = ""
+        if current in ("", "IconButton", "SyncHeaderButton"):
+            try:
+                btn.setObjectName("HeaderIconButton")
+            except Exception:
+                pass
+        try:
+            btn.setFixedSize(44, 44)
+        except Exception:
+            pass
+        try:
+            btn.setStyleSheet("padding: 0px;")
+        except Exception:
+            pass
+        try:
+            btn.setAutoRaise(True)
+        except Exception:
+            pass
+
+    def _is_dark_theme(self) -> bool:
+        app = QApplication.instance()
+        theme = "light"
+        if app is not None:
+            try:
+                theme = str(app.property("theme") or "light")
+            except Exception:
+                theme = "light"
+        return theme == "dark"
+
+    def _sync_icon_path(self, is_dark: bool) -> Optional[str]:
+        # Preferred: one icon that works on both themes.
+        # Fallback: per-theme icons.
+        name = "sync_dark_mode" if is_dark else "sync_light_mode"
+        other_name = "sync_light_mode" if is_dark else "sync_dark_mode"
+        try:
+            from ..utils.resources import find_first_existing
+
+            p = find_first_existing(
+                [
+                    "data/assets/icons/sync.png",
+                    f"data/assets/icons/{name}.png",
+                    f"data/assets/icons/{other_name}.png",
+                    f"{name}.png",
+                    f"{other_name}.png",
+                ]
+            )
+            return str(p) if p is not None else None
+        except Exception:
+            return None
+
+    def _update_sync_icon(self) -> None:
+        btn = self._sync_btn
+        if btn is None:
+            return
+
+        if self._sync_in_progress:
+            try:
+                btn.setIcon(QIcon())
+            except Exception:
+                pass
+            btn.setText("⏳")
+            return
+
+        icon_path = self._sync_icon_path(self._is_dark_theme())
+        if icon_path is None:
+            try:
+                btn.setIcon(QIcon())
+            except Exception:
+                pass
+            btn.setText("🔄")
+            return
+
+        pixmap = QPixmap(str(icon_path))
+        if pixmap.isNull():
+            try:
+                btn.setIcon(QIcon())
+            except Exception:
+                pass
+            btn.setText("🔄")
+            return
+
+        try:
+            scaled = pixmap.scaled(
+                QSize(35, 35),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            btn.setIconSize(QSize(35, 35))
+            btn.setIcon(QIcon(scaled))
+            btn.setText("")
+            return
+        except Exception:
+            pass
+
+        try:
+            scaled = pixmap.scaled(
+                35,
+                35,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            try:
+                btn.setIconSize(QSize(35, 35))
+            except Exception:
+                pass
+            btn.setIcon(QIcon(scaled))
+            btn.setText("")
+            return
+        except Exception:
+            try:
+                btn.setIcon(QIcon())
+            except Exception:
+                pass
+            btn.setText("🔄")
+            return
+
     def _on_theme_changed(self, is_dark: bool) -> None:
         if self._theme_btn is not None:
             self._theme_btn.setChecked(is_dark)
             self._theme_btn.setText("🌙" if is_dark else "☀")
+
+        try:
+            self._update_sync_icon()
+        except Exception:
+            pass
 
         if self._sidebar is not None:
             if hasattr(self._sidebar, "_update_button_width"):

@@ -96,6 +96,13 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                     if isinstance(event_id_value, str) and str(event_id_value).strip()
                     else None
                 )
+                is_transfer = bool(item.get("is_transfer", False))
+                if not is_transfer:
+                    try:
+                        if str(category or "").strip() == "העברה":
+                            is_transfer = True
+                    except Exception:
+                        pass
                 movement_id = item.get("id")
                 if not movement_id:
                     from ..models.bank_movement import generate_movement_id
@@ -112,6 +119,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                         account_name=account_name,
                         category=category,
                         type=movement_type,
+                        is_transfer=is_transfer,
                         description=description,
                         event_id=event_id,
                         id=movement_id,

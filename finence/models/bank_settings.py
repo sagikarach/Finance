@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date as _date
 from typing import List, Optional
 
-from .accounts import BankAccount, MoneySnapshot
+from .accounts import BankAccount
 
 
 @dataclass(frozen=True)
@@ -16,7 +15,6 @@ class BankSettingsRowInput:
 
 
 def apply_bank_settings(rows: List[BankSettingsRowInput]) -> List[BankAccount]:
-    today_str = _date.today().isoformat()
     updated_bank_accounts: List[BankAccount] = []
 
     for row in rows:
@@ -40,15 +38,17 @@ def apply_bank_settings(rows: List[BankSettingsRowInput]) -> List[BankAccount]:
 
         new_history = list(account.history)
         new_total = account.total_amount
+        try:
+            baseline_amount = float(getattr(account, "baseline_amount", 0.0) or 0.0)
+        except Exception:
+            baseline_amount = 0.0
 
-        if is_being_activated and amount_text:
+        # Starter amount is a baseline (not "set current balance").
+        if (is_being_activated or is_active) and amount_text:
             try:
                 starter_amount = float(amount_text)
-                if starter_amount > 0:
-                    new_history.append(
-                        MoneySnapshot(date=today_str, amount=starter_amount)
-                    )
-                    new_total = starter_amount
+                if starter_amount >= 0:
+                    baseline_amount = starter_amount
             except (ValueError, TypeError):
                 pass
 
@@ -59,6 +59,7 @@ def apply_bank_settings(rows: List[BankSettingsRowInput]) -> List[BankAccount]:
                 is_liquid=account.is_liquid,
                 history=new_history,
                 active=is_active,
+                baseline_amount=float(baseline_amount),
             )
         )
 

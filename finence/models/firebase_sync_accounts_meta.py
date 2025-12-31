@@ -57,6 +57,10 @@ def pull_accounts_meta_to_local_cache(
                 kind = str(row.get("kind", "") or "").strip().lower()
                 is_liquid = bool(row.get("is_liquid", False))
                 active = bool(row.get("active", False))
+                try:
+                    baseline_amount = float(row.get("baseline_amount", 0.0) or 0.0)
+                except Exception:
+                    baseline_amount = 0.0
                 if kind == "budget":
                     try:
                         mb = float(row.get("monthly_budget", 0.0) or 0.0)
@@ -117,6 +121,10 @@ def pull_accounts_meta_to_local_cache(
                             is_liquid=is_liquid,
                             history=list(existing.history),
                             active=active,
+                            baseline_amount=float(
+                                getattr(existing, "baseline_amount", baseline_amount)
+                                or baseline_amount
+                            ),
                         )
                     )
                 else:
@@ -127,6 +135,7 @@ def pull_accounts_meta_to_local_cache(
                             is_liquid=is_liquid,
                             history=[],
                             active=active,
+                            baseline_amount=float(baseline_amount),
                         )
                     )
 
