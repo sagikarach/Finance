@@ -184,6 +184,8 @@ class FirebaseMovementsSyncService:
             remote_by_id=remote_by_id,
         )
 
+        self._best_effort(self._push_dashboard_meta)
+
         pushed = 0
         remote_set = set(remote_ids)
 
@@ -191,3 +193,16 @@ class FirebaseMovementsSyncService:
         self._best_effort(save_sync_state, key, state)
 
         return pulled, pushed
+
+    def _push_dashboard_meta(self) -> None:
+        try:
+            from ..models.dashboard_meta_service import DashboardMetaService
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            meta = DashboardMetaService(
+                accounts_provider=self._accounts_provider,
+                movement_provider=self._provider,
+            ).compute()
+            FirebaseWorkspaceWriter().upsert_dashboard_meta(meta)
+        except Exception:
+            return

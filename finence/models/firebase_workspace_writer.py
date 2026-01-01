@@ -272,6 +272,29 @@ class FirebaseWorkspaceWriter:
             },
         )
 
+    def upsert_dashboard_meta(self, meta) -> None:
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/meta/dashboard",
+            id_token=s.id_token,
+            fields={
+                "total_all": float(getattr(meta, "total_all", 0.0) or 0.0),
+                "total_liquid": float(getattr(meta, "total_liquid", 0.0) or 0.0),
+                "avg_monthly_income": float(
+                    getattr(meta, "avg_monthly_income", 0.0) or 0.0
+                ),
+                "avg_monthly_expense": float(
+                    getattr(meta, "avg_monthly_expense", 0.0) or 0.0
+                ),
+                "avg_months_count": int(getattr(meta, "avg_months_count", 0) or 0),
+                "computed_at": str(getattr(meta, "computed_at", "") or ""),
+                "version": 1,
+                "source": "desktop",
+            },
+        )
+
     def upsert_ml_seed(self, *, examples: List[Dict[str, Any]]) -> None:
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)

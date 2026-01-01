@@ -6,8 +6,7 @@ import 'package:flutter/material.dart';
 import '../models/movement.dart';
 import '../services/action_history_service.dart';
 import '../services/bootstrap_service.dart';
-import '../services/movements_service.dart';
-import '../services/savings_service.dart';
+import '../services/dashboard_meta_service.dart';
 import '../services/session_service.dart';
 import '../services/launch_target_service.dart';
 import 'movements_screen.dart';
@@ -38,9 +37,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final SessionService _session = const SessionService();
   late final BootstrapService _bootstrap;
-  late final MovementsService _movements;
-  late final SavingsService _savings;
   late final ActionHistoryService _actions;
+  late final DashboardMetaService _dashboardMeta;
 
   List<Movement> _items = <Movement>[];
   List<WorkspaceAction> _actionItems = <WorkspaceAction>[];
@@ -57,9 +55,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _bootstrap = BootstrapService(workspaceId: widget.workspaceId);
-    _movements = MovementsService(workspaceId: widget.workspaceId);
-    _savings = SavingsService(workspaceId: widget.workspaceId);
     _actions = ActionHistoryService(workspaceId: widget.workspaceId);
+    _dashboardMeta = DashboardMetaService(workspaceId: widget.workspaceId);
 
     _pullFromServer(showToast: false);
 
@@ -155,123 +152,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       await _bootstrap.ensureWorkspaceMeta();
 
-      final items = await _movements.fetch(source: Source.server);
+      final dashboard = await _dashboardMeta.fetch(source: Source.server);
       final actions = await _actions.fetch(source: Source.server, limit: 60);
-      final savings = await _savings.fetchSavingsAccountsRaw(source: Source.server);
-
-      final now = DateTime.now();
-      final currKey = _monthKey(now);
-      final prevKey = _prevMonthKey(now);
-
-      final metaSnap = await FirebaseFirestore.instance
-          .collection('workspaces')
-          .doc(widget.workspaceId)
-          .collection('meta')
-          .doc('accounts')
-          .get(const GetOptions(source: Source.server));
-      final meta = metaSnap.data() ?? <String, dynamic>{};
-      final rawBanks = meta['bank_accounts'];
-
-      final Map<String, Map<String, dynamic>> bankRows = <String, Map<String, dynamic>>{};
-      if (rawBanks is List) {
-        for (final it in rawBanks) {
-          if (it is Map) {
-            final m = it.map((k, v) => MapEntry('$k', v));
-            final name = (m['name'] as String?)?.trim() ?? '';
-            if (name.isNotEmpty) bankRows[name] = m;
-          }
-        }
-      }
-
-      final balances = <String, double>{};
-      for (final row in bankRows.values) {
-        final name = (row['name'] as String?)?.trim() ?? '';
-        final kind = (row['kind'] as String?)?.trim() ?? '';
-        final active = (row['active'] as bool?) ?? false;
-        if (name.isEmpty || !active) continue;
-        if (kind == 'budget') continue;
-        final baseline = (row['baseline_amount'] is num)
-            ? (row['baseline_amount'] as num).toDouble()
-            : 0.0;
-        balances[name] = (balances[name] ?? 0.0) + baseline;
-      }
-
-      for (final m in items) {
-        final acc = m.accountName.trim();
-        if (acc.isEmpty) continue;
-        final row = bankRows[acc];
-        final kind = (row?['kind'] as String?)?.trim() ?? '';
-        final active = (row?['active'] as bool?) ?? false;
-        if (!active) continue;
-        if (kind == 'budget') continue;
-        balances[acc] = (balances[acc] ?? 0.0) + m.amount;
-      }
-
-      double bankTotal = 0.0;
-      double liquidTotal = 0.0;
-      for (final entry in balances.entries) {
-        final acc = entry.key;
-        final v = entry.value;
-        bankTotal += v;
-        final row = bankRows[acc];
-        final isLiquid = (row?['is_liquid'] as bool?) ?? false;
-        if (isLiquid) liquidTotal += v;
-      }
-
-      double savingsTotal = 0.0;
-      double savingsLiquid = 0.0;
-      for (final acc in savings) {
-        final t = acc['total_amount'];
-        if (t is num) savingsTotal += t.toDouble();
-        final isLiq = (acc['is_liquid'] as bool?) ?? false;
-        if (isLiq && t is num) savingsLiquid += t.toDouble();
-      }
-
-      final incomeByMonth = <String, double>{};
-      final expenseByMonth = <String, double>{};
-      for (final m in items) {
-        final d = _parseDate(m.date);
-        if (d == null) continue;
-        final mk = _monthKey(d);
-        if (mk == currKey || mk == prevKey) continue;
-        final acc = m.accountName.trim();
-        final kind = (bankRows[acc]?['kind'] as String?)?.trim() ?? '';
-        if (kind == 'budget') continue;
-
-        if (m.amount > 0) {
-          incomeByMonth[mk] = (incomeByMonth[mk] ?? 0.0) + m.amount;
-        } else if (m.amount < 0) {
-          expenseByMonth[mk] = (expenseByMonth[mk] ?? 0.0) + m.amount.abs();
-        }
-      }
-
-      final months = <String>{
-        ...incomeByMonth.keys,
-        ...expenseByMonth.keys,
-      }.toList()
-        ..sort();
-
-      double? avgInc;
-      double? avgExp;
-      if (months.isNotEmpty) {
-        double incSum = 0.0;
-        double expSum = 0.0;
-        for (final mk in months) {
-          incSum += incomeByMonth[mk] ?? 0.0;
-          expSum += expenseByMonth[mk] ?? 0.0;
-        }
-        avgInc = incSum / months.length;
-        avgExp = expSum / months.length;
-      }
+      final items = <Movement>[];
 
       if (!mounted) return;
       setState(() {
         _items = items;
         _actionItems = actions;
-        _totalAll = bankTotal + savingsTotal;
-        _totalLiquid = liquidTotal + savingsLiquid;
-        _avgMonthlyIncome = avgInc;
-        _avgMonthlyExpense = avgExp;
+        _totalAll = dashboard?.totalAll ?? 0.0;
+        _totalLiquid = dashboard?.totalLiquid ?? 0.0;
+        _avgMonthlyIncome = dashboard?.avgMonthlyIncome;
+        _avgMonthlyExpense = dashboard?.avgMonthlyExpense;
         _loading = false;
       });
 
