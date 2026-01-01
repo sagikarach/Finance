@@ -15,15 +15,69 @@ class AccountsMetaService {
         .doc('accounts');
   }
 
+  bool _defaultIsLiquid(String name) {
+    final n = name.trim();
+    if (n.isEmpty) return false;
+    return n == 'מזומן';
+  }
+
   Future<void> ensureDoc() async {
     final ref = _doc();
     final snap = await ref.get();
-    if (snap.exists) return;
+    if (snap.exists) {
+      final data = snap.data() ?? <String, dynamic>{};
+      final version = (data['version'] as num?)?.toInt() ?? 0;
+      if (version >= 2) return;
+
+      final raw = data['bank_accounts'];
+      final List<Map<String, dynamic>> list = <Map<String, dynamic>>[];
+      if (raw is List) {
+        for (final it in raw) {
+          if (it is Map) {
+            list.add(it.map((k, v) => MapEntry('$k', v)));
+          }
+        }
+      }
+
+      bool changed = false;
+      for (var i = 0; i < list.length; i++) {
+        final row = Map<String, dynamic>.from(list[i]);
+        final name = (row['name'] as String?)?.trim() ?? '';
+        final kind = (row['kind'] as String?)?.trim() ?? '';
+        final isBudget = kind == 'budget';
+        final hasIsLiquid = row.containsKey('is_liquid');
+
+        if (!isBudget && !hasIsLiquid) {
+          row['is_liquid'] = _defaultIsLiquid(name);
+          changed = true;
+        } else if (isBudget && !hasIsLiquid) {
+          row['is_liquid'] = false;
+          changed = true;
+        }
+
+        if (changed) list[i] = row;
+      }
+
+      if (!changed) {
+        await ref.set(<String, Object?>{
+          'version': 2,
+          'updated_at': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        return;
+      }
+
+      await ref.set(<String, Object?>{
+        'bank_accounts': list,
+        'version': 2,
+        'updated_at': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      return;
+    }
 
     final bankAccounts = Accounts.fixedAccounts
         .map((name) => <String, Object?>{
               'name': name,
-              'is_liquid': name == 'מזומן',
+              'is_liquid': _defaultIsLiquid(name),
               'active': false,
             })
         .toList();
@@ -31,7 +85,7 @@ class AccountsMetaService {
     await ref.set(<String, Object?>{
       'bank_accounts': bankAccounts,
       'savings_accounts': <Object?>[],
-      'version': 1,
+      'version': 2,
       'updated_at': FieldValue.serverTimestamp(),
     });
   }
@@ -58,14 +112,14 @@ class AccountsMetaService {
 
     list.add(<String, Object?>{
       'name': n,
-      'is_liquid': n == 'מזומן',
+      'is_liquid': _defaultIsLiquid(n),
       'active': false,
     });
 
     await ref.set(<String, Object?>{
       'bank_accounts': list,
       'updated_at': FieldValue.serverTimestamp(),
-      'version': 1,
+      'version': 2,
     }, SetOptions(merge: true));
   }
 

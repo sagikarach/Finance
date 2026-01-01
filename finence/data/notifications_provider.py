@@ -43,6 +43,10 @@ class NotificationsProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def delete(self, *, key: str) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
     def is_enabled(self) -> bool:
         raise NotImplementedError
 
@@ -53,7 +57,21 @@ class NotificationsProvider(ABC):
 
 class JsonFileNotificationsProvider(NotificationsProvider):
     def __init__(self, path: Optional[Union[str, Path]] = None) -> None:
-        self._path = Path(path) if path else accounts_data_dir() / "notifications.json"
+        try:
+            from ..models.firebase_session import (
+                current_firebase_uid,
+                current_firebase_workspace_id,
+            )
+
+            key = (
+                current_firebase_workspace_id() or current_firebase_uid() or ""
+            ).strip()
+        except Exception:
+            key = ""
+        suffix = f"_{key}" if key else ""
+        self._path = (
+            Path(path) if path else accounts_data_dir() / f"notifications{suffix}.json"
+        )
 
     def list_notifications(self) -> List[Notification]:
         data = self._read()
@@ -120,6 +138,15 @@ class JsonFileNotificationsProvider(NotificationsProvider):
             updated.append(n)
         if changed:
             self.save_notifications(updated)
+
+    def delete(self, *, key: str) -> None:
+        key = str(key or "").strip()
+        if not key:
+            return
+        items = self.list_notifications()
+        kept = [n for n in items if str(getattr(n, "key", "") or "") != key]
+        if len(kept) != len(items):
+            self.save_notifications(kept)
 
     def is_enabled(self) -> bool:
         data = self._read()

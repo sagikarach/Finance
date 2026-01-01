@@ -4,6 +4,36 @@ import 'package:uuid/uuid.dart';
 import '../models/movement.dart';
 import 'session_service.dart';
 
+class WorkspaceAction {
+  final String id;
+  final String timestamp; // YYYY-MM-DD
+  final String? uid;
+  final Map<String, dynamic> action;
+
+  WorkspaceAction({
+    required this.id,
+    required this.timestamp,
+    required this.uid,
+    required this.action,
+  });
+
+  String get actionName => (action['action_name'] as String?)?.trim() ?? '';
+
+  static WorkspaceAction fromFirestore(Map<String, dynamic> data) {
+    final rawAction = data['action'];
+    Map<String, dynamic> actionMap = <String, dynamic>{};
+    if (rawAction is Map) {
+      actionMap = rawAction.map((k, v) => MapEntry('$k', v));
+    }
+    return WorkspaceAction(
+      id: (data['id'] as String?) ?? '',
+      timestamp: (data['timestamp'] as String?) ?? '',
+      uid: data['uid'] as String?,
+      action: actionMap,
+    );
+  }
+}
+
 class ActionHistoryService {
   final String workspaceId;
   final SessionService _session;
@@ -18,6 +48,21 @@ class ActionHistoryService {
         .collection('workspaces')
         .doc(workspaceId)
         .collection('actions');
+  }
+
+  Future<List<WorkspaceAction>> fetch({
+    Source source = Source.server,
+    int limit = 50,
+  }) async {
+    final snap = await _ref()
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .get(GetOptions(source: source));
+
+    return snap.docs
+        .map((d) => WorkspaceAction.fromFirestore(d.data()))
+        .where((a) => a.id.trim().isNotEmpty)
+        .toList();
   }
 
   Future<void> logAddMovement({

@@ -390,6 +390,10 @@ def create_bank_history_chart_card(
                 s_obj.attachAxis(axis_y)
             except Exception:
                 pass
+        try:
+            axis_y.setRange(bottom, top)
+        except Exception:
+            pass
 
         chart_view = ShadowChartView(
             chart,

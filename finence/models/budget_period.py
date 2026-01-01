@@ -31,5 +31,3 @@ def current_budget_period_end_key(reset_day: int) -> tuple[int, int]:
     if int(today.day) <= int(reset_day):
         return int(today.year), int(today.month)
     return next_month(int(today.year), int(today.month))
-
-

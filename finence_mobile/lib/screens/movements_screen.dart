@@ -9,6 +9,8 @@ import '../services/movements_service.dart';
 import '../services/action_history_service.dart';
 import '../services/session_service.dart';
 import '../services/launch_target_service.dart';
+import '../widgets/notifications_sheet.dart';
+import '../widgets/header_actions_row.dart';
 import 'new_movement_screen.dart';
 import 'savings_screen.dart';
 import 'workspace_screen.dart';
@@ -144,52 +146,54 @@ class _MovementsScreenState extends State<MovementsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('תנועות'),
-        actions: [
-          IconButton(
-            tooltip: 'שיתוף',
-            onPressed: () async {
-              final picked = await Navigator.of(context).push<String?>(
-                MaterialPageRoute(builder: (_) => const WorkspaceScreen()),
-              );
-              if (picked == null) return;
-              if (!context.mounted) return;
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => MovementsScreen(workspaceId: picked),
-                ),
-              );
-            },
-            icon: const Icon(Icons.group),
-          ),
-          IconButton(
-            tooltip: 'חסכונות',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => SavingsScreen(workspaceId: widget.workspaceId),
+        title: HeaderActionsRow(
+          title: 'תנועות',
+          actions: [
+            HeaderAction(
+              icon: Icons.notifications_none,
+              tooltip: 'התראות',
+              onPressed: () => showNotificationsSheet(
+                context: context,
+                workspaceId: widget.workspaceId,
               ),
             ),
-            icon: const Icon(Icons.savings),
-          ),
-          IconButton(
-            onPressed: _syncing
-                ? null
-                : () => _pullFromServer(showToast: true),
-            icon: _syncing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.sync),
-            tooltip: 'סנכרן עכשיו',
-          ),
-          IconButton(
-            onPressed: () => _session.signOut(),
-            icon: const Icon(Icons.logout),
-            tooltip: 'התנתק',
-          ),
-        ],
+            HeaderAction(
+              icon: Icons.group,
+              tooltip: 'שיתוף',
+              onPressed: () async {
+                final picked = await Navigator.of(context).push<String?>(
+                  MaterialPageRoute(builder: (_) => const WorkspaceScreen()),
+                );
+                if (picked == null) return;
+                if (!context.mounted) return;
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => MovementsScreen(workspaceId: picked),
+                  ),
+                );
+              },
+            ),
+            HeaderAction(
+              icon: Icons.savings,
+              tooltip: 'חסכונות',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SavingsScreen(workspaceId: widget.workspaceId),
+                ),
+              ),
+            ),
+            HeaderAction(
+              icon: Icons.sync,
+              tooltip: 'סנכרן עכשיו',
+              onPressed: _syncing ? null : () => _pullFromServer(showToast: true),
+            ),
+            HeaderAction(
+              icon: Icons.logout,
+              tooltip: 'התנתק',
+              onPressed: () => _session.signOut(),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(context).push(

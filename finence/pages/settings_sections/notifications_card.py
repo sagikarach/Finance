@@ -82,6 +82,7 @@ class NotificationsCard(QWidget):
         for r in rules:
             label = rule_label_map.get(r.type, r.id)
             cb = QCheckBox(label, self)
+            cb.setObjectName("NotificationRuleToggle")
             cb.setChecked(bool(r.enabled))
             rule_checkboxes[r.id] = cb
             layout.addWidget(cb)

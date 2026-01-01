@@ -121,7 +121,8 @@ class NotificationsService:
             items = list(self._provider.list_notifications())
         except Exception:
             items = []
-        return self._filter_by_enabled_rules(items)
+        visible = self._filter_by_enabled_rules(items)
+        return [n for n in visible if n.status != NotificationStatus.RESOLVED]
 
     def set_rule_enabled(self, rule_id: str, enabled: bool) -> None:
         self.ensure_defaults()
@@ -196,13 +197,57 @@ class NotificationsService:
 
         for n in created:
             self._provider.upsert(n)
+            try:
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                FirebaseWorkspaceWriter().upsert_notification(n)
+            except Exception:
+                pass
 
         self._resolve_stale(active_keys=active_keys)
         try:
             items = list(self._provider.list_notifications())
         except Exception:
             items = []
-        return self._filter_by_enabled_rules(items)
+        visible = self._filter_by_enabled_rules(items)
+        return [n for n in visible if n.status != NotificationStatus.RESOLVED]
+
+    def get_movement_by_id(self, movement_id: str) -> Optional[BankMovement]:
+        movement_id = str(movement_id or "").strip()
+        if not movement_id:
+            return None
+        if self._movement_provider is None:
+            return None
+        try:
+            items = list(self._movement_provider.list_movements())
+        except Exception:
+            items = []
+        for m in items:
+            try:
+                if str(getattr(m, "id", "") or "") == movement_id:
+                    return m
+            except Exception:
+                continue
+        return None
+
+    def get_movements_by_ids(self, movement_ids: List[str]) -> List[BankMovement]:
+        ids = [str(x or "").strip() for x in list(movement_ids or [])]
+        want = {x for x in ids if x}
+        if not want or self._movement_provider is None:
+            return []
+        try:
+            items = list(self._movement_provider.list_movements())
+        except Exception:
+            items = []
+        out: List[BankMovement] = []
+        for m in items:
+            try:
+                mid = str(getattr(m, "id", "") or "")
+            except Exception:
+                continue
+            if mid in want:
+                out.append(m)
+        return out
 
     def unread_count(self) -> int:
         if not self.is_enabled():
@@ -212,9 +257,44 @@ class NotificationsService:
 
     def mark_read(self, key: str) -> None:
         self._provider.update_status(key=key, status=NotificationStatus.READ)
+        self._best_effort_push_status(key=key)
+
+    def mark_unread(self, key: str) -> None:
+        self._provider.update_status(key=key, status=NotificationStatus.UNREAD)
+        self._best_effort_push_status(key=key)
 
     def dismiss(self, key: str) -> None:
         self._provider.update_status(key=key, status=NotificationStatus.DISMISSED)
+        self._best_effort_push_status(key=key)
+
+    def resolve(self, key: str) -> None:
+        self._provider.update_status(key=key, status=NotificationStatus.RESOLVED)
+        self._best_effort_push_status(key=key)
+
+    def _best_effort_push_status(self, *, key: str) -> None:
+        key = str(key or "").strip()
+        if not key:
+            return
+        try:
+            items = list(self._provider.list_notifications())
+        except Exception:
+            items = []
+        notif = None
+        for n in items:
+            try:
+                if str(getattr(n, "key", "") or "") == key:
+                    notif = n
+                    break
+            except Exception:
+                continue
+        if notif is None:
+            return
+        try:
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            FirebaseWorkspaceWriter().upsert_notification(notif)
+        except Exception:
+            return
 
     def _enabled_rule_ids(self) -> set[str]:
         try:
@@ -256,6 +336,7 @@ class NotificationsService:
                     self._provider.update_status(
                         key=n.key, status=NotificationStatus.RESOLVED
                     )
+                    self._best_effort_push_status(key=n.key)
 
     def _rule_event_over_budget(
         self,
@@ -286,13 +367,8 @@ class NotificationsService:
 
                 existing = existing_by_key.get(key)
                 if existing is not None:
-                    if existing.status == NotificationStatus.RESOLVED:
-                        try:
-                            self._provider.update_status(
-                                key=key, status=NotificationStatus.UNREAD
-                            )
-                        except Exception:
-                            pass
+                    # If the user resolved this notification, keep it resolved (tombstone)
+                    # and do not recreate/re-open it while the condition is still active.
                     continue
 
                 over = spent - budget
@@ -513,12 +589,20 @@ class NotificationsService:
         existing_by_key: dict[str, Notification],
         active_keys: set[str],
     ) -> List[Notification]:
-        day_of_month = int(rule.params.get("day_of_month", 5))
         today = date.today()
-        if today.day < day_of_month:
-            return []
+        # Alert only after enough time has passed since the missing month.
+        # User expectation example: if October (10) was missed, alert only after December (12) ended.
+        # That means we alert in January -> target month is 3 months back.
+        delay_months = 3
 
-        ym = f"{today.year:04d}-{today.month:02d}"
+        def _add_months(y: int, m: int, delta: int) -> tuple[int, int]:
+            total = (int(y) * 12 + (int(m) - 1)) + int(delta)
+            ny = total // 12
+            nm = (total % 12) + 1
+            return int(ny), int(nm)
+
+        target_year, target_month = _add_months(today.year, today.month, -delay_months)
+        ym = f"{target_year:04d}-{target_month:02d}"
         key = f"missing_upload:{ym}"
 
         has_upload = False
@@ -529,7 +613,7 @@ class NotificationsService:
                 if not getattr(h.action, "success", True):
                     continue
                 ts = parse_iso_date(getattr(h, "timestamp", ""))
-                if ts.year == today.year and ts.month == today.month:
+                if ts.year == target_year and ts.month == target_month:
                     has_upload = True
                     break
             except Exception:
@@ -548,11 +632,11 @@ class NotificationsService:
                 key=key,
                 type=NotificationType.MISSING_MONTHLY_UPLOAD,
                 title="חסרה העלאת קובץ הוצאות",
-                message="נראה שעדיין לא העלית קובץ הוצאות לחודש הנוכחי.",
+                message="לא העלה קובץ הוצאות חודשי.",
                 severity=NotificationSeverity.INFO,
                 created_at=_today_iso(),
                 source=f"rule:{rule.id}",
-                context={"year": today.year, "month": today.month},
+                context={"year": target_year, "month": target_month},
             )
         ]
 

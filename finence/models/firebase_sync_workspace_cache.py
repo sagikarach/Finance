@@ -125,3 +125,68 @@ def pull_installment_plans_to_local_cache(
         JsonFileInstallmentPlanProvider().save_plans(plans)
     except Exception:
         pass
+
+
+def pull_notifications_to_local_cache(
+    *, fs: FirestoreClient, workspace_id: str, id_token: str
+) -> None:
+    workspace_id = str(workspace_id or "").strip()
+    if not workspace_id:
+        return
+    try:
+        from ..data.notifications_provider import JsonFileNotificationsProvider
+        from ..models.notifications import (
+            Notification,
+            NotificationSeverity,
+            NotificationStatus,
+            NotificationType,
+        )
+
+        docs = fs.list_collection(
+            collection_path=f"workspaces/{workspace_id}/notifications",
+            id_token=id_token,
+        )
+
+        remote: list[Notification] = []
+        for d in docs:
+            try:
+                doc_id, parsed = fs.parse_any_doc(d)
+                nid = str(parsed.get("id") or "").strip() or str(doc_id or "").strip()
+                key = str(parsed.get("key") or "").strip() or str(doc_id or "").strip()
+                if not key:
+                    continue
+                remote.append(
+                    Notification(
+                        id=nid or key,
+                        key=key,
+                        type=NotificationType(str(parsed.get("type") or "")),
+                        title=str(parsed.get("title") or ""),
+                        message=str(parsed.get("message") or ""),
+                        severity=NotificationSeverity(
+                            str(parsed.get("severity") or "info")
+                        ),
+                        created_at=str(parsed.get("created_at") or ""),
+                        status=NotificationStatus(
+                            str(parsed.get("status") or "unread")
+                        ),
+                        due_at=str(parsed["due_at"])
+                        if parsed.get("due_at") is not None
+                        else None,
+                        source=str(parsed.get("source") or "system"),
+                        context=dict(parsed.get("context") or {}),
+                    )
+                )
+            except Exception:
+                continue
+
+        prov = JsonFileNotificationsProvider()
+        local = list(prov.list_notifications())
+        by_key = {n.key: n for n in local if getattr(n, "key", "")}
+        for n in remote:
+            by_key[n.key] = n
+
+        merged = list(by_key.values())
+        merged.sort(key=lambda x: str(getattr(x, "created_at", "") or ""), reverse=True)
+        prov.save_notifications(merged)
+    except Exception:
+        pass

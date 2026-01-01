@@ -9,6 +9,7 @@ from ..models.firebase_session_manager import FirebaseSessionManager
 from ..models.bank_movement import BankMovement
 from ..models.one_time_event import OneTimeEvent
 from ..models.installment_plan import InstallmentPlan
+from ..models.notifications import Notification
 from ..models.accounts import (
     MoneyAccount,
     BankAccount,
@@ -236,6 +237,38 @@ class FirebaseWorkspaceWriter:
                 "timestamp": entry.timestamp,
                 "uid": s.uid,
                 "action": action_dict,
+            },
+        )
+
+    def upsert_notification(self, notif: Notification) -> None:
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        doc_id = (
+            str(getattr(notif, "key", "") or "").strip()
+            or str(getattr(notif, "id", "") or "").strip()
+        )
+        if not doc_id:
+            return
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/notifications/{doc_id}",
+            id_token=s.id_token,
+            fields={
+                "id": str(getattr(notif, "id", "") or "").strip(),
+                "key": str(getattr(notif, "key", "") or "").strip(),
+                "type": str(getattr(getattr(notif, "type", None), "value", notif.type)),
+                "title": str(getattr(notif, "title", "") or ""),
+                "message": str(getattr(notif, "message", "") or ""),
+                "severity": str(
+                    getattr(getattr(notif, "severity", None), "value", notif.severity)
+                ),
+                "created_at": str(getattr(notif, "created_at", "") or ""),
+                "status": str(
+                    getattr(getattr(notif, "status", None), "value", notif.status)
+                ),
+                "due_at": getattr(notif, "due_at", None),
+                "source": str(getattr(notif, "source", "") or "system"),
+                "context": dict(getattr(notif, "context", {}) or {}),
             },
         )
 

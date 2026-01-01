@@ -14,14 +14,12 @@ from ..qt import (
 from ..data.provider import AccountsProvider
 from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts_service import AccountsService
-from ..__version__ import __version__
 from .base_page import BasePage
 from ..models.firebase_session import FirebaseSessionStore
 from .settings_sections import (
     BankAccountsCard,
     FirebaseSyncCard,
     NotificationsCard,
-    UpdatesCard,
     UserDetailsCard,
 )
 
@@ -43,7 +41,6 @@ class SettingsPage(BasePage):
             page_title="הגדרות",
             current_route="settings",
         )
-        self._update_eye_icon: Optional[Callable[[], None]] = None
         self._user_card: Optional[UserDetailsCard] = None
         self._get_previous_route = get_previous_route
         self._history_provider = JsonFileActionHistoryProvider()
@@ -69,11 +66,6 @@ class SettingsPage(BasePage):
         buttons.append(back_btn)
         return buttons
 
-    def _on_theme_changed(self, is_dark: bool) -> None:
-        super()._on_theme_changed(is_dark)
-        if self._update_eye_icon is not None:
-            self._update_eye_icon()
-
     def _build_content(self, main_col: QVBoxLayout) -> None:
         self._clear_content_layout(main_col)
 
@@ -90,7 +82,6 @@ class SettingsPage(BasePage):
             user_store=self._user_store,
             on_profile_saved=on_profile_saved,
         )
-        self._update_eye_icon = self._user_card.update_eye_icon
 
         def on_accounts_saved() -> None:
             try:
@@ -111,7 +102,6 @@ class SettingsPage(BasePage):
             on_refreshed=getattr(self, "_refresh_notifications_badge", None),
         )
         firebase_card = FirebaseSyncCard(parent=self, store=FirebaseSessionStore())
-        updates_card = UpdatesCard(parent=self, app_version=__version__)
 
         container = QWidget(self)
         try:
@@ -144,7 +134,6 @@ class SettingsPage(BasePage):
         menu.addItem("חשבונות")
         menu.addItem("התראות")
         menu.addItem("שיתוף וסנכרון")
-        menu.addItem("עדכונים")
 
         stack = QStackedWidget(container)
 
@@ -168,7 +157,6 @@ class SettingsPage(BasePage):
         stack.addWidget(_wrap_page(bank_accounts_card))
         stack.addWidget(_wrap_page(notifications_card))
         stack.addWidget(_wrap_page(firebase_card))
-        stack.addWidget(_wrap_page(updates_card))
 
         def _save_selected(idx: int) -> None:
             try:

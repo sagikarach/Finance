@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Callable, Optional
 
 from ...qt import (
-    QApplication,
     QCheckBox,
     QCursor,
     QHBoxLayout,
-    QIcon,
     QLabel,
     QLineEdit,
-    QPixmap,
     QPushButton,
     Qt,
     QToolButton,
@@ -53,57 +49,6 @@ class UserDetailsCard(QWidget):
             except Exception:
                 pass
         self._build()
-
-    def update_eye_icon(self) -> None:
-        btn = self._eye_button
-        if btn is None:
-            return
-        icon_path = self._eye_icon_path(self._is_dark())
-        if icon_path is None:
-            btn.setIcon(QIcon())
-            btn.setText("👁")
-            return
-        pixmap = QPixmap(str(icon_path))
-        if pixmap.isNull():
-            btn.setIcon(QIcon())
-            btn.setText("👁")
-            return
-        try:
-            from ...qt import QSize
-
-            scaled = pixmap.scaled(
-                QSize(24, 24),
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            btn.setIconSize(QSize(24, 24))
-        except Exception:
-            scaled = pixmap.scaled(
-                24,
-                24,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        btn.setIcon(QIcon(scaled))
-        btn.setText("")
-
-    def _is_dark(self) -> bool:
-        app = QApplication.instance()
-        theme = "light"
-        if app is not None:
-            try:
-                theme = str(app.property("theme") or "light")
-            except Exception:
-                theme = "light"
-        return theme == "dark"
-
-    def _eye_icon_path(self, is_dark: bool) -> Optional[Path]:
-        name = "eye_icon_dark" if is_dark else "eye_icon"
-        for ext in (".png", ".jpg"):
-            p = Path.cwd() / "data" / "assets" / "icons" / f"{name}{ext}"
-            if p.exists():
-                return p
-        return None
 
     def _build(self) -> None:
         layout = QVBoxLayout(self)
@@ -165,7 +110,7 @@ class UserDetailsCard(QWidget):
         eye_button.setCheckable(True)
         eye_button.setToolTip("הצג / הסתר סיסמה")
         self._eye_button = eye_button
-        self.update_eye_icon()
+        eye_button.setText("👁")
 
         password_row_widget = QWidget(self)
         self._password_row_widget = password_row_widget

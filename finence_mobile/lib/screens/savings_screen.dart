@@ -6,6 +6,8 @@ import '../services/bootstrap_service.dart';
 import '../services/savings_service.dart';
 import '../services/session_service.dart';
 import '../widgets/select_field.dart';
+import '../widgets/notifications_sheet.dart';
+import '../widgets/header_actions_row.dart';
 
 class SavingsScreen extends StatefulWidget {
   final String workspaceId;
@@ -218,20 +220,24 @@ class _SavingsScreenState extends State<SavingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('חסכונות'),
-        actions: [
-          IconButton(
-            onPressed: _syncing ? null : () => _pullFromServer(showToast: true),
-            icon: _syncing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.sync),
-            tooltip: 'סנכרן עכשיו',
-          ),
-        ],
+        title: HeaderActionsRow(
+          title: 'חסכונות',
+          actions: [
+            HeaderAction(
+              icon: Icons.notifications_none,
+              tooltip: 'התראות',
+              onPressed: () => showNotificationsSheet(
+                context: context,
+                workspaceId: widget.workspaceId,
+              ),
+            ),
+            HeaderAction(
+              icon: Icons.sync,
+              tooltip: 'סנכרן עכשיו',
+              onPressed: _syncing ? null : () => _pullFromServer(showToast: true),
+            ),
+          ],
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

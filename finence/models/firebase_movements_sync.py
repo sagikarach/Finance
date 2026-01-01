@@ -20,6 +20,7 @@ from ..models.firebase_sync_pullers import (
 from ..models.firebase_sync_workspace_cache import (
     pull_events_to_local_cache,
     pull_installment_plans_to_local_cache,
+    pull_notifications_to_local_cache,
     pull_ml_seed_best_effort,
 )
 from ..models.firebase_sync_accounts_meta import pull_accounts_meta_to_local_cache
@@ -104,6 +105,7 @@ class FirebaseMovementsSyncService:
         pull_installment_plans_to_local_cache(
             fs=fs, workspace_id=wid, id_token=id_token
         )
+        pull_notifications_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
         pull_accounts_meta_to_local_cache(
             fs=fs,
             workspace_id=wid,

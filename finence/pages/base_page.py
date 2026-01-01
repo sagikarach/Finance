@@ -587,6 +587,12 @@ class BasePage(QWidget):
 
     def _open_bank_movement_dialog(self, is_income: bool) -> None:
         try:
+            if self._accounts_service is not None:
+                self._accounts = list(self._accounts_service.load_accounts() or [])
+        except Exception:
+            pass
+
+        try:
             bank_accounts: List[MoneyAccount] = [
                 acc
                 for acc in self._accounts
@@ -741,6 +747,44 @@ class BasePage(QWidget):
 
         if svc is not None:
             try:
+                existing_baseline_by_name: dict[str, float] = {}
+                try:
+                    for a in list(self._provider.list_accounts() or []):
+                        if isinstance(a, BankAccount):
+                            existing_baseline_by_name[str(a.name)] = float(
+                                getattr(a, "baseline_amount", 0.0) or 0.0
+                            )
+                except Exception:
+                    existing_baseline_by_name = {}
+
+                merged_accounts: List[MoneyAccount] = []
+                try:
+                    for a in list(self._accounts or []):
+                        if isinstance(a, BankAccount):
+                            merged_accounts.append(
+                                BankAccount(
+                                    name=a.name,
+                                    total_amount=float(a.total_amount),
+                                    is_liquid=bool(a.is_liquid),
+                                    history=list(getattr(a, "history", []) or []),
+                                    active=bool(getattr(a, "active", False)),
+                                    baseline_amount=float(
+                                        existing_baseline_by_name.get(
+                                            str(a.name),
+                                            float(
+                                                getattr(a, "baseline_amount", 0.0)
+                                                or 0.0
+                                            ),
+                                        )
+                                    ),
+                                )
+                            )
+                        else:
+                            merged_accounts.append(a)
+                except Exception:
+                    merged_accounts = list(self._accounts or [])
+
+                self._accounts = merged_accounts
                 svc.save_all(self._accounts)
             except Exception:
                 pass
@@ -806,6 +850,9 @@ class BasePage(QWidget):
                     if callable(ss):
                         ss(load_default_stylesheet())
                     theme_btn.setText("☀")
+            except Exception:
+                pass
+            try:
                 self._on_theme_changed(checked)
             except Exception:
                 pass
@@ -943,6 +990,12 @@ class BasePage(QWidget):
         except Exception:
             pass
 
+        # Update password "eye" icons globally (Settings page may not be active / may not receive callbacks).
+        try:
+            self._update_password_eye_icons(is_dark)
+        except Exception:
+            pass
+
         if self._sidebar is not None:
             if hasattr(self._sidebar, "_update_button_width"):
                 try:
@@ -968,6 +1021,75 @@ class BasePage(QWidget):
         except Exception:
             pass
 
+    def _update_password_eye_icons(self, is_dark: bool) -> None:
+        """
+        Ensure the password eye icon switches with theme even if a page-specific callback didn't fire.
+        """
+        name = "eye_icon_dark" if bool(is_dark) else "eye_icon"
+        try:
+            from ..utils.resources import find_first_existing
+
+            icon_path = find_first_existing(
+                (
+                    f"data/assets/icons/{name}.png",
+                    f"Finence/data/assets/icons/{name}.png",
+                )
+            )
+        except Exception:
+            icon_path = None
+
+        top = self.window()
+        if top is None:
+            top = self
+        try:
+            buttons = top.findChildren(QToolButton)
+        except Exception:
+            buttons = []
+
+        if not buttons:
+            return
+
+        for btn in buttons:
+            try:
+                if str(btn.objectName() or "") != "PasswordEye":
+                    continue
+            except Exception:
+                continue
+
+            if icon_path is None:
+                try:
+                    btn.setIcon(QIcon())
+                    btn.setText("👁")
+                except Exception:
+                    pass
+                continue
+
+            try:
+                pixmap = QPixmap(str(icon_path))
+                if pixmap.isNull():
+                    btn.setIcon(QIcon())
+                    btn.setText("👁")
+                    continue
+                try:
+                    scaled = pixmap.scaled(
+                        QSize(24, 24),
+                        Qt.AspectRatioMode.KeepAspectRatio,
+                        Qt.TransformationMode.SmoothTransformation,
+                    )
+                    btn.setIconSize(QSize(24, 24))
+                except Exception:
+                    scaled = pixmap.scaled(24, 24)
+                btn.setIcon(QIcon(scaled))
+                btn.setText("")
+                btn.update()
+                btn.repaint()
+            except Exception:
+                try:
+                    btn.setIcon(QIcon())
+                    btn.setText("👁")
+                except Exception:
+                    pass
+
     def showEvent(self, event) -> None:
         super().showEvent(event)
         if self._theme_btn is not None:
@@ -983,6 +1105,10 @@ class BasePage(QWidget):
             self._theme_btn.setChecked(is_dark)
             self._theme_btn.setText("🌙" if is_dark else "☀")
             self._theme_btn.blockSignals(False)
+            try:
+                self._update_password_eye_icons(is_dark)
+            except Exception:
+                pass
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         raise NotImplementedError("Subclasses must implement _build_content()")

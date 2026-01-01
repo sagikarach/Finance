@@ -9,6 +9,7 @@ from ..models.bank_movement_service import BankMovementService
 from ..qt import (
     QComboBox,
     QDialog,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -47,8 +48,16 @@ class MonthMovementsDialog(QDialog):
             margins=(32, 24, 32, 24),
             spacing=12,
         )
-        self.setMinimumWidth(820)
-        self.setMinimumHeight(520)
+        try:
+            self.setMinimumSize(1100, 700)
+            self.resize(1280, 780)
+            self.setSizeGripEnabled(True)
+        except Exception:
+            try:
+                self.setMinimumWidth(1100)
+                self.setMinimumHeight(700)
+            except Exception:
+                pass
 
         title = QLabel(f"{year:04d}-{month:02d}", self)
         title.setObjectName("HeaderTitle")
@@ -111,7 +120,22 @@ class MonthMovementsDialog(QDialog):
             pass
         try:
             header = t.horizontalHeader()
-            header.setStretchLastSection(True)
+            header.setStretchLastSection(False)
+            if QHeaderView is not None:
+                try:
+                    rtc = QHeaderView.ResizeMode.ResizeToContents
+                    stretch = QHeaderView.ResizeMode.Stretch
+                except Exception:
+                    rtc = QHeaderView.ResizeToContents
+                    stretch = QHeaderView.Stretch
+
+                header.setSectionResizeMode(0, rtc)  # date
+                header.setSectionResizeMode(1, rtc)  # account
+                header.setSectionResizeMode(2, rtc)  # amount
+                header.setSectionResizeMode(3, rtc)  # category
+                header.setSectionResizeMode(4, rtc)  # type
+                header.setSectionResizeMode(5, stretch)  # description
+                header.setSectionResizeMode(6, rtc)  # delete button
         except Exception:
             pass
         return t

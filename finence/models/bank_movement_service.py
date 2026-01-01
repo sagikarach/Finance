@@ -12,7 +12,6 @@ from .bank_movement import BankMovement, MovementType
 from .csv_expense_parser import CsvExpenseParser
 from .movement_classifier import SimilarityBasedClassifier
 from .classified_expense import ClassifiedExpense
-from .parsed_expense import ParsedExpense
 from .action_history import (
     ActionHistory,
     Action,
@@ -22,7 +21,6 @@ from .action_history import (
     generate_action_id,
     get_current_timestamp,
 )
-
 
 
 @dataclass
@@ -133,9 +131,10 @@ class BankMovementService:
                 existing = []
             for m in existing:
                 try:
-                    if str(getattr(m, "account_name", "") or "").strip() != str(
-                        getattr(target_acc, "name", "") or ""
-                    ).strip():
+                    if (
+                        str(getattr(m, "account_name", "") or "").strip()
+                        != str(getattr(target_acc, "name", "") or "").strip()
+                    ):
                         continue
                     if bool(getattr(m, "is_transfer", False)):
                         continue
@@ -245,7 +244,9 @@ class BankMovementService:
 
                 new_history = list(getattr(acc, "history", []) or [])
                 if not (isinstance(acc, BudgetAccount) and new_total == current_total):
-                    new_history = new_history + [MoneySnapshot(date=date_str, amount=new_total)]
+                    new_history = new_history + [
+                        MoneySnapshot(date=date_str, amount=new_total)
+                    ]
 
                 updated_acc: MoneyAccount
                 if isinstance(acc, BudgetAccount):
@@ -355,9 +356,10 @@ class BankMovementService:
                 spent = 0.0
                 for m in all_movements:
                     try:
-                        if str(getattr(m, "account_name", "") or "").strip() != str(
-                            getattr(acc, "name", "") or ""
-                        ).strip():
+                        if (
+                            str(getattr(m, "account_name", "") or "").strip()
+                            != str(getattr(acc, "name", "") or "").strip()
+                        ):
                             continue
                         if bool(getattr(m, "is_transfer", False)):
                             continue
@@ -390,12 +392,20 @@ class BankMovementService:
                     date_str = ""
                 if date_str:
                     try:
-                        if new_history and str(getattr(new_history[-1], "date", "")) == str(date_str):
-                            new_history[-1] = MoneySnapshot(date=date_str, amount=remaining)
+                        if new_history and str(
+                            getattr(new_history[-1], "date", "")
+                        ) == str(date_str):
+                            new_history[-1] = MoneySnapshot(
+                                date=date_str, amount=remaining
+                            )
                         else:
-                            new_history.append(MoneySnapshot(date=date_str, amount=remaining))
+                            new_history.append(
+                                MoneySnapshot(date=date_str, amount=remaining)
+                            )
                     except Exception:
-                        new_history.append(MoneySnapshot(date=date_str, amount=remaining))
+                        new_history.append(
+                            MoneySnapshot(date=date_str, amount=remaining)
+                        )
 
                 updated_accounts.append(
                     BudgetAccount(
@@ -404,9 +414,13 @@ class BankMovementService:
                         is_liquid=False,
                         history=new_history,
                         active=bool(getattr(acc, "active", False)),
-                        monthly_budget=float(getattr(acc, "monthly_budget", 0.0) or 0.0),
+                        monthly_budget=float(
+                            getattr(acc, "monthly_budget", 0.0) or 0.0
+                        ),
                         reset_day=int(getattr(acc, "reset_day", 1) or 1),
-                        last_reset_period=str(getattr(acc, "last_reset_period", "") or ""),
+                        last_reset_period=str(
+                            getattr(acc, "last_reset_period", "") or ""
+                        ),
                     )
                 )
             else:
@@ -545,7 +559,9 @@ class BankMovementService:
                 restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
                 if target_key is not None and target_key == cur_key:
                     try:
-                        restored_total = float(acc.total_amount) + abs(float(target.amount))
+                        restored_total = float(acc.total_amount) + abs(
+                            float(target.amount)
+                        )
                     except Exception:
                         restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
                 new_history = list(getattr(acc, "history", []) or [])

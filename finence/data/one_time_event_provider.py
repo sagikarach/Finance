@@ -6,7 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
 
-from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus, parse_one_time_event_status
+from ..models.one_time_event import (
+    OneTimeEvent,
+    OneTimeEventStatus,
+    parse_one_time_event_status,
+)
 from ..utils.app_paths import accounts_data_dir
 from ..models.firebase_session import (
     current_firebase_uid,
