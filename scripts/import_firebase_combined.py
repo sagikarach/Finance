@@ -60,7 +60,7 @@ def _parse_date_to_iso(value: Any) -> str:
 
 
 def _map_movement_type(value: Any):
-    from finence.models.bank_movement import MovementType
+    from finance.models.bank_movement import MovementType
 
     s = str(value or "").strip()
     if not s:
@@ -103,7 +103,7 @@ def _dedupe_movements(movements: Iterable[object]) -> List[object]:
 
 
 def _collect_from_firebase_combined(path: Path) -> List[object]:
-    from finence.models.bank_movement import BankMovement
+    from finance.models.bank_movement import BankMovement
 
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
@@ -226,9 +226,9 @@ def _merge_local(
 
 def _recalc_accounts_from_provider() -> None:
     # Keep desktop consistent if user also writes local cache.
-    from finence.data.bank_movement_provider import JsonFileBankMovementProvider
-    from finence.data.provider import JsonFileAccountsProvider
-    from finence.models.accounts_service import AccountsService
+    from finance.data.bank_movement_provider import JsonFileBankMovementProvider
+    from finance.data.provider import JsonFileAccountsProvider
+    from finance.models.accounts_service import AccountsService
 
     provider = JsonFileBankMovementProvider()
     accounts_provider = JsonFileAccountsProvider()
@@ -237,8 +237,8 @@ def _recalc_accounts_from_provider() -> None:
 
     # Reuse the existing balance recalculation logic from BankMovementService (already used elsewhere).
     try:
-        from finence.models.bank_movement_service import BankMovementService
-        from finence.data.action_history_provider import JsonFileActionHistoryProvider
+        from finance.models.bank_movement_service import BankMovementService
+        from finance.data.action_history_provider import JsonFileActionHistoryProvider
 
         svc = BankMovementService(
             movement_provider=provider,
@@ -255,8 +255,8 @@ def _recalc_accounts_from_provider() -> None:
 
 
 def main() -> int:
-    from finence.data.bank_movement_provider import JsonFileBankMovementProvider
-    from finence.models.firebase_session import (
+    from finance.data.bank_movement_provider import JsonFileBankMovementProvider
+    from finance.models.firebase_session import (
         current_firebase_uid,
         current_firebase_workspace_id,
     )
@@ -305,8 +305,8 @@ def main() -> int:
             pass
 
     if args.push:
-        from finence.models.firebase_workspace_writer import FirebaseWorkspaceWriter
-        from finence.models.bank_movement import BankMovement as _BankMovement
+        from finance.models.firebase_workspace_writer import FirebaseWorkspaceWriter
+        from finance.models.bank_movement import BankMovement as _BankMovement
 
         w = FirebaseWorkspaceWriter()
         pushed = 0

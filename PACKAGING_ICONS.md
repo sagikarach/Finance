@@ -9,7 +9,7 @@ You have `app-icon.icns` in the project root. That’s the correct format for **
 If you build with **PyInstaller**, use:
 
 ```bash
-pyinstaller --noconfirm --windowed --name Finence --icon app-icon.icns main.py
+pyinstaller --noconfirm --windowed --name Finance --icon app-icon.icns main.py
 ```
 
 #### 3) Windows installed app icon (shortcut / taskbar / `.exe`)
@@ -18,7 +18,7 @@ Windows needs an **`.ico`** file (not `.icns`).
 - Create `app-icon.ico` (same design), then build with:
 
 ```powershell
-pyinstaller --noconfirm --windowed --name Finence --icon app-icon.ico main.py
+pyinstaller --noconfirm --windowed --name Finance --icon app-icon.ico main.py
 ```
 
 #### Notes

@@ -25,9 +25,9 @@ def _should_mark_transfer(fields: Dict[str, Any]) -> bool:
 
 
 def main() -> int:
-    from finence.models.firebase_client import FirestoreClient
-    from finence.models.firebase_session import FirebaseSessionStore
-    from finence.models.firebase_session_manager import FirebaseSessionManager
+    from finance.models.firebase_client import FirestoreClient
+    from finance.models.firebase_session import FirebaseSessionStore
+    from finance.models.firebase_session_manager import FirebaseSessionManager
 
     p = argparse.ArgumentParser()
     p.add_argument(

@@ -1,0 +1,7 @@
+{
+  "include": ["finance", "scripts", "main.py"],
+  "extraPaths": ["."],
+  "reportMissingTypeStubs": false
+}
+
+

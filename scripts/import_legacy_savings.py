@@ -13,8 +13,8 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 if TYPE_CHECKING:
-    from finence.models.accounts import MoneySnapshot
-    from finence.models.bank_movement import BankMovement
+    from finance.models.accounts import MoneySnapshot
+    from finance.models.bank_movement import BankMovement
 
 
 def _read_json(path: Path) -> Any:
@@ -55,7 +55,7 @@ def _stable_id(*parts: Any) -> str:
 
 
 def _normalize_history_rows(rows: Any) -> List[MoneySnapshot]:
-    from finence.models.accounts import MoneySnapshot
+    from finance.models.accounts import MoneySnapshot
 
     if not isinstance(rows, list):
         return []
@@ -117,7 +117,7 @@ def _is_bank_account_name(name: str) -> bool:
 def _transfer_movements_from_legacy(
     *, transfers: Any, known_savings_names: set[str]
 ) -> List[BankMovement]:
-    from finence.models.bank_movement import BankMovement, MovementType
+    from finance.models.bank_movement import BankMovement, MovementType
 
     if not isinstance(transfers, list):
         return []
@@ -217,17 +217,17 @@ def _dedupe_by_id(movements: Iterable[BankMovement]) -> List[BankMovement]:
 
 
 def main() -> int:
-    from finence.data.bank_movement_provider import JsonFileBankMovementProvider
-    from finence.data.provider import JsonFileAccountsProvider
-    from finence.models.accounts import (
+    from finance.data.bank_movement_provider import JsonFileBankMovementProvider
+    from finance.data.provider import JsonFileAccountsProvider
+    from finance.models.accounts import (
         MoneyAccount,
         MoneySnapshot,
         Savings,
         SavingsAccount,
     )
-    from finence.models.accounts_service import AccountsService
-    from finence.models.bank_movement_service import BankMovementService
-    from finence.models.firebase_session import (
+    from finance.models.accounts_service import AccountsService
+    from finance.models.bank_movement_service import BankMovementService
+    from finance.models.firebase_session import (
         current_firebase_uid,
         current_firebase_workspace_id,
     )
@@ -384,7 +384,7 @@ def main() -> int:
             pass
 
         if args.push:
-            from finence.models.firebase_workspace_writer import FirebaseWorkspaceWriter
+            from finance.models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             w = FirebaseWorkspaceWriter()
             for m in transfer_movements:

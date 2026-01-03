@@ -1,6 +1,6 @@
-## Finence — Qt Desktop App (PySide/PyQt)
+## Finance — Qt Desktop App (PySide/PyQt)
 
-Finence is a Qt-based desktop application scaffolded to support multiple pages. It ships with a Home page and a simple router. It prefers PySide6 but includes a compatibility layer that also works with PyQt6.
+Finance is a Qt-based desktop application scaffolded to support multiple pages. It ships with a Home page and a simple router. It prefers PySide6 but includes a compatibility layer that also works with PyQt6.
 
 ### Prerequisites
 
@@ -32,10 +32,10 @@ python main.py
 
 ### User data (safe across app updates)
 
-Finence stores all user data **outside** the app bundle so you can replace/update the app without losing data.
+Finance stores all user data **outside** the app bundle so you can replace/update the app without losing data.
 
-- **macOS**: `~/Library/Application Support/Finence/`
-  - Accounts JSON: `~/Library/Application Support/Finence/accounts/`
+- **macOS**: `~/Library/Application Support/Finance/`
+  - Accounts JSON: `~/Library/Application Support/Finance/accounts/`
 - On first launch, the app will migrate legacy `./data/accounts/*.json` into the per-user folder.
 
 ### Build macOS `.app` (unsigned, for personal use)
@@ -45,18 +45,18 @@ Finence stores all user data **outside** the app bundle so you can replace/updat
 ```
 
 Output:
-- `dist/Finence.app` (double-clickable app)
-- `dist/Finence-mac.zip` (easy to share)
+- `dist/Finance.app` (double-clickable app)
+- `dist/Finance-mac.zip` (easy to share)
 
 ### Notes
 
-- The `finence/qt.py` module provides a small compatibility layer:
+- The `finance/qt.py` module provides a small compatibility layer:
   - It tries to import PySide6 first.
   - If that fails, it falls back to PyQt6.
-- Pages live under `finence/pages/`. Navigation is handled by a simple router in `finence/ui/router.py` using a `QStackedWidget`.
+- Pages live under `finance/pages/`. Navigation is handled by a simple router in `finance/ui/router.py` using a `QStackedWidget`.
 
 ### Add a New Page (example)
 
-1. Create a widget under `finence/pages/your_page.py`.
+1. Create a widget under `finance/pages/your_page.py`.
 2. Register it in `MainWindow` via `self.router.register("your-route", lambda: YourPage(parent=self._stack))`.
 3. Add a menu/toolbar action to navigate to the route with `self.router.navigate("your-route")`.

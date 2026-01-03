@@ -58,8 +58,8 @@ def main() -> int:
     if str(_REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(_REPO_ROOT))
 
-    from finence.models.firebase_workspace_writer import FirebaseWorkspaceWriter
-    from finence.models.firebase_session import FirebaseSessionStore
+    from finance.models.firebase_workspace_writer import FirebaseWorkspaceWriter
+    from finance.models.firebase_session import FirebaseSessionStore
 
     ap = argparse.ArgumentParser()
     ap.add_argument(
