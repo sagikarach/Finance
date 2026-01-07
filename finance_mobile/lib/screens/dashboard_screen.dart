@@ -9,10 +9,10 @@ import '../services/bootstrap_service.dart';
 import '../services/dashboard_meta_service.dart';
 import '../services/session_service.dart';
 import '../services/launch_target_service.dart';
+import 'account_switch_screen.dart';
 import 'movements_screen.dart';
 import 'new_movement_screen.dart';
 import 'savings_screen.dart';
-import 'workspace_screen.dart';
 import '../widgets/notifications_sheet.dart';
 import '../widgets/header_actions_row.dart';
 
@@ -214,7 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 value,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
               ),
             ],
           ),
@@ -243,17 +244,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             HeaderAction(
               icon: Icons.group,
-              tooltip: 'שיתוף',
+              tooltip: 'חשבונות',
               onPressed: () async {
-                final picked = await Navigator.of(context).push<String?>(
-                  MaterialPageRoute(builder: (_) => const WorkspaceScreen()),
-                );
-                if (picked == null) return;
-                if (!context.mounted) return;
-                Navigator.of(context).pushReplacement(
+                await Navigator.of(context).push<void>(
                   MaterialPageRoute(
-                    builder: (_) => DashboardScreen(workspaceId: picked),
-                  ),
+                      builder: (_) => const AccountSwitchScreen()),
                 );
               },
             ),
@@ -262,7 +257,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               tooltip: 'חסכונות',
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => SavingsScreen(workspaceId: widget.workspaceId),
+                  builder: (_) =>
+                      SavingsScreen(workspaceId: widget.workspaceId),
                 ),
               ),
             ),
@@ -271,14 +267,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               tooltip: 'תנועות',
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => MovementsScreen(workspaceId: widget.workspaceId),
+                  builder: (_) =>
+                      MovementsScreen(workspaceId: widget.workspaceId),
                 ),
               ),
             ),
             HeaderAction(
               icon: Icons.sync,
               tooltip: 'סנכרן עכשיו',
-              onPressed: _syncing ? null : () => _pullFromServer(showToast: true),
+              onPressed:
+                  _syncing ? null : () => _pullFromServer(showToast: true),
             ),
             HeaderAction(
               icon: Icons.logout,
@@ -345,7 +343,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Text(
                         'היסטוריית פעולות',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w800),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -366,7 +365,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 Text(
                                   _actionLabel(a),
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
@@ -384,5 +384,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-
-

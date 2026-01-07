@@ -198,9 +198,14 @@ class NotificationsService:
         for n in created:
             self._provider.upsert(n)
             try:
-                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+                from ..models.sync_gate import allow_firebase_push
 
-                FirebaseWorkspaceWriter().upsert_notification(n)
+                if allow_firebase_push():
+                    from ..models.firebase_workspace_writer import (
+                        FirebaseWorkspaceWriter,
+                    )
+
+                    FirebaseWorkspaceWriter().upsert_notification(n)
             except Exception:
                 pass
 
@@ -290,6 +295,10 @@ class NotificationsService:
         if notif is None:
             return
         try:
+            from ..models.sync_gate import allow_firebase_push
+
+            if not allow_firebase_push():
+                return
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             FirebaseWorkspaceWriter().upsert_notification(notif)

@@ -60,89 +60,85 @@ def load_home_page_light_styles() -> str:
         padding: 0px;
         background: transparent;
     }
-    QTableWidget#ActionHistoryTableWidget {
-        background: transparent !important;
+    QListWidget#ActionHistoryListWidget {
+        background: transparent;
         border: none;
-        font-size: 14px;
-        color: #0b1220;
-        alternate-background-color: transparent;
+        outline: none;
     }
-    QTableWidget#ActionHistoryTableWidget::viewport {
-        background: transparent !important;
+    QListWidget#ActionHistoryListWidget::item {
+        background: transparent;
+        border: none;
+        margin: 0px;
+        padding: 0px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar:vertical {
+    QListWidget#ActionHistoryListWidget QScrollBar:vertical {
         background: transparent;
         width: 8px;
         margin: 8px 2px 8px 2px;
         border: none;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:vertical {
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:vertical {
         background: #9fc6f7;
         border-radius: 999px;
         min-height: 24px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:vertical:hover {
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:vertical:hover {
         background: #9fc6f7;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar:horizontal {
+    QListWidget#ActionHistoryListWidget QScrollBar:horizontal {
         background: transparent;
         height: 8px;
         margin: 2px 8px 2px 8px;
         border: none;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:horizontal {
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:horizontal {
         background: #9fc6f7;
         border-radius: 999px;
         min-width: 24px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:horizontal:hover {
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:horizontal:hover {
         background: #9fc6f7;
     }
-    QTableWidget#ActionHistoryTableWidget {
-        selection-background-color: #e2e8f0;
-    }
-    QTableWidget#ActionHistoryTableWidget {
-        gridline-color: transparent;
-    }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::add-line:vertical,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::sub-line:vertical,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::add-line:horizontal,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::sub-line:horizontal {
+    QListWidget#ActionHistoryListWidget QScrollBar::add-line:vertical,
+    QListWidget#ActionHistoryListWidget QScrollBar::sub-line:vertical,
+    QListWidget#ActionHistoryListWidget QScrollBar::add-line:horizontal,
+    QListWidget#ActionHistoryListWidget QScrollBar::sub-line:horizontal {
         background: transparent;
         border: none;
         height: 0px;
         width: 0px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::up-arrow,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::down-arrow,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::left-arrow,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::right-arrow {
+    QListWidget#ActionHistoryListWidget QScrollBar::up-arrow,
+    QListWidget#ActionHistoryListWidget QScrollBar::down-arrow,
+    QListWidget#ActionHistoryListWidget QScrollBar::left-arrow,
+    QListWidget#ActionHistoryListWidget QScrollBar::right-arrow {
         background: none;
         border: none;
         width: 0px;
         height: 0px;
     }
-    QTableWidget#ActionHistoryTableWidget::item {
-        padding: 8px 12px;
-        border: none;
-        background: transparent !important;
+    QFrame#ActionHistoryCard {
+        background: #dbeafe;
+        border: 1px solid #bfdbfe;
+        border-radius: 18px;
     }
-    QTableWidget#ActionHistoryTableWidget::item:selected {
-        background: #e2e8f0 !important;
+    QLabel#ActionHistoryTitle {
         color: #0b1220;
-    }
-    QHeaderView#ActionHistoryHeader {
+        font-size: 15px;
+        font-weight: 800;
         background: transparent;
-        border: none;
-        border-bottom: 1px solid #e2e8f0;
     }
-    QHeaderView#ActionHistoryHeader::section {
-        background: transparent;
+    QLabel#ActionHistoryDate {
         color: #475569;
         font-size: 12px;
+        font-weight: 700;
+        background: transparent;
+    }
+    QLabel#ActionHistoryBody {
+        color: #0b1220;
+        font-size: 13px;
         font-weight: 600;
-        padding: 8px 12px;
-        border: none;
+        background: transparent;
     }
     """
 
@@ -217,88 +213,84 @@ def load_home_page_dark_styles() -> str:
     QWidget#StatCardGreen QLabel, QWidget#StatCardPurple QLabel {
         color: #e5e7eb;
     }
-    QTableWidget#ActionHistoryTableWidget {
-        background: transparent !important;
+    QListWidget#ActionHistoryListWidget {
+        background: transparent;
         border: none;
-        font-size: 14px;
-        color: #e5e7eb;
-        alternate-background-color: transparent;
+        outline: none;
     }
-    QTableWidget#ActionHistoryTableWidget::viewport {
-        background: transparent !important;
+    QListWidget#ActionHistoryListWidget::item {
+        background: transparent;
+        border: none;
+        margin: 0px;
+        padding: 0px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar:vertical {
+    QListWidget#ActionHistoryListWidget QScrollBar:vertical {
         background: transparent;
         width: 8px;
         margin: 8px 2px 8px 2px;
         border: none;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:vertical {
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:vertical {
         background: #4b5563;
         border-radius: 999px;
         min-height: 24px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:vertical:hover {
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:vertical:hover {
         background: #6b7280;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar:horizontal {
+    QListWidget#ActionHistoryListWidget QScrollBar:horizontal {
         background: transparent;
         height: 8px;
         margin: 2px 8px 2px 8px;
         border: none;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:horizontal {
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:horizontal {
         background: #4b5563;
         border-radius: 999px;
         min-width: 24px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::handle:horizontal:hover {
-        background: #6b7283;
+    QListWidget#ActionHistoryListWidget QScrollBar::handle:horizontal:hover {
+        background: #6b7280;
     }
-    QTableWidget#ActionHistoryTableWidget {
-        selection-background-color: #374151;
-    }
-    QTableWidget#ActionHistoryTableWidget {
-        gridline-color: transparent;
-    }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::add-line:vertical,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::sub-line:vertical,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::add-line:horizontal,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::sub-line:horizontal {
+    QListWidget#ActionHistoryListWidget QScrollBar::add-line:vertical,
+    QListWidget#ActionHistoryListWidget QScrollBar::sub-line:vertical,
+    QListWidget#ActionHistoryListWidget QScrollBar::add-line:horizontal,
+    QListWidget#ActionHistoryListWidget QScrollBar::sub-line:horizontal {
         background: transparent;
         border: none;
         height: 0px;
         width: 0px;
     }
-    QTableWidget#ActionHistoryTableWidget QScrollBar::up-arrow,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::down-arrow,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::left-arrow,
-    QTableWidget#ActionHistoryTableWidget QScrollBar::right-arrow {
+    QListWidget#ActionHistoryListWidget QScrollBar::up-arrow,
+    QListWidget#ActionHistoryListWidget QScrollBar::down-arrow,
+    QListWidget#ActionHistoryListWidget QScrollBar::left-arrow,
+    QListWidget#ActionHistoryListWidget QScrollBar::right-arrow {
         background: none;
         border: none;
         width: 0px;
         height: 0px;
     }
-    QTableWidget#ActionHistoryTableWidget::item {
-        padding: 8px 12px;
-        border: none;
-        background: transparent !important;
+    QFrame#ActionHistoryCard {
+        background: #020617;
+        border: 1px solid #1f2937;
+        border-radius: 18px;
     }
-    QTableWidget#ActionHistoryTableWidget::item:selected {
-        background: #374151 !important;
+    QLabel#ActionHistoryTitle {
         color: #e5e7eb;
-    }
-    QHeaderView#ActionHistoryHeader {
+        font-size: 15px;
+        font-weight: 800;
         background: transparent;
-        border: none;
-        border-bottom: 1px solid #374151;
     }
-    QHeaderView#ActionHistoryHeader::section {
-        background: transparent;
-        color: #9ca3af;
+    QLabel#ActionHistoryDate {
+        color: #94a3b8;
         font-size: 12px;
+        font-weight: 700;
+        background: transparent;
+    }
+    QLabel#ActionHistoryBody {
+        color: #e5e7eb;
+        font-size: 13px;
         font-weight: 600;
-        padding: 8px 12px;
-        border: none;
+        background: transparent;
     }
     """

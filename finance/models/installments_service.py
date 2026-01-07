@@ -69,9 +69,12 @@ class InstallmentsService:
 
         self._plans_provider.upsert_plan(plan)
         try:
-            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+            from ..models.sync_gate import allow_firebase_push
 
-            FirebaseWorkspaceWriter().upsert_installment_plan(plan)
+            if allow_firebase_push():
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                FirebaseWorkspaceWriter().upsert_installment_plan(plan)
         except Exception:
             pass
 
@@ -163,9 +166,23 @@ class InstallmentsService:
 
         self._plans_provider.delete_plan(plan_id)
         try:
-            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+            from ..models.firebase_session import (
+                current_firebase_uid,
+                current_firebase_workspace_id,
+            )
+            from ..models.firebase_sync_state import add_pending_delete
+            from ..models.sync_gate import allow_firebase_push
 
-            FirebaseWorkspaceWriter().delete_installment_plan(plan_id=plan_id)
+            key = (
+                current_firebase_workspace_id() or current_firebase_uid() or ""
+            ).strip()
+            if key:
+                add_pending_delete(key=key, kind="installment_plan", item_id=plan_id)
+
+            if allow_firebase_push():
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                FirebaseWorkspaceWriter().delete_installment_plan(plan_id=plan_id)
         except Exception:
             pass
 

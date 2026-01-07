@@ -7,7 +7,10 @@ from typing import List, Optional, Union
 import json
 
 from ..models.bank_movement import BankMovement, MovementType
-from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
+from ..models.firebase_session import (
+    current_firebase_uid,
+    current_firebase_workspace_id,
+)
 from ..utils.app_paths import accounts_data_dir
 
 
@@ -43,7 +46,9 @@ class JsonFileBankMovementProvider(BankMovementProvider):
             key = wid or uid
             if key:
                 movements_path = accounts_data_dir() / f"bank_movements_{key}.json"
-                categories_path = accounts_data_dir() / f"bank_movement_categories_{key}.json"
+                categories_path = (
+                    accounts_data_dir() / f"bank_movement_categories_{key}.json"
+                )
             else:
                 movements_path = accounts_data_dir() / "bank_movements.json"
                 categories_path = accounts_data_dir() / "bank_movement_categories.json"
@@ -81,7 +86,9 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                     movement_type = MovementType.ONE_TIME
                 description_value = item.get("description")
                 description = (
-                    str(description_value) if isinstance(description_value, str) else None
+                    str(description_value)
+                    if isinstance(description_value, str)
+                    else None
                 )
                 event_id_value = item.get("event_id")
                 event_id = (
@@ -232,5 +239,3 @@ class JsonFileBankMovementProvider(BankMovementProvider):
             if name not in items:
                 items.append(name)
         self._save_categories_by_type(mapping)
-
-

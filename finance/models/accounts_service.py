@@ -435,14 +435,18 @@ class AccountsService:
                 src_type = "bank" if request.source.kind == "bank" else "saving"
                 dst_type = "bank" if request.target.kind == "bank" else "saving"
 
-                if request.source.kind == "saving" and isinstance(src_acc, SavingsAccount):
+                if request.source.kind == "saving" and isinstance(
+                    src_acc, SavingsAccount
+                ):
                     try:
                         src_saving = src_acc.savings[request.source.savings_index]
                         src_name = f"{src_acc.name} -- {src_saving.name}"
                     except Exception:
                         pass
 
-                if request.target.kind == "saving" and isinstance(dst_acc, SavingsAccount):
+                if request.target.kind == "saving" and isinstance(
+                    dst_acc, SavingsAccount
+                ):
                     try:
                         dst_saving = dst_acc.savings[request.target.savings_index]
                         dst_name = f"{dst_acc.name} -- {dst_saving.name}"
@@ -493,17 +497,13 @@ class AccountsService:
                     if current_account is not None:
                         was_inactive = not current_account.active
                         is_being_activated = is_active and was_inactive
-                        is_being_deactivated = (
-                            not is_active and current_account.active
-                        )
+                        is_being_deactivated = not is_active and current_account.active
                     else:
                         existing_acc = existing_bank_accounts.get(row.name)
                         if existing_acc is not None:
                             was_inactive = not existing_acc.active
                             is_being_activated = is_active and was_inactive
-                            is_being_deactivated = (
-                                not is_active and existing_acc.active
-                            )
+                            is_being_deactivated = not is_active and existing_acc.active
                         else:
                             is_being_activated = is_active
                             is_being_deactivated = False
@@ -579,10 +579,12 @@ class AccountsService:
             pass
 
         try:
+            from ..models.sync_gate import allow_firebase_push
+
+            if not allow_firebase_push():
+                return
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             FirebaseWorkspaceWriter().upsert_accounts_snapshot(accounts)
         except Exception:
             pass
-
-

@@ -14,7 +14,10 @@ from ..models.accounts import (
     SavingsAccount,
     latest_amount_from_history,
 )
-from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
+from ..models.firebase_session import (
+    current_firebase_uid,
+    current_firebase_workspace_id,
+)
 from ..utils.app_paths import accounts_data_dir
 
 
@@ -30,22 +33,41 @@ class JsonFileAccountsProvider(AccountsProvider):
         bank_accounts_path: Optional[Union[str, Path]] = None,
         savings_accounts_path: Optional[Union[str, Path]] = None,
     ) -> None:
-        key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
-        suffix = f"_{key}" if key else ""
-        if bank_accounts_path:
-            self._bank_accounts_path = Path(bank_accounts_path)
-        else:
-            self._bank_accounts_path = accounts_data_dir() / f"bank_accounts{suffix}.json"
+        self._bank_accounts_path_override: Optional[Path] = (
+            Path(bank_accounts_path) if bank_accounts_path else None
+        )
+        self._savings_accounts_path_override: Optional[Path] = (
+            Path(savings_accounts_path) if savings_accounts_path else None
+        )
+        self._bank_accounts_path, self._savings_accounts_path = self._paths()
 
-        if savings_accounts_path:
-            self._savings_accounts_path = Path(savings_accounts_path)
+    def _paths(self) -> tuple[Path, Path]:
+        if self._bank_accounts_path_override is not None:
+            bank_path = self._bank_accounts_path_override
         else:
-            self._savings_accounts_path = (
-                accounts_data_dir() / f"savings_accounts{suffix}.json"
-            )
+            key = (
+                current_firebase_workspace_id() or current_firebase_uid() or ""
+            ).strip()
+            suffix = f"_{key}" if key else ""
+            bank_path = accounts_data_dir() / f"bank_accounts{suffix}.json"
+
+        if self._savings_accounts_path_override is not None:
+            savings_path = self._savings_accounts_path_override
+        else:
+            key = (
+                current_firebase_workspace_id() or current_firebase_uid() or ""
+            ).strip()
+            suffix = f"_{key}" if key else ""
+            savings_path = accounts_data_dir() / f"savings_accounts{suffix}.json"
+
+        return bank_path, savings_path
+
+    def _ensure_paths(self) -> None:
+        self._bank_accounts_path, self._savings_accounts_path = self._paths()
 
     def list_accounts(self) -> List[MoneyAccount]:
         accounts: List[MoneyAccount] = []
+        self._ensure_paths()
 
         accounts.extend(self._load_bank_accounts())
 
@@ -112,7 +134,9 @@ class JsonFileAccountsProvider(AccountsProvider):
                         reset_day = int(item.get("reset_day", 1) or 1)
                     except Exception:
                         reset_day = 1
-                    last_reset_period = str(item.get("last_reset_period", "") or "").strip()
+                    last_reset_period = str(
+                        item.get("last_reset_period", "") or ""
+                    ).strip()
                     accounts.append(
                         BudgetAccount(
                             name=name,
@@ -188,7 +212,9 @@ class JsonFileAccountsProvider(AccountsProvider):
 
                             amount = float(savings_item.get("amount", 0.0))
                             if savings_history_list:
-                                latest = latest_amount_from_history(savings_history_list)
+                                latest = latest_amount_from_history(
+                                    savings_history_list
+                                )
                                 if latest is not None:
                                     amount = float(latest)
 
@@ -219,6 +245,7 @@ class JsonFileAccountsProvider(AccountsProvider):
         return accounts
 
     def save_savings_accounts(self, accounts: List[SavingsAccount]) -> None:
+        self._ensure_paths()
         self._savings_accounts_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data: List[Dict[str, Any]] = []
@@ -246,6 +273,7 @@ class JsonFileAccountsProvider(AccountsProvider):
             json.dump(json_data, f, ensure_ascii=False, indent=2)
 
     def save_bank_accounts(self, accounts: List[MoneyAccount]) -> None:
+        self._ensure_paths()
         self._bank_accounts_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []
@@ -275,5 +303,3 @@ class JsonFileAccountsProvider(AccountsProvider):
 
         with self._bank_accounts_path.open("w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
-
-

@@ -216,7 +216,7 @@ class FirestoreClient:
         return f"https://firestore.googleapis.com/v1/projects/{self._project_id}/databases/(default)/documents"
 
     def list_user_movements(
-        self, *, uid: str, id_token: str, page_size: int = 500
+        self, *, uid: str, id_token: str, page_size: int = 1000
     ) -> List[Dict[str, Any]]:
         docs: List[Dict[str, Any]] = []
         token: Optional[str] = None
@@ -243,7 +243,7 @@ class FirestoreClient:
         return docs
 
     def list_workspace_movements(
-        self, *, workspace_id: str, id_token: str, page_size: int = 500
+        self, *, workspace_id: str, id_token: str, page_size: int = 1000
     ) -> List[Dict[str, Any]]:
         docs: List[Dict[str, Any]] = []
         token: Optional[str] = None
@@ -276,7 +276,7 @@ class FirestoreClient:
         return docs
 
     def list_collection(
-        self, *, collection_path: str, id_token: str, page_size: int = 500
+        self, *, collection_path: str, id_token: str, page_size: int = 1000
     ) -> List[Dict[str, Any]]:
         docs: List[Dict[str, Any]] = []
         token: Optional[str] = None
@@ -307,6 +307,117 @@ class FirestoreClient:
                 break
         return docs
 
+    def query_workspace_movements_updated_after(
+        self, *, workspace_id: str, id_token: str, updated_after: str, limit: int = 1000
+    ) -> List[Dict[str, Any]]:
+        """
+        Incremental movements pull using Firestore structured query (runQuery).
+        Returns a list of document objects (same shape as list_collection).
+
+        Note: This is best-effort. If query fails, caller should fall back to full list.
+        """
+        workspace_id = str(workspace_id or "").strip()
+        updated_after = str(updated_after or "").strip()
+        if not workspace_id or not updated_after:
+            return []
+        parent = f"workspaces/{workspace_id}"
+        url = f"{self._doc_base()}/{parent}:runQuery"
+
+        query = {
+            "structuredQuery": {
+                "from": [{"collectionId": "movements"}],
+                "where": {
+                    "fieldFilter": {
+                        "field": {"fieldPath": "updated_at"},
+                        "op": "GREATER_THAN",
+                        "value": {"stringValue": updated_after},
+                    }
+                },
+                "orderBy": [
+                    {"field": {"fieldPath": "updated_at"}, "direction": "ASCENDING"}
+                ],
+                "limit": int(limit) if int(limit) > 0 else 1000,
+            }
+        }
+
+        resp = _http_json(
+            method="POST",
+            url=url,
+            headers={
+                "Authorization": f"Bearer {id_token}",
+                "Content-Type": "application/json",
+            },
+            body=json.dumps(query).encode("utf-8"),
+        )
+        if not isinstance(resp, list):
+            return []
+        docs: List[Dict[str, Any]] = []
+        for row in resp:
+            if not isinstance(row, dict):
+                continue
+            doc = row.get("document")
+            if isinstance(doc, dict):
+                docs.append(doc)
+        return docs
+
+    def query_workspace_movements_updated_after_ms(
+        self,
+        *,
+        workspace_id: str,
+        id_token: str,
+        updated_after_ms: int,
+        limit: int = 1000,
+    ) -> List[Dict[str, Any]]:
+        """
+        Incremental movements pull using updated_at_ms (int) via Firestore structured query (runQuery).
+        """
+        workspace_id = str(workspace_id or "").strip()
+        try:
+            updated_after_ms = int(updated_after_ms or 0)
+        except Exception:
+            updated_after_ms = 0
+        if not workspace_id or updated_after_ms <= 0:
+            return []
+        parent = f"workspaces/{workspace_id}"
+        url = f"{self._doc_base()}/{parent}:runQuery"
+
+        query = {
+            "structuredQuery": {
+                "from": [{"collectionId": "movements"}],
+                "where": {
+                    "fieldFilter": {
+                        "field": {"fieldPath": "updated_at_ms"},
+                        "op": "GREATER_THAN",
+                        "value": {"integerValue": str(int(updated_after_ms))},
+                    }
+                },
+                "orderBy": [
+                    {"field": {"fieldPath": "updated_at_ms"}, "direction": "ASCENDING"}
+                ],
+                "limit": int(limit) if int(limit) > 0 else 1000,
+            }
+        }
+
+        resp = _http_json(
+            method="POST",
+            url=url,
+            headers={
+                "Authorization": f"Bearer {id_token}",
+                "Content-Type": "application/json",
+            },
+            body=json.dumps(query).encode("utf-8"),
+        )
+        if not isinstance(resp, list):
+            return []
+        docs: List[Dict[str, Any]] = []
+        for row in resp:
+            if not isinstance(row, dict):
+                continue
+            doc = row.get("document")
+            if isinstance(doc, dict):
+                docs.append(doc)
+        return docs
+
     def upsert_user_movement(
         self,
         *,
@@ -316,10 +427,13 @@ class FirestoreClient:
         fields: Dict[str, Any],
     ) -> None:
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        now_ms = int(time.time() * 1000)
         body_fields = dict(fields)
         body_fields.setdefault("id", movement_id)
         body_fields.setdefault("created_at", now)
+        body_fields.setdefault("created_at_ms", now_ms)
         body_fields["updated_at"] = now
+        body_fields["updated_at_ms"] = now_ms
         doc = {"fields": {k: _fs_value(v) for k, v in body_fields.items()}}
 
         url = f"{self._doc_base()}/users/{uid}/movements/{movement_id}"
@@ -352,8 +466,10 @@ class FirestoreClient:
         fields: Dict[str, Any],
     ) -> None:
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        now_ms = int(time.time() * 1000)
         body_fields = dict(fields)
         body_fields["updated_at"] = now
+        body_fields["updated_at_ms"] = now_ms
         doc = {"fields": {k: _fs_value(v) for k, v in body_fields.items()}}
         url = f"{self._doc_base()}/{document_path.lstrip('/')}"
         _http_json(
@@ -364,6 +480,24 @@ class FirestoreClient:
                 "Content-Type": "application/json",
             },
             body=json.dumps(doc).encode("utf-8"),
+        )
+
+    def commit_writes(self, *, id_token: str, writes: List[Dict[str, Any]]) -> None:
+        """
+        Batch write via Firestore commit endpoint to reduce round-trips.
+        """
+        safe_writes = [w for w in list(writes or []) if isinstance(w, dict)]
+        if not safe_writes:
+            return
+        url = f"{self._doc_base()}:commit"
+        _http_json(
+            method="POST",
+            url=url,
+            headers={
+                "Authorization": f"Bearer {id_token}",
+                "Content-Type": "application/json",
+            },
+            body=json.dumps({"writes": safe_writes}).encode("utf-8"),
         )
 
     @staticmethod
@@ -397,11 +531,11 @@ class FirestoreClient:
             "event_id",
             "deleted",
             "created_at",
+            "created_at_ms",
             "updated_at",
+            "updated_at_ms",
         ):
             out[k] = _fs_get(fields, k)
         if not out.get("id") and movement_id:
             out["id"] = movement_id
         return movement_id or str(out.get("id", "") or ""), out
-
-

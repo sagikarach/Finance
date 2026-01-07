@@ -3,6 +3,17 @@ from __future__ import annotations
 
 def load_settings_page_light_styles() -> str:
     return """
+    QLineEdit#SettingsInput {
+        background: #ffffff;
+        color: #0f172a;
+        border: 1px solid rgba(15,23,42,0.18);
+        border-radius: 10px;
+        padding: 8px 10px;
+        min-height: 18px;
+    }
+    QLineEdit#SettingsInput:focus {
+        border: 1px solid rgba(59,130,246,0.65);
+    }
     QCheckBox#NotificationRuleToggle {
         /* Indent child notification toggles (RTL: margin-right pushes left) */
         margin-right: 24px;
@@ -83,6 +94,17 @@ def load_settings_page_light_styles() -> str:
 
 def load_settings_page_dark_styles() -> str:
     return """
+    QLineEdit#SettingsInput {
+        background: #0b1220;
+        color: #e5e7eb;
+        border: 1px solid rgba(148,163,184,0.25);
+        border-radius: 10px;
+        padding: 8px 10px;
+        min-height: 18px;
+    }
+    QLineEdit#SettingsInput:focus {
+        border: 1px solid rgba(59,130,246,0.55);
+    }
     QCheckBox#NotificationRuleToggle {
         /* Indent child notification toggles (RTL: margin-right pushes left) */
         margin-right: 24px;

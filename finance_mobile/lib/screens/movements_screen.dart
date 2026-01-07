@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/movement.dart';
@@ -11,9 +10,9 @@ import '../services/session_service.dart';
 import '../services/launch_target_service.dart';
 import '../widgets/notifications_sheet.dart';
 import '../widgets/header_actions_row.dart';
+import 'account_switch_screen.dart';
 import 'new_movement_screen.dart';
 import 'savings_screen.dart';
-import 'workspace_screen.dart';
 
 class MovementsScreen extends StatefulWidget {
   final String workspaceId;
@@ -110,7 +109,7 @@ class _MovementsScreenState extends State<MovementsScreen> {
     });
     try {
       await _bootstrap.ensureWorkspaceMeta();
-      final items = await _movements.fetch(source: Source.server);
+      final items = await _movements.fetchIncremental();
 
       if (!mounted) return;
       setState(() {
@@ -159,17 +158,11 @@ class _MovementsScreenState extends State<MovementsScreen> {
             ),
             HeaderAction(
               icon: Icons.group,
-              tooltip: 'שיתוף',
+              tooltip: 'חשבונות',
               onPressed: () async {
-                final picked = await Navigator.of(context).push<String?>(
-                  MaterialPageRoute(builder: (_) => const WorkspaceScreen()),
-                );
-                if (picked == null) return;
-                if (!context.mounted) return;
-                Navigator.of(context).pushReplacement(
+                await Navigator.of(context).push<void>(
                   MaterialPageRoute(
-                    builder: (_) => MovementsScreen(workspaceId: picked),
-                  ),
+                      builder: (_) => const AccountSwitchScreen()),
                 );
               },
             ),
@@ -178,14 +171,16 @@ class _MovementsScreenState extends State<MovementsScreen> {
               tooltip: 'חסכונות',
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => SavingsScreen(workspaceId: widget.workspaceId),
+                  builder: (_) =>
+                      SavingsScreen(workspaceId: widget.workspaceId),
                 ),
               ),
             ),
             HeaderAction(
               icon: Icons.sync,
               tooltip: 'סנכרן עכשיו',
-              onPressed: _syncing ? null : () => _pullFromServer(showToast: true),
+              onPressed:
+                  _syncing ? null : () => _pullFromServer(showToast: true),
             ),
             HeaderAction(
               icon: Icons.logout,
@@ -230,14 +225,17 @@ class _MovementsScreenState extends State<MovementsScreen> {
                                   context: context,
                                   builder: (ctx) => AlertDialog(
                                     title: const Text('מחיקת תנועה'),
-                                    content: const Text('האם למחוק את התנועה הזו?'),
+                                    content:
+                                        const Text('האם למחוק את התנועה הזו?'),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.of(ctx).pop(false),
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(false),
                                         child: const Text('ביטול'),
                                       ),
                                       ElevatedButton(
-                                        onPressed: () => Navigator.of(ctx).pop(true),
+                                        onPressed: () =>
+                                            Navigator.of(ctx).pop(true),
                                         child: const Text('מחק'),
                                       ),
                                     ],
@@ -250,7 +248,8 @@ class _MovementsScreenState extends State<MovementsScreen> {
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             color: Colors.red.withValues(alpha: 0.12),
-                            child: const Icon(Icons.delete_outline, color: Colors.red),
+                            child: const Icon(Icons.delete_outline,
+                                color: Colors.red),
                           ),
                           child: Card(
                             child: ListTile(
@@ -271,5 +270,3 @@ class _MovementsScreenState extends State<MovementsScreen> {
     );
   }
 }
-
-

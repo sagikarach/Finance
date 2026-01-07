@@ -12,7 +12,8 @@ import 'theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
   } catch (_) {
     await Firebase.initializeApp();
   }
@@ -45,11 +46,10 @@ class FinanceMobileApp extends StatelessWidget {
         builder: (context, snapshot) {
           final user = snapshot.data;
           if (user == null) return const LoginScreen();
-          return const WorkspaceGate();
+          // Key by uid so switching accounts resets WorkspaceGate state (no stale workspace/data).
+          return WorkspaceGate(key: ValueKey(user.uid));
         },
       ),
     );
   }
 }
-
-

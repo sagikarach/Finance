@@ -113,5 +113,3 @@ def latest_amount_from_history(history: Iterable[MoneySnapshot]) -> Optional[flo
         return None
     snapshots.sort(key=lambda s: parse_iso_date(s.date))
     return float(snapshots[-1].amount)
-
-

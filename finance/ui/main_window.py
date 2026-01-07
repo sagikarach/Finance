@@ -14,9 +14,11 @@ from ..pages.installments_page import InstallmentsPage
 from ..pages.yearly_summary_page import YearlySummaryPage
 from ..pages.yearly_category_trends_page import YearlyCategoryTrendsPage
 from ..pages.yearly_overview_page import YearlyOverviewPage
-from ..qt import QAction, QMainWindow, QStackedWidget
+from ..qt import QAction, QMainWindow, QStackedWidget, QTimer
 from .router import Router
 from ..utils.app_paths import migrate_legacy_accounts_data
+from ..models.firebase_session import FirebaseSessionStore
+from ..models.firebase_movements_sync import FirebaseMovementsSyncService
 
 
 class MainWindow(QMainWindow):
@@ -39,6 +41,57 @@ class MainWindow(QMainWindow):
         self._build_menu()
 
         self.router.navigate("home")
+        self._startup_pull_sync_started = False
+        try:
+            QTimer.singleShot(250, self._maybe_start_startup_pull_sync)
+        except Exception:
+            try:
+                self._maybe_start_startup_pull_sync()
+            except Exception:
+                pass
+
+    def _maybe_start_startup_pull_sync(self) -> None:
+        if bool(getattr(self, "_startup_pull_sync_started", False)):
+            return
+        self._startup_pull_sync_started = True
+
+        try:
+            s = FirebaseSessionStore().load()
+            wid = str(getattr(s, "workspace_id", "") or "").strip()
+            if not (bool(getattr(s, "is_logged_in", False)) and wid):
+                return
+        except Exception:
+            return
+
+        def _worker() -> None:
+            try:
+                FirebaseMovementsSyncService().sync_now(allow_push=False)
+            except Exception:
+                return
+
+            def _ui_refresh() -> None:
+                try:
+                    if isinstance(self._app_context, dict):
+                        self._app_context["_balances_dirty"] = "1"
+                except Exception:
+                    pass
+                try:
+                    current = self.router.current_route() or "home"
+                    self.router.navigate(current)
+                except Exception:
+                    pass
+
+            try:
+                QTimer.singleShot(0, _ui_refresh)
+            except Exception:
+                _ui_refresh()
+
+        try:
+            import threading
+
+            threading.Thread(target=_worker, daemon=True).start()
+        except Exception:
+            _worker()
 
     def _register_pages(self) -> None:
         self.router.register(

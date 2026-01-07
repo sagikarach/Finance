@@ -26,5 +26,3 @@ class BankMovement:
     description: str | None = None
     event_id: str | None = None
     id: str = field(default_factory=generate_movement_id)
-
-

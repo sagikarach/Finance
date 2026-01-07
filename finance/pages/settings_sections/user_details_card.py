@@ -17,6 +17,8 @@ from ...qt import (
 )
 from ...models.user import UserProfile
 from ...data.user_profile_store import UserProfileStore
+from ...models.firebase_session import FirebaseSessionStore
+from ...models.firebase_workspace_profiles import FirebaseWorkspaceProfilesStore
 
 
 class UserDetailsCard(QWidget):
@@ -172,6 +174,21 @@ class UserDetailsCard(QWidget):
                 self._user_store.save(self._user)
             except Exception:
                 pass
+            # If we're inside a Firebase workspace and that workspace has a saved profile,
+            # store a per-workspace display name override. If it's not defined, UI falls back
+            # to the global user profile.
+            try:
+                wid = str(FirebaseSessionStore().load().workspace_id or "").strip()
+            except Exception:
+                wid = ""
+            if wid:
+                try:
+                    FirebaseWorkspaceProfilesStore().update_ui_prefs(
+                        workspace_id=wid,
+                        display_name=str(self._user.full_name or "").strip(),
+                    )
+                except Exception:
+                    pass
             try:
                 if self._on_profile_saved is not None:
                     self._on_profile_saved()

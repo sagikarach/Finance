@@ -312,6 +312,11 @@ class BasePage(QWidget):
     def on_route_activated(self) -> None:
         self._refresh_notifications_badge()
         self._refresh_sync_button_state()
+        try:
+            if self._sidebar is not None:
+                self._sidebar.refresh_profile()
+        except Exception:
+            pass
 
     def _refresh_sync_button_state(self) -> None:
         btn = self._sync_btn
@@ -381,7 +386,7 @@ class BasePage(QWidget):
                     FirebaseMovementsSyncService,
                 )
 
-                pulled, _ = FirebaseMovementsSyncService().sync_now()
+                pulled, _ = FirebaseMovementsSyncService().sync_now(allow_push=True)
             except Exception as e:
                 err = str(e)
             try:

@@ -112,5 +112,3 @@ def current_firebase_workspace_id() -> Optional[str]:
         return wid if wid else None
     except Exception:
         return None
-
-

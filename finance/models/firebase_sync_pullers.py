@@ -26,9 +26,39 @@ def pull_remote_movements(
     workspace_id: str,
     uid: str,
     id_token: str,
+    updated_after: str = "",
+    updated_after_ms: int = 0,
 ) -> Tuple[List[str], Dict[str, dict]]:
     if workspace_id:
-        docs = fs.list_workspace_movements(workspace_id=workspace_id, id_token=id_token)
+        updated_after = str(updated_after or "").strip()
+        try:
+            updated_after_ms = int(updated_after_ms or 0)
+        except Exception:
+            updated_after_ms = 0
+        docs = []
+        if updated_after_ms > 0:
+            try:
+                docs = fs.query_workspace_movements_updated_after_ms(
+                    workspace_id=workspace_id,
+                    id_token=id_token,
+                    updated_after_ms=updated_after_ms,
+                    limit=1000,
+                )
+            except Exception:
+                docs = []
+        elif updated_after:
+            try:
+                docs = fs.query_workspace_movements_updated_after(
+                    workspace_id=workspace_id,
+                    id_token=id_token,
+                    updated_after=updated_after,
+                )
+            except Exception:
+                docs = []
+        if not docs:
+            docs = fs.list_workspace_movements(
+                workspace_id=workspace_id, id_token=id_token
+            )
     else:
         docs = fs.list_user_movements(uid=uid, id_token=id_token)
 

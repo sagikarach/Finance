@@ -114,5 +114,3 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     window.show()
 
     sys.exit(app.exec())
-
-

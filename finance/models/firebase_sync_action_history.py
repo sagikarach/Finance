@@ -54,6 +54,12 @@ def pull_action_history_to_local_cache(
             except Exception:
                 continue
 
-        provider.save_history(list(by_id.values()))
+        # Ensure stable ordering so "latest N" UI shows the newest actions reliably.
+        entries = list(by_id.values())
+        try:
+            entries.sort(key=lambda h: (str(h.timestamp or ""), str(h.id or "")))
+        except Exception:
+            pass
+        provider.save_history(entries)
     except Exception:
         pass

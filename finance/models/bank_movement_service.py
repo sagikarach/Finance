@@ -57,11 +57,19 @@ class BankMovementService:
         changed_movements: Optional[List[BankMovement]] = None,
     ) -> None:
         """
-        Persist a full movement snapshot locally, and push the snapshot to Firebase (best effort).
-        Intended for edits (category/type/description) where balances don't change.
+        Persist a full movement snapshot locally.
+        Firebase push happens only when the user presses Sync.
         """
         try:
             self.movement_provider.save_movements(list(all_movements))
+        except Exception:
+            return
+
+        try:
+            from ..models.sync_gate import allow_firebase_push
+
+            if not allow_firebase_push():
+                return
         except Exception:
             return
 
@@ -76,7 +84,7 @@ class BankMovementService:
                 except Exception:
                     continue
         except Exception:
-            pass
+            return
 
     def apply_movement(
         self,
@@ -88,7 +96,9 @@ class BankMovementService:
         target_acc: Optional[MoneyAccount] = None
         try:
             for acc in accounts:
-                if getattr(acc, "name", None) == getattr(movement, "account_name", None):
+                if getattr(acc, "name", None) == getattr(
+                    movement, "account_name", None
+                ):
                     target_acc = acc
                     break
         except Exception:
@@ -159,9 +169,12 @@ class BankMovementService:
             pass
 
         try:
-            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+            from ..models.sync_gate import allow_firebase_push
 
-            FirebaseWorkspaceWriter().upsert_movement(movement)
+            if allow_firebase_push():
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                FirebaseWorkspaceWriter().upsert_movement(movement)
         except Exception:
             pass
 
@@ -215,7 +228,9 @@ class BankMovementService:
                         reset_day = 1
                     if reset_day > 28:
                         reset_day = 28
-                    cur_key = current_period_key or current_budget_period_end_key(reset_day)
+                    cur_key = current_period_key or current_budget_period_end_key(
+                        reset_day
+                    )
                     mov_key = movement_period_key or budget_period_end_key(
                         str(getattr(movement, "date", "") or ""), reset_day
                     )
@@ -240,7 +255,9 @@ class BankMovementService:
 
                 new_history = list(getattr(acc, "history", []) or [])
                 if not (isinstance(acc, BudgetAccount) and new_total == current_total):
-                    new_history = new_history + [MoneySnapshot(date=date_str, amount=new_total)]
+                    new_history = new_history + [
+                        MoneySnapshot(date=date_str, amount=new_total)
+                    ]
 
                 updated_acc: MoneyAccount
                 if isinstance(acc, BudgetAccount):
@@ -261,7 +278,9 @@ class BankMovementService:
                         is_liquid=acc.is_liquid,
                         history=new_history,
                         active=acc.active,
-                        baseline_amount=float(getattr(acc, "baseline_amount", 0.0) or 0.0),
+                        baseline_amount=float(
+                            getattr(acc, "baseline_amount", 0.0) or 0.0
+                        ),
                     )
                 updated_accounts.append(updated_acc)
                 account_updated = True
@@ -273,7 +292,9 @@ class BankMovementService:
 
         return updated_accounts
 
-    def recalculate_account_balances(self, accounts: List[MoneyAccount]) -> List[MoneyAccount]:
+    def recalculate_account_balances(
+        self, accounts: List[MoneyAccount]
+    ) -> List[MoneyAccount]:
         if not accounts:
             return accounts
 
@@ -297,7 +318,9 @@ class BankMovementService:
             if isinstance(acc, BankAccount):
                 calculated_balance = balance_by_account.get(acc.name, 0.0)
                 try:
-                    calculated_balance += float(getattr(acc, "baseline_amount", 0.0) or 0.0)
+                    calculated_balance += float(
+                        getattr(acc, "baseline_amount", 0.0) or 0.0
+                    )
                 except Exception:
                     pass
 
@@ -312,13 +335,17 @@ class BankMovementService:
                 if date_str:
                     try:
                         if new_history and str(new_history[-1].date) == str(date_str):
-                            new_history[-1] = MoneySnapshot(date=date_str, amount=calculated_balance)
+                            new_history[-1] = MoneySnapshot(
+                                date=date_str, amount=calculated_balance
+                            )
                         else:
                             new_history.append(
                                 MoneySnapshot(date=date_str, amount=calculated_balance)
                             )
                     except Exception:
-                        new_history.append(MoneySnapshot(date=date_str, amount=calculated_balance))
+                        new_history.append(
+                            MoneySnapshot(date=date_str, amount=calculated_balance)
+                        )
 
                 updated_acc = BankAccount(
                     name=acc.name,
@@ -350,7 +377,9 @@ class BankMovementService:
                         a = float(getattr(m, "amount", 0.0) or 0.0)
                         if a >= 0:
                             continue
-                        k = budget_period_end_key(str(getattr(m, "date", "") or ""), reset_day)
+                        k = budget_period_end_key(
+                            str(getattr(m, "date", "") or ""), reset_day
+                        )
                         if k is None or k != cur_key:
                             continue
                         spent += abs(a)
@@ -374,12 +403,20 @@ class BankMovementService:
                     date_str = ""
                 if date_str:
                     try:
-                        if new_history and str(getattr(new_history[-1], "date", "")) == str(date_str):
-                            new_history[-1] = MoneySnapshot(date=date_str, amount=remaining)
+                        if new_history and str(
+                            getattr(new_history[-1], "date", "")
+                        ) == str(date_str):
+                            new_history[-1] = MoneySnapshot(
+                                date=date_str, amount=remaining
+                            )
                         else:
-                            new_history.append(MoneySnapshot(date=date_str, amount=remaining))
+                            new_history.append(
+                                MoneySnapshot(date=date_str, amount=remaining)
+                            )
                     except Exception:
-                        new_history.append(MoneySnapshot(date=date_str, amount=remaining))
+                        new_history.append(
+                            MoneySnapshot(date=date_str, amount=remaining)
+                        )
 
                 updated_accounts.append(
                     BudgetAccount(
@@ -388,9 +425,13 @@ class BankMovementService:
                         is_liquid=False,
                         history=new_history,
                         active=bool(getattr(acc, "active", False)),
-                        monthly_budget=float(getattr(acc, "monthly_budget", 0.0) or 0.0),
+                        monthly_budget=float(
+                            getattr(acc, "monthly_budget", 0.0) or 0.0
+                        ),
                         reset_day=int(getattr(acc, "reset_day", 1) or 1),
-                        last_reset_period=str(getattr(acc, "last_reset_period", "") or ""),
+                        last_reset_period=str(
+                            getattr(acc, "last_reset_period", "") or ""
+                        ),
                     )
                 )
             else:
@@ -449,9 +490,23 @@ class BankMovementService:
             return accounts
 
         try:
-            from .firebase_workspace_writer import FirebaseWorkspaceWriter
+            from ..models.firebase_session import (
+                current_firebase_uid,
+                current_firebase_workspace_id,
+            )
+            from ..models.firebase_sync_state import add_pending_delete
+            from ..models.sync_gate import allow_firebase_push
 
-            FirebaseWorkspaceWriter().delete_movement(movement_id=movement_id)
+            key = (
+                current_firebase_workspace_id() or current_firebase_uid() or ""
+            ).strip()
+            if key:
+                add_pending_delete(key=key, kind="movement", item_id=movement_id)
+
+            if allow_firebase_push():
+                from .firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                FirebaseWorkspaceWriter().delete_movement(movement_id=movement_id)
         except Exception:
             pass
 
@@ -480,7 +535,9 @@ class BankMovementService:
                 name = str(m.account_name or "").strip()
                 if not name:
                     continue
-                new_sum_by_account[name] = new_sum_by_account.get(name, 0.0) + float(m.amount)
+                new_sum_by_account[name] = new_sum_by_account.get(name, 0.0) + float(
+                    m.amount
+                )
             except Exception:
                 continue
 
@@ -506,24 +563,30 @@ class BankMovementService:
                         is_liquid=acc.is_liquid,
                         history=new_history,
                         active=acc.active,
-                        baseline_amount=float(getattr(acc, "baseline_amount", 0.0) or 0.0),
+                        baseline_amount=float(
+                            getattr(acc, "baseline_amount", 0.0) or 0.0
+                        ),
                     )
                 )
-            elif isinstance(acc, BudgetAccount) and str(getattr(acc, "name", "")) == str(
-                getattr(target, "account_name", "")
-            ):
+            elif isinstance(acc, BudgetAccount) and str(
+                getattr(acc, "name", "")
+            ) == str(getattr(target, "account_name", "")):
                 reset_day = int(getattr(acc, "reset_day", 1) or 1)
                 if reset_day < 1:
                     reset_day = 1
                 if reset_day > 28:
                     reset_day = 28
                 cur_key = current_budget_period_end_key(reset_day)
-                target_key = budget_period_end_key(str(getattr(target, "date", "") or ""), reset_day)
+                target_key = budget_period_end_key(
+                    str(getattr(target, "date", "") or ""), reset_day
+                )
 
                 restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
                 if target_key is not None and target_key == cur_key:
                     try:
-                        restored_total = float(acc.total_amount) + abs(float(target.amount))
+                        restored_total = float(acc.total_amount) + abs(
+                            float(target.amount)
+                        )
                     except Exception:
                         restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
                 new_history = list(getattr(acc, "history", []) or [])
@@ -658,7 +721,9 @@ class BankMovementService:
             confidence=confidence,
         )
 
-    def _match_category_to_allowed(self, category: str, allowed_categories: List[str]) -> str:
+    def _match_category_to_allowed(
+        self, category: str, allowed_categories: List[str]
+    ) -> str:
         normalized = category.strip()
         for cat in allowed_categories:
             if cat in normalized or normalized in cat:
@@ -674,5 +739,3 @@ class BankMovementService:
         out = list(self._imported_for_last_csv)
         self._imported_for_last_csv.clear()
         return out
-
-

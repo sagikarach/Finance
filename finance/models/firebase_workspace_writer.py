@@ -60,6 +60,84 @@ class FirebaseWorkspaceWriter:
             },
         )
 
+    def upsert_movements_bulk(
+        self, movements: List[BankMovement], *, batch_size: int = 200
+    ) -> int:
+        items = [m for m in list(movements or []) if isinstance(m, BankMovement)]
+        if not items:
+            return 0
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        try:
+            from ..models.firebase_client import _fs_value  # type: ignore
+        except Exception:
+            _fs_value = None  # type: ignore
+        try:
+            import time as _time
+
+            now = _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime())
+            now_ms = int(_time.time() * 1000)
+        except Exception:
+            now = ""
+            now_ms = 0
+
+        def _doc_name(mid: str) -> str:
+            return (
+                f"projects/{s.project_id}/databases/(default)/documents/"
+                f"workspaces/{wid}/movements/{mid}"
+            )
+
+        writes: List[Dict[str, Any]] = []
+        attempted = 0
+        for m in items:
+            attempted += 1
+            fields = {
+                "id": str(m.id),
+                "amount": float(m.amount),
+                "date": str(m.date),
+                "account_name": str(m.account_name),
+                "category": str(m.category),
+                "type": str(getattr(m.type, "value", m.type)),
+                "is_transfer": bool(getattr(m, "is_transfer", False)),
+                "description": m.description,
+                "event_id": getattr(m, "event_id", None),
+                "deleted": False,
+                "source": "desktop",
+                "updated_at": now,
+                "updated_at_ms": int(now_ms),
+            }
+            writes.append(
+                {
+                    "update": {
+                        "name": _doc_name(str(m.id)),
+                        "fields": {
+                            str(k): (
+                                _fs_value(v)
+                                if callable(_fs_value)
+                                else {"stringValue": str(v)}
+                            )
+                            for k, v in fields.items()
+                        },
+                    }
+                }
+            )
+
+            if len(writes) >= int(batch_size):
+                try:
+                    fs.commit_writes(id_token=s.id_token, writes=writes)
+                except Exception:
+                    pass
+                writes = []
+
+        if writes:
+            try:
+                fs.commit_writes(id_token=s.id_token, writes=writes)
+            except Exception:
+                pass
+
+        return int(attempted)
+
     def delete_movement(self, *, movement_id: str) -> None:
         movement_id = str(movement_id or "").strip()
         if not movement_id:
@@ -173,7 +251,9 @@ class FirebaseWorkspaceWriter:
                 try:
                     for h in list(getattr(acc, "history", []) or []):
                         if isinstance(h, MoneySnapshot):
-                            hist.append({"date": str(h.date), "amount": float(h.amount)})
+                            hist.append(
+                                {"date": str(h.date), "amount": float(h.amount)}
+                            )
                         elif isinstance(h, dict):
                             hist.append(
                                 {
@@ -196,15 +276,15 @@ class FirebaseWorkspaceWriter:
                         "last_reset_period": str(
                             getattr(acc, "last_reset_period", "") or ""
                         ),
-                        "total_amount": float(
-                            getattr(acc, "total_amount", 0.0) or 0.0
-                        ),
+                        "total_amount": float(getattr(acc, "total_amount", 0.0) or 0.0),
                         "history": hist,
                     }
                 )
             elif isinstance(acc, SavingsAccount):
                 try:
-                    savings.append(asdict(acc) if is_dataclass(acc) else {"name": acc.name})
+                    savings.append(
+                        asdict(acc) if is_dataclass(acc) else {"name": acc.name}
+                    )
                 except Exception:
                     savings.append({"name": getattr(acc, "name", "")})
 
@@ -270,6 +350,46 @@ class FirebaseWorkspaceWriter:
             },
         )
 
+    def upsert_notifications_meta(self, *, enabled: bool, rules: List[dict]) -> None:
+        """
+        Stores notifications settings (enabled + rules) under a single meta doc.
+        """
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        safe_rules: List[dict] = []
+        for r in list(rules or []):
+            if isinstance(r, dict):
+                safe_rules.append(dict(r))
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/meta/notifications",
+            id_token=s.id_token,
+            fields={"enabled": bool(enabled), "rules": safe_rules, "version": 1},
+        )
+
+    def upsert_user_profile(
+        self, *, uid: str, full_name: str, lock_enabled: bool
+    ) -> None:
+        """
+        Stores a per-user profile. Note: password is intentionally not synced.
+        """
+        uid = str(uid or "").strip()
+        if not uid:
+            return
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/users/{uid}",
+            id_token=s.id_token,
+            fields={
+                "uid": uid,
+                "full_name": str(full_name or ""),
+                "lock_enabled": bool(lock_enabled),
+                "version": 1,
+            },
+        )
+
     def upsert_dashboard_meta(self, meta) -> None:
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)
@@ -293,6 +413,25 @@ class FirebaseWorkspaceWriter:
             },
         )
 
+    def upsert_workspace_grade(self, grade) -> None:
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/meta/grade",
+            id_token=s.id_token,
+            fields={
+                "grade": float(getattr(grade, "grade", 0.0) or 0.0),
+                "computed_at": str(getattr(grade, "computed_at", "") or ""),
+                "months_used": list(getattr(grade, "months_used", []) or []),
+                "components": dict(getattr(grade, "components", {}) or {}),
+                "explanations": list(getattr(grade, "explanations", []) or []),
+                "grade_version": int(getattr(grade, "grade_version", 1) or 1),
+                "version": 1,
+                "source": "desktop",
+            },
+        )
+
     def upsert_ml_seed(self, *, examples: List[Dict[str, Any]]) -> None:
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)
@@ -302,5 +441,3 @@ class FirebaseWorkspaceWriter:
             id_token=s.id_token,
             fields={"examples": list(examples), "version": 1},
         )
-
-

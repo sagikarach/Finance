@@ -32,7 +32,10 @@ from ..models.action_history import (
     UnassignMovementFromOneTimeEventAction,
     UploadOutcomeFileAction,
 )
-from ..models.firebase_session import current_firebase_uid, current_firebase_workspace_id
+from ..models.firebase_session import (
+    current_firebase_uid,
+    current_firebase_workspace_id,
+)
 from ..utils.app_paths import accounts_data_dir
 
 
@@ -55,18 +58,29 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         self,
         history_path: Optional[Union[str, Path]] = None,
     ) -> None:
-        if history_path:
-            self._history_path = Path(history_path)
+        self._explicit_history_path: Optional[Path] = Path(history_path) if history_path else None
+        self._history_path: Path = Path("")
+        self._last_key: str = ""
+        self._ensure_path()
+
+    def _ensure_path(self) -> None:
+        if self._explicit_history_path is not None:
+            self._history_path = self._explicit_history_path
+            return
+
+        wid = current_firebase_workspace_id()
+        uid = current_firebase_uid()
+        key = str(wid or uid or "").strip()
+        if key == self._last_key and self._history_path:
+            return
+        self._last_key = key
+        if key:
+            self._history_path = accounts_data_dir() / f"action_history_{key}.json"
         else:
-            wid = current_firebase_workspace_id()
-            uid = current_firebase_uid()
-            key = wid or uid
-            if key:
-                self._history_path = accounts_data_dir() / f"action_history_{key}.json"
-            else:
-                self._history_path = accounts_data_dir() / "action_history.json"
+            self._history_path = accounts_data_dir() / "action_history.json"
 
     def list_history(self) -> List[ActionHistory]:
+        self._ensure_path()
         history: List[ActionHistory] = []
 
         if not self._history_path.exists():
@@ -107,6 +121,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         return history
 
     def save_history(self, history: List[ActionHistory]) -> None:
+        self._ensure_path()
         self._history_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []
@@ -122,10 +137,15 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             json.dump(json_data, f, ensure_ascii=False, indent=2)
 
     def add_action(self, action_history: ActionHistory) -> None:
+        self._ensure_path()
         current_history = self.list_history()
         current_history.append(action_history)
         self.save_history(current_history)
         try:
+            from ..models.sync_gate import allow_firebase_push
+
+            if not allow_firebase_push():
+                return
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             FirebaseWorkspaceWriter().upsert_action_history(action_history)
@@ -243,19 +263,21 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                             except Exception:
                                 kwargs[field_info.name] = []
                     else:
-                        kwargs[field_info.name] = list(field_value) if field_value else []
+                        kwargs[field_info.name] = (
+                            list(field_value) if field_value else []
+                        )
                 elif "str" in field_type_str:
                     kwargs[field_info.name] = str(field_value)
                 elif "list" in field_type_str or "List" in field_type_str:
                     if isinstance(field_value, list):
                         kwargs[field_info.name] = field_value
                     else:
-                        kwargs[field_info.name] = list(field_value) if field_value else []
+                        kwargs[field_info.name] = (
+                            list(field_value) if field_value else []
+                        )
                 else:
                     kwargs[field_info.name] = field_value
 
             return action_class(**kwargs)
         except Exception:
             return None
-
-

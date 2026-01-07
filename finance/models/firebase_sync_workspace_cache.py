@@ -5,7 +5,9 @@ from typing import List
 from .firebase_client import FirestoreClient
 
 
-def pull_ml_seed_best_effort(*, workspace_id: str) -> None:
+def pull_ml_seed_best_effort(
+    *, workspace_id: str, ensure_in_firebase: bool = False
+) -> None:
     if not str(workspace_id or "").strip():
         return
     try:
@@ -13,7 +15,8 @@ def pull_ml_seed_best_effort(*, workspace_id: str) -> None:
 
         t = WorkspaceMLTrainer()
         t.pull_seed_to_cache()
-        t.ensure_seed_in_firebase()
+        if bool(ensure_in_firebase):
+            t.ensure_seed_in_firebase()
     except Exception:
         pass
 
@@ -190,3 +193,85 @@ def pull_notifications_to_local_cache(
         prov.save_notifications(merged)
     except Exception:
         pass
+
+
+def pull_notifications_meta_to_local_cache(
+    *, fs: FirestoreClient, workspace_id: str, id_token: str
+) -> None:
+    workspace_id = str(workspace_id or "").strip()
+    if not workspace_id:
+        return
+    try:
+        from ..data.notifications_provider import JsonFileNotificationsProvider
+        from ..models.notifications import NotificationRule, RuleType
+
+        doc = fs.get_document(
+            document_path=f"workspaces/{workspace_id}/meta/notifications",
+            id_token=id_token,
+        )
+        _, parsed = fs.parse_any_doc(doc) if isinstance(doc, dict) else ("", {})
+        enabled = bool(parsed.get("enabled", True))
+        rules_raw = parsed.get("rules", []) or []
+        rules: list[NotificationRule] = []
+        if isinstance(rules_raw, list):
+            for r in rules_raw:
+                if not isinstance(r, dict):
+                    continue
+                try:
+                    rules.append(
+                        NotificationRule(
+                            id=str(r.get("id", "") or ""),
+                            type=RuleType(str(r.get("type", "") or "")),
+                            enabled=bool(r.get("enabled", True)),
+                            schedule=str(r.get("schedule", "daily") or "daily"),
+                            params=dict(r.get("params", {}) or {}),
+                        )
+                    )
+                except Exception:
+                    continue
+        prov = JsonFileNotificationsProvider()
+        prov.set_enabled(bool(enabled))
+        if rules:
+            prov.save_rules(rules)
+    except Exception:
+        return
+
+
+def pull_user_profile_to_local_cache(
+    *, fs: FirestoreClient, workspace_id: str, uid: str, id_token: str
+) -> None:
+    workspace_id = str(workspace_id or "").strip()
+    uid = str(uid or "").strip()
+    if not workspace_id or not uid:
+        return
+    try:
+        from ..utils.app_paths import user_profile_path
+        import json
+
+        doc = fs.get_document(
+            document_path=f"workspaces/{workspace_id}/users/{uid}",
+            id_token=id_token,
+        )
+        _, parsed = fs.parse_any_doc(doc) if isinstance(doc, dict) else ("", {})
+        full_name = str(parsed.get("full_name", "") or "")
+        lock_enabled = bool(parsed.get("lock_enabled", False))
+
+        path = user_profile_path()
+        local = {}
+        if path.exists():
+            try:
+                local = json.loads(path.read_text(encoding="utf-8") or "{}")
+            except Exception:
+                local = {}
+        if not isinstance(local, dict):
+            local = {}
+        if full_name:
+            local["full_name"] = full_name
+        local["lock_enabled"] = bool(lock_enabled)
+        # Intentionally keep local-only: password, avatar_path.
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(local, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except Exception:
+        return

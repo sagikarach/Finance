@@ -71,9 +71,12 @@ class OneTimeEventsService:
             old = None
         self._events_provider.upsert_event(event)
         try:
-            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+            from ..models.sync_gate import allow_firebase_push
 
-            FirebaseWorkspaceWriter().upsert_event(event)
+            if allow_firebase_push():
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                FirebaseWorkspaceWriter().upsert_event(event)
         except Exception:
             pass
         try:
@@ -140,9 +143,23 @@ class OneTimeEventsService:
             event_name = ""
         self._events_provider.delete_event(event_id)
         try:
-            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+            from ..models.firebase_session import (
+                current_firebase_uid,
+                current_firebase_workspace_id,
+            )
+            from ..models.firebase_sync_state import add_pending_delete
+            from ..models.sync_gate import allow_firebase_push
 
-            FirebaseWorkspaceWriter().delete_event(event_id=event_id)
+            key = (
+                current_firebase_workspace_id() or current_firebase_uid() or ""
+            ).strip()
+            if key:
+                add_pending_delete(key=key, kind="event", item_id=event_id)
+
+            if allow_firebase_push():
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                FirebaseWorkspaceWriter().delete_event(event_id=event_id)
         except Exception:
             pass
         movements = self._movements_provider.list_movements()
@@ -173,15 +190,20 @@ class OneTimeEventsService:
         if changed:
             self._movements_provider.save_movements(updated)
             try:
-                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+                from ..models.sync_gate import allow_firebase_push
 
-                w = FirebaseWorkspaceWriter()
-                for m in updated:
-                    try:
-                        if getattr(m, "id", "") in set(unassigned_ids):
-                            w.upsert_movement(m)
-                    except Exception:
-                        continue
+                if allow_firebase_push():
+                    from ..models.firebase_workspace_writer import (
+                        FirebaseWorkspaceWriter,
+                    )
+
+                    w = FirebaseWorkspaceWriter()
+                    for m in updated:
+                        try:
+                            if getattr(m, "id", "") in set(unassigned_ids):
+                                w.upsert_movement(m)
+                        except Exception:
+                            continue
             except Exception:
                 pass
         try:
@@ -246,12 +268,17 @@ class OneTimeEventsService:
         if changed:
             self._movements_provider.save_movements(updated)
             try:
-                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+                from ..models.sync_gate import allow_firebase_push
 
-                for m in updated:
-                    if m.id == movement_id:
-                        FirebaseWorkspaceWriter().upsert_movement(m)
-                        break
+                if allow_firebase_push():
+                    from ..models.firebase_workspace_writer import (
+                        FirebaseWorkspaceWriter,
+                    )
+
+                    for m in updated:
+                        if m.id == movement_id:
+                            FirebaseWorkspaceWriter().upsert_movement(m)
+                            break
             except Exception:
                 pass
             try:

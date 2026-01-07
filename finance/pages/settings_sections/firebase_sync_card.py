@@ -1,27 +1,22 @@
 from __future__ import annotations
 
-import secrets
-import string
-
 from ...qt import (
-    QApplication,
-    QDialog,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QPushButton,
     Qt,
     QVBoxLayout,
     QWidget,
+    QDialog,
 )
 from ...models.firebase_session import FirebaseSessionStore
-from ...models.firebase_login_service import FirebaseLoginService
-from ...models.firebase_workspace_service import FirebaseWorkspaceService
-from ...models.firebase_movements_sync import FirebaseMovementsSyncService
+from ...models.firebase_workspace_profiles import FirebaseWorkspaceProfilesStore
+from ...ui.firebase_account_dialogs import open_firebase_account_dialog
+from ...models.workspace_local_cache_reset import reset_workspace_local_cache
 
 
 class FirebaseSyncCard(QWidget):
-    def __init__(self, *, parent: QWidget, store: FirebaseSessionStore) -> None:
+    def __init__(self, *, parent: object, store: FirebaseSessionStore) -> None:
         super().__init__(parent)
         self.setObjectName("Sidebar")
         try:
@@ -38,114 +33,125 @@ class FirebaseSyncCard(QWidget):
         self._store = store
         self._build()
 
-    def _random_workspace_code(self) -> str:
-        alphabet = string.ascii_uppercase + string.digits
-        raw = "".join(secrets.choice(alphabet) for _ in range(12))
-        return f"{raw[:4]}-{raw[4:8]}-{raw[8:12]}"
-
     def _build(self) -> None:
-        fb_l = QVBoxLayout(self)
-        fb_l.setContentsMargins(24, 24, 24, 24)
-        fb_l.setSpacing(10)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
 
-        fb_title = QLabel("שיתוף וסנכרון", self)
+        title = QLabel("שיתוף וסנכרון", self)
         try:
-            fb_title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         except Exception:
             pass
-        fb_l.addWidget(fb_title)
+        layout.addWidget(title)
+        layout.addSpacing(8)
 
-        session = self._store.load()
+        profiles_store = FirebaseWorkspaceProfilesStore()
+        s = self._store.load()
+        wid_now = str(getattr(s, "workspace_id", "") or "").strip()
+        email_now = str(getattr(s, "email", "") or "").strip()
+        logged_in = bool(getattr(s, "is_logged_in", False))
 
-        email_edit = QLineEdit(self)
-        email_edit.setPlaceholderText("אימייל (Firebase)")
-        email_edit.setText(session.email or "")
-
-        password_edit = QLineEdit(self)
-        password_edit.setPlaceholderText("סיסמה (Firebase)")
+        current_name = ""
         try:
-            password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+            for p in profiles_store.list_profiles():
+                if (
+                    str(getattr(p, "workspace_id", "") or "").strip() == wid_now
+                    and wid_now
+                ):
+                    current_name = str(getattr(p, "name", "") or "").strip()
+                    break
         except Exception:
-            try:
-                password_edit.setEchoMode(QLineEdit.Password)
-            except Exception:
-                pass
+            current_name = ""
 
-        project_row = QHBoxLayout()
-        project_row.setSpacing(10)
-        project_lbl = QLabel("", self)
-        project_lbl.setObjectName("Subtitle")
-        change_project_btn = QPushButton("שנה פרויקט", self)
-        change_project_btn.setObjectName("SecondaryButton")
-        project_row.addWidget(project_lbl, 1)
-        project_row.addWidget(change_project_btn, 0)
-        fb_l.addLayout(project_row)
+        def _row(label: str, value: str) -> None:
+            r = QHBoxLayout()
+            r.setSpacing(8)
+            lambda_layout = QLabel(label, self)
+            lambda_layout.setObjectName("StatTitle")
+            v = QLabel(value, self)
+            v.setObjectName("StatValue")
+            v.setWordWrap(True)
+            r.addWidget(lambda_layout, 0)
+            r.addWidget(QLabel("-", self), 0)
+            r.addWidget(v, 1)
+            layout.addLayout(r)
 
-        fb_l.addWidget(email_edit)
-        fb_l.addWidget(password_edit)
+        _row("חשבון", current_name or (wid_now or "לא נבחר"))
+        _row("אימייל", email_now or "—")
+        _row("Workspace", wid_now or "—")
+        _row("סטטוס", "מחובר" if logged_in else "לא מחובר")
 
-        workspace_edit = QLineEdit(self)
-        workspace_edit.setPlaceholderText("קוד שיתוף (Workspace)")
-        try:
-            workspace_edit.setText(str(getattr(session, "workspace_id", "") or ""))
-        except Exception:
-            workspace_edit.setText("")
-        fb_l.addWidget(workspace_edit)
-
-        fb_status = QLabel("", self)
-        fb_status.setObjectName("Subtitle")
-        fb_l.addWidget(fb_status)
+        layout.addSpacing(8)
 
         btn_row = QHBoxLayout()
-        btn_row.setSpacing(10)
-        login_btn = QPushButton("התחבר", self)
-        login_btn.setObjectName("SaveButton")
-        create_ws_btn = QPushButton("צור קוד", self)
-        create_ws_btn.setObjectName("SecondaryButton")
-        join_ws_btn = QPushButton("הצטרף", self)
-        join_ws_btn.setObjectName("SecondaryButton")
-        clear_ws_btn = QPushButton("נתק שיתוף", self)
-        clear_ws_btn.setObjectName("DangerButton")
-        logout_btn = QPushButton("התנתק", self)
-        logout_btn.setObjectName("DangerButton")
-        btn_row.addWidget(login_btn)
-        btn_row.addWidget(create_ws_btn)
-        btn_row.addWidget(join_ws_btn)
-        btn_row.addWidget(clear_ws_btn)
-        btn_row.addWidget(logout_btn)
+        btn_row.setSpacing(12)
+        connect_btn = QPushButton("התחבר / ערוך", self)
+        connect_btn.setObjectName("SaveButton")
+        btn_row.addWidget(connect_btn)
         btn_row.addStretch(1)
-        fb_l.addLayout(btn_row)
+        layout.addLayout(btn_row)
 
-        def refresh_status() -> None:
-            s = self._store.load()
+        danger_row = QHBoxLayout()
+        danger_row.setSpacing(12)
+        reset_btn = QPushButton("אפס נתונים מקומיים", self)
+        reset_btn.setObjectName("SecondaryButton")
+        try:
+            reset_btn.setToolTip("מוחק קבצי מטמון מקומיים עבור ה-Workspace הנוכחי")
+        except Exception:
+            pass
+        danger_row.addWidget(reset_btn)
+        danger_row.addStretch(1)
+        layout.addLayout(danger_row)
+
+        def _open_current_dialog() -> None:
+            parent = None
             try:
-                pid = str(getattr(s, "project_id", "") or "").strip()
+                parent = self.window()
             except Exception:
-                pid = ""
-            project_lbl.setText(f"פרויקט: {pid}" if pid else "פרויקט: לא הוגדר")
+                parent = None
+            prof = None
             try:
-                has_api = bool(str(getattr(s, "api_key", "") or "").strip())
-                has_pid = bool(pid)
-                change_project_btn.setEnabled(True)
-                if not (has_api and has_pid):
-                    change_project_btn.setText("הגדר פרויקט")
-                else:
-                    change_project_btn.setText("שנה פרויקט")
+                for p in profiles_store.list_profiles():
+                    if (
+                        str(getattr(p, "workspace_id", "") or "").strip() == wid_now
+                        and wid_now
+                    ):
+                        prof = p
+                        break
+            except Exception:
+                prof = None
+            open_firebase_account_dialog(
+                parent=parent,
+                session_store=self._store,
+                profiles_store=profiles_store,
+                profile=prof,
+                prefill_email=email_now,
+                prefill_workspace_id=wid_now,
+            )
+
+        connect_btn.clicked.connect(_open_current_dialog)
+
+        def _confirm_and_reset() -> None:
+            wid = str(getattr(self._store.load(), "workspace_id", "") or "").strip()
+            if not wid:
+                return
+            parent = None
+            try:
+                parent = self.window()
+            except Exception:
+                parent = None
+
+            dlg = QDialog(parent)
+            dlg.setWindowTitle("איפוס נתונים מקומיים")
+            try:
+                dlg.setModal(True)
             except Exception:
                 pass
-            if s.is_logged_in:
-                wid = str(getattr(s, "workspace_id", "") or "").strip()
-                if wid:
-                    fb_status.setText(f"מחובר: {s.email} | שיתוף: {wid}")
-                else:
-                    fb_status.setText(f"מחובר: {s.email} | ללא שיתוף")
-            else:
-                fb_status.setText("לא מחובר")
-
-        def edit_project_settings() -> None:
-            s = self._store.load()
-            dlg = QDialog(self)
-            dlg.setWindowTitle("הגדרת פרויקט Firebase")
+            try:
+                dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+            except Exception:
+                pass
             try:
                 dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             except Exception:
@@ -153,161 +159,51 @@ class FirebaseSyncCard(QWidget):
                     dlg.setLayoutDirection(Qt.RightToLeft)
                 except Exception:
                     pass
-            lay = QVBoxLayout(dlg)
-            lay.setContentsMargins(24, 20, 24, 20)
-            lay.setSpacing(10)
 
-            info = QLabel(
-                "השדות האלו הם טכניים. בדרך כלל מגדירים אותם פעם אחת.\n"
-                "אם תשנה אותם תצטרך להתחבר מחדש.",
+            lambda_layout = QVBoxLayout(dlg)
+            lambda_layout.setContentsMargins(28, 22, 28, 22)
+            lambda_layout.setSpacing(12)
+            msg = QLabel(
+                "זה ימחק את קבצי המטמון המקומיים עבור ה-Workspace הזה בלבד.\n"
+                "אחרי זה מומלץ לבצע סנכרון (Pull) כדי למשוך נתונים מהענן.\n\n"
+                f"Workspace: {wid}",
                 dlg,
             )
-            info.setWordWrap(True)
-            lay.addWidget(info)
+            msg.setWordWrap(True)
+            lambda_layout.addWidget(msg)
 
-            api_key_edit = QLineEdit(dlg)
-            api_key_edit.setPlaceholderText("Firebase API Key")
-            api_key_edit.setText(str(getattr(s, "api_key", "") or ""))
-            project_id_edit = QLineEdit(dlg)
-            project_id_edit.setPlaceholderText("Firebase Project ID")
-            project_id_edit.setText(str(getattr(s, "project_id", "") or ""))
-            lay.addWidget(api_key_edit)
-            lay.addWidget(project_id_edit)
+            buttons = QHBoxLayout()
+            buttons.setSpacing(12)
+            ok = QPushButton("אפס", dlg)
+            ok.setObjectName("SaveButton")
+            cancel = QPushButton("ביטול", dlg)
+            buttons.addWidget(ok)
+            buttons.addStretch(1)
+            buttons.addWidget(cancel)
+            lambda_layout.addLayout(buttons)
+            cancel.clicked.connect(dlg.reject)
+            ok.clicked.connect(dlg.accept)
 
-            row = QHBoxLayout()
-            row.setSpacing(10)
-            cancel_btn = QPushButton("ביטול", dlg)
-            cancel_btn.setObjectName("SecondaryButton")
-            save_btn = QPushButton("שמור", dlg)
-            save_btn.setObjectName("SaveButton")
-            row.addWidget(cancel_btn)
-            row.addStretch(1)
-            row.addWidget(save_btn)
-            lay.addLayout(row)
-
-            cancel_btn.clicked.connect(dlg.reject)
-
-            def _save_project() -> None:
-                api_key = api_key_edit.text().strip()
-                project_id = project_id_edit.text().strip()
-                if not api_key or not project_id:
-                    fb_status.setText("חובה למלא API key ו-project id")
-                    return
-                s.api_key = api_key
-                s.project_id = project_id
-                s.uid = ""
-                s.id_token = ""
-                s.refresh_token = ""
-                s.expires_at = 0.0
-                self._store.save(s)
-                dlg.accept()
-                refresh_status()
-
-            save_btn.clicked.connect(_save_project)
-            dlg.exec()
-
-        def do_login() -> None:
-            current = self._store.load()
-            api_key = str(getattr(current, "api_key", "") or "").strip()
-            project_id = str(getattr(current, "project_id", "") or "").strip()
-            email = email_edit.text().strip()
-            pw = password_edit.text()
-            if not api_key or not project_id:
-                fb_status.setText(
-                    "חובה להגדיר פרויקט (API key + project id) לפני התחברות"
-                )
+            if not dlg.exec():
                 return
-            if not email or not pw:
-                fb_status.setText("חובה למלא אימייל וסיסמה")
-                return
-            fb_status.setText("מתחבר...")
-            QApplication.processEvents()
+
             try:
-                FirebaseLoginService(
-                    session_store=self._store
-                ).login_with_email_password(
-                    email=email,
-                    password=pw,
-                    workspace_id=workspace_edit.text().strip(),
-                )
-            except Exception as e:
-                fb_status.setText(f"שגיאת התחברות: {str(e)}")
-                return
-            refresh_status()
-
-        def do_create_workspace() -> None:
-            s = self._store.load()
-            if not s.is_logged_in:
-                fb_status.setText("יש להתחבר לפני יצירת שיתוף")
-                return
-            code = self._random_workspace_code()
-            fb_status.setText("יוצר שיתוף...")
-            QApplication.processEvents()
-            try:
-                FirebaseWorkspaceService(session_store=self._store).create_workspace(
-                    workspace_id=code
-                )
-                workspace_edit.setText(code)
-                fb_status.setText(f"שיתוף נוצר. קוד: {code}")
-                try:
-                    FirebaseMovementsSyncService().ensure_user_local_file(code)
-                except Exception:
-                    pass
-            except Exception as e:
-                fb_status.setText(f"שגיאת שיתוף: {str(e)}")
-                return
-            refresh_status()
-
-        def do_join_workspace() -> None:
-            s = self._store.load()
-            if not s.is_logged_in:
-                fb_status.setText("יש להתחבר לפני הצטרפות לשיתוף")
-                return
-            code = workspace_edit.text().strip()
-            if not code:
-                fb_status.setText("יש להזין קוד שיתוף")
-                return
-            fb_status.setText("מצטרף לשיתוף...")
-            QApplication.processEvents()
-            try:
-                FirebaseWorkspaceService(session_store=self._store).join_workspace(
-                    workspace_id=code, role="editor"
-                )
-                fb_status.setText(f"הצטרפת לשיתוף: {code}")
-                try:
-                    FirebaseMovementsSyncService().ensure_user_local_file(code)
-                except Exception:
-                    pass
-            except Exception as e:
-                fb_status.setText(f"שגיאת שיתוף: {str(e)}")
-                return
-            refresh_status()
-
-        def do_clear_workspace() -> None:
-            s = self._store.load()
-            if not s.is_logged_in:
-                workspace_edit.setText("")
-                return
-            try:
-                FirebaseWorkspaceService(
-                    session_store=self._store
-                ).disconnect_workspace_local()
+                reset_workspace_local_cache(workspace_id=wid)
             except Exception:
-                s.workspace_id = ""
-                self._store.save(s)
-            workspace_edit.setText("")
-            fb_status.setText("שיתוף נותק (מקומי בלבד)")
-            refresh_status()
+                pass
 
-        def do_logout() -> None:
-            self._store.clear()
-            refresh_status()
+            try:
+                win = parent
+                router = getattr(win, "router", None) if win is not None else None
+                if (
+                    router is not None
+                    and callable(getattr(router, "current_route", None))
+                    and callable(getattr(router, "navigate", None))
+                ):
+                    route = router.current_route()
+                    if route:
+                        router.navigate(route)
+            except Exception:
+                pass
 
-        login_btn.clicked.connect(do_login)
-        create_ws_btn.clicked.connect(do_create_workspace)
-        join_ws_btn.clicked.connect(do_join_workspace)
-        clear_ws_btn.clicked.connect(do_clear_workspace)
-        logout_btn.clicked.connect(do_logout)
-        change_project_btn.clicked.connect(edit_project_settings)
-
-        refresh_status()
+        reset_btn.clicked.connect(_confirm_and_reset)

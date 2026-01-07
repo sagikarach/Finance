@@ -1,6 +1,10 @@
 from .accounts import BankAccount, MoneyAccount, Savings, SavingsAccount
 from .bank_movement import BankMovement, MovementType
-from .monthly_report import CategoryMonthlyBreakdown, MonthlyMovementSummary, MonthlyReport
+from .monthly_report import (
+    CategoryMonthlyBreakdown,
+    MonthlyMovementSummary,
+    MonthlyReport,
+)
 from .overview import AccountsOverview
 from .yearly_report import (
     CategoryYearlyBreakdown,
@@ -27,5 +31,3 @@ __all__ = [
     "YearlyReport",
     "MonthTypeSummary",
 ]
-
-

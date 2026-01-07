@@ -556,10 +556,11 @@ imported by:
  &#8226;   <a href="#finance.models.firebase_sync_pullers">finance.models.firebase_sync_pullers</a>
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
  &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
- &#8226;   <a href="#finance.models.firebase_workspace_service">finance.models.firebase_workspace_service</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.installment_plan">finance.models.installment_plan</a>
  &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
+ &#8226;   <a href="#finance.models.keychain_passwords">finance.models.keychain_passwords</a>
  &#8226;   <a href="#finance.models.monthly_report">finance.models.monthly_report</a>
  &#8226;   <a href="#finance.models.monthly_report_service">finance.models.monthly_report_service</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
@@ -571,8 +572,11 @@ imported by:
  &#8226;   <a href="#finance.models.parsed_expense">finance.models.parsed_expense</a>
  &#8226;   <a href="#finance.models.savings_dialogs">finance.models.savings_dialogs</a>
  &#8226;   <a href="#finance.models.sidebar">finance.models.sidebar</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#finance.models.transfers">finance.models.transfers</a>
  &#8226;   <a href="#finance.models.user">finance.models.user</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
+ &#8226;   <a href="#finance.models.workspace_local_cache_reset">finance.models.workspace_local_cache_reset</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.models.yearly_report">finance.models.yearly_report</a>
  &#8226;   <a href="#finance.models.yearly_report_service">finance.models.yearly_report_service</a>
@@ -613,6 +617,7 @@ imported by:
  &#8226;   <a href="#finance.ui.delete_savings_account_dialog">finance.ui.delete_savings_account_dialog</a>
  &#8226;   <a href="#finance.ui.dialog_utils">finance.ui.dialog_utils</a>
  &#8226;   <a href="#finance.ui.edit_savings_account_dialog">finance.ui.edit_savings_account_dialog</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
  &#8226;   <a href="#finance.ui.lock_dialog">finance.ui.lock_dialog</a>
  &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
  &#8226;   <a href="#finance.ui.month_movements_dialog">finance.ui.month_movements_dialog</a>
@@ -967,7 +972,6 @@ imported by:
   <tt>_hashlib</tt> <span class="moduletype"><tt>/opt/anaconda3/lib/python3.12/lib-dynload/_hashlib.cpython-312-darwin.so</tt></span>  <div class="import">
 imported by:
     <a href="#hashlib">hashlib</a>
- &#8226;   <a href="#hmac">hmac</a>
 
   </div>
 
@@ -1100,8 +1104,7 @@ imported by:
   <a name="_operator"></a>
   <tt>_operator</tt> <span class="moduletype"><i>(builtin module)</i></span>  <div class="import">
 imported by:
-    <a href="#hmac">hmac</a>
- &#8226;   <a href="#operator">operator</a>
+    <a href="#operator">operator</a>
 
   </div>
 
@@ -1708,7 +1711,6 @@ imported by:
  &#8226;   <a href="#email.base64mime">email.base64mime</a>
  &#8226;   <a href="#email.encoders">email.encoders</a>
  &#8226;   <a href="#encodings.base64_codec">encodings.base64_codec</a>
- &#8226;   <a href="#secrets">secrets</a>
  &#8226;   <a href="#shiboken6">shiboken6</a>
  &#8226;   <a href="#ssl">ssl</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
@@ -2099,6 +2101,7 @@ imports:
 imported by:
     <a href="#_threading_local">_threading_local</a>
  &#8226;   <a href="#ast">ast</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#getpass">getpass</a>
  &#8226;   <a href="#importlib.metadata">importlib.metadata</a>
  &#8226;   <a href="#importlib.resources._adapters">importlib.resources._adapters</a>
@@ -2277,7 +2280,7 @@ imported by:
  &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
  &#8226;   <a href="#finance.models.firebase_session_manager">finance.models.firebase_session_manager</a>
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
- &#8226;   <a href="#finance.models.firebase_workspace_service">finance.models.firebase_workspace_service</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.installment_plan">finance.models.installment_plan</a>
  &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
@@ -2292,12 +2295,14 @@ imported by:
  &#8226;   <a href="#finance.models.sidebar">finance.models.sidebar</a>
  &#8226;   <a href="#finance.models.transfers">finance.models.transfers</a>
  &#8226;   <a href="#finance.models.user">finance.models.user</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.models.yearly_report">finance.models.yearly_report</a>
  &#8226;   <a href="#finance.ui.account_movements_dialog">finance.ui.account_movements_dialog</a>
  &#8226;   <a href="#finance.ui.action_history_details_dialog">finance.ui.action_history_details_dialog</a>
  &#8226;   <a href="#finance.ui.month_movements_dialog">finance.ui.month_movements_dialog</a>
  &#8226;   <a href="#finance.ui.sibus_expenses_dialog">finance.ui.sibus_expenses_dialog</a>
+ &#8226;   <a href="#finance.widgets.action_history_table">finance.widgets.action_history_table</a>
  &#8226;   <a href="#finance.widgets.one_time_event_expenses_chart">finance.widgets.one_time_event_expenses_chart</a>
  &#8226;   <a href="#finance.widgets.sidebar_state">finance.widgets.sidebar_state</a>
  &#8226;   <a href="#pprint">pprint</a>
@@ -2332,6 +2337,7 @@ imported by:
  &#8226;   <a href="#finance.models.firebase_sync_balance_apply">finance.models.firebase_sync_balance_apply</a>
  &#8226;   <a href="#finance.models.notifications_service">finance.models.notifications_service</a>
  &#8226;   <a href="#finance.models.transfers">finance.models.transfers</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
  &#8226;   <a href="#finance.pages.settings_sections.bank_accounts_card">finance.pages.settings_sections.bank_accounts_card</a>
  &#8226;   <a href="#finance.ui.bank_movement_dialog">finance.ui.bank_movement_dialog</a>
  &#8226;   <a href="#finance.widgets.one_time_event_expenses_chart">finance.widgets.one_time_event_expenses_chart</a>
@@ -5514,6 +5520,7 @@ imports:
  &#8226;   <a href="#finance.models.action_history">finance.models.action_history</a>
  &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
  &#8226;   <a href="#json">json</a>
  &#8226;   <a href="#pathlib">pathlib</a>
@@ -5567,6 +5574,7 @@ imported by:
  &#8226;   <a href="#finance.models.monthly_report_service">finance.models.monthly_report_service</a>
  &#8226;   <a href="#finance.models.notifications_service">finance.models.notifications_service</a>
  &#8226;   <a href="#finance.models.one_time_events_service">finance.models.one_time_events_service</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
  &#8226;   <a href="#finance.models.yearly_report_service">finance.models.yearly_report_service</a>
  &#8226;   <a href="#finance.pages.base_page">finance.pages.base_page</a>
  &#8226;   <a href="#finance.pages.monthly_data_page">finance.pages.monthly_data_page</a>
@@ -5599,7 +5607,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
+    <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
  &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
 
   </div>
@@ -5626,6 +5635,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#finance.data">finance.data</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
  &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
  &#8226;   <a href="#finance.models.notifications_service">finance.models.notifications_service</a>
 
@@ -5652,7 +5662,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
+    <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
  &#8226;   <a href="#finance.models.notifications_service">finance.models.notifications_service</a>
  &#8226;   <a href="#finance.models.one_time_events_service">finance.models.one_time_events_service</a>
  &#8226;   <a href="#finance.pages.one_time_events_page">finance.pages.one_time_events_page</a>
@@ -5769,10 +5780,11 @@ imported by:
  &#8226;   <a href="#finance.models.firebase_sync_pullers">finance.models.firebase_sync_pullers</a>
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
  &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
- &#8226;   <a href="#finance.models.firebase_workspace_service">finance.models.firebase_workspace_service</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.installment_plan">finance.models.installment_plan</a>
  &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
+ &#8226;   <a href="#finance.models.keychain_passwords">finance.models.keychain_passwords</a>
  &#8226;   <a href="#finance.models.monthly_report">finance.models.monthly_report</a>
  &#8226;   <a href="#finance.models.monthly_report_service">finance.models.monthly_report_service</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
@@ -5784,8 +5796,11 @@ imported by:
  &#8226;   <a href="#finance.models.parsed_expense">finance.models.parsed_expense</a>
  &#8226;   <a href="#finance.models.savings_dialogs">finance.models.savings_dialogs</a>
  &#8226;   <a href="#finance.models.sidebar">finance.models.sidebar</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#finance.models.transfers">finance.models.transfers</a>
  &#8226;   <a href="#finance.models.user">finance.models.user</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
+ &#8226;   <a href="#finance.models.workspace_local_cache_reset">finance.models.workspace_local_cache_reset</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.models.yearly_report">finance.models.yearly_report</a>
  &#8226;   <a href="#finance.models.yearly_report_service">finance.models.yearly_report_service</a>
@@ -5870,6 +5885,7 @@ imports:
  &#8226;   <a href="#finance.models.bank_settings">finance.models.bank_settings</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.savings_dialogs">finance.models.savings_dialogs</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#finance.models.transfers">finance.models.transfers</a>
  &#8226;   <a href="#typing">typing</a>
 
@@ -5990,8 +6006,11 @@ imports:
  &#8226;   <a href="#finance.models.budget_period">finance.models.budget_period</a>
  &#8226;   <a href="#finance.models.classified_expense">finance.models.classified_expense</a>
  &#8226;   <a href="#finance.models.csv_expense_parser">finance.models.csv_expense_parser</a>
+ &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
+ &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#typing">typing</a>
 
@@ -6188,7 +6207,6 @@ imported by:
  &#8226;   <a href="#finance.models.firebase_sync_categories">finance.models.firebase_sync_categories</a>
  &#8226;   <a href="#finance.models.firebase_sync_pullers">finance.models.firebase_sync_pullers</a>
  &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
- &#8226;   <a href="#finance.models.firebase_workspace_service">finance.models.firebase_workspace_service</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
 
@@ -6212,7 +6230,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
+    <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
+ &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
 
   </div>
 
@@ -6226,6 +6245,9 @@ imports:
     <a href="#__future__">__future__</a>
  &#8226;   <a href="#finance.data.action_history_provider">finance.data.action_history_provider</a>
  &#8226;   <a href="#finance.data.bank_movement_provider">finance.data.bank_movement_provider</a>
+ &#8226;   <a href="#finance.data.installment_plan_provider">finance.data.installment_plan_provider</a>
+ &#8226;   <a href="#finance.data.notifications_provider">finance.data.notifications_provider</a>
+ &#8226;   <a href="#finance.data.one_time_event_provider">finance.data.one_time_event_provider</a>
  &#8226;   <a href="#finance.data.provider">finance.data.provider</a>
  &#8226;   <a href="#finance.models">finance.models</a>
  &#8226;   <a href="#finance.models.accounts_service">finance.models.accounts_service</a>
@@ -6242,7 +6264,12 @@ imports:
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
  &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
  &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
+ &#8226;   <a href="#json">json</a>
+ &#8226;   <a href="#threading">threading</a>
+ &#8226;   <a href="#time">time</a>
  &#8226;   <a href="#typing">typing</a>
 
   </div>
@@ -6251,7 +6278,9 @@ imported by:
     <a href="#finance.models.firebase_login_service">finance.models.firebase_login_service</a>
  &#8226;   <a href="#finance.pages.bank_account_page">finance.pages.bank_account_page</a>
  &#8226;   <a href="#finance.pages.base_page">finance.pages.base_page</a>
- &#8226;   <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
+ &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
+ &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
 
   </div>
 
@@ -6280,16 +6309,22 @@ imported by:
  &#8226;   <a href="#finance.data.notifications_provider">finance.data.notifications_provider</a>
  &#8226;   <a href="#finance.data.one_time_event_provider">finance.data.one_time_event_provider</a>
  &#8226;   <a href="#finance.data.provider">finance.data.provider</a>
+ &#8226;   <a href="#finance.models.bank_movement_service">finance.models.bank_movement_service</a>
  &#8226;   <a href="#finance.models.firebase_login_service">finance.models.firebase_login_service</a>
  &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
  &#8226;   <a href="#finance.models.firebase_session_manager">finance.models.firebase_session_manager</a>
- &#8226;   <a href="#finance.models.firebase_workspace_service">finance.models.firebase_workspace_service</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
+ &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
+ &#8226;   <a href="#finance.models.one_time_events_service">finance.models.one_time_events_service</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.pages.base_page">finance.pages.base_page</a>
  &#8226;   <a href="#finance.pages.settings_page">finance.pages.settings_page</a>
  &#8226;   <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
+ &#8226;   <a href="#finance.pages.settings_sections.user_details_card">finance.pages.settings_sections.user_details_card</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
+ &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
+ &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
 
   </div>
 
@@ -6311,7 +6346,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
- &#8226;   <a href="#finance.models.firebase_workspace_service">finance.models.firebase_workspace_service</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
 
@@ -6440,7 +6474,10 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+    <a href="#finance.models.bank_movement_service">finance.models.bank_movement_service</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
+ &#8226;   <a href="#finance.models.one_time_events_service">finance.models.one_time_events_service</a>
 
   </div>
 
@@ -6461,6 +6498,8 @@ imports:
  &#8226;   <a href="#finance.models.notifications">finance.models.notifications</a>
  &#8226;   <a href="#finance.models.one_time_event">finance.models.one_time_event</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
+ &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
+ &#8226;   <a href="#json">json</a>
  &#8226;   <a href="#typing">typing</a>
 
   </div>
@@ -6473,21 +6512,26 @@ imported by:
 </div>
 
 <div class="node">
-  <a name="finance.models.firebase_workspace_service"></a>
-  <a target="code" href="/Users/sagikarach/private/Finance/finance/models/firebase_workspace_service.py" type="text/plain"><tt>finance.models.firebase_workspace_service</tt></a>
+  <a name="finance.models.firebase_workspace_profiles"></a>
+  <a target="code" href="/Users/sagikarach/private/Finance/finance/models/firebase_workspace_profiles.py" type="text/plain"><tt>finance.models.firebase_workspace_profiles</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
  &#8226;   <a href="#dataclasses">dataclasses</a>
  &#8226;   <a href="#finance.models">finance.models</a>
- &#8226;   <a href="#finance.models.firebase_client">finance.models.firebase_client</a>
- &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
- &#8226;   <a href="#finance.models.firebase_session_manager">finance.models.firebase_session_manager</a>
+ &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
+ &#8226;   <a href="#json">json</a>
+ &#8226;   <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#time">time</a>
+ &#8226;   <a href="#typing">typing</a>
 
   </div>
   <div class="import">
 imported by:
     <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
+ &#8226;   <a href="#finance.pages.settings_sections.user_details_card">finance.pages.settings_sections.user_details_card</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
+ &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
 
   </div>
 
@@ -6509,6 +6553,7 @@ imports:
  &#8226;   <a href="#finance.models.installment_plan">finance.models.installment_plan</a>
  &#8226;   <a href="#finance.models.notifications">finance.models.notifications</a>
  &#8226;   <a href="#finance.models.one_time_event">finance.models.one_time_event</a>
+ &#8226;   <a href="#time">time</a>
  &#8226;   <a href="#typing">typing</a>
 
   </div>
@@ -6564,8 +6609,11 @@ imports:
  &#8226;   <a href="#finance.models.accounts">finance.models.accounts</a>
  &#8226;   <a href="#finance.models.action_history">finance.models.action_history</a>
  &#8226;   <a href="#finance.models.bank_movement">finance.models.bank_movement</a>
+ &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
+ &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.installment_plan">finance.models.installment_plan</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#typing">typing</a>
  &#8226;   <a href="#unicodedata">unicodedata</a>
 
@@ -6573,6 +6621,26 @@ imports:
   <div class="import">
 imported by:
     <a href="#finance.pages.installments_page">finance.pages.installments_page</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="finance.models.keychain_passwords"></a>
+  <a target="code" href="/Users/sagikarach/private/Finance/finance/models/keychain_passwords.py" type="text/plain"><tt>finance.models.keychain_passwords</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#finance.models">finance.models</a>
+ &#8226;   <a href="#subprocess">subprocess</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
+ &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
 
   </div>
 
@@ -6695,6 +6763,7 @@ imports:
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.notifications">finance.models.notifications</a>
  &#8226;   <a href="#finance.models.one_time_event">finance.models.one_time_event</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#finance.ui.dialog_utils">finance.ui.dialog_utils</a>
  &#8226;   <a href="#typing">typing</a>
  &#8226;   <a href="#uuid">uuid</a>
@@ -6752,8 +6821,11 @@ imports:
  &#8226;   <a href="#finance.models.accounts">finance.models.accounts</a>
  &#8226;   <a href="#finance.models.action_history">finance.models.action_history</a>
  &#8226;   <a href="#finance.models.bank_movement">finance.models.bank_movement</a>
+ &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
+ &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.one_time_event">finance.models.one_time_event</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#typing">typing</a>
 
   </div>
@@ -6852,6 +6924,31 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="finance.models.sync_gate"></a>
+  <a target="code" href="/Users/sagikarach/private/Finance/finance/models/sync_gate.py" type="text/plain"><tt>finance.models.sync_gate</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#contextlib">contextlib</a>
+ &#8226;   <a href="#finance.models">finance.models</a>
+ &#8226;   <a href="#threading">threading</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#finance.data.action_history_provider">finance.data.action_history_provider</a>
+ &#8226;   <a href="#finance.models.accounts_service">finance.models.accounts_service</a>
+ &#8226;   <a href="#finance.models.bank_movement_service">finance.models.bank_movement_service</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
+ &#8226;   <a href="#finance.models.notifications_service">finance.models.notifications_service</a>
+ &#8226;   <a href="#finance.models.one_time_events_service">finance.models.one_time_events_service</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="finance.models.transfers"></a>
   <a target="code" href="/Users/sagikarach/private/Finance/finance/models/transfers.py" type="text/plain"><tt>finance.models.transfers</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -6892,6 +6989,48 @@ imported by:
  &#8226;   <a href="#finance.pages.settings_sections.user_details_card">finance.pages.settings_sections.user_details_card</a>
  &#8226;   <a href="#finance.widgets.sidebar">finance.widgets.sidebar</a>
  &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="finance.models.user_grade_service"></a>
+  <a target="code" href="/Users/sagikarach/private/Finance/finance/models/user_grade_service.py" type="text/plain"><tt>finance.models.user_grade_service</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#dataclasses">dataclasses</a>
+ &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#finance.data.bank_movement_provider">finance.data.bank_movement_provider</a>
+ &#8226;   <a href="#finance.models">finance.models</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#statistics">statistics</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="finance.models.workspace_local_cache_reset"></a>
+  <a target="code" href="/Users/sagikarach/private/Finance/finance/models/workspace_local_cache_reset.py" type="text/plain"><tt>finance.models.workspace_local_cache_reset</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#finance.models">finance.models</a>
+ &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
+ &#8226;   <a href="#pathlib">pathlib</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
 
   </div>
 
@@ -7374,14 +7513,12 @@ imported by:
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
- &#8226;   <a href="#finance.models.firebase_login_service">finance.models.firebase_login_service</a>
- &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
  &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
- &#8226;   <a href="#finance.models.firebase_workspace_service">finance.models.firebase_workspace_service</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
+ &#8226;   <a href="#finance.models.workspace_local_cache_reset">finance.models.workspace_local_cache_reset</a>
  &#8226;   <a href="#finance.pages.settings_sections">finance.pages.settings_sections</a>
  &#8226;   <a href="#finance.qt">finance.qt</a>
- &#8226;   <a href="#secrets">secrets</a>
- &#8226;   <a href="#string">string</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
 
   </div>
   <div class="import">
@@ -7419,6 +7556,8 @@ imported by:
 imports:
     <a href="#__future__">__future__</a>
  &#8226;   <a href="#finance.data.user_profile_store">finance.data.user_profile_store</a>
+ &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.user">finance.models.user</a>
  &#8226;   <a href="#finance.pages.settings_sections">finance.pages.settings_sections</a>
  &#8226;   <a href="#finance.qt">finance.qt</a>
@@ -7553,6 +7692,7 @@ imported by:
  &#8226;   <a href="#finance.ui.delete_savings_account_dialog">finance.ui.delete_savings_account_dialog</a>
  &#8226;   <a href="#finance.ui.dialog_utils">finance.ui.dialog_utils</a>
  &#8226;   <a href="#finance.ui.edit_savings_account_dialog">finance.ui.edit_savings_account_dialog</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
  &#8226;   <a href="#finance.ui.lock_dialog">finance.ui.lock_dialog</a>
  &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
  &#8226;   <a href="#finance.ui.month_movements_dialog">finance.ui.month_movements_dialog</a>
@@ -7850,6 +7990,7 @@ imported by:
  &#8226;   <a href="#finance.ui.delete_savings_account_dialog">finance.ui.delete_savings_account_dialog</a>
  &#8226;   <a href="#finance.ui.dialog_utils">finance.ui.dialog_utils</a>
  &#8226;   <a href="#finance.ui.edit_savings_account_dialog">finance.ui.edit_savings_account_dialog</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
  &#8226;   <a href="#finance.ui.lock_dialog">finance.ui.lock_dialog</a>
  &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
  &#8226;   <a href="#finance.ui.month_movements_dialog">finance.ui.month_movements_dialog</a>
@@ -8034,6 +8175,32 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="finance.ui.firebase_account_dialogs"></a>
+  <a target="code" href="/Users/sagikarach/private/Finance/finance/ui/firebase_account_dialogs.py" type="text/plain"><tt>finance.ui.firebase_account_dialogs</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#__future__">__future__</a>
+ &#8226;   <a href="#finance.models.firebase_login_service">finance.models.firebase_login_service</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
+ &#8226;   <a href="#finance.models.keychain_passwords">finance.models.keychain_passwords</a>
+ &#8226;   <a href="#finance.qt">finance.qt</a>
+ &#8226;   <a href="#finance.ui">finance.ui</a>
+ &#8226;   <a href="#threading">threading</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
+ &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="finance.ui.lock_dialog"></a>
   <a target="code" href="/Users/sagikarach/private/Finance/finance/ui/lock_dialog.py" type="text/plain"><tt>finance.ui.lock_dialog</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -8058,6 +8225,8 @@ imported by:
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
  &#8226;   <a href="#finance.pages.bank_account_page">finance.pages.bank_account_page</a>
  &#8226;   <a href="#finance.pages.bank_accounts_page">finance.pages.bank_accounts_page</a>
  &#8226;   <a href="#finance.pages.home_page">finance.pages.home_page</a>
@@ -8074,6 +8243,7 @@ imports:
  &#8226;   <a href="#finance.ui">finance.ui</a>
  &#8226;   <a href="#finance.ui.router">finance.ui.router</a>
  &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
+ &#8226;   <a href="#threading">threading</a>
  &#8226;   <a href="#typing">typing</a>
 
   </div>
@@ -8288,7 +8458,10 @@ imported by:
  &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
  &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
+ &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
+ &#8226;   <a href="#finance.models.workspace_local_cache_reset">finance.models.workspace_local_cache_reset</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
  &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
@@ -8458,6 +8631,7 @@ imported by:
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
+ &#8226;   <a href="#dataclasses">dataclasses</a>
  &#8226;   <a href="#finance.models.action_history">finance.models.action_history</a>
  &#8226;   <a href="#finance.models.bank_movement_service">finance.models.bank_movement_service</a>
  &#8226;   <a href="#finance.qt">finance.qt</a>
@@ -8578,6 +8752,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#finance.widgets.sidebar">finance.widgets.sidebar</a>
+ &#8226;   <a href="#finance.widgets.sidebar_avatar">finance.widgets.sidebar_avatar</a>
  &#8226;   <a href="#finance.widgets.sidebar_controller">finance.widgets.sidebar_controller</a>
 
   </div>
@@ -8789,10 +8964,17 @@ imported by:
 imports:
     <a href="#__future__">__future__</a>
  &#8226;   <a href="#finance.data.user_profile_store">finance.data.user_profile_store</a>
+ &#8226;   <a href="#finance.models.firebase_login_service">finance.models.firebase_login_service</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
+ &#8226;   <a href="#finance.models.keychain_passwords">finance.models.keychain_passwords</a>
  &#8226;   <a href="#finance.models.user">finance.models.user</a>
  &#8226;   <a href="#finance.qt">finance.qt</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
  &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
  &#8226;   <a href="#finance.widgets">finance.widgets</a>
+ &#8226;   <a href="#finance.widgets.collapsible_section">finance.widgets.collapsible_section</a>
  &#8226;   <a href="#importlib">importlib</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#typing">typing</a>
@@ -9236,8 +9418,7 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#hmac">hmac</a>
- &#8226;   <a href="#random">random</a>
+    <a href="#random">random</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
  &#8226;   <a href="#uuid">uuid</a>
 
@@ -9257,25 +9438,6 @@ imports:
 imported by:
     <a href="#collections">collections</a>
  &#8226;   <a href="#main.py">main.py</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="hmac"></a>
-  <a target="code" href="/opt/anaconda3/lib/python3.12/hmac.py" type="text/plain"><tt>hmac</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#_hashlib">_hashlib</a>
- &#8226;   <a href="#_operator">_operator</a>
- &#8226;   <a href="#hashlib">hashlib</a>
- &#8226;   <a href="#warnings">warnings</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#secrets">secrets</a>
 
   </div>
 
@@ -10064,8 +10226,11 @@ imported by:
  &#8226;   <a href="#finance.data.provider">finance.data.provider</a>
  &#8226;   <a href="#finance.data.user_profile_store">finance.data.user_profile_store</a>
  &#8226;   <a href="#finance.models.firebase_client">finance.models.firebase_client</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
  &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
+ &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.utils.defaults">finance.utils.defaults</a>
@@ -10271,6 +10436,7 @@ imported by:
 imported by:
     <a href="#_pydatetime">_pydatetime</a>
  &#8226;   <a href="#_pydecimal">_pydecimal</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
  &#8226;   <a href="#finance.widgets.bank_history_chart">finance.widgets.bank_history_chart</a>
  &#8226;   <a href="#finance.widgets.category_trends_chart">finance.widgets.category_trends_chart</a>
  &#8226;   <a href="#finance.widgets.one_time_event_expenses_chart">finance.widgets.one_time_event_expenses_chart</a>
@@ -10603,7 +10769,9 @@ imported by:
  &#8226;   <a href="#finance.models.bank_movement_service">finance.models.bank_movement_service</a>
  &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
+ &#8226;   <a href="#finance.models.workspace_local_cache_reset">finance.models.workspace_local_cache_reset</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.pages.bank_account_page">finance.pages.bank_account_page</a>
  &#8226;   <a href="#finance.utils.app_paths">finance.utils.app_paths</a>
@@ -11044,7 +11212,6 @@ imports:
 imported by:
     <a href="#email.generator">email.generator</a>
  &#8226;   <a href="#email.utils">email.utils</a>
- &#8226;   <a href="#secrets">secrets</a>
  &#8226;   <a href="#statistics">statistics</a>
  &#8226;   <a href="#tempfile">tempfile</a>
  &#8226;   <a href="#uuid">uuid</a>
@@ -11248,24 +11415,6 @@ imported by:
   <tt>resource</tt> <span class="moduletype"><tt>/opt/anaconda3/lib/python3.12/lib-dynload/resource.cpython-312-darwin.so</tt></span>  <div class="import">
 imported by:
     <a href="#posix">posix</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="secrets"></a>
-  <a target="code" href="/opt/anaconda3/lib/python3.12/secrets.py" type="text/plain"><tt>secrets</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#base64">base64</a>
- &#8226;   <a href="#hmac">hmac</a>
- &#8226;   <a href="#random">random</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
 
   </div>
 
@@ -11585,7 +11734,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#random">random</a>
+    <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
+ &#8226;   <a href="#random">random</a>
 
   </div>
 
@@ -11606,7 +11756,6 @@ imported by:
     <a href="#email._encoded_words">email._encoded_words</a>
  &#8226;   <a href="#email._header_value_parser">email._header_value_parser</a>
  &#8226;   <a href="#email.quoprimime">email.quoprimime</a>
- &#8226;   <a href="#finance.pages.settings_sections.firebase_sync_card">finance.pages.settings_sections.firebase_sync_card</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#ntpath">ntpath</a>
  &#8226;   <a href="#nturl2path">nturl2path</a>
@@ -11687,6 +11836,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#finance.app">finance.app</a>
+ &#8226;   <a href="#finance.models.keychain_passwords">finance.models.keychain_passwords</a>
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#platform">platform</a>
  &#8226;   <a href="#uuid">uuid</a>
@@ -11904,7 +12054,11 @@ imports:
   <div class="import">
 imported by:
     <a href="#_threading_local">_threading_local</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
+ &#8226;   <a href="#finance.models.sync_gate">finance.models.sync_gate</a>
  &#8226;   <a href="#finance.pages.base_page">finance.pages.base_page</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
+ &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
  &#8226;   <a href="#http.cookiejar">http.cookiejar</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#subprocess">subprocess</a>
@@ -11931,7 +12085,10 @@ imported by:
  &#8226;   <a href="#email.generator">email.generator</a>
  &#8226;   <a href="#email.utils">email.utils</a>
  &#8226;   <a href="#finance.models.firebase_client">finance.models.firebase_client</a>
+ &#8226;   <a href="#finance.models.firebase_movements_sync">finance.models.firebase_movements_sync</a>
  &#8226;   <a href="#finance.models.firebase_session">finance.models.firebase_session</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#gc">gc</a>
  &#8226;   <a href="#gzip">gzip</a>
  &#8226;   <a href="#http.cookiejar">http.cookiejar</a>
@@ -12140,8 +12297,10 @@ imported by:
  &#8226;   <a href="#finance.models.firebase_sync_pullers">finance.models.firebase_sync_pullers</a>
  &#8226;   <a href="#finance.models.firebase_sync_state">finance.models.firebase_sync_state</a>
  &#8226;   <a href="#finance.models.firebase_sync_workspace_cache">finance.models.firebase_sync_workspace_cache</a>
+ &#8226;   <a href="#finance.models.firebase_workspace_profiles">finance.models.firebase_workspace_profiles</a>
  &#8226;   <a href="#finance.models.firebase_workspace_writer">finance.models.firebase_workspace_writer</a>
  &#8226;   <a href="#finance.models.installments_service">finance.models.installments_service</a>
+ &#8226;   <a href="#finance.models.keychain_passwords">finance.models.keychain_passwords</a>
  &#8226;   <a href="#finance.models.monthly_report">finance.models.monthly_report</a>
  &#8226;   <a href="#finance.models.monthly_report_service">finance.models.monthly_report_service</a>
  &#8226;   <a href="#finance.models.movement_classifier">finance.models.movement_classifier</a>
@@ -12155,6 +12314,7 @@ imported by:
  &#8226;   <a href="#finance.models.sidebar">finance.models.sidebar</a>
  &#8226;   <a href="#finance.models.transfers">finance.models.transfers</a>
  &#8226;   <a href="#finance.models.user">finance.models.user</a>
+ &#8226;   <a href="#finance.models.user_grade_service">finance.models.user_grade_service</a>
  &#8226;   <a href="#finance.models.workspace_ml_trainer">finance.models.workspace_ml_trainer</a>
  &#8226;   <a href="#finance.models.yearly_report">finance.models.yearly_report</a>
  &#8226;   <a href="#finance.models.yearly_report_service">finance.models.yearly_report_service</a>
@@ -12181,6 +12341,7 @@ imported by:
  &#8226;   <a href="#finance.ui.batch_outcome_review_dialog">finance.ui.batch_outcome_review_dialog</a>
  &#8226;   <a href="#finance.ui.delete_savings_account_dialog">finance.ui.delete_savings_account_dialog</a>
  &#8226;   <a href="#finance.ui.edit_savings_account_dialog">finance.ui.edit_savings_account_dialog</a>
+ &#8226;   <a href="#finance.ui.firebase_account_dialogs">finance.ui.firebase_account_dialogs</a>
  &#8226;   <a href="#finance.ui.lock_dialog">finance.ui.lock_dialog</a>
  &#8226;   <a href="#finance.ui.main_window">finance.ui.main_window</a>
  &#8226;   <a href="#finance.ui.month_movements_dialog">finance.ui.month_movements_dialog</a>
@@ -12451,7 +12612,6 @@ imported by:
  &#8226;   <a href="#getpass">getpass</a>
  &#8226;   <a href="#gettext">gettext</a>
  &#8226;   <a href="#gzip">gzip</a>
- &#8226;   <a href="#hmac">hmac</a>
  &#8226;   <a href="#http.cookiejar">http.cookiejar</a>
  &#8226;   <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib.abc">importlib.abc</a>

@@ -16,6 +16,19 @@ def load_sidebar_light_styles() -> str:
         color: #0f172a;
         margin-top: 4px;
     }
+    QToolButton#FirebaseAccountMenuButton {
+        background: transparent;
+        color: #0f172a;
+        border: none;
+        font-size: 16px;
+        font-weight: 700;
+        padding: 0px 4px;
+        margin-top: 4px;
+    }
+    QToolButton#FirebaseAccountMenuButton:hover {
+        background: rgba(201, 225, 254, 0.35);
+        border-radius: 6px;
+    }
     QLabel#AvatarCircle {
         width: 72px;
         height: 72px;
@@ -294,6 +307,19 @@ def load_sidebar_dark_styles() -> str:
         font-weight: 600;
         color: #e5e7eb;
         margin-top: 4px;
+    }
+    QToolButton#FirebaseAccountMenuButton {
+        background: transparent;
+        color: #e5e7eb;
+        border: none;
+        font-size: 16px;
+        font-weight: 700;
+        padding: 0px 4px;
+        margin-top: 4px;
+    }
+    QToolButton#FirebaseAccountMenuButton:hover {
+        background: rgba(15, 23, 42, 0.6);
+        border-radius: 6px;
     }
     QPushButton#SidebarNavButtonSavings {
         background: #111827;

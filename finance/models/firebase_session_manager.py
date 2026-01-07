@@ -30,5 +30,3 @@ class FirebaseSessionManager:
             pass
 
         return session
-
-
