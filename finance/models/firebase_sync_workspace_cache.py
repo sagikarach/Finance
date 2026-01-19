@@ -150,7 +150,10 @@ def pull_notifications_to_local_cache(
             id_token=id_token,
         )
 
-        remote: list[Notification] = []
+        prov = JsonFileNotificationsProvider()
+        local = list(prov.list_notifications())
+        by_key = {n.key: n for n in local if getattr(n, "key", "")}
+
         for d in docs:
             try:
                 doc_id, parsed = fs.parse_any_doc(d)
@@ -158,35 +161,39 @@ def pull_notifications_to_local_cache(
                 key = str(parsed.get("key") or "").strip() or str(doc_id or "").strip()
                 if not key:
                     continue
-                remote.append(
-                    Notification(
-                        id=nid or key,
-                        key=key,
-                        type=NotificationType(str(parsed.get("type") or "")),
-                        title=str(parsed.get("title") or ""),
-                        message=str(parsed.get("message") or ""),
-                        severity=NotificationSeverity(
-                            str(parsed.get("severity") or "info")
-                        ),
-                        created_at=str(parsed.get("created_at") or ""),
-                        status=NotificationStatus(
-                            str(parsed.get("status") or "unread")
-                        ),
-                        due_at=str(parsed["due_at"])
-                        if parsed.get("due_at") is not None
-                        else None,
-                        source=str(parsed.get("source") or "system"),
-                        context=dict(parsed.get("context") or {}),
-                    )
+
+                status = NotificationStatus(str(parsed.get("status") or "unread"))
+                existing = by_key.get(key)
+                if existing is not None and existing.status in (
+                    NotificationStatus.RESOLVED,
+                    NotificationStatus.DISMISSED,
+                ):
+                    continue
+
+                # If remote is resolved/dismissed, remove locally and skip.
+                if status in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED):
+                    if key in by_key:
+                        by_key.pop(key, None)
+                    continue
+
+                notif = Notification(
+                    id=nid or key,
+                    key=key,
+                    type=NotificationType(str(parsed.get("type") or "")),
+                    title=str(parsed.get("title") or ""),
+                    message=str(parsed.get("message") or ""),
+                    severity=NotificationSeverity(str(parsed.get("severity") or "info")),
+                    created_at=str(parsed.get("created_at") or ""),
+                    status=status,
+                    due_at=str(parsed["due_at"])
+                    if parsed.get("due_at") is not None
+                    else None,
+                    source=str(parsed.get("source") or "system"),
+                    context=dict(parsed.get("context") or {}),
                 )
+                by_key[key] = notif
             except Exception:
                 continue
-
-        prov = JsonFileNotificationsProvider()
-        local = list(prov.list_notifications())
-        by_key = {n.key: n for n in local if getattr(n, "key", "")}
-        for n in remote:
-            by_key[n.key] = n
 
         merged = list(by_key.values())
         merged.sort(key=lambda x: str(getattr(x, "created_at", "") or ""), reverse=True)

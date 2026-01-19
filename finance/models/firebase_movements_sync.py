@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+import threading
 from typing import Dict, List, Optional, Tuple
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
@@ -35,6 +36,8 @@ from ..models.firebase_sync_balance_apply import (
 
 
 class FirebaseMovementsSyncService:
+    _SYNC_LOCK = threading.Lock()
+
     def __init__(
         self,
         *,
@@ -178,92 +181,36 @@ class FirebaseMovementsSyncService:
     ) -> None:
         if not wid:
             return
-        # These are independent network calls; run in parallel to reduce wall-clock time.
-        tasks = []
-
-        def _t(fn, *args, **kwargs):
-            def _run():
-                try:
-                    fn(*args, **kwargs)
-                except Exception:
-                    pass
-
-            return _run
-
-        tasks.append(
-            _t(
-                pull_ml_seed_best_effort,
-                workspace_id=wid,
-                ensure_in_firebase=bool(allow_push),
-            )
+        # Run sequentially for stability (avoid native crashes seen under heavy concurrent pulls).
+        pull_ml_seed_best_effort(
+            workspace_id=wid, ensure_in_firebase=bool(allow_push)
         )
-        tasks.append(
-            _t(pull_events_to_local_cache, fs=fs, workspace_id=wid, id_token=id_token)
+        pull_events_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
+        pull_installment_plans_to_local_cache(
+            fs=fs, workspace_id=wid, id_token=id_token
         )
-        tasks.append(
-            _t(
-                pull_installment_plans_to_local_cache,
-                fs=fs,
-                workspace_id=wid,
-                id_token=id_token,
-            )
+        pull_notifications_to_local_cache(
+            fs=fs, workspace_id=wid, id_token=id_token
         )
-        tasks.append(
-            _t(
-                pull_notifications_to_local_cache,
-                fs=fs,
-                workspace_id=wid,
-                id_token=id_token,
-            )
+        pull_notifications_meta_to_local_cache(
+            fs=fs, workspace_id=wid, id_token=id_token
         )
-        tasks.append(
-            _t(
-                pull_notifications_meta_to_local_cache,
-                fs=fs,
-                workspace_id=wid,
-                id_token=id_token,
-            )
+        pull_user_profile_to_local_cache(
+            fs=fs, workspace_id=wid, uid=str(uid or ""), id_token=id_token
         )
-        tasks.append(
-            _t(
-                pull_user_profile_to_local_cache,
-                fs=fs,
-                workspace_id=wid,
-                uid=str(uid or ""),
-                id_token=id_token,
-            )
+        pull_accounts_meta_to_local_cache(
+            fs=fs,
+            workspace_id=wid,
+            id_token=id_token,
+            accounts_provider=self._accounts_provider,
+            accounts_service=self._accounts_service,
         )
-        tasks.append(
-            _t(
-                pull_accounts_meta_to_local_cache,
-                fs=fs,
-                workspace_id=wid,
-                id_token=id_token,
-                accounts_provider=self._accounts_provider,
-                accounts_service=self._accounts_service,
-            )
+        pull_action_history_to_local_cache(
+            fs=fs,
+            workspace_id=wid,
+            id_token=id_token,
+            history_provider=self._history_provider,
         )
-        tasks.append(
-            _t(
-                pull_action_history_to_local_cache,
-                fs=fs,
-                workspace_id=wid,
-                id_token=id_token,
-                history_provider=self._history_provider,
-            )
-        )
-
-        try:
-            import threading
-
-            threads = [threading.Thread(target=t, daemon=True) for t in tasks]
-            for th in threads:
-                th.start()
-            for th in threads:
-                th.join()
-        except Exception:
-            for t in tasks:
-                t()
 
     def _apply_balances_once(
         self,
@@ -305,98 +252,109 @@ class FirebaseMovementsSyncService:
     def sync_now(self, *, allow_push: bool = False) -> Tuple[int, int]:
         from ..models.sync_gate import sync_context
 
-        t0 = time.perf_counter()
-        session = self._load_session_refresh_if_needed()
-        wid = str(getattr(session, "workspace_id", "") or "").strip()
-        uid = session.uid
-        key = wid or uid
-        self.ensure_user_local_file(key)
-        state = load_sync_state(key)
+        lock = FirebaseMovementsSyncService._SYNC_LOCK
+        if not lock.acquire(blocking=False):
+            # Another sync is already running; avoid concurrent pulls to prevent crashes.
+            return 0, 0
 
-        fs = FirestoreClient(project_id=session.project_id)
-
-        t_push = 0.0
-        pushed = 0
-        with sync_context():
-            if bool(allow_push):
-                t_push0 = time.perf_counter()
-                pushed = self._push_all_local(
-                    fs=fs, wid=wid, uid=uid, id_token=session.id_token, state=state
-                )
-                self._best_effort(self._push_dashboard_meta)
-                t_push = float(time.perf_counter() - t_push0)
-
-        t_cat0 = time.perf_counter()
-        self._best_effort(
-            self._sync_categories_pull_only,
-            fs=fs,
-            wid=wid,
-            uid=uid,
-            id_token=session.id_token,
-        )
-        t_cat = float(time.perf_counter() - t_cat0)
-
-        t_mov0 = time.perf_counter()
-        pulled, remote_ids, remote_by_id, local_by_id = self._pull_and_merge_movements(
-            fs=fs, wid=wid, uid=uid, id_token=session.id_token, state=state
-        )
-        t_mov = float(time.perf_counter() - t_mov0)
-
-        t_cache0 = time.perf_counter()
-        self._best_effort(
-            self._pull_workspace_caches,
-            fs=fs,
-            wid=wid,
-            uid=uid,
-            id_token=session.id_token,
-            allow_push=bool(allow_push),
-        )
-        t_cache = float(time.perf_counter() - t_cache0)
-
-        t_bal0 = time.perf_counter()
-        self._best_effort(
-            self._apply_balances_once,
-            state=state,
-            local_by_id=local_by_id,
-            remote_by_id=remote_by_id,
-        )
-        t_bal = float(time.perf_counter() - t_bal0)
-
-        remote_set = set(remote_ids)
-
-        state.remote_ids = list(remote_set | {m.id for m in local_by_id.values()})
-        self._best_effort(save_sync_state, key, state)
-
-        # Save timings to help diagnose slow syncs
         try:
-            p = app_data_dir() / "firebase"
-            p.mkdir(parents=True, exist_ok=True)
-            (p / "last_sync_profile.json").write_text(
-                json.dumps(
-                    {
-                        "workspace_id": wid,
-                        "allow_push": bool(allow_push),
-                        "pulled": int(pulled),
-                        "pushed": int(pushed),
-                        "remote_docs_seen": int(len(remote_by_id or {})),
-                        "timings_sec": {
-                            "total": float(time.perf_counter() - t0),
-                            "push_all_local": float(t_push),
-                            "sync_categories_pull_only": float(t_cat),
-                            "pull_movements_merge_save": float(t_mov),
-                            "pull_workspace_caches": float(t_cache),
-                            "apply_balances_once": float(t_bal),
-                        },
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                ),
-                encoding="utf-8",
-            )
-        except Exception:
-            pass
+            t0 = time.perf_counter()
+            session = self._load_session_refresh_if_needed()
+            wid = str(getattr(session, "workspace_id", "") or "").strip()
+            uid = session.uid
+            key = wid or uid
+            self.ensure_user_local_file(key)
+            state = load_sync_state(key)
 
-        return pulled, pushed
+            fs = FirestoreClient(project_id=session.project_id)
+
+            t_push = 0.0
+            pushed = 0
+            with sync_context():
+                if bool(allow_push):
+                    t_push0 = time.perf_counter()
+                    pushed = self._push_all_local(
+                        fs=fs, wid=wid, uid=uid, id_token=session.id_token, state=state
+                    )
+                    self._best_effort(self._push_dashboard_meta)
+                    t_push = float(time.perf_counter() - t_push0)
+
+            t_cat0 = time.perf_counter()
+            self._best_effort(
+                self._sync_categories_pull_only,
+                fs=fs,
+                wid=wid,
+                uid=uid,
+                id_token=session.id_token,
+            )
+            t_cat = float(time.perf_counter() - t_cat0)
+
+            t_mov0 = time.perf_counter()
+            pulled, remote_ids, remote_by_id, local_by_id = self._pull_and_merge_movements(
+                fs=fs, wid=wid, uid=uid, id_token=session.id_token, state=state
+            )
+            t_mov = float(time.perf_counter() - t_mov0)
+
+            t_cache0 = time.perf_counter()
+            self._best_effort(
+                self._pull_workspace_caches,
+                fs=fs,
+                wid=wid,
+                uid=uid,
+                id_token=session.id_token,
+                allow_push=bool(allow_push),
+            )
+            t_cache = float(time.perf_counter() - t_cache0)
+
+            t_bal0 = time.perf_counter()
+            self._best_effort(
+                self._apply_balances_once,
+                state=state,
+                local_by_id=local_by_id,
+                remote_by_id=remote_by_id,
+            )
+            t_bal = float(time.perf_counter() - t_bal0)
+
+            remote_set = set(remote_ids)
+
+            state.remote_ids = list(remote_set | {m.id for m in local_by_id.values()})
+            self._best_effort(save_sync_state, key, state)
+
+            # Save timings to help diagnose slow syncs
+            try:
+                p = app_data_dir() / "firebase"
+                p.mkdir(parents=True, exist_ok=True)
+                (p / "last_sync_profile.json").write_text(
+                    json.dumps(
+                        {
+                            "workspace_id": wid,
+                            "allow_push": bool(allow_push),
+                            "pulled": int(pulled),
+                            "pushed": int(pushed),
+                            "remote_docs_seen": int(len(remote_by_id or {})),
+                            "timings_sec": {
+                                "total": float(time.perf_counter() - t0),
+                                "push_all_local": float(t_push),
+                                "sync_categories_pull_only": float(t_cat),
+                                "pull_movements_merge_save": float(t_mov),
+                                "pull_workspace_caches": float(t_cache),
+                                "apply_balances_once": float(t_bal),
+                            },
+                        },
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
+
+            return pulled, pushed
+        finally:
+            try:
+                lock.release()
+            except Exception:
+                pass
 
     def _push_all_local(
         self, *, fs: FirestoreClient, wid: str, uid: str, id_token: str, state

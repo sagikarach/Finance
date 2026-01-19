@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional
 import math
+from datetime import datetime
 
 from ..qt import (
     QApplication,
@@ -27,6 +28,23 @@ from ..models.charts import (
     catmull_rom_spline_samples,
 )
 from .savings_history_chart import ShadowChartView
+
+
+def _month_key_fast(date_str: str) -> Optional[tuple[int, int]]:
+    """
+    Fast path for YYYY-MM-DD strings to avoid slow datetime parsing for large movement lists.
+    Returns (year, month) or None.
+    """
+    s = str(date_str or "").strip()
+    if len(s) >= 7 and s[4] == "-" and s[7:8] in ("", "-"):
+        try:
+            y = int(s[0:4])
+            m = int(s[5:7])
+            if 1 <= m <= 12:
+                return (y, m)
+        except Exception:
+            return None
+    return None
 
 
 def create_bank_history_chart_card(
@@ -74,11 +92,16 @@ def create_bank_history_chart_card(
 
             spent_by_period_end: dict[tuple[int, int], float] = {}
             for m in spent_movements:
+                dt = None
                 try:
                     dt = parse_iso_date(str(getattr(m, "date", "") or ""))
                 except Exception:
+                    dt = None
+                if dt == datetime.min:
                     continue
                 amt = float(getattr(m, "amount", 0.0) or 0.0)
+                if dt is None:
+                    continue
                 if dt.day <= reset_day:
                     end_key = (dt.year, dt.month)
                 else:
@@ -111,7 +134,11 @@ def create_bank_history_chart_card(
             x_labels = [f"{m:02d}/{y % 100:02d}" for (y, m) in month_keys]
 
             chart = QChart()
-            chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+            # Animations are pretty but can look glitchy/laggy right after big imports.
+            try:
+                chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+            except Exception:
+                chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
             chart.legend().setVisible(False)
             chart.setBackgroundRoundness(0)
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
@@ -247,44 +274,57 @@ def create_bank_history_chart_card(
                     # Transfers should affect balances in general, but your app treats them specially.
                     # Still include them in balance (they are real money movement). Keep them included.
                     pass
-                dt = parse_iso_date(str(getattr(m, "date", "") or ""))
-                key = (dt.year, dt.month)
+                date_str = str(getattr(m, "date", "") or "")
+                key = _month_key_fast(date_str)
+                if key is None:
+                    dt = parse_iso_date(date_str)
+                    if dt == datetime.min:
+                        continue
+                    key = (dt.year, dt.month)
                 sums_by_month[key] = float(sums_by_month.get(key, 0.0)) + float(
                     getattr(m, "amount", 0.0) or 0.0
                 )
             except Exception:
                 continue
 
+        # If baseline_amount isn't set (often 0), infer the init amount from:
+        # current_total_amount - sum(all movements for this account).
+        # This makes the chart start from the real "init" balance the user expects.
+        try:
+            if float(baseline) == 0.0:
+                inferred = float(getattr(account, "total_amount", 0.0) or 0.0) - float(
+                    sum(float(v) for v in sums_by_month.values())
+                )
+                # Only override when we have signal (non-zero inferred).
+                if abs(float(inferred)) > 0.0001:
+                    baseline = float(inferred)
+        except Exception:
+            pass
+
         def _next_month(year: int, month: int) -> tuple[int, int]:
             if month >= 12:
                 return (year + 1, 1)
             return (year, month + 1)
 
+        month_keys_bank: List[tuple[int, int]] = []
         if sums_by_month:
             keys_sorted = sorted(sums_by_month.keys(), key=lambda k: (k[0], k[1]))
             start_key = keys_sorted[0]
             end_key = keys_sorted[-1]
-            month_keys_bank: List[tuple[int, int]] = []
             cur = start_key
             while True:
                 month_keys_bank.append(cur)
                 if cur == end_key:
                     break
                 cur = _next_month(cur[0], cur[1])
-        else:
-            placeholder = QLabel("אין תנועות להצגה", chart_card)
-            placeholder.setObjectName("Subtitle")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            chart_layout.addWidget(placeholder, 1)
-            return chart_card
 
-        # Build actual balance values: baseline + cumulative monthly net movements.
-        # First point is baseline + first month's net (as requested).
+        # Explicit baseline start point, then end-of-month balances, then "today".
         running = float(baseline)
-        base_values_bank: List[float] = []
+        base_values_bank: List[float] = [float(running)]
         for k in month_keys_bank:
             running += float(sums_by_month.get(k, 0.0))
             base_values_bank.append(float(running))
+        base_values_bank.append(float(running))
 
         min_amount = min(base_values_bank) if base_values_bank else 0.0
         max_amount = max(base_values_bank) if base_values_bank else 0.0
@@ -293,7 +333,11 @@ def create_bank_history_chart_card(
         max_amount = float(max(max_amount, 0.0))
 
         chart = QChart()
-        chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+        # Animations are pretty but can look glitchy/laggy right after big imports.
+        try:
+            chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+        except Exception:
+            chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
         chart.legend().setVisible(False)
         chart.setBackgroundRoundness(0)
         chart.setBackgroundBrush(Qt.GlobalColor.transparent)
@@ -339,7 +383,11 @@ def create_bank_history_chart_card(
         ]
 
         axis_x = QCategoryAxis()
-        x_labels = [f"{m:02d}/{y % 100:02d}" for (y, m) in month_keys_bank]
+        x_labels = (
+            ["התחלה"]
+            + [f"{m:02d}/{y % 100:02d}" for (y, m) in month_keys_bank]
+            + ["היום"]
+        )
         for idx, label in enumerate(x_labels):
             axis_x.append(label, float(idx))
         try:
@@ -398,7 +446,7 @@ def create_bank_history_chart_card(
         chart_view = ShadowChartView(
             chart,
             shadow_specs_bank,
-            month_keys_bank,
+            [(0, 0)] + list(month_keys_bank) + [(0, 0)],
             tooltip_specs_bank,
             format_amount,
             chart_card,
@@ -413,7 +461,10 @@ def create_bank_history_chart_card(
 
     if charts_available and account.history:
         chart = QChart()
-        chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+        try:
+            chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+        except Exception:
+            chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
         chart.legend().setVisible(False)
         chart.setBackgroundRoundness(0)
         chart.setBackgroundBrush(Qt.GlobalColor.transparent)

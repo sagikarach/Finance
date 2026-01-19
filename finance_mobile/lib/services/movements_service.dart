@@ -19,24 +19,50 @@ class MovementsService {
         .collection('movements');
   }
 
+  List<Movement> _sortByDateDesc(List<Movement> items) {
+    DateTime? parse(String s) {
+      try {
+        return DateTime.tryParse(s.trim());
+      } catch (_) {
+        return null;
+      }
+    }
+
+    items.sort((a, b) {
+      final da = parse(a.date);
+      final db = parse(b.date);
+      if (da != null && db != null && da != db) {
+        return db.compareTo(da); // newest date first
+      }
+      if (da != null && db == null) return -1;
+      if (da == null && db != null) return 1;
+
+      final ams = a.updatedAtMs ?? 0;
+      final bms = b.updatedAtMs ?? 0;
+      if (ams != bms) return bms.compareTo(ams); // newest update first
+
+      return b.id.compareTo(a.id); // stable tiebreaker
+    });
+    return items;
+    }
+
   Future<List<Movement>> fetch({Source source = Source.server}) async {
     final snap = await _ref()
-        .orderBy('date', descending: true)
+        .orderBy('updated_at_ms', descending: true)
         .get(GetOptions(source: source));
 
-    return snap.docs
+    final items = snap.docs
         .map((d) => Movement.fromFirestore(d.data()))
         .where((m) => m.id.isNotEmpty && !m.deleted)
         .toList();
+    return _sortByDateDesc(items);
   }
 
   Future<List<Movement>> fetchIncremental() async {
-    // 1) Load cache for immediate baseline.
     final cached = await _cache.loadMovements(workspaceId: workspaceId);
     final byId = <String, Movement>{for (final m in cached) m.id: m};
     var watermarkMs = await _cache.loadWatermarkMs(workspaceId: workspaceId);
 
-    // 2) First run (no watermark) => full pull once.
     if (watermarkMs <= 0) {
       final full = await fetch(source: Source.server);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -49,7 +75,6 @@ class MovementsService {
       return full;
     }
 
-    // 3) Pull only updates.
     final snap = await _ref()
         .where('updated_at_ms', isGreaterThan: watermarkMs)
         .orderBy('updated_at_ms', descending: false)
@@ -66,8 +91,8 @@ class MovementsService {
 
     final merged = byId.values
         .where((m) => m.id.isNotEmpty)
-        .toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+        .toList();
+    _sortByDateDesc(merged);
 
     await _cache.saveMovements(workspaceId: workspaceId, movements: merged);
     if (maxSeenMs > watermarkMs) {

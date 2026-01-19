@@ -91,6 +91,26 @@ def _action_body(
     entry: ActionHistory, *, movements_by_id: Optional[Dict[str, Any]] = None
 ) -> str:
     a = entry.action
+    def _movement_details(mid: str) -> Optional[str]:
+        mid_s = str(mid or "").strip()
+        if not mid_s or movements_by_id is None:
+            return None
+        m = movements_by_id.get(mid_s)
+        if m is None:
+            return None
+        try:
+            acc = str(getattr(m, "account_name", "") or "").strip()
+            date = str(getattr(m, "date", "") or "").strip()
+            cat = str(getattr(m, "category", "") or "").strip()
+            desc = str(getattr(m, "description", "") or "").strip()
+            amt = _fmt_money(float(getattr(m, "amount", 0.0) or 0.0))
+            parts = [p for p in (acc, date, (amt if amt else ""), cat) if p]
+            if desc:
+                parts.append(desc)
+            return " • ".join(parts) if parts else None
+        except Exception:
+            return None
+
     try:
         if isinstance(a, TransferAction):
             amount = _fmt_money(float(getattr(a, "amount", 0.0) or 0.0))
@@ -126,28 +146,13 @@ def _action_body(
                 parts.append(date)
             if amt:
                 parts.append(amt)
-            mid = str(getattr(a, "movement_id", "") or "").strip()
-            if mid:
-                parts.append(mid)
             return " • ".join(parts)
 
         if isinstance(a, (AddIncomeMovementAction, AddOutcomeMovementAction)):
             mid = str(getattr(a, "movement_id", "") or "").strip()
-            if mid and movements_by_id is not None:
-                m = movements_by_id.get(mid)
-                if m is not None:
-                    try:
-                        acc = str(getattr(m, "account_name", "") or "").strip()
-                        date = str(getattr(m, "date", "") or "").strip()
-                        cat = str(getattr(m, "category", "") or "").strip()
-                        desc = str(getattr(m, "description", "") or "").strip()
-                        amt = _fmt_money(float(getattr(m, "amount", 0.0) or 0.0))
-                        parts = [p for p in (acc, date, (amt if amt else ""), cat) if p]
-                        if desc:
-                            parts.append(desc)
-                        return " • ".join(parts) if parts else "תנועה חדשה"
-                    except Exception:
-                        pass
+            details = _movement_details(mid)
+            if details:
+                return details
             return "תנועה חדשה"
 
         if isinstance(a, AddInstallmentPlanAction):
@@ -181,14 +186,19 @@ def _action_body(
         if isinstance(a, AssignMovementToOneTimeEventAction):
             mid = str(getattr(a, "movement_id", "") or "").strip()
             eid = str(getattr(a, "event_id", "") or "").strip()
-            parts = [p for p in (eid, mid) if p]
-            return " • ".join(parts) if parts else "שיוך"
+            details = _movement_details(mid)
+            if details:
+                return details
+            # Never show raw IDs in the list.
+            return "שיוך תנועה לאירוע"
 
         if isinstance(a, UnassignMovementFromOneTimeEventAction):
             mid = str(getattr(a, "movement_id", "") or "").strip()
             prev = str(getattr(a, "previous_event_id", "") or "").strip()
-            parts = [p for p in (prev, mid) if p]
-            return " • ".join(parts) if parts else "הסרת שיוך"
+            details = _movement_details(mid)
+            if details:
+                return details
+            return "הסרת שיוך תנועה מאירוע"
 
         if isinstance(a, AddSavingsAccountAction):
             acc = str(getattr(a, "account_name", "") or "").strip()
@@ -256,7 +266,11 @@ def _action_body(
         if is_dataclass(a):
             fallback_parts: List[str] = []
             for k, v in vars(a).items():
-                if k in ("action_name", "success", "error_message"):
+                k_norm = str(k or "").strip()
+                if k_norm in ("action_name", "success", "error_message"):
+                    continue
+                # Never show IDs in the list (movement_id, event_id, plan_id, ...).
+                if k_norm == "id" or k_norm.endswith("_id") or k_norm.endswith("_ids"):
                     continue
                 if v is None:
                     continue
@@ -493,13 +507,13 @@ class ActionHistoryTable(QWidget):
         if not self._history:
             return
 
+        max_rows = int(self._max_rows or 10)
         try:
-            sorted_hist = sorted(
-                self._history, key=lambda h: (str(h.timestamp or ""), str(h.id or ""))
-            )
+            indexed = list(enumerate(self._history))
+            indexed.sort(key=lambda p: (str(p[1].timestamp or ""), p[0]))
+            latest_history = [p[1] for p in reversed(indexed)][:max_rows]
         except Exception:
-            sorted_hist = list(self._history)
-        latest_history = list(reversed(sorted_hist))[: int(self._max_rows or 10)]
+            latest_history = list(reversed(list(self._history)))[:max_rows]
         is_dark = False
         try:
             is_dark = self._is_dark_theme()
@@ -563,8 +577,9 @@ class _ActionHistoryRow(QWidget):
         self.setObjectName("ActionHistoryRow")
         self._stripe_color = str(stripe_color or "").strip()
         self._stripe_px = 24
-        self._outer: Optional[QFrame] = None
-        self._content_layout: Optional[QVBoxLayout] = None
+        # Avoid strict Qt type annotations here; our `qt` shim types are dynamic.
+        self._outer: Optional[Any] = None
+        self._content_layout: Optional[Any] = None
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

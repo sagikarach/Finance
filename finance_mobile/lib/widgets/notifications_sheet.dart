@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../models/movement.dart';
@@ -94,19 +92,6 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
                 _kv('סכום', m.amount.toStringAsFixed(2)),
                 if ((m.description ?? '').trim().isNotEmpty)
                   _kv('תיאור', (m.description ?? '').trim()),
-              ],
-              if (n.context.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Context',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  const JsonEncoder.withIndent('  ').convert(n.context),
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-                ),
               ],
             ],
           ),

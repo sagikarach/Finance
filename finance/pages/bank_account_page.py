@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from pathlib import Path
+import threading
+import queue
 
 from ..qt import (
     QLabel,
@@ -12,6 +14,7 @@ from ..qt import (
     QToolButton,
     QPushButton,
     QSizePolicy,
+    QTimer,
 )
 from ..data.provider import AccountsProvider
 from ..models.accounts import BankAccount, BudgetAccount
@@ -34,7 +37,7 @@ class BankAccountPage(BasePage):
     def __init__(
         self,
         app_context: Optional[Dict[str, str]] = None,
-        parent: Optional[QWidget] = None,
+        parent: Optional[Any] = None,
         provider: Optional[AccountsProvider] = None,
         navigate: Optional[Callable[[str], None]] = None,
     ) -> None:
@@ -50,18 +53,22 @@ class BankAccountPage(BasePage):
             self._provider, history_provider=self._history_provider
         )
 
-    def _build_header_left_buttons(self) -> List[QToolButton]:
-        buttons: List[QToolButton] = []
+    def _build_header_left_buttons(self) -> List[Any]:
+        buttons: List[Any] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
         settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
-        if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))
+        navigate = self._navigate
+        if navigate is not None:
+            try:
+                settings_btn.clicked.connect(lambda: navigate("settings"))
+            except Exception:
+                pass
         buttons.append(settings_btn)
         return buttons
 
-    def _build_content(self, main_col: QVBoxLayout) -> None:
+    def _build_content(self, main_col: Any) -> None:
         while main_col.count():
             item = main_col.takeAt(0)
             widget = item.widget()
@@ -201,21 +208,120 @@ class BankAccountPage(BasePage):
         top_layout.addStretch(1)
         top_layout.addLayout(summary_col, 1)
 
-        try:
-            svc = getattr(self, "_bank_movement_service", None)
-            all_movements = svc.list_movements() if svc is not None else []
-        except Exception:
-            all_movements = []
-
-        chart_card = create_bank_history_chart_card(
-            self,
-            target,
-            format_currency,
-            movements=list(all_movements),
-        )
-
         main_col.addWidget(top_card, 1)
-        main_col.addWidget(chart_card, 2)
+        chart_container = QWidget(self)
+        chart_container_layout = QVBoxLayout(chart_container)
+        chart_container_layout.setContentsMargins(0, 0, 0, 0)
+        chart_container_layout.setSpacing(0)
+        try:
+            if (
+                isinstance(target, BankAccount)
+                and str(getattr(target, "name", "") or "") == "בנק"
+            ):
+                initial_chart = QLabel("טוען גרף...", chart_container)
+                initial_chart.setObjectName("Subtitle")
+                initial_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            elif isinstance(target, BankAccount) and getattr(target, "history", None):
+                initial_chart = create_bank_history_chart_card(
+                    self,
+                    target,
+                    format_currency,
+                    movements=None,
+                )
+            else:
+                initial_chart = QLabel("טוען גרף...", chart_container)
+                initial_chart.setObjectName("Subtitle")
+                initial_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            initial_chart = QLabel("טוען גרף...", chart_container)
+            initial_chart.setObjectName("Subtitle")
+            initial_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        chart_container_layout.addWidget(initial_chart, 1)
+
+        main_col.addWidget(chart_container, 2)
+
+        build_token = object()
+        try:
+            self._bank_chart_build_token = build_token  # type: ignore[attr-defined]
+        except Exception:
+            pass
+        result_q: "queue.Queue[List[Any]]" = queue.Queue(maxsize=1)
+
+        def _swap_chart_widget(new_w: Any) -> None:
+            try:
+                if getattr(self, "_bank_chart_build_token", None) is not build_token:  # type: ignore[attr-defined]
+                    return
+            except Exception:
+                return
+            try:
+                if chart_container is None or chart_container.parent() is None:
+                    return
+            except Exception:
+                return
+
+            # Clear container and insert the new chart.
+            while chart_container_layout.count():
+                item = chart_container_layout.takeAt(0)
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
+            chart_container_layout.addWidget(new_w, 1)
+
+        def _load_and_build() -> None:
+            svc = getattr(self, "_bank_movement_service", None)
+            try:
+                movements_loaded = svc.list_movements() if svc is not None else []
+            except Exception:
+                movements_loaded = []
+            try:
+                # Send result back to the UI thread via a queue (thread-safe).
+                result_q.put(list(movements_loaded), block=False)
+            except Exception:
+                pass
+
+        try:
+            threading.Thread(target=_load_and_build, daemon=True).start()
+        except Exception:
+            pass
+
+        def _poll_result() -> None:
+            try:
+                if getattr(self, "_bank_chart_build_token", None) is not build_token:  # type: ignore[attr-defined]
+                    return
+            except Exception:
+                return
+
+            try:
+                movements_loaded = result_q.get(block=False)
+            except Exception:
+                movements_loaded = None
+
+            if movements_loaded is None:
+                try:
+                    QTimer.singleShot(80, _poll_result)
+                except Exception:
+                    pass
+                return
+
+            try:
+                new_chart = create_bank_history_chart_card(
+                    self,
+                    target,
+                    format_currency,
+                    movements=list(movements_loaded),
+                )
+            except Exception:
+                new_chart = QLabel("שגיאה בטעינת הגרף", chart_container)
+                new_chart.setObjectName("Subtitle")
+                new_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            _swap_chart_widget(new_chart)
+
+        try:
+            # Start polling from the UI thread (this thread has the Qt event loop).
+            QTimer.singleShot(0, _poll_result)
+        except Exception:
+            pass
 
     def _on_import_csv(self, account: BankAccount) -> None:
         try:
@@ -319,6 +425,7 @@ class BankAccountPage(BasePage):
             top_3_pending = pending_sorted[:3]
 
             if top_3_pending:
+                dlg: Any = None
                 try:
                     from ..ui.batch_outcome_review_dialog import (
                         BatchOutcomeReviewDialog,
@@ -334,8 +441,11 @@ class BankAccountPage(BasePage):
                 except Exception:
                     result = False
 
-                if result:
-                    results = dlg.get_results()
+                if result and dlg is not None:
+                    try:
+                        results = dlg.get_results()
+                    except Exception:
+                        results = []
                     for idx, updated in enumerate(results):
                         if updated is None:
                             continue
@@ -458,6 +568,21 @@ class BankAccountPage(BasePage):
                 self._accounts = svc.load_accounts()
             except Exception:
                 pass
+        # Always recompute balances (especially budget/"סיבוס") in case movements
+        # changed while on another workspace/view.
+        try:
+            if hasattr(self, "_bank_movement_service") and self._bank_movement_service:
+                self._accounts = (
+                    self._bank_movement_service.recalculate_account_balances(
+                        self._accounts
+                    )
+                )
+        except Exception:
+            pass
+        try:
+            self._save_and_refresh_accounts()
+        except Exception:
+            pass
         if isinstance(self._content_col, QVBoxLayout):
             self._build_content(self._content_col)
 

@@ -160,7 +160,7 @@ class _QuickAddMovementSheetState extends State<QuickAddMovementSheet> {
       );
 
       await _movements.upsert(movement);
-      await _actions.logAddMovement(movementId: id, isIncome: signedAmount > 0);
+      await _actions.logAddMovement(m: movement);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);

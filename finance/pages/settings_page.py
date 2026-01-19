@@ -66,6 +66,35 @@ class SettingsPage(BasePage):
         buttons.append(back_btn)
         return buttons
 
+    def on_route_activated(self) -> None:
+        super().on_route_activated()
+        # After switching Firebase users/workspaces, reload profile + accounts
+        # from local caches that were just pulled from Firebase.
+        try:
+            self._accounts = self._provider.list_accounts()
+        except Exception:
+            pass
+        try:
+            defaults = load_defaults()
+            default_name = self._app_context.get("userName") or defaults.get(
+                "default_full_name", "אורח"
+            )
+            self._user = self._user_store.load(
+                default_full_name=default_name, accounts=self._accounts
+            )
+        except Exception:
+            pass
+        try:
+            if self._content_col is not None:
+                self._build_content(self._content_col)
+        except Exception:
+            pass
+        try:
+            if self._sidebar is not None:
+                self._sidebar.refresh_profile()
+        except Exception:
+            pass
+
     def _build_content(self, main_col: QVBoxLayout) -> None:
         self._clear_content_layout(main_col)
 

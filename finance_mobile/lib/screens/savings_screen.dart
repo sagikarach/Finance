@@ -315,41 +315,61 @@ class _SavingsScreenState extends State<SavingsScreen> {
                             }
                           }
                         }
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text(
-                                  accName.isEmpty ? 'חסכון' : accName,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(height: 4),
-                                Text('סה״כ: ${total.toStringAsFixed(2)}'),
-                                const SizedBox(height: 12),
-                                if (savings.isEmpty)
-                                  const Text('אין חסכונות בחשבון הזה')
-                                else
-                                  ...savings.map((s) {
-                                    final n = (s['name'] as String?)?.trim() ?? '';
-                                    final a = (s['amount'] is num)
-                                        ? (s['amount'] as num).toDouble()
-                                        : 0.0;
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 6),
-                                      child: Row(
-                                        children: [
-                                          Expanded(child: Text(n)),
-                                          Text(a.toStringAsFixed(2)),
-                                        ],
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          accName.isEmpty ? 'חסכון' : accName,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleLarge
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 20,
+                                              ),
+                                        ),
                                       ),
-                                    );
-                                  }),
-                              ],
+                                      Text(
+                                        total.toStringAsFixed(2),
+                                        style: TextStyle(
+                                          color: Colors.green.shade700,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 20,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (savings.isEmpty)
+                                    const Text('אין חסכונות בחשבון הזה')
+                                  else
+                                    ...savings.map((s) {
+                                      final n = (s['name'] as String?)?.trim() ?? '';
+                                      final a = (s['amount'] is num)
+                                          ? (s['amount'] as num).toDouble()
+                                          : 0.0;
+                                      return Padding(
+                                        padding:
+                                            const EdgeInsets.symmetric(vertical: 6),
+                                        child: Row(
+                                          children: [
+                                            Expanded(child: Text(n)),
+                                            Text(a.toStringAsFixed(2)),
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                ],
+                              ),
                             ),
                           ),
                         );

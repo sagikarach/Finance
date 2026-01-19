@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Iterable, List, Optional
+import re
 
 
 @dataclass(frozen=True)
@@ -92,19 +93,54 @@ def compute_savings_account_liquid_amount(accounts: Iterable[MoneyAccount]) -> f
 
 
 def parse_iso_date(value: str) -> datetime:
+    s = str(value or "").strip()
+    if not s:
+        return datetime.min
+
+    # Fast path: ISO-like formats.
     try:
-        return datetime.fromisoformat(value)
+        return datetime.fromisoformat(s)
     except Exception:
+        pass
+    try:
+        return datetime.strptime(s, "%Y-%m-%d")
+    except Exception:
+        pass
+
+    # Common bank-export formats.
+    try:
+        return datetime.strptime(s, "%d/%m/%Y")
+    except Exception:
+        pass
+    try:
+        return datetime.strptime(s, "%d.%m.%Y")
+    except Exception:
+        pass
+
+    # 2-digit year (e.g. 01/01/24 or 01.01.24)
+    m = re.match(r"^\s*(\d{1,2})[/.](\d{1,2})[/.](\d{2})\s*$", s)
+    if m:
         try:
-            return datetime.strptime(value, "%Y-%m-%d")
+            d = int(m.group(1))
+            mo = int(m.group(2))
+            yy = int(m.group(3))
+            year = 2000 + yy  # assume 20xx for exports
+            return datetime(year, mo, d)
         except Exception:
-            try:
-                return datetime.strptime(value, "%d/%m/%Y")
-            except Exception:
-                try:
-                    return datetime.strptime(value, "%d.%m.%Y")
-                except Exception:
-                    return datetime.min
+            return datetime.min
+
+    # Missing year (e.g. 01/01 or 01.01) -> assume current year.
+    m2 = re.match(r"^\s*(\d{1,2})[/.](\d{1,2})\s*$", s)
+    if m2:
+        try:
+            d = int(m2.group(1))
+            mo = int(m2.group(2))
+            now = datetime.now()
+            return datetime(int(now.year), mo, d)
+        except Exception:
+            return datetime.min
+
+    return datetime.min
 
 
 def latest_amount_from_history(history: Iterable[MoneySnapshot]) -> Optional[float]:

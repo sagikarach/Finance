@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../services/account_profiles_store.dart';
+import '../services/app_lock_store.dart';
 import '../services/workspace_facade.dart';
 import 'dashboard_screen.dart';
 
@@ -14,11 +15,15 @@ class AccountSwitchScreen extends StatefulWidget {
 
 class _AccountSwitchScreenState extends State<AccountSwitchScreen> {
   final _store = AccountProfilesStore();
+  final _appLock = AppLockStore();
   final _workspaces = WorkspaceFacade();
   bool _loading = true;
   String? _error;
   List<AccountProfile> _profiles = const <AccountProfile>[];
   String? _currentWorkspaceId;
+  bool _appLockEnabled = false;
+  bool _bioEnabled = false;
+  bool _bioAvailable = false;
 
   String get _currentEmail =>
       (FirebaseAuth.instance.currentUser?.email ?? '').trim();
@@ -43,11 +48,207 @@ class _AccountSwitchScreenState extends State<AccountSwitchScreen> {
       } catch (_) {
         setState(() => _currentWorkspaceId = null);
       }
+      try {
+        final en = await _appLock.isEnabled();
+        final bio = await _appLock.isBiometricsEnabled();
+        final canBio = await _appLock.canUseBiometrics();
+        if (!mounted) return;
+        setState(() {
+          _appLockEnabled = en;
+          _bioEnabled = bio;
+          _bioAvailable = canBio;
+        });
+      } catch (_) {}
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<String?> _promptAppPassword({required String title}) async {
+    final c1 = TextEditingController();
+    return showDialog<String?>(
+      context: context,
+      builder: (_) => AlertDialog(
+        scrollable: true,
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: c1,
+                obscureText: true,
+                keyboardType: TextInputType.visiblePassword,
+                decoration: const InputDecoration(labelText: 'סיסמת חשבון Firebase'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(null),
+            child: const Text('ביטול'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final p1 = c1.text.trim();
+              if (p1.isEmpty) return;
+              Navigator.of(context).pop(p1);
+            },
+            child: const Text('שמור'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleAppLock(bool v) async {
+    if (v) {
+      final email = (FirebaseAuth.instance.currentUser?.email ?? '').trim();
+      if (email.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('יש להתחבר קודם לחשבון Firebase')),
+        );
+        return;
+      }
+
+      final pw = await _promptAppPassword(title: 'הפעל נעילת אפליקציה');
+      if (pw == null || pw.trim().isEmpty) return;
+
+      // Verify the password matches the current Firebase user (prevents lock-out).
+      try {
+        final cred = EmailAuthProvider.credential(email: email, password: pw);
+        await FirebaseAuth.instance.currentUser?.reauthenticateWithCredential(cred);
+      } on FirebaseAuthException catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('סיסמה שגויה')),
+        );
+        return;
+      } catch (_) {}
+
+      await _appLock.setPin(pw);
+      await _appLock.setEnabled(true);
+      final canBio = await _appLock.canUseBiometrics();
+      if (!mounted) return;
+      setState(() {
+        _appLockEnabled = true;
+        _bioAvailable = canBio;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('נעילת אפליקציה הופעלה')),
+      );
+    } else {
+      await _appLock.setEnabled(false);
+      if (!mounted) return;
+      setState(() {
+        _appLockEnabled = false;
+        _bioEnabled = false;
+      });
+    }
+  }
+
+  Future<void> _toggleBiometrics(bool v) async {
+    if (!_appLockEnabled) return;
+    final can = await _appLock.canUseBiometrics();
+    if (!can) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('אין תמיכה בזיהוי ביומטרי במכשיר')),
+      );
+      return;
+    }
+    if (v) {
+      // Require a successful biometric auth to enable.
+      final ok = await _appLock.authenticateWithBiometrics();
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('אימות ביומטרי נכשל או בוטל')),
+        );
+        return;
+      }
+    }
+    await _appLock.setBiometricsEnabled(v);
+    if (!mounted) return;
+    setState(() {
+      _bioEnabled = v;
+      _bioAvailable = can;
+    });
+  }
+
+  Future<bool> _requireAppLockForAccountSwitch() async {
+    // App lock is global (not per account). If enabled, require confirmation
+    // when switching accounts.
+    try {
+      final enabled = await _appLock.isEnabled();
+      final hasPin = await _appLock.hasPin();
+      if (!enabled || !hasPin) return true;
+    } catch (_) {
+      // If we can't read lock state, don't block account switching.
+      return true;
+    }
+
+    if (!mounted) return false;
+    final canBio = await _appLock.canUseBiometrics();
+    final bioEnabled = await _appLock.isBiometricsEnabled();
+
+    final ctrl = TextEditingController();
+    if (!mounted) return false;
+    return showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            scrollable: true,
+            title: const Text('אימות לפני החלפת חשבון'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('הזן קוד כדי להמשיך',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: ctrl,
+                    obscureText: true,
+                    keyboardType: TextInputType.visiblePassword,
+                    decoration:
+                        const InputDecoration(labelText: 'סיסמת חשבון Firebase'),
+                  ),
+                  const SizedBox(height: 12),
+                  if (bioEnabled && canBio)
+                    OutlinedButton(
+                      onPressed: () async {
+                        final ok = await _appLock.authenticateWithBiometrics();
+                        if (!mounted) return;
+                        Navigator.of(context).pop(ok);
+                      },
+                      child: const Text('השתמש בזיהוי ביומטרי'),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('ביטול'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final pin = ctrl.text.trim();
+                  if (pin.isEmpty) return;
+                  final ok = await _appLock.verifyPin(pin);
+                  if (!mounted) return;
+                  Navigator.of(context).pop(ok);
+                },
+                child: const Text('אישור'),
+              ),
+            ],
+          ),
+        ).then((v) => v ?? false);
   }
 
   Future<String?> _promptPassword({
@@ -109,6 +310,9 @@ class _AccountSwitchScreenState extends State<AccountSwitchScreen> {
   }
 
   Future<void> _switchTo(AccountProfile profile) async {
+    final allowed = await _requireAppLockForAccountSwitch();
+    if (!allowed) return;
+
     final e = profile.email.trim();
     final wid = profile.workspaceId.trim();
     final label = (profile.name.trim().isNotEmpty ? profile.name.trim() : e);
@@ -174,11 +378,15 @@ class _AccountSwitchScreenState extends State<AccountSwitchScreen> {
   }
 
   Future<void> _addAccount() async {
+    final allowed = await _requireAppLockForAccountSwitch();
+    if (!allowed) return;
+
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final widCtrl = TextEditingController();
     final pwCtrl = TextEditingController();
     bool remember = true;
+    if (!mounted) return;
     final packed = await showDialog<String?>(
       context: context,
       builder: (_) => AlertDialog(
@@ -326,6 +534,33 @@ class _AccountSwitchScreenState extends State<AccountSwitchScreen> {
         child: ListView(
           padding: const EdgeInsets.all(12),
           children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text('אבטחה',
+                        style: TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: _appLockEnabled,
+                      onChanged: (v) => _toggleAppLock(v),
+                      title: const Text('נעילת אפליקציה (סיסמת חשבון Firebase)'),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: _bioEnabled,
+                      onChanged: (_appLockEnabled && _bioAvailable)
+                          ? (v) => _toggleBiometrics(v)
+                          : null,
+                      title: const Text('זיהוי ביומטרי (טביעת אצבע / Face ID)'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.all(8),

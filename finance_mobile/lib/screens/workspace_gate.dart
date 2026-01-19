@@ -25,14 +25,17 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
 
   Future<void> _load() async {
     if (!_workspaces.isLoggedIn) return;
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final wid = await _workspaces.getActiveWorkspaceId();
+      if (!mounted) return;
       setState(() => _workspaceId = wid);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -43,14 +46,17 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
     if (!_workspaces.isLoggedIn) return;
     final wid = code.trim();
     if (wid.isEmpty) return;
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       await _workspaces.joinByCode(code: wid, role: 'editor');
+      if (!mounted) return;
       setState(() => _workspaceId = wid);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -59,18 +65,20 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
 
   Future<void> _createWorkspace() async {
     if (!_workspaces.isLoggedIn) return;
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final wid = await _workspaces.createWorkspace();
-      setState(() => _workspaceId = wid);
       if (!mounted) return;
+      setState(() => _workspaceId = wid);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('נוצר קוד שיתוף: $wid')),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);

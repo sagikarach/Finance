@@ -65,20 +65,24 @@ class ActionHistoryService {
         .toList();
   }
 
-  Future<void> logAddMovement({
-    required String movementId,
-    required bool isIncome,
-  }) async {
+  Future<void> logAddMovement({required Movement m}) async {
     final actionId = const Uuid().v4();
     final today = DateTime.now().toIso8601String().split('T').first;
     final uid = _session.uid;
+    final isIncome = m.amount > 0;
     await _ref().doc(actionId).set(<String, Object?>{
       'id': actionId,
       'timestamp': today,
       if (uid != null) 'uid': uid,
       'action': <String, Object?>{
         'action_name': isIncome ? 'add_income_movement' : 'add_outcome_movement',
-        'movement_id': movementId,
+        // Keep id for debugging/correlation, but store rich details so UI can show a real description.
+        'movement_id': m.id,
+        'account_name': m.accountName,
+        'amount': m.amount,
+        'date': m.date,
+        'category': m.category,
+        if ((m.description ?? '').trim().isNotEmpty) 'description': m.description!.trim(),
       },
     }, SetOptions(merge: true));
   }

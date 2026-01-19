@@ -1,11 +1,13 @@
 package com.example.finance_mobile
 
 import android.content.Intent
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
+import io.flutter.embedding.android.RenderMode
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+// FlutterFragmentActivity is required for local_auth (biometrics) on Android.
+class MainActivity : FlutterFragmentActivity() {
     companion object {
         private const val CHANNEL = "finance/launch"
         private const val EXTRA_TARGET = "launch_target"
@@ -31,6 +33,11 @@ class MainActivity : FlutterActivity() {
         }
         handleIntent(intent, notify = false)
     }
+
+    // Workaround for some OEM GPU/SurfaceView issues (Adreno/Gralloc "Unknown Format"
+    // / AHardwareBuffer allocation failures) that can cause the process to be killed
+    // and Flutter to lose the debug connection.
+    override fun getRenderMode(): RenderMode = RenderMode.texture
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)

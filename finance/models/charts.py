@@ -27,13 +27,18 @@ def build_month_axis_from_histories(
     for history in histories:
         for snap in history:
             dt = parse_iso_date(str(snap.date))
+            # parse_iso_date returns datetime.min on invalid / missing dates.
+            if dt == datetime.min:
+                continue
             key = (dt.year, dt.month)
             if key not in seen:
                 seen.add(key)
                 keys.append(key)
 
     if not keys:
-        keys = [(0, 1)]
+        # Avoid a confusing "month 1 without year" marker on charts.
+        now = datetime.now()
+        keys = [(int(now.year), int(now.month))]
 
     keys.sort(key=lambda k: (k[0], k[1]))
     return MonthAxis(keys=keys)
@@ -49,6 +54,8 @@ def latest_snapshots_by_month(
     latest: Dict[MonthKey, MoneySnapshot] = {}
     for snap in history:
         dt = parse_iso_date(str(snap.date))
+        if dt == datetime.min:
+            continue
         key = (dt.year, dt.month)
         existing = latest.get(key)
         if existing is None or parse_iso_date(str(existing.date)) < dt:
@@ -74,6 +81,8 @@ def latest_snapshots_by_month_with_axis(
             dt = parse_iso_date(str(snap.date))
         except Exception:
             continue
+        if dt == datetime.min:
+            continue
         key = (dt.year, dt.month)
         keys_seen.add(key)
         prev_dt = latest_dt_by_key.get(key)
@@ -83,7 +92,8 @@ def latest_snapshots_by_month_with_axis(
 
     keys = sorted(keys_seen, key=lambda k: (k[0], k[1]))
     if not keys:
-        keys = [(0, 1)]
+        now = datetime.now()
+        keys = [(int(now.year), int(now.month))]
     return MonthAxis(keys=keys), latest
 
 

@@ -122,7 +122,11 @@ class NotificationsService:
         except Exception:
             items = []
         visible = self._filter_by_enabled_rules(items)
-        return [n for n in visible if n.status != NotificationStatus.RESOLVED]
+        return [
+            n
+            for n in visible
+            if n.status not in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED)
+        ]
 
     def set_rule_enabled(self, rule_id: str, enabled: bool) -> None:
         self.ensure_defaults()
@@ -198,14 +202,9 @@ class NotificationsService:
         for n in created:
             self._provider.upsert(n)
             try:
-                from ..models.sync_gate import allow_firebase_push
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
-                if allow_firebase_push():
-                    from ..models.firebase_workspace_writer import (
-                        FirebaseWorkspaceWriter,
-                    )
-
-                    FirebaseWorkspaceWriter().upsert_notification(n)
+                FirebaseWorkspaceWriter().upsert_notification(n)
             except Exception:
                 pass
 
@@ -215,7 +214,93 @@ class NotificationsService:
         except Exception:
             items = []
         visible = self._filter_by_enabled_rules(items)
-        return [n for n in visible if n.status != NotificationStatus.RESOLVED]
+        return [
+            n
+            for n in visible
+            if n.status not in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED)
+        ]
+
+    def _push_status(self, notif: Notification) -> None:
+        try:
+            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+            FirebaseWorkspaceWriter().upsert_notification(notif)
+        except Exception:
+            pass
+
+    def mark_read(self, key: str) -> None:
+        try:
+            self._provider.update_status(key=key, status=NotificationStatus.READ)
+            # Push status change so it doesn't reappear after sync.
+            for n in self._provider.list_notifications():
+                if n.key == key:
+                    self._push_status(
+                        Notification(
+                            id=n.id,
+                            key=n.key,
+                            type=n.type,
+                            title=n.title,
+                            message=n.message,
+                            severity=n.severity,
+                            created_at=n.created_at,
+                            status=NotificationStatus.READ,
+                            due_at=n.due_at,
+                            source=n.source,
+                            context=dict(n.context),
+                        )
+                    )
+                    break
+        except Exception:
+            pass
+
+    def mark_unread(self, key: str) -> None:
+        try:
+            self._provider.update_status(key=key, status=NotificationStatus.UNREAD)
+            for n in self._provider.list_notifications():
+                if n.key == key:
+                    self._push_status(
+                        Notification(
+                            id=n.id,
+                            key=n.key,
+                            type=n.type,
+                            title=n.title,
+                            message=n.message,
+                            severity=n.severity,
+                            created_at=n.created_at,
+                            status=NotificationStatus.UNREAD,
+                            due_at=n.due_at,
+                            source=n.source,
+                            context=dict(n.context),
+                        )
+                    )
+                    break
+        except Exception:
+            pass
+
+    def resolve(self, key: str) -> None:
+        try:
+            self._provider.update_status(key=key, status=NotificationStatus.RESOLVED)
+            # Remove locally from visible list and push resolved status so server won't send it again.
+            for n in self._provider.list_notifications():
+                if n.key == key:
+                    self._push_status(
+                        Notification(
+                            id=n.id,
+                            key=n.key,
+                            type=n.type,
+                            title=n.title,
+                            message=n.message,
+                            severity=n.severity,
+                            created_at=n.created_at,
+                            status=NotificationStatus.RESOLVED,
+                            due_at=n.due_at,
+                            source=n.source,
+                            context=dict(n.context),
+                        )
+                    )
+                    break
+        except Exception:
+            pass
 
     def get_movement_by_id(self, movement_id: str) -> Optional[BankMovement]:
         movement_id = str(movement_id or "").strip()

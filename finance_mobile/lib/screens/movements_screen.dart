@@ -80,7 +80,11 @@ class _MovementsScreenState extends State<MovementsScreen> {
     _movements = MovementsService(workspaceId: widget.workspaceId);
     _actions = ActionHistoryService(workspaceId: widget.workspaceId);
     _bootstrap = BootstrapService(workspaceId: widget.workspaceId);
+    // Kick off network/pull work after first frame to avoid blocking initial render.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
     _pullFromServer(showToast: false);
+    });
 
     _launchSub = LaunchTargetService.instance.targets.listen((t) {
       if (!mounted) return;
@@ -101,6 +105,7 @@ class _MovementsScreenState extends State<MovementsScreen> {
 
   Future<void> _pullFromServer({required bool showToast}) async {
     if (!_session.isLoggedIn) return;
+    if (!mounted) return;
 
     setState(() {
       _syncing = true;
@@ -217,6 +222,14 @@ class _MovementsScreenState extends State<MovementsScreen> {
                           'YEARLY' => 'שנתי',
                           _ => 'חד פעמי',
                         };
+                        final desc = (m.description ?? '').trim();
+                        final titleText = desc.isNotEmpty ? desc : m.category;
+                        final detailsParts = <String>[
+                          m.date.trim(),
+                          m.accountName.trim(),
+                          m.category.trim(),
+                          typeLabel.trim(),
+                        ].where((s) => s.isNotEmpty).toList();
                         return Dismissible(
                           key: ValueKey<String>(m.id),
                           direction: DismissDirection.endToStart,
@@ -252,15 +265,55 @@ class _MovementsScreenState extends State<MovementsScreen> {
                                 color: Colors.red),
                           ),
                           child: Card(
-                            child: ListTile(
-                              title: Text('${m.category} • ${m.accountName}'),
-                              subtitle: Text('${m.date} • $typeLabel'),
-                              trailing: Text(
-                                '${isIncome ? '+' : '-'}$amountAbs',
-                                style: TextStyle(
-                                  color: isIncome ? Colors.green : Colors.red,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                            elevation: 0,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          titleText,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          detailsParts.join(' • '),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.color
+                                                ?.withValues(alpha: 0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    '${isIncome ? '+' : '-'}$amountAbs',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color:
+                                          isIncome ? Colors.green : Colors.red,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

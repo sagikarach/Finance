@@ -155,7 +155,7 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
       );
 
       await _movements.upsert(movement);
-      await _actions.logAddMovement(movementId: id, isIncome: signedAmount > 0);
+      await _actions.logAddMovement(m: movement);
 
       if (mounted) Navigator.of(context).pop();
     } catch (e) {

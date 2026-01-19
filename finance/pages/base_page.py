@@ -45,6 +45,7 @@ class BasePage(QWidget):
         _sync_finished = Signal(int, str)
     except Exception:
         _sync_finished = None
+    _GLOBAL_SYNCING: bool = False
 
     def __init__(
         self,
@@ -100,7 +101,6 @@ class BasePage(QWidget):
         self._sync_btn: Optional[QToolButton] = None
         self._sync_in_progress: bool = False
         try:
-            # Shared flag (across pages) to avoid expensive recalculation on every navigation.
             if (
                 isinstance(self._app_context, dict)
                 and "_balances_dirty" not in self._app_context
@@ -190,6 +190,11 @@ class BasePage(QWidget):
         layout.addWidget(sidebar_container, 0)
 
         self.setLayout(layout)
+
+        try:
+            self._refresh_sync_button_state()
+        except Exception:
+            pass
 
     def _build_header(self) -> QWidget:
         header_container = QWidget(self)
@@ -322,13 +327,29 @@ class BasePage(QWidget):
         btn = self._sync_btn
         if btn is None:
             return
-        if self._sync_in_progress:
+        global_syncing = False
+        try:
+            global_syncing = bool(BasePage._GLOBAL_SYNCING)
+        except Exception:
+            global_syncing = False
+
+        if self._sync_in_progress or global_syncing:
             try:
                 btn.setEnabled(False)
                 btn.setToolTip("מסנכרן...")
+                btn.setIcon(QIcon())
+                btn.setText("⏳")
             except Exception:
                 pass
             return
+        try:
+            self._update_sync_icon()
+        except Exception:
+            try:
+                btn.setIcon(QIcon())
+                btn.setText("🔄")
+            except Exception:
+                pass
         try:
             from ..models.firebase_session import FirebaseSessionStore
 
@@ -366,6 +387,10 @@ class BasePage(QWidget):
         except Exception:
             return
 
+        try:
+            BasePage._GLOBAL_SYNCING = True
+        except Exception:
+            pass
         self._sync_in_progress = True
         try:
             if self._sync_btn is not None:
@@ -409,6 +434,10 @@ class BasePage(QWidget):
 
     def _on_sync_finished(self, pulled: int, err: str) -> None:
         self._sync_in_progress = False
+        try:
+            BasePage._GLOBAL_SYNCING = False
+        except Exception:
+            pass
         try:
             self._update_sync_icon()
         except Exception:
@@ -703,8 +732,6 @@ class BasePage(QWidget):
             except Exception:
                 pass
 
-        # Expensive: recompute derived balances from movements.
-        # Do it only when we know movements changed (or on first load).
         try:
             dirty = True
             try:
@@ -1114,6 +1141,12 @@ class BasePage(QWidget):
                 self._update_password_eye_icons(is_dark)
             except Exception:
                 pass
+
+        # Ensure sync button reflects any in-progress sync when the page becomes visible.
+        try:
+            self._refresh_sync_button_state()
+        except Exception:
+            pass
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         raise NotImplementedError("Subclasses must implement _build_content()")

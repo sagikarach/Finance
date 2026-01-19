@@ -633,6 +633,7 @@
   ('plistlib', '/opt/anaconda3/lib/python3.12/plistlib.py', 'PYMODULE'),
   ('pprint', '/opt/anaconda3/lib/python3.12/pprint.py', 'PYMODULE'),
   ('py_compile', '/opt/anaconda3/lib/python3.12/py_compile.py', 'PYMODULE'),
+  ('queue', '/opt/anaconda3/lib/python3.12/queue.py', 'PYMODULE'),
   ('quopri', '/opt/anaconda3/lib/python3.12/quopri.py', 'PYMODULE'),
   ('random', '/opt/anaconda3/lib/python3.12/random.py', 'PYMODULE'),
   ('selectors', '/opt/anaconda3/lib/python3.12/selectors.py', 'PYMODULE'),

@@ -495,6 +495,9 @@ class ActionHistoryDetailsDialog(QDialog):
                 name = field_info.name
                 if name in ("action_name", "success", "error_message"):
                     continue
+                # Hide raw IDs from the details UI as well; show meaningful fields instead.
+                if name == "id" or name.endswith("_id") or name.endswith("_ids"):
+                    continue
                 value = getattr(action, name, None)
                 if value is None:
                     continue

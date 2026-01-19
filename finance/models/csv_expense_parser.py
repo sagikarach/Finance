@@ -106,7 +106,8 @@ class CsvExpenseParser:
                 continue
             date_str = parts[date_idx].strip()
 
-            if "/" not in date_str and "." not in date_str:
+            # Allow common formats: dd/mm/yyyy, dd.mm.yyyy, dd/mm/yy, ISO yyyy-mm-dd.
+            if "/" not in date_str and "." not in date_str and "-" not in date_str:
                 continue
 
             desc_idx = column_map.get("desc", 1)

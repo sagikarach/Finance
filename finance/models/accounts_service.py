@@ -494,6 +494,24 @@ class AccountsService:
                     is_active = row.is_active
                     amount_text = row.starter_amount_text.strip()
 
+                    prev_baseline = None
+                    if current_account is not None:
+                        try:
+                            prev_baseline = float(
+                                getattr(current_account, "baseline_amount", 0.0) or 0.0
+                            )
+                        except Exception:
+                            prev_baseline = None
+                    else:
+                        existing_acc = existing_bank_accounts.get(row.name)
+                        if existing_acc is not None:
+                            try:
+                                prev_baseline = float(
+                                    getattr(existing_acc, "baseline_amount", 0.0) or 0.0
+                                )
+                            except Exception:
+                                prev_baseline = None
+
                     if current_account is not None:
                         was_inactive = not current_account.active
                         is_being_activated = is_active and was_inactive
@@ -514,7 +532,7 @@ class AccountsService:
                             try:
                                 starter_amount = float(amount_text)
                             except Exception:
-                                pass
+                                starter_amount = None
 
                         activate_action = ActivateBankAccountAction(
                             action_name="activate_bank_account",
@@ -539,9 +557,23 @@ class AccountsService:
                         )
                         self.history_provider.add_action(history_entry)
                     elif is_active and amount_text:
+                        starter_amount = None
                         try:
                             starter_amount = float(amount_text)
-                            if starter_amount >= 0:
+                        except Exception:
+                            starter_amount = None
+
+                        if (
+                            starter_amount is not None
+                            and starter_amount >= 0
+                            and not is_being_activated
+                            and not is_being_deactivated
+                        ):
+                            baseline_changed = (
+                                prev_baseline is None
+                                or abs(starter_amount - float(prev_baseline)) > 1e-9
+                            )
+                            if baseline_changed:
                                 set_amount_action = SetStarterAmountAction(
                                     action_name="set_starter_amount",
                                     account_name=row.name,
@@ -553,8 +585,6 @@ class AccountsService:
                                     action=set_amount_action,
                                 )
                                 self.history_provider.add_action(history_entry)
-                        except Exception:
-                            pass
             except Exception:
                 pass
 
