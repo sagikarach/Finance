@@ -91,6 +91,7 @@ def _action_body(
     entry: ActionHistory, *, movements_by_id: Optional[Dict[str, Any]] = None
 ) -> str:
     a = entry.action
+
     def _movement_details(mid: str) -> Optional[str]:
         mid_s = str(mid or "").strip()
         if not mid_s or movements_by_id is None:
@@ -185,7 +186,6 @@ def _action_body(
 
         if isinstance(a, AssignMovementToOneTimeEventAction):
             mid = str(getattr(a, "movement_id", "") or "").strip()
-            eid = str(getattr(a, "event_id", "") or "").strip()
             details = _movement_details(mid)
             if details:
                 return details
@@ -194,7 +194,6 @@ def _action_body(
 
         if isinstance(a, UnassignMovementFromOneTimeEventAction):
             mid = str(getattr(a, "movement_id", "") or "").strip()
-            prev = str(getattr(a, "previous_event_id", "") or "").strip()
             details = _movement_details(mid)
             if details:
                 return details

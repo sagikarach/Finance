@@ -182,16 +182,12 @@ class FirebaseMovementsSyncService:
         if not wid:
             return
         # Run sequentially for stability (avoid native crashes seen under heavy concurrent pulls).
-        pull_ml_seed_best_effort(
-            workspace_id=wid, ensure_in_firebase=bool(allow_push)
-        )
+        pull_ml_seed_best_effort(workspace_id=wid, ensure_in_firebase=bool(allow_push))
         pull_events_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
         pull_installment_plans_to_local_cache(
             fs=fs, workspace_id=wid, id_token=id_token
         )
-        pull_notifications_to_local_cache(
-            fs=fs, workspace_id=wid, id_token=id_token
-        )
+        pull_notifications_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
         pull_notifications_meta_to_local_cache(
             fs=fs, workspace_id=wid, id_token=id_token
         )
@@ -290,8 +286,10 @@ class FirebaseMovementsSyncService:
             t_cat = float(time.perf_counter() - t_cat0)
 
             t_mov0 = time.perf_counter()
-            pulled, remote_ids, remote_by_id, local_by_id = self._pull_and_merge_movements(
-                fs=fs, wid=wid, uid=uid, id_token=session.id_token, state=state
+            pulled, remote_ids, remote_by_id, local_by_id = (
+                self._pull_and_merge_movements(
+                    fs=fs, wid=wid, uid=uid, id_token=session.id_token, state=state
+                )
             )
             t_mov = float(time.perf_counter() - t_mov0)
 

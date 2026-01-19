@@ -58,7 +58,9 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         self,
         history_path: Optional[Union[str, Path]] = None,
     ) -> None:
-        self._explicit_history_path: Optional[Path] = Path(history_path) if history_path else None
+        self._explicit_history_path: Optional[Path] = (
+            Path(history_path) if history_path else None
+        )
         self._history_path: Path = Path("")
         self._last_key: str = ""
         self._ensure_path()

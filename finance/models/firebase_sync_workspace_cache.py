@@ -171,7 +171,10 @@ def pull_notifications_to_local_cache(
                     continue
 
                 # If remote is resolved/dismissed, remove locally and skip.
-                if status in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED):
+                if status in (
+                    NotificationStatus.RESOLVED,
+                    NotificationStatus.DISMISSED,
+                ):
                     if key in by_key:
                         by_key.pop(key, None)
                     continue
@@ -182,7 +185,9 @@ def pull_notifications_to_local_cache(
                     type=NotificationType(str(parsed.get("type") or "")),
                     title=str(parsed.get("title") or ""),
                     message=str(parsed.get("message") or ""),
-                    severity=NotificationSeverity(str(parsed.get("severity") or "info")),
+                    severity=NotificationSeverity(
+                        str(parsed.get("severity") or "info")
+                    ),
                     created_at=str(parsed.get("created_at") or ""),
                     status=status,
                     due_at=str(parsed["due_at"])

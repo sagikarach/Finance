@@ -22,6 +22,7 @@ from .settings_sections import (
     NotificationsCard,
     UserDetailsCard,
 )
+from ..utils.defaults import load_defaults
 
 
 class SettingsPage(BasePage):
