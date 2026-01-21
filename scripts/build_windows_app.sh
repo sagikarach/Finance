@@ -11,11 +11,11 @@ cd "$(dirname "$0")/.."
 
 rm -rf build dist Finance.spec
 
-python -m pip install -r requirements.txt
-python -m pip install pyinstaller
+python3 -m pip install -r requirements.txt
+python3 -m pip install pyinstaller
 
 # Note: on Windows, PyInstaller uses ';' to separate add-data paths.
-python -m PyInstaller --clean --noconfirm --windowed --name Finance --icon app-icon.ico \
+python3 -m PyInstaller --clean --noconfirm --windowed --name Finance --icon app-icon.ico \
   --add-data "data/assets/icons;data/assets/icons" \
   --hidden-import PySide6 --hidden-import shiboken6 \
   --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui \
