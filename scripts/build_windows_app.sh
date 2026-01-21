@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-set -euo pipefail
+
+# Be conservative for shells that don't support `pipefail`.
+set -e
+set -u
+if command -v set >/dev/null 2>&1; then
+  set -o pipefail 2>/dev/null || true
+fi
 
 # Build Windows executable with PyInstaller (similar to build_macos_app.sh)
 # Run this from a Git Bash / WSL shell on Windows.
