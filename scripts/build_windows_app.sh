@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 
-# Be conservative for shells that don't support `pipefail`.
+# Build Windows executable with PyInstaller (similar to build_macos_app.sh)
+# Run this from Git Bash or WSL on Windows.
+
 set -e
 set -u
-if command -v set >/dev/null 2>&1; then
-  set -o pipefail 2>/dev/null || true
-fi
-
-# Build Windows executable with PyInstaller (similar to build_macos_app.sh)
-# Run this from a Git Bash / WSL shell on Windows.
+set -o pipefail 2>/dev/null || true
 
 cd "$(dirname "$0")/.."
 
