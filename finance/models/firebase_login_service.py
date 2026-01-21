@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from .firebase_client import FirebaseAuthClient
 from .firebase_session import FirebaseSession, FirebaseSessionStore
 from ..utils.time_utils import now_ts
+from ..firebase_defaults import API_KEY as DEFAULT_API_KEY, PROJECT_ID as DEFAULT_PROJECT_ID
 
 
 @dataclass
@@ -21,6 +22,10 @@ class FirebaseLoginService:
         current = self.session_store.load()
         api_key = str(getattr(current, "api_key", "") or "").strip()
         project_id = str(getattr(current, "project_id", "") or "").strip()
+        if not api_key:
+            api_key = str(DEFAULT_API_KEY or "").strip()
+        if not project_id:
+            project_id = str(DEFAULT_PROJECT_ID or "").strip()
         if not api_key or not project_id:
             raise RuntimeError("חובה להגדיר פרויקט (API key + project id) לפני התחברות")
 

@@ -64,6 +64,17 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     if argv is None:
         argv = sys.argv
 
+    # On Windows, set an explicit AppUserModelID so the taskbar uses our icon.
+    if sys.platform.startswith("win"):
+        try:
+            import ctypes
+
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "Finance.App"
+            )
+        except Exception:
+            pass
+
     if sys.platform == "darwin":
         os.environ.setdefault("QT_LOGGING_RULES", "*.debug=false")
         if isinstance(sys.stderr, TextIOWrapper):
@@ -74,7 +85,13 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     app.setOrganizationName("Finance")
     icon_path = None
     try:
-        icon_path = find_first_existing(["app-icon.icns", "app-icon.ico"])
+        # Prefer .ico on Windows, .icns elsewhere.
+        search = (
+            ["app-icon.ico", "app-icon.icns"]
+            if sys.platform.startswith("win")
+            else ["app-icon.icns", "app-icon.ico"]
+        )
+        icon_path = find_first_existing(search)
         if icon_path is not None:
             app.setWindowIcon(QIcon(str(icon_path)))
     except Exception:

@@ -7,6 +7,7 @@ import json
 import time
 
 from ..utils.app_paths import app_data_dir
+from ..firebase_defaults import API_KEY as DEFAULT_API_KEY, PROJECT_ID as DEFAULT_PROJECT_ID
 
 
 def _session_path() -> Path:
@@ -72,13 +73,25 @@ class FirebaseSessionStore:
 
     def load(self) -> FirebaseSession:
         if not self._path.exists():
-            return FirebaseSession()
+            return FirebaseSession(
+                api_key=str(DEFAULT_API_KEY or "").strip(),
+                project_id=str(DEFAULT_PROJECT_ID or "").strip(),
+            )
         try:
             with self._path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-            return FirebaseSession.from_dict(data)
+            sess = FirebaseSession.from_dict(data)
+            # Fill missing keys from defaults.
+            if not sess.api_key:
+                sess.api_key = str(DEFAULT_API_KEY or "").strip()
+            if not sess.project_id:
+                sess.project_id = str(DEFAULT_PROJECT_ID or "").strip()
+            return sess
         except Exception:
-            return FirebaseSession()
+            return FirebaseSession(
+                api_key=str(DEFAULT_API_KEY or "").strip(),
+                project_id=str(DEFAULT_PROJECT_ID or "").strip(),
+            )
 
     def save(self, session: FirebaseSession) -> None:
         try:
