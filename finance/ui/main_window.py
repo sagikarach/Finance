@@ -39,6 +39,13 @@ class MainWindow(QMainWindow):
         self.router = Router(self._stack)
         self._register_pages()
         self._build_menu()
+        try:
+            if sys.platform.startswith("win"):
+                mb = self.menuBar()
+                if mb is not None:
+                    mb.setVisible(False)
+        except Exception:
+            pass
 
         self.router.navigate("home")
         self._startup_pull_sync_started = False
