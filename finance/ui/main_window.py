@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict
+import sys
 
 from ..pages.home_page import HomePage
 from ..pages.settings_page import SettingsPage
