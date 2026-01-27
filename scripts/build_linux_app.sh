@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
+# Build Linux executable with PyInstaller.
 
-# Build Windows executable with PyInstaller (similar to build_macos_app.sh)
-# Run this from Git Bash or WSL on Windows.
-
-set -e
-set -u
-set -o pipefail 2>/dev/null || true
+set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
@@ -17,26 +13,22 @@ python3 -m pip install pyinstaller
 icon_flag=""
 if [[ -f "app-icon.ico" ]]; then
   icon_flag="--icon app-icon.ico"
+elif [[ -f "app-icon.icns" ]]; then
+  icon_flag="--icon app-icon.icns"
 else
-  echo "Warning: app-icon.ico not found, building without a Windows icon."
+  echo "Warning: no app icon found, building without icon."
 fi
 
-# Note: on Windows, PyInstaller uses ';' to separate add-data paths.
 python3 -m PyInstaller --clean --noconfirm --windowed --name Finance ${icon_flag} \
-  --add-data "data/assets/icons;data/assets/icons" \
+  --add-data "data/assets/icons:data/assets/icons" \
   --hidden-import PySide6 --hidden-import shiboken6 \
   --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui \
   --hidden-import PySide6.QtWidgets --hidden-import PySide6.QtCharts \
   main.py
 
 # Create a zip of the dist folder for easy sharing.
-if command -v zip >/dev/null 2>&1; then
-  (cd dist && zip -r ../Finance-win.zip Finance)
-  echo "Zipped: dist/Finance-win.zip"
-else
-  echo "Zip utility not found; executable is in dist/Finance/"
-fi
-
+(cd dist && zip -r ../Finance-linux.zip Finance)
+echo "Zipped: dist/Finance-linux.zip"
 echo "Built: dist/Finance/"
 
 

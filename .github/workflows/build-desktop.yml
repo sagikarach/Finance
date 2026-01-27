@@ -1,0 +1,96 @@
+name: Build Desktop Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to build (defaults to current commit)"
+        required: false
+        default: ""
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build macOS app
+        run: |
+          chmod +x scripts/build_macos_app.sh
+          ./scripts/build_macos_app.sh
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finance-mac
+          path: dist/Finance-mac.zip
+          if-no-files-found: error
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build Linux app
+        run: |
+          chmod +x scripts/build_linux_app.sh
+          ./scripts/build_linux_app.sh
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finance-linux
+          path: dist/Finance-linux.zip
+          if-no-files-found: error
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build Windows app
+        shell: bash
+        run: |
+          chmod +x scripts/build_windows_app.sh
+          ./scripts/build_windows_app.sh
+
+      - name: Ensure Windows zip artifact
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/Finance-win.zip")) {
+            if (-not (Test-Path "dist/Finance")) { throw "dist/Finance missing after build" }
+            Compress-Archive -Path "dist/Finance/*" -DestinationPath "dist/Finance-win.zip"
+          }
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finance-windows
+          path: dist/Finance-win.zip
+          if-no-files-found: error
+
+
