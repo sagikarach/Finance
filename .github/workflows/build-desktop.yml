@@ -11,10 +11,21 @@ on:
         options:
           - current   # use the ref that triggered the workflow
           - main      # build the main branch
+      target_os:
+        description: "Which OS to build"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - macos
+          - windows
+          - linux
 
 jobs:
   build-macos:
     runs-on: macos-latest
+    if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'macos' }}
     env:
       BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
@@ -42,6 +53,7 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'linux' }}
     env:
       BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
@@ -69,6 +81,7 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'windows' }}
     env:
       BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
