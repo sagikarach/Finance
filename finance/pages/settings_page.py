@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Any
+
+import sys
+import threading
+import pathlib
 
 from ..qt import (
     QHBoxLayout,
@@ -10,6 +14,8 @@ from ..qt import (
     QVBoxLayout,
     QWidget,
     Qt,
+    QMessageBox,
+    QTimer,
 )
 from ..data.provider import AccountsProvider
 from ..data.action_history_provider import JsonFileActionHistoryProvider
@@ -23,13 +29,14 @@ from .settings_sections import (
     UserDetailsCard,
 )
 from ..utils.defaults import load_defaults
+from ..utils.updater import check_for_updates_mac
 
 
 class SettingsPage(BasePage):
     def __init__(
         self,
         app_context: Optional[Dict[str, str]] = None,
-        parent: Optional[QWidget] = None,
+        parent: Optional[Any] = None,
         provider: Optional[AccountsProvider] = None,
         navigate: Optional[Callable[[str], None]] = None,
         get_previous_route: Optional[Callable[[], str]] = None,
@@ -49,7 +56,7 @@ class SettingsPage(BasePage):
             self._provider, history_provider=self._history_provider
         )
 
-    def _build_header_left_buttons(self) -> List[QToolButton]:
+    def _build_header_left_buttons(self) -> List[Any]:
         buttons = []
         back_btn = QToolButton(self)
         back_btn.setObjectName("IconButton")
@@ -59,9 +66,12 @@ class SettingsPage(BasePage):
 
             def go_back():
                 previous = "home"
-                if self._get_previous_route is not None:
-                    previous = self._get_previous_route()
-                self._navigate(previous)
+                nav = self._navigate
+                prev_cb = self._get_previous_route
+                if callable(prev_cb):
+                    previous = prev_cb()
+                if callable(nav):
+                    nav(previous)
 
             back_btn.clicked.connect(go_back)
         buttons.append(back_btn)
@@ -96,7 +106,7 @@ class SettingsPage(BasePage):
         except Exception:
             pass
 
-    def _build_content(self, main_col: QVBoxLayout) -> None:
+    def _build_content(self, main_col: Any) -> None:
         self._clear_content_layout(main_col)
 
         def on_profile_saved() -> None:
@@ -167,7 +177,7 @@ class SettingsPage(BasePage):
 
         stack = QStackedWidget(container)
 
-        def _wrap_page(child: QWidget) -> QWidget:
+        def _wrap_page(child: Any) -> Any:
             page = QWidget(stack)
             try:
                 page.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -183,7 +193,92 @@ class SettingsPage(BasePage):
             lay.addStretch(1)
             return page
 
-        stack.addWidget(_wrap_page(self._user_card))
+        def _build_general_page() -> Any:
+            container = QWidget(stack)
+            lay = QVBoxLayout(container)
+            lay.setContentsMargins(0, 0, 0, 0)
+            lay.setSpacing(8)
+
+            update_btn = QToolButton(container)
+            update_btn.setText("בדיקת עדכונים (macOS)")
+            update_btn.setToolTip("בודק אם יש גרסה חדשה להורדה (macOS בלבד)")
+
+            def _do_check() -> None:
+                if sys.platform != "darwin":
+                    QMessageBox.information(
+                        container,
+                        "עדכונים",
+                        "בדיקת עדכונים נתמכת רק ב-macOS.",
+                    )
+                    return
+
+                def _worker() -> None:
+                    is_newer = False
+                    latest = ""
+                    extracted_dir = None
+                    error = None
+                    try:
+                        is_newer, latest, extracted_dir, error = check_for_updates_mac()
+                    except Exception as exc:  # noqa: BLE001
+                        error = f"{exc}"
+
+                    def _notify() -> None:
+                        if error:
+                            try:
+                                print(f"[updater] error: {error}", flush=True)
+                            except Exception:
+                                pass
+                            QMessageBox.information(
+                                container,
+                                "עדכונים",
+                                f"בדיקת העדכונים נכשלה: {error}",
+                            )
+                            return
+                        if not is_newer:
+                            QMessageBox.information(
+                                container,
+                                "עדכונים",
+                                "אתה כבר על הגרסה העדכנית.",
+                            )
+                            return
+
+                        app_path = None
+                        if extracted_dir:
+                            candidate = pathlib.Path(extracted_dir) / "Finance.app"
+                            if candidate.exists():
+                                app_path = candidate
+
+                        details = [f"גרסה חדשה זמינה: {latest}"]
+                        if app_path:
+                            details.append(f"נמצא: {app_path}")
+                            details.append("החלף את Finance.app הקיים ואז הפעל מחדש.")
+                        else:
+                            details.append(f"הקבצים הופקו אל: {extracted_dir or 'לא ידוע'}")
+
+                        QMessageBox.information(
+                            container,
+                            "עדכון זמין",
+                            "\n".join(details),
+                        )
+
+                    try:
+                        QTimer.singleShot(0, _notify)
+                    except Exception:
+                        _notify()
+
+                try:
+                    threading.Thread(target=_worker, daemon=True).start()
+                except Exception:
+                    _worker()
+
+            update_btn.clicked.connect(_do_check)
+
+            lay.addWidget(update_btn, 0)
+            lay.addWidget(self._user_card, 0)
+            lay.addStretch(1)
+            return container
+
+        stack.addWidget(_wrap_page(_build_general_page()))
         stack.addWidget(_wrap_page(bank_accounts_card))
         stack.addWidget(_wrap_page(notifications_card))
         stack.addWidget(_wrap_page(firebase_card))
