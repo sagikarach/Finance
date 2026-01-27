@@ -3,14 +3,6 @@ name: Build Desktop Apps
 on:
   workflow_dispatch:
     inputs:
-      target_ref:
-        description: "Select ref to build"
-        required: true
-        type: choice
-        default: current
-        options:
-          - current   # use the ref that triggered the workflow
-          - main      # build the main branch
       target_os:
         description: "Which OS to build"
         required: true
@@ -26,13 +18,9 @@ jobs:
   build-macos:
     runs-on: macos-latest
     if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'macos' }}
-    env:
-      BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.BUILD_REF }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -54,13 +42,9 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'linux' }}
-    env:
-      BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.BUILD_REF }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -82,13 +66,9 @@ jobs:
   build-windows:
     runs-on: windows-latest
     if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'windows' }}
-    env:
-      BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ env.BUILD_REF }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
