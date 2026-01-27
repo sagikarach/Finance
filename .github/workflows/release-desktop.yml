@@ -1,0 +1,214 @@
+name: Release Desktop Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag (e.g. v1.2.3)"
+        required: true
+      target_os:
+        description: "Which OS to build"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - macos
+          - windows
+          - linux
+      prerelease:
+        description: "Mark release as prerelease"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'macos' }}
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write public key for updater
+        env:
+          SPARKLE_EDDSA_KEY: ${{ secrets.SPARKLE_EDDSA_KEY }}
+        run: |
+          python3 -m pip install pynacl
+          if [ -z "${SPARKLE_EDDSA_KEY:-}" ]; then
+            echo "SPARKLE_EDDSA_KEY not set; cannot derive public key" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+import base64, os
+from nacl.signing import SigningKey
+seed = base64.b64decode(os.environ["SPARKLE_EDDSA_KEY"])
+if len(seed) != 32:
+    raise SystemExit("SPARKLE_EDDSA_KEY must be a 32-byte seed (base64)")
+pub = SigningKey(seed).verify_key.encode()
+pub_b64 = base64.b64encode(pub).decode("ascii")
+with open("finance/appcast_key.py", "w", encoding="utf-8") as fh:
+    fh.write(f'PUBLIC_KEY_B64 = "{pub_b64}"\n')
+print("Wrote finance/appcast_key.py with public key")
+PY
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build macOS app
+        run: |
+          chmod +x scripts/build_macos_app.sh
+          ./scripts/build_macos_app.sh
+
+      - name: Generate macOS appcast (signed)
+        env:
+          SPARKLE_EDDSA_KEY: ${{ secrets.SPARKLE_EDDSA_KEY }}
+        run: |
+          python3 -m pip install pynacl
+          if [ -z "${SPARKLE_EDDSA_KEY:-}" ]; then
+            echo "SPARKLE_EDDSA_KEY not set; cannot sign appcast" >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+import base64, hashlib, json, os, sys
+from pathlib import Path
+from nacl.signing import SigningKey
+
+zip_path = Path("dist/Finance-mac.zip")
+if not zip_path.is_file():
+    raise SystemExit("dist/Finance-mac.zip not found")
+
+priv_b64 = os.environ["SPARKLE_EDDSA_KEY"]
+try:
+    seed = base64.b64decode(priv_b64)
+except Exception as exc:
+    raise SystemExit(f"Invalid SPARKLE_EDDSA_KEY base64: {exc}")
+if len(seed) != 32:
+    raise SystemExit("SPARKLE_EDDSA_KEY must be 32-byte seed (base64)")
+
+signing_key = SigningKey(seed)
+public_key = signing_key.verify_key.encode()
+
+data = zip_path.read_bytes()
+signature = signing_key.sign(data).signature
+
+sha256 = hashlib.sha256(data).hexdigest()
+sig_b64 = base64.b64encode(signature).decode("ascii")
+pub_b64 = base64.b64encode(public_key).decode("ascii")
+
+tag = os.environ.get("GITHUB_REF_NAME") or os.environ.get("GITHUB_SHA", "")[:7]
+
+release_url = f"https://github.com/{os.environ.get('GITHUB_REPOSITORY')}/releases/download/{tag}/Finance-mac.zip"
+
+appcast = {
+    "version": tag.lstrip("v"),
+    "url": release_url,
+    "signature": sig_b64,
+    "sha256": sha256,
+    "public_key": pub_b64,
+    "size": zip_path.stat().st_size,
+    "notes": os.environ.get("GITHUB_RUN_ID", ""),
+}
+
+out = Path("dist/appcast.json")
+out.write_text(json.dumps(appcast, indent=2))
+print("Wrote", out)
+PY
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finance-mac
+          path: |
+            dist/Finance-mac.zip
+            dist/appcast.json
+          if-no-files-found: error
+
+  build-linux:
+    if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'linux' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build Linux app
+        run: |
+          chmod +x scripts/build_linux_app.sh
+          ./scripts/build_linux_app.sh
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finance-linux
+          path: dist/Finance-linux.zip
+          if-no-files-found: error
+
+  build-windows:
+    if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'windows' }}
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build Windows app
+        shell: bash
+        run: |
+          chmod +x scripts/build_windows_app.sh
+          ./scripts/build_windows_app.sh
+
+      - name: Ensure Windows zip artifact
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/Finance-win.zip")) {
+            if (-not (Test-Path "dist/Finance")) { throw "dist/Finance missing after build" }
+            Compress-Archive -Path "dist/Finance/*" -DestinationPath "dist/Finance-win.zip"
+          }
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Finance-windows
+          path: dist/Finance-win.zip
+          if-no-files-found: error
+
+  release:
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -R artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Release ${{ github.event.inputs.version }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

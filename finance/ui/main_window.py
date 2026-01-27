@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Dict
 import sys
+import threading
+import pathlib
 
 from ..pages.home_page import HomePage
 from ..pages.settings_page import SettingsPage
@@ -20,6 +22,7 @@ from .router import Router
 from ..utils.app_paths import migrate_legacy_accounts_data
 from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_movements_sync import FirebaseMovementsSyncService
+from ..utils.updater import check_for_updates_mac
 
 
 class MainWindow(QMainWindow):
@@ -214,3 +217,75 @@ class MainWindow(QMainWindow):
             lambda: self.router.navigate("installments")
         )
         nav_menu.addAction(action_installments)
+
+        help_menu = menu_bar.addMenu("Help")
+        action_update = QAction("Check for Updates (macOS)", self)
+        action_update.triggered.connect(self._check_for_updates_action)
+        help_menu.addAction(action_update)
+
+    def _check_for_updates_action(self) -> None:
+        if sys.platform != "darwin":
+            return
+
+        def _worker() -> None:
+            is_newer, latest, extracted_dir, error = check_for_updates_mac()
+            def _notify() -> None:
+                try:
+                    from ..qt import QMessageBox
+                except Exception:
+                    return
+
+                if error:
+                    QMessageBox.information(
+                        self,
+                        "Update",
+                        f"Update check failed: {error}",
+                    )
+                    return
+
+                if not is_newer:
+                    QMessageBox.information(
+                        self,
+                        "Update",
+                        "You already have the latest version."
+                        if latest
+                        else "No newer version found.",
+                    )
+                    return
+
+                app_path = None
+                if extracted_dir:
+                    # Try to find Finance.app inside the extracted folder.
+                    candidate = pathlib.Path(extracted_dir) / "Finance.app"
+                    if candidate.exists():
+                        app_path = candidate
+
+                details = [
+                    "A new version is available.",
+                    f"Latest: {latest}",
+                ]
+                if app_path:
+                    details.append(f"Extracted: {app_path}")
+                    details.append(
+                        "Replace your existing Finance.app with this one, then restart."
+                    )
+                else:
+                    details.append(
+                        f"Files extracted to: {extracted_dir or 'unknown'}"
+                    )
+
+                QMessageBox.information(
+                    self,
+                    "Update available",
+                    "\n".join(details),
+                )
+
+            try:
+                QTimer.singleShot(0, _notify)
+            except Exception:
+                _notify()
+
+        try:
+            threading.Thread(target=_worker, daemon=True).start()
+        except Exception:
+            _worker()
