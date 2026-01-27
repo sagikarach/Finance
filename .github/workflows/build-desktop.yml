@@ -3,19 +3,25 @@ name: Build Desktop Apps
 on:
   workflow_dispatch:
     inputs:
-      ref:
-        description: "Git ref to build (defaults to current commit)"
-        required: false
-        default: ""
+      target_ref:
+        description: "Select ref to build"
+        required: true
+        type: choice
+        default: current
+        options:
+          - current   # use the ref that triggered the workflow
+          - main      # build the main branch
 
 jobs:
   build-macos:
     runs-on: macos-latest
+    env:
+      BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.ref || github.ref }}
+          ref: ${{ env.BUILD_REF }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -36,11 +42,13 @@ jobs:
 
   build-linux:
     runs-on: ubuntu-latest
+    env:
+      BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.ref || github.ref }}
+          ref: ${{ env.BUILD_REF }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -61,11 +69,13 @@ jobs:
 
   build-windows:
     runs-on: windows-latest
+    env:
+      BUILD_REF: ${{ github.event.inputs.target_ref == 'current' && github.ref || 'refs/heads/main' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.ref || github.ref }}
+          ref: ${{ env.BUILD_REF }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
