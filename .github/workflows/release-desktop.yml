@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release tag (e.g. v1.2.3)"
-        required: true
+        description: "Release tag (leave empty to use current ref)"
+        required: false
+        default: ""
       target_os:
         description: "Which OS to build"
         required: true
@@ -56,8 +57,9 @@ jobs:
       - name: Generate macOS appcast (signed)
         env:
           SPARKLE_EDDSA_KEY: ${{ secrets.SPARKLE_EDDSA_KEY }}
+          TAG_NAME: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name || github.sha }}
         run: |
-          tag="${GITHUB_REF_NAME:-${GITHUB_SHA::7}}"
+          tag="${TAG_NAME}"
           python3 scripts/appcast_tools.py generate \
             --zip dist/Finance-mac.zip \
             --tag "$tag" \
@@ -133,6 +135,8 @@ jobs:
   release:
     needs: [build-macos, build-linux, build-windows]
     runs-on: ubuntu-latest
+    env:
+      TAG_NAME: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name || github.sha }}
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -146,8 +150,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          name: Release ${{ github.event.inputs.version }}
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.TAG_NAME }}
           prerelease: ${{ github.event.inputs.prerelease }}
           files: |
             artifacts/**/*.zip
