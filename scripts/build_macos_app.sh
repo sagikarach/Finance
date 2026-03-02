@@ -15,6 +15,9 @@ python3 -m PyInstaller --clean --noconfirm --windowed --name Finance --icon app-
   --hidden-import PySide6.QtWidgets --hidden-import PySide6.QtCharts \
   main.py
 
+# Ad-hoc sign the app so macOS shows an "Open" option instead of hard-blocking it.
+codesign --force --deep --sign - "dist/Finance.app"
+
 # Create a shareable zip that preserves macOS bundle metadata.
 ditto -c -k --sequesterRsrc --keepParent "dist/Finance.app" "dist/Finance-mac.zip"
 
