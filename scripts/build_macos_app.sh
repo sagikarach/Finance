@@ -13,6 +13,8 @@ python3 -m PyInstaller --clean --noconfirm --windowed --name Finance --icon app-
   --hidden-import PySide6 --hidden-import shiboken6 \
   --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui \
   --hidden-import PySide6.QtWidgets --hidden-import PySide6.QtCharts \
+  --hidden-import cffi --hidden-import _cffi_backend \
+  --hidden-import nacl --hidden-import nacl.bindings \
   main.py
 
 # Ad-hoc sign the app so macOS shows an "Open" option instead of hard-blocking it.
