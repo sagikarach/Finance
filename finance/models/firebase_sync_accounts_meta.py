@@ -31,9 +31,19 @@ def pull_accounts_meta_to_local_cache(
             document_path=f"workspaces/{workspace_id}/meta/accounts",
             id_token=id_token,
         )
-        _, parsed = fs.parse_any_doc(doc) if isinstance(doc, dict) else ("", {})
+        # If the document does not exist (doc is None / not a dict) we must
+        # NOT overwrite local files – the workspace may simply have been set
+        # up only from mobile where this meta document is not yet written.
+        if not isinstance(doc, dict):
+            return
+        _, parsed = fs.parse_any_doc(doc)
         remote_bank = parsed.get("bank_accounts", [])
         remote_savings = parsed.get("savings_accounts", [])
+
+        # If both lists are empty the document likely hasn't been populated
+        # yet.  Preserve whatever is already on disk rather than wiping it.
+        if not remote_bank and not remote_savings:
+            return
 
         provider = accounts_provider or JsonFileAccountsProvider()
         svc = accounts_service or AccountsService(provider)

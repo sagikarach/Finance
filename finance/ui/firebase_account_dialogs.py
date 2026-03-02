@@ -46,9 +46,16 @@ def _refresh_current_route(parent: Optional[QWidget]) -> None:
         nav = getattr(router, "navigate", None)
         if not callable(current) or not callable(nav):
             return
-        route = current()
-        if route:
-            nav(route)
+        route = current() or "home"
+        # Reset all cached page widgets so every page is rebuilt with the
+        # new workspace's data after a user/workspace switch.
+        try:
+            reset_fn = getattr(router, "reset", None)
+            if callable(reset_fn):
+                reset_fn()
+        except Exception:
+            pass
+        nav(route)
     except Exception:
         return
 

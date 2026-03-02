@@ -437,11 +437,15 @@ class FirebaseMovementsSyncService:
 
             acc_svc = AccountsService(JsonFileAccountsProvider())
             accounts = acc_svc.load_accounts()
-            try:
-                writer.upsert_accounts_snapshot(accounts)
-                pushed += 1
-            except Exception:
-                pass
+            # Guard: never push an empty accounts list – that would overwrite
+            # the remote workspace's account metadata with nothing, which can
+            # happen right after a user-switch before the pull has completed.
+            if accounts:
+                try:
+                    writer.upsert_accounts_snapshot(accounts)
+                    pushed += 1
+                except Exception:
+                    pass
 
             for e in list(JsonFileOneTimeEventProvider().list_events()):
                 try:

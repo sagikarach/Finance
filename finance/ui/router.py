@@ -58,3 +58,24 @@ class Router:
             if idx == current_index:
                 return name
         return None
+
+    def reset(self) -> None:
+        """Remove all instantiated page widgets from the stack so they are
+        recreated fresh on next navigation.  Call this after a user/workspace
+        switch so no page retains stale data from the previous user."""
+        widgets = []
+        for idx in self._route_name_to_index.values():
+            try:
+                widget = self._stack.widget(idx)
+                if widget is not None:
+                    widgets.append(widget)
+            except Exception:
+                pass
+        for widget in widgets:
+            try:
+                self._stack.removeWidget(widget)
+                widget.deleteLater()
+            except Exception:
+                pass
+        self._route_name_to_index.clear()
+        self._previous_route = None

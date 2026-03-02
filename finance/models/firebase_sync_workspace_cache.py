@@ -221,8 +221,12 @@ def pull_notifications_meta_to_local_cache(
             document_path=f"workspaces/{workspace_id}/meta/notifications",
             id_token=id_token,
         )
-        _, parsed = fs.parse_any_doc(doc) if isinstance(doc, dict) else ("", {})
-        enabled = bool(parsed.get("enabled", True))
+        # If the document doesn't exist, leave local preferences unchanged.
+        # Writing defaults (e.g. enabled=True) from a missing doc would
+        # re-enable notifications even if the user explicitly disabled them.
+        if not isinstance(doc, dict):
+            return
+        _, parsed = fs.parse_any_doc(doc)
         rules_raw = parsed.get("rules", []) or []
         rules: list[NotificationRule] = []
         if isinstance(rules_raw, list):
@@ -242,7 +246,10 @@ def pull_notifications_meta_to_local_cache(
                 except Exception:
                     continue
         prov = JsonFileNotificationsProvider()
-        prov.set_enabled(bool(enabled))
+        # Only update enabled state when Firebase explicitly has the field.
+        enabled_raw = parsed.get("enabled")
+        if enabled_raw is not None:
+            prov.set_enabled(bool(enabled_raw))
         if rules:
             prov.save_rules(rules)
     except Exception:
@@ -264,9 +271,14 @@ def pull_user_profile_to_local_cache(
             document_path=f"workspaces/{workspace_id}/users/{uid}",
             id_token=id_token,
         )
-        _, parsed = fs.parse_any_doc(doc) if isinstance(doc, dict) else ("", {})
+        # If the document doesn't exist, don't touch local profile.
+        # Writing defaults (e.g. lock_enabled=False) from a missing doc would
+        # silently disable app-lock for users switching to a new workspace.
+        if not isinstance(doc, dict):
+            return
+        _, parsed = fs.parse_any_doc(doc)
         full_name = str(parsed.get("full_name", "") or "")
-        lock_enabled = bool(parsed.get("lock_enabled", False))
+        lock_enabled_raw = parsed.get("lock_enabled")
 
         path = user_profile_path()
         local = {}
@@ -279,7 +291,9 @@ def pull_user_profile_to_local_cache(
             local = {}
         if full_name:
             local["full_name"] = full_name
-        local["lock_enabled"] = bool(lock_enabled)
+        # Only update lock_enabled when Firebase explicitly has the field.
+        if lock_enabled_raw is not None:
+            local["lock_enabled"] = bool(lock_enabled_raw)
         # Intentionally keep local-only: password, avatar_path.
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
