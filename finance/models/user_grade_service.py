@@ -79,6 +79,8 @@ class UserGradeService:
             try:
                 if bool(getattr(mv, "is_transfer", False)):
                     continue
+                if str(getattr(mv, "category", "") or "").strip() == "העברה":
+                    continue
             except Exception:
                 pass
 

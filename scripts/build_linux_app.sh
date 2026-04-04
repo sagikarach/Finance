@@ -28,7 +28,7 @@ python3 -m PyInstaller --clean --noconfirm --windowed --name Finance ${icon_flag
 
 # Create a zip of the dist folder for easy sharing.
 (cd dist && zip -r ../Finance-linux.zip Finance)
-echo "Zipped: dist/Finance-linux.zip"
+echo "Zipped: Finance-linux.zip"
 echo "Built: dist/Finance/"
 
 

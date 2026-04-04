@@ -12,9 +12,13 @@ def next_month(year: int, month: int) -> tuple[int, int]:
 
 
 def budget_period_end_key(date_str: str, reset_day: int) -> Optional[tuple[int, int]]:
+    from datetime import datetime as _datetime
+
     try:
         dt = parse_iso_date(str(date_str or "").strip())
     except Exception:
+        return None
+    if dt == _datetime.min:
         return None
     if int(dt.day) <= int(reset_day):
         return int(dt.year), int(dt.month)

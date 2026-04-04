@@ -271,8 +271,13 @@ class SibusExpensesDialog(QDialog):
         updated = list(by_id.values())
         try:
             self._movement_service.save_movements(updated, changed_movements=changed)
-        except Exception:
-            pass
+        except Exception as _e:
+            try:
+                from ..qt import QMessageBox
+                QMessageBox.warning(self, "שגיאה בשמירה", f"השמירה נכשלה: {_e}")
+            except Exception:
+                pass
+            return
 
         if self._on_changed is not None:
             try:

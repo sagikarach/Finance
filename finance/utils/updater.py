@@ -36,7 +36,7 @@ def _is_newer(latest: str, current: str) -> bool:
 
 def _github_latest_release(repo: str) -> dict:
     url = f"https://api.github.com/repos/{repo}/releases/latest"
-    with urllib.request.urlopen(url) as resp:
+    with urllib.request.urlopen(url, timeout=15) as resp:
         return json.load(resp)
 
 
@@ -49,7 +49,7 @@ def _find_asset(release: dict, name: str) -> Optional[dict]:
 
 def _download(url: str, dest_path: pathlib.Path) -> pathlib.Path:
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url) as resp, open(dest_path, "wb") as fh:
+    with urllib.request.urlopen(url, timeout=15) as resp, open(dest_path, "wb") as fh:
         fh.write(resp.read())
     return dest_path
 
@@ -98,7 +98,7 @@ def check_for_updates_mac(repo: Optional[str] = None) -> Tuple[bool, str, Option
         if not appcast_asset:
             return False, latest_tag, None, "No appcast.json found in latest release."
 
-        with urllib.request.urlopen(appcast_asset["browser_download_url"]) as resp:
+        with urllib.request.urlopen(appcast_asset["browser_download_url"], timeout=15) as resp:
             appcast = json.load(resp)
 
         latest_version = str(appcast.get("version", latest_tag)).lstrip("v")

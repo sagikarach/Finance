@@ -55,6 +55,9 @@ def pull_accounts_meta_to_local_cache(
             a.name: a for a in local_accounts if isinstance(a, BudgetAccount)
         }
 
+        remote_bank_names: set = set()
+        remote_savings_names: set = set()
+
         bank_accounts: List[BankAccount] = []
         budget_accounts: List[BudgetAccount] = []
         if isinstance(remote_bank, list):
@@ -71,6 +74,7 @@ def pull_accounts_meta_to_local_cache(
                     baseline_amount = float(row.get("baseline_amount", 0.0) or 0.0)
                 except Exception:
                     baseline_amount = 0.0
+                remote_bank_names.add(name)
                 if kind == "budget":
                     try:
                         mb = float(row.get("monthly_budget", 0.0) or 0.0)
@@ -150,6 +154,9 @@ def pull_accounts_meta_to_local_cache(
                     )
 
         savings_accounts: List[SavingsAccount] = []
+        local_savings_by_name = {
+            a.name: a for a in local_accounts if isinstance(a, SavingsAccount)
+        }
         if isinstance(remote_savings, list):
             for row in remote_savings:
                 if not isinstance(row, dict):
@@ -157,6 +164,7 @@ def pull_accounts_meta_to_local_cache(
                 name = str(row.get("name", "") or "").strip()
                 if not name:
                     continue
+                remote_savings_names.add(name)
                 is_liquid = bool(row.get("is_liquid", False))
                 savings_rows = row.get("savings", [])
                 savings: List[Savings] = []
@@ -196,6 +204,18 @@ def pull_accounts_meta_to_local_cache(
                         savings=savings,
                     )
                 )
+
+        # Preserve local-only bank/budget accounts not present in the remote snapshot.
+        for a in local_accounts:
+            if isinstance(a, BankAccount) and a.name not in remote_bank_names:
+                bank_accounts.append(a)
+            elif isinstance(a, BudgetAccount) and a.name not in remote_bank_names:
+                budget_accounts.append(a)
+
+        # Preserve local-only savings accounts not present in the remote snapshot.
+        for a in local_savings_by_name.values():
+            if a.name not in remote_savings_names:
+                savings_accounts.append(a)
 
         provider.save_bank_accounts(list(bank_accounts) + list(budget_accounts))
         provider.save_savings_accounts(savings_accounts)

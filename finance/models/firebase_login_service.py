@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .firebase_client import FirebaseAuthClient
 from .firebase_session import FirebaseSession, FirebaseSessionStore
@@ -10,7 +10,7 @@ from ..firebase_defaults import API_KEY as DEFAULT_API_KEY, PROJECT_ID as DEFAUL
 
 @dataclass
 class FirebaseLoginService:
-    session_store: FirebaseSessionStore = FirebaseSessionStore()
+    session_store: FirebaseSessionStore = field(default_factory=FirebaseSessionStore)
 
     def login_with_email_password(
         self,

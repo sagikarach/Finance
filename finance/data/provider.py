@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
@@ -269,8 +270,13 @@ class JsonFileAccountsProvider(AccountsProvider):
                 savings_list.append(savings_dict)
             json_data.append(account_dict)
 
-        with self._savings_accounts_path.open("w", encoding="utf-8") as f:
+        _target = self._savings_accounts_path
+        _tmp = _target.with_suffix(".tmp")
+        with _tmp.open("w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(_tmp, _target)
 
     def save_bank_accounts(self, accounts: List[MoneyAccount]) -> None:
         self._ensure_paths()
@@ -301,5 +307,10 @@ class JsonFileAccountsProvider(AccountsProvider):
                 account_dict["last_reset_period"] = str(account.last_reset_period or "")
             json_data.append(account_dict)
 
-        with self._bank_accounts_path.open("w", encoding="utf-8") as f:
+        _target = self._bank_accounts_path
+        _tmp = _target.with_suffix(".tmp")
+        with _tmp.open("w", encoding="utf-8") as f:
             json.dump(json_data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(_tmp, _target)

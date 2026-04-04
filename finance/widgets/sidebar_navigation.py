@@ -77,7 +77,7 @@ class SidebarNavigation:
         button_container_layout.setContentsMargins(0, 0, 0, 0)
         button_container_layout.setSpacing(0)
 
-        is_bank = self._current_route == "bank_accounts"
+        is_bank = self._current_route in ("bank_accounts", "bank_account")
         self._bank_btn = SidebarHeaderButton("חשבונות", button_container)
         self._bank_btn.setObjectName("SidebarNavButton")
         self._bank_btn.setCheckable(True)

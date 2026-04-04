@@ -333,7 +333,12 @@ class MonthMovementsDialog(QDialog):
             self._movement_service.save_movements(
                 updated, changed_movements=changed or None
             )
-        except Exception:
+        except Exception as _e:
+            try:
+                from ..qt import QMessageBox
+                QMessageBox.warning(self, "שגיאה בשמירה", f"השמירה נכשלה: {_e}")
+            except Exception:
+                pass
             return
 
         if self._on_saved is not None:

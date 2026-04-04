@@ -11,6 +11,7 @@ from ..qt import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     Qt,
 )
 from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus
@@ -155,6 +156,9 @@ class OneTimeEventEditDialog(QDialog):
             budget = float((self._budget.text() or "").strip() or 0.0)
         except Exception:
             budget = self._event.budget
+        if budget < 0:
+            QMessageBox.warning(self, "שגיאה", "התקציב לא יכול להיות שלילי.")
+            return
 
         status = self._event.status
         data = self._status.currentData()
@@ -167,6 +171,13 @@ class OneTimeEventEditDialog(QDialog):
             try:
                 start_date = self._start.date().toString("yyyy-MM-dd")
                 end_date = self._end.date().toString("yyyy-MM-dd")
+                if self._end.date() < self._start.date():
+                    QMessageBox.warning(
+                        self,
+                        "טווח תאריכים שגוי",
+                        "תאריך הסיום חייב להיות לאחר תאריך ההתחלה.",
+                    )
+                    return
             except Exception:
                 start_date = self._event.start_date
                 end_date = self._event.end_date

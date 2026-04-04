@@ -34,10 +34,13 @@ class FirebaseSession:
         )
 
     def is_id_token_valid(self) -> bool:
+        if not self.id_token:
+            return False
         try:
-            return bool(self.id_token) and time.time() < float(self.expires_at) - 30
+            exp = float(self.expires_at)
         except Exception:
-            return bool(self.id_token)
+            return False
+        return time.time() < exp - 30
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -94,12 +97,9 @@ class FirebaseSessionStore:
             )
 
     def save(self, session: FirebaseSession) -> None:
-        try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            with self._path.open("w", encoding="utf-8") as f:
-                json.dump(session.to_dict(), f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with self._path.open("w", encoding="utf-8") as f:
+            json.dump(session.to_dict(), f, ensure_ascii=False, indent=2)
 
     def clear(self) -> None:
         try:

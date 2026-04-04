@@ -105,6 +105,7 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     except Exception:
         pass
 
+    profile_load_error = False
     try:
         store = UserProfileStore()
         profile = store.load(
@@ -115,11 +116,31 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     except Exception:
         expected_password = ""
         lock_enabled = False
+        profile_load_error = True
 
-    if lock_enabled and expected_password:
+    if lock_enabled and not expected_password:
+        from .qt import QMessageBox
+        QMessageBox.warning(
+            None,
+            "נעילת מסך",
+            "נעילת המסך מופעלת אך לא הוגדרה סיסמה.\n"
+            "אנא הגדר סיסמה בהגדרות כדי להפעיל את הנעילה.",
+        )
+    elif lock_enabled and expected_password:
         lock = LockDialog(expected_password=expected_password)
         result = lock.exec()
         if not result:
+            sys.exit(0)
+    elif profile_load_error:
+        from .qt import QMessageBox
+        ans = QMessageBox.warning(
+            None,
+            "שגיאה",
+            "לא ניתן לטעון את פרופיל המשתמש.\n"
+            "האם להמשיך בכל זאת?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if ans != QMessageBox.StandardButton.Yes:
             sys.exit(0)
 
     window = MainWindow()

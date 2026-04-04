@@ -153,7 +153,9 @@ class SavingsAccountPage(BasePage):
 
     def on_route_activated(self) -> None:
         super().on_route_activated()
+        self._load_and_refresh_accounts()
         if isinstance(self._content_col, QVBoxLayout):
+            self._clear_content_layout(self._content_col)
             self._build_content(self._content_col)
 
     def _on_theme_changed(self, is_dark: bool) -> None:
@@ -298,10 +300,9 @@ class SavingsAccountPage(BasePage):
                 self._accounts_service.save_all(updated_accounts)
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
+                dlg.accept()
             except Exception:
                 pass
-
-            dlg.accept()
 
         ok_btn.clicked.connect(on_accept)
         cancel_btn.clicked.connect(dlg.reject)
@@ -345,6 +346,12 @@ class SavingsAccountPage(BasePage):
         date_edit = self._build_hebrew_date_edit(dlg)
         date_row.addWidget(date_label, 0)
         date_row.addWidget(date_edit, 1)
+
+        def on_saving_selected(idx: int) -> None:
+            if 0 <= idx < len(account.savings):
+                amount_edit.setText(str(account.savings[idx].amount))
+
+        savings_combo.currentIndexChanged.connect(on_saving_selected)
 
         error_label = QLabel("", dlg)
         error_label.setStyleSheet("color: #b91c1c;")
@@ -390,10 +397,9 @@ class SavingsAccountPage(BasePage):
                 self._accounts_service.save_all(updated_accounts)
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
+                dlg.accept()
             except Exception:
                 pass
-
-            dlg.accept()
 
         ok_btn.clicked.connect(on_accept)
         cancel_btn.clicked.connect(dlg.reject)
@@ -446,10 +452,9 @@ class SavingsAccountPage(BasePage):
                 self._accounts_service.save_all(updated_accounts)
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
+                dlg.accept()
             except Exception:
                 pass
-
-            dlg.accept()
 
         delete_btn.clicked.connect(on_delete)
         cancel_btn.clicked.connect(dlg.reject)

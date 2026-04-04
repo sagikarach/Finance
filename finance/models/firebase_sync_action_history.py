@@ -61,5 +61,8 @@ def pull_action_history_to_local_cache(
         except Exception:
             pass
         provider.save_history(entries)
-    except Exception:
-        pass
+    except Exception as _e:
+        import logging
+        logging.getLogger(__name__).warning(
+            "pull_action_history_to_local_cache failed: %s", _e
+        )

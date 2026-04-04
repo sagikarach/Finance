@@ -182,6 +182,7 @@ class OneTimeEventsService:
                         description=m.description,
                         event_id=None,
                         id=m.id,
+                        is_transfer=bool(getattr(m, "is_transfer", False)),
                     )
                 )
                 changed = True
@@ -198,9 +199,10 @@ class OneTimeEventsService:
                     )
 
                     w = FirebaseWorkspaceWriter()
+                    _unassigned_set = set(unassigned_ids)
                     for m in updated:
                         try:
-                            if getattr(m, "id", "") in set(unassigned_ids):
+                            if getattr(m, "id", "") in _unassigned_set:
                                 w.upsert_movement(m)
                         except Exception:
                             continue
@@ -262,6 +264,7 @@ class OneTimeEventsService:
                     description=m.description,
                     event_id=event_id,
                     id=m.id,
+                    is_transfer=bool(getattr(m, "is_transfer", False)),
                 )
             )
             changed = True

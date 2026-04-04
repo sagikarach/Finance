@@ -31,7 +31,7 @@ def validate_savings_account_form(
     if not name:
         return SavingsAccountValidationError("שם לא יכול להיות ריק")
 
-    if name in ctx.existing_names:
+    if name.casefold() in {n.casefold() for n in ctx.existing_names}:
         return SavingsAccountValidationError(f"שם '{name}' כבר קיים. אנא בחר שם אחר.")
 
     return None

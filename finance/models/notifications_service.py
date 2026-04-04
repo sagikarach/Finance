@@ -327,14 +327,14 @@ class NotificationsService:
 
     def _filter_by_enabled_rules(self, items: List[Notification]) -> List[Notification]:
         enabled_rule_ids = self._enabled_rule_ids()
-        if not enabled_rule_ids:
-            return []
 
         out: List[Notification] = []
         for n in items:
             try:
                 source = str(getattr(n, "source", "") or "")
                 if source.startswith("rule:"):
+                    if not enabled_rule_ids:
+                        continue
                     rule_id = source.split(":", 1)[1].strip()
                     if rule_id and rule_id not in enabled_rule_ids:
                         continue

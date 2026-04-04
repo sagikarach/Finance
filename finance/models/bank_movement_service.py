@@ -166,7 +166,7 @@ class BankMovementService:
         try:
             self.movement_provider.add_movement(movement)
         except Exception:
-            pass
+            return list(accounts)
 
         try:
             from ..models.sync_gate import allow_firebase_push
@@ -208,10 +208,11 @@ class BankMovementService:
         updated_accounts: List[MoneyAccount] = []
         account_updated = False
 
+        _movement_acc_name = str(getattr(movement, "account_name", "") or "").strip()
         for acc in accounts:
             if (
                 isinstance(acc, (BankAccount, BudgetAccount))
-                and acc.name == movement.account_name
+                and str(getattr(acc, "name", "") or "").strip() == _movement_acc_name
             ):
                 try:
                     current_total = float(acc.total_amount)

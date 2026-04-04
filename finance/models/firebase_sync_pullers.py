@@ -109,7 +109,7 @@ def merge_remote_into_local(
             event_id = f.get("event_id")
             event_id_str = (
                 str(event_id).strip()
-                if isinstance(event_id, str) and str(event_id).strip()
+                if event_id is not None and str(event_id).strip()
                 else None
             )
 

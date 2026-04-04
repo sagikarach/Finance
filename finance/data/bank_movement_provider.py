@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import asdict
+import os
 from pathlib import Path
 from typing import List, Optional, Union
 import json
@@ -93,7 +94,7 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                 event_id_value = item.get("event_id")
                 event_id = (
                     str(event_id_value).strip()
-                    if isinstance(event_id_value, str) and str(event_id_value).strip()
+                    if event_id_value is not None and str(event_id_value).strip()
                     else None
                 )
                 is_transfer = bool(item.get("is_transfer", False))
@@ -104,6 +105,8 @@ class JsonFileBankMovementProvider(BankMovementProvider):
                     except Exception:
                         pass
                 movement_id = item.get("id")
+                if movement_id is not None:
+                    movement_id = str(movement_id).strip()
                 if not movement_id:
                     from ..models.bank_movement import generate_movement_id
 
@@ -140,8 +143,20 @@ class JsonFileBankMovementProvider(BankMovementProvider):
             m_dict["type"] = movement.type.value
             json_data.append(m_dict)
 
-        with self._movements_path.open("w", encoding="utf-8") as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=2)
+        _target = self._movements_path
+        _tmp = _target.with_suffix(".tmp")
+        try:
+            with _tmp.open("w", encoding="utf-8") as f:
+                json.dump(json_data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(_tmp, _target)
+        except Exception:
+            try:
+                _tmp.unlink(missing_ok=True)
+            except Exception:
+                pass
+            raise
 
     def add_movement(self, movement: BankMovement) -> None:
         current = self.list_movements()

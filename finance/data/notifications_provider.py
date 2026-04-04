@@ -57,6 +57,11 @@ class NotificationsProvider(ABC):
 
 class JsonFileNotificationsProvider(NotificationsProvider):
     def __init__(self, path: Optional[Union[str, Path]] = None) -> None:
+        self._explicit_path: Optional[Path] = Path(path) if path else None
+
+    def _get_path(self) -> Path:
+        if self._explicit_path is not None:
+            return self._explicit_path
         try:
             from ..models.firebase_session import (
                 current_firebase_uid,
@@ -69,9 +74,7 @@ class JsonFileNotificationsProvider(NotificationsProvider):
         except Exception:
             key = ""
         suffix = f"_{key}" if key else ""
-        self._path = (
-            Path(path) if path else accounts_data_dir() / f"notifications{suffix}.json"
-        )
+        return accounts_data_dir() / f"notifications{suffix}.json"
 
     def list_notifications(self) -> List[Notification]:
         data = self._read()
@@ -109,11 +112,10 @@ class JsonFileNotificationsProvider(NotificationsProvider):
 
     def upsert(self, notif: Notification) -> None:
         existing = self.list_notifications()
-        by_key = {n.key: n for n in existing}
-        if notif.key in by_key:
-            return
-        existing.append(notif)
-        self.save_notifications(existing)
+        updated = [notif if n.key == notif.key else n for n in existing]
+        if not any(n.key == notif.key for n in existing):
+            updated.append(notif)
+        self.save_notifications(updated)
 
     def update_status(self, *, key: str, status: NotificationStatus) -> None:
         items = self.list_notifications()
@@ -166,10 +168,11 @@ class JsonFileNotificationsProvider(NotificationsProvider):
         self._write(data)
 
     def _read(self) -> Dict[str, Any]:
-        if not self._path.exists():
+        p = self._get_path()
+        if not p.exists():
             return {"settings": {"enabled": True}, "rules": [], "notifications": []}
         try:
-            with self._path.open("r", encoding="utf-8") as f:
+            with p.open("r", encoding="utf-8") as f:
                 data = json.load(f)
             if isinstance(data, dict):
                 if "settings" not in data:
@@ -180,8 +183,9 @@ class JsonFileNotificationsProvider(NotificationsProvider):
         return {"settings": {"enabled": True}, "rules": [], "notifications": []}
 
     def _write(self, data: Dict[str, Any]) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._path.open("w", encoding="utf-8") as f:
+        p = self._get_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with p.open("w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     def _serialize_notification(self, n: Notification) -> Dict[str, Any]:

@@ -57,7 +57,9 @@ def _http_json(
 
         if raw:
             raise RuntimeError(raw)
-        raise RuntimeError(f"HTTP {getattr(e, 'code', '')} Forbidden")
+        code = getattr(e, "code", "")
+        reason = getattr(e, "reason", "") or ""
+        raise RuntimeError(f"HTTP {code} {reason}".strip())
     except Exception as e:
         raise RuntimeError(str(e))
     try:
@@ -529,6 +531,7 @@ class FirestoreClient:
             "type",
             "description",
             "event_id",
+            "is_transfer",
             "deleted",
             "created_at",
             "created_at_ms",

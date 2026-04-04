@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import List, Optional
 import json
@@ -70,16 +71,21 @@ class WorkspaceProfile:
 class FirebaseWorkspaceProfilesStore:
     def __init__(self, path: Optional[Path] = None) -> None:
         self._path = path or _profiles_path()
+        self._load_ok: bool = True
 
     def list_profiles(self) -> List[WorkspaceProfile]:
         if not self._path.exists():
+            self._load_ok = True
             return []
         try:
             raw = json.loads(self._path.read_text(encoding="utf-8") or "[]")
         except Exception:
+            self._load_ok = False
             return []
         if not isinstance(raw, list):
+            self._load_ok = False
             return []
+        self._load_ok = True
         out: List[WorkspaceProfile] = []
         for item in raw:
             p = WorkspaceProfile.from_dict(item)
@@ -89,14 +95,16 @@ class FirebaseWorkspaceProfilesStore:
         return out
 
     def save_profiles(self, profiles: List[WorkspaceProfile]) -> None:
-        try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            payload = [p.to_dict() for p in list(profiles or [])]
-            self._path.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-        except Exception:
+        if not self._load_ok:
             return
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        payload = [p.to_dict() for p in list(profiles or [])]
+        _tmp = self._path.with_suffix(".tmp")
+        with _tmp.open("w", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False, indent=2))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(_tmp, self._path)
 
     def upsert(
         self,

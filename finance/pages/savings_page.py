@@ -349,6 +349,8 @@ class SavingsPage(BasePage):
             if not form.name.strip():
                 return
 
+            if self._accounts_service is None:
+                return
             self._accounts = self._accounts_service.edit_savings_account(
                 self._accounts, account_to_edit, form
             )
@@ -365,6 +367,8 @@ class SavingsPage(BasePage):
             if selected_account is None:
                 return
 
+            if self._accounts_service is None:
+                return
             self._accounts = self._accounts_service.delete_savings_account(
                 self._accounts, selected_account
             )

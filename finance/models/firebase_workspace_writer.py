@@ -90,6 +90,7 @@ class FirebaseWorkspaceWriter:
 
         writes: List[Dict[str, Any]] = []
         attempted = 0
+        committed = 0
         for m in items:
             attempted += 1
             fields = {
@@ -124,19 +125,15 @@ class FirebaseWorkspaceWriter:
             )
 
             if len(writes) >= int(batch_size):
-                try:
-                    fs.commit_writes(id_token=s.id_token, writes=writes)
-                except Exception:
-                    pass
+                fs.commit_writes(id_token=s.id_token, writes=writes)
+                committed += len(writes)
                 writes = []
 
         if writes:
-            try:
-                fs.commit_writes(id_token=s.id_token, writes=writes)
-            except Exception:
-                pass
+            fs.commit_writes(id_token=s.id_token, writes=writes)
+            committed += len(writes)
 
-        return int(attempted)
+        return committed
 
     def delete_movement(self, *, movement_id: str) -> None:
         movement_id = str(movement_id or "").strip()

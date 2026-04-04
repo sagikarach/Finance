@@ -74,6 +74,15 @@ class YearlySummaryPage(BasePage):
         except Exception:
             pass
 
+        self._available_years = list(self._yearly_service.get_available_years())
+        if not self._available_years:
+            placeholder = QLabel("אין נתונים שנתיים להצגה", container)
+            placeholder.setObjectName("Title")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(placeholder, 1)
+            main_col.addWidget(container, 1)
+            return
+
         self._year_picker = YearPickerWidget(
             container, on_changed=self._on_year_changed
         )
@@ -94,14 +103,6 @@ class YearlySummaryPage(BasePage):
 
         layout.addWidget(table_card, 1)
         main_col.addWidget(container, 1)
-
-        self._available_years = list(self._yearly_service.get_available_years())
-        if not self._available_years:
-            placeholder = QLabel("אין נתונים שנתיים להצגה", container)
-            placeholder.setObjectName("Title")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(placeholder, 1)
-            return
 
         if (
             self._current_year is None

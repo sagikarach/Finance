@@ -162,7 +162,7 @@ class InstallmentsSelector(QWidget):
         try:
             self._menu.clear()
         except Exception:
-            return
+            pass
 
         def add_center_row(
             *,

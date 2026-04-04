@@ -39,13 +39,19 @@ def pull_events_to_local_cache(
             collection_path=f"workspaces/{workspace_id}/events",
             id_token=id_token,
         )
-        events: List[OneTimeEvent] = []
+        provider_events = JsonFileOneTimeEventProvider()
+        local_events_by_id = {e.id: e for e in provider_events.list_events()}
+        deleted_ids: set = set()
         for d in docs_events:
             try:
                 doc_id, parsed = fs.parse_any_doc(d)
-                if bool(parsed.get("deleted", False)):
-                    continue
                 eid = str(parsed.get("id") or doc_id).strip()
+                if not eid:
+                    continue
+                if bool(parsed.get("deleted", False)):
+                    deleted_ids.add(eid)
+                    local_events_by_id.pop(eid, None)
+                    continue
                 name = str(parsed.get("name") or "").strip()
                 budget = float(parsed.get("budget") or 0.0)
                 status = parse_one_time_event_status(
@@ -54,26 +60,24 @@ def pull_events_to_local_cache(
                 start_date = parsed.get("start_date")
                 end_date = parsed.get("end_date")
                 notes = parsed.get("notes")
-                events.append(
-                    OneTimeEvent(
-                        id=eid,
-                        name=name,
-                        budget=budget,
-                        status=status,
-                        start_date=str(start_date)
-                        if isinstance(start_date, str) and str(start_date).strip()
-                        else None,
-                        end_date=str(end_date)
-                        if isinstance(end_date, str) and str(end_date).strip()
-                        else None,
-                        notes=str(notes)
-                        if isinstance(notes, str) and str(notes).strip()
-                        else None,
-                    )
+                local_events_by_id[eid] = OneTimeEvent(
+                    id=eid,
+                    name=name,
+                    budget=budget,
+                    status=status,
+                    start_date=str(start_date)
+                    if isinstance(start_date, str) and str(start_date).strip()
+                    else None,
+                    end_date=str(end_date)
+                    if isinstance(end_date, str) and str(end_date).strip()
+                    else None,
+                    notes=str(notes)
+                    if isinstance(notes, str) and str(notes).strip()
+                    else None,
                 )
             except Exception:
                 continue
-        JsonFileOneTimeEventProvider().save_events(events)
+        provider_events.save_events(list(local_events_by_id.values()))
     except Exception:
         pass
 
@@ -92,13 +96,18 @@ def pull_installment_plans_to_local_cache(
             collection_path=f"workspaces/{workspace_id}/installment_plans",
             id_token=id_token,
         )
-        plans: List[InstallmentPlan] = []
+        provider_plans = JsonFileInstallmentPlanProvider()
+        local_plans_by_id = {p.id: p for p in provider_plans.list_plans()}
         for d in docs_plans:
             try:
                 doc_id, parsed = fs.parse_any_doc(d)
                 if bool(parsed.get("deleted", False)):
+                    pid_del = str(parsed.get("id") or doc_id).strip()
+                    local_plans_by_id.pop(pid_del, None)
                     continue
                 pid = str(parsed.get("id") or doc_id).strip()
+                if not pid:
+                    continue
                 name = str(parsed.get("name") or "").strip()
                 vendor_query = str(parsed.get("vendor_query") or "").strip()
                 account_name = str(parsed.get("account_name") or "").strip()
@@ -110,22 +119,20 @@ def pull_installment_plans_to_local_cache(
                 if isinstance(excluded_raw, list):
                     excluded = [str(x) for x in excluded_raw if str(x).strip()]
                 archived = bool(parsed.get("archived", False))
-                plans.append(
-                    InstallmentPlan(
-                        id=pid,
-                        name=name,
-                        vendor_query=vendor_query,
-                        account_name=account_name,
-                        start_date=start_date,
-                        payments_count=payments_count,
-                        original_amount=original_amount,
-                        excluded_movement_ids=excluded,
-                        archived=archived,
-                    )
+                local_plans_by_id[pid] = InstallmentPlan(
+                    id=pid,
+                    name=name,
+                    vendor_query=vendor_query,
+                    account_name=account_name,
+                    start_date=start_date,
+                    payments_count=payments_count,
+                    original_amount=original_amount,
+                    excluded_movement_ids=excluded,
+                    archived=archived,
                 )
             except Exception:
                 continue
-        JsonFileInstallmentPlanProvider().save_plans(plans)
+        provider_plans.save_plans(list(local_plans_by_id.values()))
     except Exception:
         pass
 

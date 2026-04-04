@@ -44,6 +44,9 @@ class BankAccountsPage(BasePage):
     def on_route_activated(self) -> None:
         super().on_route_activated()
         self._load_and_refresh_accounts()
+        if isinstance(self._content_col, QVBoxLayout):
+            self._clear_content_layout(self._content_col)
+            self._build_content(self._content_col)
 
         app = QApplication.instance()
         is_dark = False

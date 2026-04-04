@@ -96,10 +96,13 @@ class MonthlyReportService:
         else:
             movements = all_movements
 
+        from datetime import datetime as _dt
         month_keys: Set[tuple[int, int]] = set()
         for movement in movements:
             try:
                 dt = parse_iso_date(movement.date)
+                if dt == _dt.min:
+                    continue
                 month_key = (dt.year, dt.month)
                 month_keys.add(month_key)
             except Exception:

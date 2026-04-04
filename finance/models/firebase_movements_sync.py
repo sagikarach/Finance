@@ -62,7 +62,10 @@ class FirebaseMovementsSyncService:
         if wid and str(key or "").strip() == wid:
             try:
                 dst.parent.mkdir(parents=True, exist_ok=True)
-                dst.write_text("[]", encoding="utf-8")
+                if src.exists():
+                    dst.write_bytes(src.read_bytes())
+                else:
+                    dst.write_text("[]", encoding="utf-8")
             except Exception:
                 pass
             return

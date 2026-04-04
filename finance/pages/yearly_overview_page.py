@@ -229,18 +229,19 @@ class YearlyOverviewPage(BasePage):
         self._balance_chart = YearlyBalanceChart(chart_card)
         chart_layout.addWidget(self._balance_chart, 1)
 
-        layout.addWidget(top_row, 0)
-        layout.addWidget(chart_card, 1)
-
-        main_col.addWidget(container, 1)
-
         self._available_years = list(self._yearly_service.get_available_years())
         if not self._available_years:
             placeholder = QLabel("אין נתונים שנתיים להצגה", container)
             placeholder.setObjectName("Title")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(placeholder, 1)
+            main_col.addWidget(container, 1)
             return
+
+        layout.addWidget(top_row, 0)
+        layout.addWidget(chart_card, 1)
+
+        main_col.addWidget(container, 1)
 
         if (
             self._current_year is None
@@ -269,6 +270,13 @@ class YearlyOverviewPage(BasePage):
                 )
             if self._net_value is not None:
                 self._net_value.setText(format_currency(report.summary.net_amount))
+        else:
+            if self._income_value is not None:
+                self._income_value.setText(format_currency(0.0))
+            if self._expense_value is not None:
+                self._expense_value.setText(format_currency(0.0))
+            if self._net_value is not None:
+                self._net_value.setText(format_currency(0.0))
 
         if self._balance_chart is not None:
             month_labels = [

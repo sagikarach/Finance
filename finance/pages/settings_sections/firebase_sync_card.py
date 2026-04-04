@@ -195,13 +195,14 @@ class FirebaseSyncCard(QWidget):
             try:
                 win = parent
                 router = getattr(win, "router", None) if win is not None else None
-                if (
-                    router is not None
-                    and callable(getattr(router, "current_route", None))
-                    and callable(getattr(router, "navigate", None))
-                ):
-                    route = router.current_route()
-                    if route:
+                if router is not None:
+                    if callable(getattr(router, "reset", None)):
+                        router.reset()
+                    if (
+                        callable(getattr(router, "current_route", None))
+                        and callable(getattr(router, "navigate", None))
+                    ):
+                        route = router.current_route() or "home"
                         router.navigate(route)
             except Exception:
                 pass

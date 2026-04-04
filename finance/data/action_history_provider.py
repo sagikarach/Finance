@@ -61,7 +61,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         self._explicit_history_path: Optional[Path] = (
             Path(history_path) if history_path else None
         )
-        self._history_path: Path = Path("")
+        self._history_path: Optional[Path] = None
         self._last_key: str = ""
         self._ensure_path()
 
@@ -73,7 +73,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         wid = current_firebase_workspace_id()
         uid = current_firebase_uid()
         key = str(wid or uid or "").strip()
-        if key == self._last_key and self._history_path:
+        if key == self._last_key and self._history_path is not None:
             return
         self._last_key = key
         if key:
@@ -85,6 +85,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         self._ensure_path()
         history: List[ActionHistory] = []
 
+        assert self._history_path is not None
         if not self._history_path.exists():
             return history
 
@@ -124,6 +125,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
 
     def save_history(self, history: List[ActionHistory]) -> None:
         self._ensure_path()
+        assert self._history_path is not None
         self._history_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
 
-from ..models.installment_plan import InstallmentPlan
+from ..models.installment_plan import InstallmentPlan, generate_installment_plan_id
 from ..utils.app_paths import accounts_data_dir
 from ..models.firebase_session import (
     current_firebase_uid,
@@ -34,19 +34,21 @@ class InstallmentPlanProvider(ABC):
 
 class JsonFileInstallmentPlanProvider(InstallmentPlanProvider):
     def __init__(self, path: Optional[Union[str, Path]] = None) -> None:
+        self._explicit_path: Optional[Path] = Path(path) if path else None
+
+    def _get_path(self) -> Path:
+        if self._explicit_path is not None:
+            return self._explicit_path
         key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
         suffix = f"_{key}" if key else ""
-        self._path = (
-            Path(path)
-            if path
-            else accounts_data_dir() / f"installment_plans{suffix}.json"
-        )
+        return accounts_data_dir() / f"installment_plans{suffix}.json"
 
     def list_plans(self) -> List[InstallmentPlan]:
-        if not self._path.exists():
+        p = self._get_path()
+        if not p.exists():
             return []
         try:
-            with self._path.open("r", encoding="utf-8") as f:
+            with p.open("r", encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
             return []
@@ -60,9 +62,10 @@ class JsonFileInstallmentPlanProvider(InstallmentPlanProvider):
         return out
 
     def save_plans(self, plans: List[InstallmentPlan]) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+        p = self._get_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
         payload = [self._serialize(p) for p in plans]
-        with self._path.open("w", encoding="utf-8") as f:
+        with p.open("w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
     def upsert_plan(self, plan: InstallmentPlan) -> None:
@@ -105,7 +108,7 @@ class JsonFileInstallmentPlanProvider(InstallmentPlanProvider):
             if isinstance(excluded_raw, list):
                 excluded = [str(x) for x in excluded_raw if str(x).strip()]
             return InstallmentPlan(
-                id=str(item.get("id", "")) or InstallmentPlan().id,
+                id=str(item.get("id", "")).strip() or generate_installment_plan_id(),
                 name=str(item.get("name", "") or ""),
                 vendor_query=str(item.get("vendor_query", "") or ""),
                 account_name=str(item.get("account_name", "") or ""),

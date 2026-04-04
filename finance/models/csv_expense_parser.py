@@ -71,11 +71,7 @@ class CsvExpenseParser:
                     column_map["desc"] = idx
                 elif "סכום חיוב" in header_clean:
                     column_map["amount"] = idx
-                elif (
-                    "סכום העסקה" in header_clean
-                    and "amount" not in column_map
-                    or column_map.get("amount") == 2
-                ):
+                elif "סכום העסקה" in header_clean:
                     column_map["amount"] = idx
 
         if header_idx == -1:

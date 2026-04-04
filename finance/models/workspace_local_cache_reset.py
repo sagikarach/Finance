@@ -5,12 +5,14 @@ from pathlib import Path
 from ..utils.app_paths import accounts_data_dir, app_data_dir
 
 
-def _safe_unlink(p: Path) -> None:
+def _safe_unlink(p: Path) -> bool:
     try:
         if p.exists() and p.is_file():
             p.unlink()
+            return True
     except Exception:
         pass
+    return False
 
 
 def reset_workspace_local_cache(*, workspace_id: str) -> int:
@@ -31,15 +33,15 @@ def reset_workspace_local_cache(*, workspace_id: str) -> int:
 
     try:
         fb_dir = app_data_dir() / "firebase"
-        _safe_unlink(fb_dir / f"sync_state_{wid}.json")
-        deleted += 1
+        if _safe_unlink(fb_dir / f"sync_state_{wid}.json"):
+            deleted += 1
     except Exception:
         pass
 
     try:
         tr_dir = app_data_dir() / "training"
-        _safe_unlink(tr_dir / f"ml_seed_{wid}.json")
-        deleted += 1
+        if _safe_unlink(tr_dir / f"ml_seed_{wid}.json"):
+            deleted += 1
     except Exception:
         pass
 

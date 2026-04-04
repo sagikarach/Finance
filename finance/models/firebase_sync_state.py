@@ -55,12 +55,12 @@ class SyncState:
         raw = d.get("remote_ids", [])
         if not isinstance(raw, list):
             raw = []
-        ids = [str(x) for x in raw if isinstance(x, str) and x.strip()]
+        ids = [str(x).strip() for x in raw if x is not None and str(x).strip()]
 
         raw_applied = d.get("applied_balance_ids", [])
         if not isinstance(raw_applied, list):
             raw_applied = []
-        applied = [str(x) for x in raw_applied if isinstance(x, str) and str(x).strip()]
+        applied = [str(x).strip() for x in raw_applied if x is not None and str(x).strip()]
 
         raw_logged = d.get("logged_action_ids", [])
         if not isinstance(raw_logged, list):

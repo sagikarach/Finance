@@ -129,6 +129,7 @@ def apply_transfer(
                         is_liquid=acc.is_liquid,
                         history=new_history,
                         active=getattr(acc, "active", False),
+                        baseline_amount=float(getattr(acc, "baseline_amount", 0.0) or 0.0),
                     )
                 )
             else:

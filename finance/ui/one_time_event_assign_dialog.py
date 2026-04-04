@@ -6,6 +6,7 @@ from ..qt import (
     QDialog,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -144,12 +145,20 @@ class OneTimeEventAssignDialog(QDialog):
         )
         if not movement_id:
             return
-        self._service.assign_movement(movement_id, self._event.id)
+        try:
+            self._service.assign_movement(movement_id, self._event.id)
+        except Exception as _e:
+            QMessageBox.warning(self, "שגיאה", f"לא ניתן לשייך את התנועה: {_e}")
+            return
         self.refresh()
 
     def _unassign_selected(self) -> None:
         movement_id = self._selected_movement_id(self._assigned_table, self._assigned)
         if not movement_id:
             return
-        self._service.assign_movement(movement_id, None)
+        try:
+            self._service.assign_movement(movement_id, None)
+        except Exception as _e:
+            QMessageBox.warning(self, "שגיאה", f"לא ניתן לבטל את השיוך: {_e}")
+            return
         self.refresh()

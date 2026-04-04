@@ -421,7 +421,10 @@ class BasePage(QWidget):
             except Exception:
                 pass
             try:
-                self._on_sync_finished(int(pulled), str(err or ""))
+                _pulled = int(pulled)
+                _err = str(err or "")
+                from ..qt import QTimer
+                QTimer.singleShot(0, self, lambda: self._on_sync_finished(_pulled, _err))
             except Exception:
                 pass
 
@@ -1031,7 +1034,7 @@ class BasePage(QWidget):
         if self._sidebar is not None:
             if hasattr(self._sidebar, "_update_button_width"):
                 try:
-                    QTimer.singleShot(100, self._sidebar._update_button_width)
+                    QTimer.singleShot(100, self._sidebar, self._sidebar._update_button_width)
                 except Exception:
                     pass
 

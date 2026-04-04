@@ -263,6 +263,15 @@ class MonthlyDataPage(BasePage):
             self._one_time_table.set_movements([])
             self._income_chart.set_breakdowns([], is_income=True)
             self._expense_chart.set_breakdowns([], is_income=False)
+            try:
+                income_val = self._income_card.findChild(QLabel, "StatValueCard")
+                if income_val is not None:
+                    income_val.setText(format_currency(0.0, use_compact=True))
+                outcome_val = self._outcome_card.findChild(QLabel, "StatValueCard")
+                if outcome_val is not None:
+                    outcome_val.setText(format_currency(0.0, use_compact=True))
+            except Exception:
+                pass
             return
 
         try:
@@ -345,6 +354,8 @@ class MonthlyDataPage(BasePage):
                 for m in all_movements
                 if m.type == movement_type
                 and self._is_in_month(m.date, self._current_year, self._current_month)
+                and not bool(getattr(m, "is_transfer", False))
+                and str(getattr(m, "category", "") or "").strip() != "העברה"
             ]
             return sorted(filtered, key=lambda x: parse_iso_date(x.date), reverse=True)
         except Exception:
@@ -402,7 +413,9 @@ class MonthlyDataPage(BasePage):
 
     def on_route_activated(self) -> None:
         super().on_route_activated()
+        self._load_and_refresh_accounts()
         if isinstance(self._content_col, QVBoxLayout):
+            self._clear_content_layout(self._content_col)
             self._build_content(self._content_col)
 
     def _on_theme_changed(self, is_dark: bool) -> None:

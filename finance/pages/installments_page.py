@@ -251,6 +251,7 @@ class InstallmentsPage(BasePage):
 
     def on_route_activated(self) -> None:
         super().on_route_activated()
+        self._load_and_refresh_accounts()
         self._reload()
 
     def _build_content(self, content_col: QVBoxLayout) -> None:

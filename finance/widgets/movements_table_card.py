@@ -103,12 +103,19 @@ class MovementsTableCard(QWidget):
     def set_movements(self, movements: List[BankMovement]) -> None:
         self._table.setRowCount(len(movements))
         for row, movement in enumerate(movements):
-            date_item = QTableWidgetItem(movement.date)
-            display_amount = abs(float(movement.amount))
+            try:
+                date_str = str(movement.date or "")
+                display_amount = abs(float(movement.amount))
+                category_str = str(movement.category or "")
+                account_str = str(movement.account_name or "")
+                desc_str = str(movement.description or "")
+            except Exception:
+                continue
+            date_item = QTableWidgetItem(date_str)
             amount_item = QTableWidgetItem(format_currency(display_amount))
-            category_item = QTableWidgetItem(movement.category)
-            account_item = QTableWidgetItem(movement.account_name)
-            desc_item = QTableWidgetItem(movement.description or "")
+            category_item = QTableWidgetItem(category_str)
+            account_item = QTableWidgetItem(account_str)
+            desc_item = QTableWidgetItem(desc_str)
 
             try:
                 if movement.amount > 0:

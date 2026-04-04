@@ -16,17 +16,14 @@ class FirebaseSessionManager:
         if not session.is_logged_in or not session.id_token:
             raise RuntimeError("Not logged in")
 
-        try:
-            if not session.is_id_token_valid():
-                auth = FirebaseAuthClient(api_key=session.api_key)
-                id_token, refresh_token, expires_in = auth.refresh_id_token(
-                    refresh_token=session.refresh_token
-                )
-                session.id_token = id_token
-                session.refresh_token = refresh_token
-                session.expires_at = now_ts() + float(expires_in)
-                self.store.save(session)
-        except Exception:
-            pass
+        if not session.is_id_token_valid():
+            auth = FirebaseAuthClient(api_key=session.api_key)
+            id_token, refresh_token, expires_in = auth.refresh_id_token(
+                refresh_token=session.refresh_token
+            )
+            session.id_token = id_token
+            session.refresh_token = refresh_token
+            session.expires_at = now_ts() + float(expires_in)
+            self.store.save(session)
 
         return session

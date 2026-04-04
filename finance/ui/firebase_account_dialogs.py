@@ -114,6 +114,7 @@ def run_pull_sync_with_progress(
 
     def _poll() -> None:
         if bool(done.get("finished")):
+            err = str(done.get("err") or "").strip()
             try:
                 progress.accept()
             except Exception:
@@ -121,18 +122,30 @@ def run_pull_sync_with_progress(
                     progress.close()
                 except Exception:
                     pass
-            try:
-                _refresh_current_route(parent)
-            except Exception:
-                pass
-            if on_done is not None:
+            if err:
                 try:
-                    QTimer.singleShot(0, on_done)
+                    from ..qt import QMessageBox
+                    QMessageBox.warning(
+                        parent,
+                        "שגיאת סנכרון",
+                        f"הסנכרון נכשל: {err}",
+                    )
                 except Exception:
+                    pass
+            else:
+                try:
+                    _refresh_current_route(parent)
+                except Exception:
+                    pass
+                if on_done is not None:
                     try:
-                        on_done()
+                        _ctx = parent if parent is not None else progress
+                        QTimer.singleShot(0, _ctx, on_done)
                     except Exception:
-                        pass
+                        try:
+                            on_done()
+                        except Exception:
+                            pass
             return
         try:
             QTimer.singleShot(120, _poll)

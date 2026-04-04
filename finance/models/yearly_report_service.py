@@ -34,7 +34,7 @@ class YearlyReportService:
 
         account_set: Optional[Set[str]] = set(account_names) if account_names else None
         type_set: Optional[Set[MovementType]] = (
-            set(movement_types) if movement_types else None
+            set(movement_types) if movement_types is not None else None
         )
 
         movements: List[BankMovement] = []
@@ -101,11 +101,15 @@ class YearlyReportService:
 
         account_set: Optional[Set[str]] = set(account_names) if account_names else None
         years: Set[int] = set()
+        from datetime import datetime as _dt
         for m in all_movements:
             try:
                 if account_set is not None and m.account_name not in account_set:
                     continue
-                years.add(parse_iso_date(m.date).year)
+                dt = parse_iso_date(m.date)
+                if dt == _dt.min:
+                    continue
+                years.add(dt.year)
             except Exception:
                 continue
 
@@ -178,7 +182,7 @@ class YearlyReportService:
 
         account_set: Optional[Set[str]] = set(account_names) if account_names else None
         type_set: Optional[Set[MovementType]] = (
-            set(movement_types) if movement_types else None
+            set(movement_types) if movement_types is not None else None
         )
 
         out: Dict[str, List[float]] = defaultdict(lambda: [0.0] * 12)

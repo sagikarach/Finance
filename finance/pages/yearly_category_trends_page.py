@@ -45,9 +45,14 @@ class YearlyCategoryTrendsPage(BasePage):
 
         self._show_income: bool = True
         self._show_expense: bool = True
-        self._type_monthly: bool = True
-        self._type_one_time: bool = False
-        self._type_yearly: bool = False
+        if movement_types is not None:
+            self._type_monthly: bool = MovementType.MONTHLY in movement_types
+            self._type_one_time: bool = MovementType.ONE_TIME in movement_types
+            self._type_yearly: bool = MovementType.YEARLY in movement_types
+        else:
+            self._type_monthly = True
+            self._type_one_time = False
+            self._type_yearly = False
         self._income_cb: Optional[QCheckBox] = None
         self._expense_cb: Optional[QCheckBox] = None
         self._monthly_cb: Optional[QCheckBox] = None
@@ -129,13 +134,6 @@ class YearlyCategoryTrendsPage(BasePage):
         self._monthly_cb = QCheckBox("חודשי", filters_box)
         self._one_time_cb = QCheckBox("חד-פעמי", filters_box)
         self._yearly_cb = QCheckBox("שנתי", filters_box)
-
-        if self._initial_movement_types is not None and (
-            self._type_monthly and not self._type_one_time and not self._type_yearly
-        ):
-            self._type_monthly = MovementType.MONTHLY in self._initial_movement_types
-            self._type_one_time = MovementType.ONE_TIME in self._initial_movement_types
-            self._type_yearly = MovementType.YEARLY in self._initial_movement_types
 
         self._monthly_cb.setChecked(bool(self._type_monthly))
         self._one_time_cb.setChecked(bool(self._type_one_time))

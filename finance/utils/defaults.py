@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Dict
+
+from .resources import _candidate_roots
 
 
 def load_defaults() -> Dict[str, str]:
-    defaults_path = Path.cwd() / "defaults.json"
+    defaults_path = None
+    for root in _candidate_roots():
+        candidate = root / "defaults.json"
+        if candidate.exists():
+            defaults_path = candidate
+            break
+
     default_theme = "light"
     default_full_name = "אורח"
 
-    if defaults_path.exists():
+    if defaults_path is not None:
         try:
             with defaults_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)

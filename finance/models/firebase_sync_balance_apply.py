@@ -24,11 +24,12 @@ def apply_movements_to_account_balances_once(
         if not to_apply:
             return list(already)
 
-        movements = [local_by_id[mid] for mid in to_apply if mid in local_by_id]
+        actually_applied = [mid for mid in to_apply if mid in local_by_id]
+        movements = [local_by_id[mid] for mid in actually_applied]
         _apply_to_account_balances(
             movements=movements, accounts_service=accounts_service
         )
-        return list(already | set(to_apply))
+        return list(already | set(actually_applied))
     except Exception:
         return list(applied_balance_ids or [])
 
@@ -86,6 +87,7 @@ def _apply_to_account_balances(
                     is_liquid=acc.is_liquid,
                     history=new_history,
                     active=acc.active,
+                    baseline_amount=float(getattr(acc, "baseline_amount", 0.0) or 0.0),
                 )
             )
         else:

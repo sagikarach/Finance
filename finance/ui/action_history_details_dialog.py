@@ -627,6 +627,7 @@ class ActionHistoryDetailsDialog(QDialog):
             account_name = action.account_name
 
             updated_count = 0
+            _actually_changed: List[Any] = []
             for row in range(self._expenses_table.rowCount()):
                 if row >= len(self._original_expenses):
                     continue
@@ -670,6 +671,7 @@ class ActionHistoryDetailsDialog(QDialog):
                             type=new_type,
                         )
                         all_movements[i] = updated_movement
+                        _actually_changed.append(updated_movement)
                         updated_count += 1
                         movement_found = True
                         break
@@ -690,6 +692,7 @@ class ActionHistoryDetailsDialog(QDialog):
                                 type=new_type,
                             )
                             all_movements[i] = updated_movement
+                            _actually_changed.append(updated_movement)
                             updated_count += 1
                             movement_found = True
                             break
@@ -699,15 +702,8 @@ class ActionHistoryDetailsDialog(QDialog):
 
             if updated_count > 0:
                 if self._movement_service is not None:
-                    changed: List[Any] = []
-                    try:
-                        for m in all_movements:
-                            if getattr(m, "account_name", None) == account_name:
-                                changed.append(m)
-                    except Exception:
-                        changed = []
                     self._movement_service.save_movements(
-                        all_movements, changed_movements=changed or None
+                        all_movements, changed_movements=list(_actually_changed) or None
                     )
 
                 if self._on_saved:

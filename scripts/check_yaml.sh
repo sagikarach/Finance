@@ -46,11 +46,7 @@ for f in "${files[@]}"; do
     continue
   fi
   echo "Checking $f"
-  if ! "${py}" - <<'PY' "$f"; then
-    status=1
-  fi
-  continue
-  PY
+  if ! "${py}" - "$f" <<'PY'
 import sys
 try:
     import yaml  # type: ignore
@@ -67,6 +63,9 @@ except Exception as e:
     sys.exit(1)
 sys.exit(0)
 PY
+  then
+    status=1
+  fi
 done
 
 if [[ $status -ne 0 ]]; then

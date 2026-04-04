@@ -109,8 +109,13 @@ def migrate_legacy_accounts_data(*, overwrite: bool = False) -> bool:
     for cand in legacy_accounts_dirs():
         try:
             if cand.exists() and cand.is_dir():
-                src = cand
-                break
+                has_json = any(
+                    item.is_file() and item.suffix.lower() == ".json"
+                    for item in cand.iterdir()
+                )
+                if has_json:
+                    src = cand
+                    break
         except Exception:
             continue
     if src is None:

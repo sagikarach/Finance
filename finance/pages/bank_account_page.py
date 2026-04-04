@@ -435,7 +435,7 @@ class BankAccountPage(BasePage):
                         top_3_pending,
                         categories,
                         on_category_added=on_category_added,
-                        parent=None,
+                        parent=self,
                     )
                     result = dlg.exec()
                 except Exception:
@@ -583,8 +583,6 @@ class BankAccountPage(BasePage):
             self._save_and_refresh_accounts()
         except Exception:
             pass
-        if isinstance(self._content_col, QVBoxLayout):
-            self._build_content(self._content_col)
 
     def _open_sibus_expenses_dialog(self, account: BudgetAccount) -> None:
         svc = getattr(self, "_bank_movement_service", None)

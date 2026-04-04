@@ -262,9 +262,9 @@ class SettingsPage(BasePage):
                         )
 
                     try:
-                        QTimer.singleShot(0, _notify)
+                        QTimer.singleShot(0, container, _notify)
                     except Exception:
-                        _notify()
+                        pass
 
                 try:
                     threading.Thread(target=_worker, daemon=True).start()

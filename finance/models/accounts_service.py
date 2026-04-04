@@ -427,6 +427,13 @@ class AccountsService:
 
         if self.history_provider is not None and result.error is None:
             try:
+                if (
+                    request.source.account_index < 0
+                    or request.source.account_index >= len(accounts)
+                    or request.target.account_index < 0
+                    or request.target.account_index >= len(accounts)
+                ):
+                    raise IndexError("account index out of range")
                 src_acc = accounts[request.source.account_index]
                 dst_acc = accounts[request.target.account_index]
 

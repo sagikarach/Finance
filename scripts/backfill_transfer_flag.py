@@ -15,11 +15,8 @@ def _as_str(v: Any) -> str:
 
 
 def _should_mark_transfer(fields: Dict[str, Any]) -> bool:
-    try:
-        if bool(fields.get("is_transfer", False)):
-            return False
-    except Exception:
-        pass
+    if fields.get("is_transfer") is True:
+        return False
     cat = _as_str(fields.get("category"))
     return cat == "העברה"
 

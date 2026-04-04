@@ -215,8 +215,21 @@ class BatchOutcomeReviewDialog(QDialog):
         skip_btn.setText("דלג על הכל")
 
         def on_accept() -> None:
+            for idx in range(len(self._expenses)):
+                cat = self._category_combos[idx].currentData()
+                if cat == self._add_category_sentinel:
+                    try:
+                        from ..qt import QMessageBox
+                        QMessageBox.warning(
+                            self,
+                            "קטגוריה חסרה",
+                            f"שורה {idx + 1}: יש לבחור קטגוריה לפני השמירה.",
+                        )
+                    except Exception:
+                        pass
+                    return
             for idx, classified_expense in enumerate(self._expenses):
-                cat = self._category_combos[idx].currentText()
+                cat = self._category_combos[idx].currentData()
                 if cat == self._add_category_sentinel:
                     continue
                 if isinstance(cat, str) and cat.strip():
@@ -243,18 +256,20 @@ class BatchOutcomeReviewDialog(QDialog):
                                     movement_type=movement_type,
                                 )
                             )
-                            self._results[idx] = (
-                                classified_expense.to_bank_movement_with_user_input(
-                                    category=cat.strip(),
-                                    movement_type=movement_type,
-                                )
-                            )
                         except Exception:
                             pass
-                    else:
+            for idx, res in enumerate(self._results):
+                if res is None:
+                    try:
+                        from ..qt import QMessageBox
+                        QMessageBox.warning(
+                            self,
+                            "שגיאה",
+                            f"שורה {idx + 1}: לא ניתן היה לשמור את הנתונים. בדוק קטגוריה וסוג.",
+                        )
+                    except Exception:
                         pass
-                else:
-                    pass
+                    return
             self.accept()
 
         def on_skip() -> None:

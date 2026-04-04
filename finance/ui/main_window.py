@@ -91,10 +91,7 @@ class MainWindow(QMainWindow):
                 except Exception:
                     pass
 
-            try:
-                QTimer.singleShot(0, _ui_refresh)
-            except Exception:
-                _ui_refresh()
+            QTimer.singleShot(0, self, _ui_refresh)
 
         try:
             import threading
@@ -280,10 +277,7 @@ class MainWindow(QMainWindow):
                     "\n".join(details),
                 )
 
-            try:
-                QTimer.singleShot(0, _notify)
-            except Exception:
-                _notify()
+            QTimer.singleShot(0, self, _notify)
 
         try:
             threading.Thread(target=_worker, daemon=True).start()

@@ -146,7 +146,7 @@ class SimilarityBasedClassifier:
                 self._weighted_pick(similar_expenses, field="expenseType") or "חודשית"
             )
 
-        movement_type = self.TYPE_MAPPING.get(expense_type_str, self.DEFAULT_TYPE)
+        movement_type = self.TYPE_MAPPING.get(expense_type_str.strip(), self.DEFAULT_TYPE)
 
         base_similarity = top_similarity
 
@@ -173,7 +173,7 @@ class SimilarityBasedClassifier:
         confidence = min(0.7, max(0.0, confidence))
 
         if allowed_categories and category not in allowed_categories:
-            category = self._match_category_to_allowed(category, allowed_categories)
+            category = self._match_category_to_allowed(category, allowed_categories) or self.DEFAULT_CATEGORY
 
         return (category, movement_type, confidence)
 
@@ -308,7 +308,7 @@ class SimilarityBasedClassifier:
         amount = float(confirmed_expense.get("amount", 0))
 
         is_duplicate = any(
-            str(e.get("description", "")) == description
+            str(e.get("description", "")).casefold() == description.casefold()
             and abs(float(e.get("amount", 0)) - amount) < 0.01
             for e in self._training_data
         )

@@ -319,6 +319,9 @@ class BankMovementDialog(QDialog):
                 date_str = ""
 
             category = self._category_combo.currentText().strip()
+            if self._category_combo.currentData() == self._add_category_sentinel:
+                self._show_error("יש לבחור קטגוריה")
+                return
             type_data = self._type_combo.currentData()
             mtype: MovementType
             if isinstance(type_data, MovementType):

@@ -172,8 +172,12 @@ class UserDetailsCard(QWidget):
                 pass
             try:
                 self._user_store.save(self._user)
-            except Exception:
-                pass
+            except Exception as _save_err:
+                try:
+                    QToolTip.showText(QCursor.pos(), f"שגיאה בשמירה: {_save_err}")
+                except Exception:
+                    pass
+                return
             # If we're inside a Firebase workspace and that workspace has a saved profile,
             # store a per-workspace display name override. If it's not defined, UI falls back
             # to the global user profile.

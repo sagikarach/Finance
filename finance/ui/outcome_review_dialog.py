@@ -144,8 +144,9 @@ class OutcomeReviewDialog(QDialog):
             cat = self._category_combo.currentData()
             if cat == self._add_category_sentinel:
                 return
-            if isinstance(cat, str):
-                self._selected_category = cat.strip()
+            if not isinstance(cat, str) or not cat.strip():
+                return
+            self._selected_category = cat.strip()
             type_data = self._type_combo.currentData()
             if isinstance(type_data, MovementType):
                 self._selected_type = type_data

@@ -9,6 +9,7 @@ import json
 from ..models.one_time_event import (
     OneTimeEvent,
     OneTimeEventStatus,
+    generate_event_id,
     parse_one_time_event_status,
 )
 from ..utils.app_paths import accounts_data_dir
@@ -38,19 +39,21 @@ class OneTimeEventProvider(ABC):
 
 class JsonFileOneTimeEventProvider(OneTimeEventProvider):
     def __init__(self, path: Optional[Union[str, Path]] = None) -> None:
+        self._explicit_path: Optional[Path] = Path(path) if path else None
+
+    def _get_path(self) -> Path:
+        if self._explicit_path is not None:
+            return self._explicit_path
         key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
         suffix = f"_{key}" if key else ""
-        self._path = (
-            Path(path)
-            if path
-            else accounts_data_dir() / f"one_time_events{suffix}.json"
-        )
+        return accounts_data_dir() / f"one_time_events{suffix}.json"
 
     def list_events(self) -> List[OneTimeEvent]:
-        if not self._path.exists():
+        p = self._get_path()
+        if not p.exists():
             return []
         try:
-            with self._path.open("r", encoding="utf-8") as f:
+            with p.open("r", encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
             return []
@@ -64,9 +67,10 @@ class JsonFileOneTimeEventProvider(OneTimeEventProvider):
         return out
 
     def save_events(self, events: List[OneTimeEvent]) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+        p = self._get_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
         payload = [self._serialize(e) for e in events]
-        with self._path.open("w", encoding="utf-8") as f:
+        with p.open("w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2)
 
     def upsert_event(self, event: OneTimeEvent) -> None:
@@ -102,7 +106,7 @@ class JsonFileOneTimeEventProvider(OneTimeEventProvider):
                 item.get("status", OneTimeEventStatus.ACTIVE.value)
             )
             return OneTimeEvent(
-                id=str(item.get("id", "")) or OneTimeEvent().id,
+                id=str(item.get("id", "")).strip() or generate_event_id(),
                 name=str(item.get("name", "")),
                 budget=float(item.get("budget", 0.0) or 0.0),
                 status=status,

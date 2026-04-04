@@ -24,7 +24,8 @@ class UserProfileStore:
                 with self._path.open("r", encoding="utf-8") as f:
                     data = json.load(f)
                 if isinstance(data, dict):
-                    full_name = str(data.get("full_name", default_full_name))
+                    raw_name = data.get("full_name")
+                    full_name = str(raw_name) if raw_name is not None else default_full_name
                     raw_avatar = data.get("avatar_path")
                     avatar_path = str(raw_avatar) if raw_avatar else None
                     raw_password = data.get("password")
@@ -46,7 +47,8 @@ class UserProfileStore:
             lock_enabled=lock_enabled,
             accounts=list(accounts),
         )
-        self.save(profile)
+        if not self._path.exists():
+            self.save(profile)
         return profile
 
     def save(self, profile: UserProfile) -> None:

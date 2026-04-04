@@ -296,7 +296,7 @@ class InstallmentsService:
             return value
 
         vendor_query = _normalize_text(plan.vendor_query).strip()
-        account_name = str(plan.account_name or "").strip()
+        account_name = str(plan.account_name or "").strip().casefold()
         if not vendor_query or not account_name:
             return []
         vendor_norm = _normalize_text(vendor_query).casefold()
@@ -310,7 +310,7 @@ class InstallmentsService:
         out: List[BankMovement] = []
         for m in self._movements_provider.list_movements():
             try:
-                if str(getattr(m, "account_name", "") or "").strip() != account_name:
+                if str(getattr(m, "account_name", "") or "").strip().casefold() != account_name:
                     continue
                 if bool(getattr(m, "is_transfer", False)):
                     continue
@@ -331,4 +331,7 @@ class InstallmentsService:
             except Exception:
                 continue
         out.sort(key=lambda x: parse_iso_date(str(getattr(x, "date", "") or "")))
+        payments_count = int(getattr(plan, "payments_count", 0) or 0)
+        if payments_count > 0:
+            out = out[:payments_count]
         return out

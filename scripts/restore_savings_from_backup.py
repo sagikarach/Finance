@@ -88,7 +88,7 @@ def _backup_item_to_savings(raw: dict) -> Savings:
     # today's date with the root balance so the app shows the correct value.
     today = _date.today().isoformat()
     latest_hist_amount = snapshots[-1].amount if snapshots else None
-    if latest_hist_amount != root_balance:
+    if latest_hist_amount is None or abs(latest_hist_amount - root_balance) > 0.001:
         snapshots = [s for s in snapshots if s.date != today]
         snapshots.append(MoneySnapshot(date=today, amount=root_balance))
 

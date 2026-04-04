@@ -10,6 +10,7 @@ from ..models.one_time_events_service import OneTimeEventsService
 from ..qt import (
     QLabel,
     QHBoxLayout,
+    QMessageBox,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -328,6 +329,17 @@ class OneTimeEventsPage(BasePage):
     def _on_delete_event(self) -> None:
         if not self._selected_event_id:
             return
+        try:
+            ans = QMessageBox.question(
+                self,
+                "מחיקת אירוע",
+                "האם אתה בטוח שברצונך למחוק את האירוע?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if ans != QMessageBox.StandardButton.Yes:
+                return
+        except Exception:
+            pass
         self._service.delete_event(self._selected_event_id)
         self._selected_event_id = None
         self._refresh()
