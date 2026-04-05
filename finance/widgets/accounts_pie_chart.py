@@ -73,7 +73,7 @@ class AccountsPieChart(QWidget):
             self._render_chart()
         else:
             placeholder = QLabel(
-                "Charts are unavailable on this backend. Install QtCharts."
+                "גרפים אינם זמינים. נדרשת התקנת QtCharts."
             )
             placeholder.setObjectName("Subtitle")
             self._layout.addWidget(placeholder)
@@ -109,7 +109,7 @@ class AccountsPieChart(QWidget):
 
         total = sum(max(a.total_amount, 0.0) for a in self._accounts)
         if total <= 0:
-            slice_ = series.append("No Data", 1.0)
+            slice_ = series.append("אין נתונים", 1.0)
             try:
                 slice_.setLabelVisible(True)
             except Exception:

@@ -37,23 +37,36 @@ class OutcomeReviewDialog(QDialog):
         self._selected_category: Optional[str] = None
         self._selected_type: MovementType = suggested_type or MovementType.ONE_TIME
 
+        self.setMinimumWidth(420)
         layout: QVBoxLayout = setup_standard_rtl_dialog(
-            self, title="סיווג הוצאה", margins=(32, 24, 32, 24), spacing=12
+            self, title="סיווג הוצאה", margins=(24, 20, 24, 20), spacing=12
         )
 
-        info_col = QVBoxLayout()
-        info_col.setSpacing(4)
+        # Transaction info card
+        info_card = QWidget(self)
+        info_card.setObjectName("ContentPanel")
+        try:
+            from ..qt import Qt as _Qt
+            info_card.setAttribute(_Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        info_card_layout = QVBoxLayout(info_card)
+        info_card_layout.setContentsMargins(14, 12, 14, 12)
+        info_card_layout.setSpacing(4)
 
         desc_text = movement.description or ""
-        desc_label = QLabel(f"תיאור: {desc_text}", self)
-        amount_label = QLabel(f"סכום: {movement.amount}", self)
-        date_label = QLabel(f"תאריך: {movement.date}", self)
+        desc_label = QLabel(f"תיאור: {desc_text}", info_card)
+        desc_label.setObjectName("ExpenseHeader")
+        desc_label.setWordWrap(True)
+        amount_label = QLabel(f"סכום: {movement.amount}", info_card)
+        amount_label.setObjectName("Subtitle")
+        date_label = QLabel(f"תאריך: {movement.date}", info_card)
+        date_label.setObjectName("Subtitle")
 
-        info_col.addWidget(desc_label)
-        info_col.addWidget(amount_label)
-        info_col.addWidget(date_label)
-
-        layout.addLayout(info_col)
+        info_card_layout.addWidget(desc_label)
+        info_card_layout.addWidget(amount_label)
+        info_card_layout.addWidget(date_label)
+        layout.addWidget(info_card)
 
         if suggested_category:
             suggestion = (
@@ -64,6 +77,7 @@ class OutcomeReviewDialog(QDialog):
         else:
             suggestion = "לא נמצאה הצעה מתאימה מה-AI"
         suggestion_label = QLabel(suggestion, self)
+        suggestion_label.setObjectName("AiSuggestionLabel")
         layout.addWidget(suggestion_label)
 
         cat_row = QHBoxLayout()
@@ -83,13 +97,6 @@ class OutcomeReviewDialog(QDialog):
                 self._category_combo.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
-        try:
-            self._category_combo.setStyleSheet(
-                "QComboBox { text-align: right; } "
-                "QComboBox QAbstractItemView::item { text-align: right; }"
-            )
-        except Exception:
-            pass
 
         if suggested_category and suggested_category in self._categories:
             idx = self._categories.index(suggested_category)
@@ -115,13 +122,6 @@ class OutcomeReviewDialog(QDialog):
                 self._type_combo.setLayoutDirection(Qt.RightToLeft)
             except Exception:
                 pass
-        try:
-            self._type_combo.setStyleSheet(
-                "QComboBox { text-align: right; } "
-                "QComboBox QAbstractItemView::item { text-align: right; }"
-            )
-        except Exception:
-            pass
 
         for mt in MovementType:
             self._type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)

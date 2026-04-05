@@ -106,7 +106,7 @@ class SavingsAccountDialog(QDialog):
         buttons_row.addWidget(cancel_btn)
 
         self._error_label = QLabel("", self)
-        self._error_label.setStyleSheet("color: #b91c1c;")
+        self._error_label.setObjectName("ErrorLabel")
         self._error_label.setWordWrap(True)
         self._error_label.setMinimumHeight(0)
         self._error_label.setMaximumHeight(60)

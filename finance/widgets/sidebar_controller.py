@@ -47,8 +47,19 @@ class SidebarController:
 
     def update_accounts(self, accounts: List[MoneyAccount]) -> None:
         self._accounts = accounts
-        self._rebuild_bank_items()
-        self._rebuild_savings_items()
+        try:
+            self._widget.setUpdatesEnabled(False)
+        except Exception:
+            pass
+        try:
+            self._rebuild_bank_items()
+            self._rebuild_savings_items()
+        finally:
+            try:
+                self._widget.setUpdatesEnabled(True)
+                self._widget.update()
+            except Exception:
+                pass
         try:
             QTimer.singleShot(10, self._update_button_width)
         except Exception:
@@ -130,6 +141,7 @@ class SidebarController:
         )
 
         self._current_route = route
+        self._route_applied_once = True
 
     def on_resize(self) -> None:
         try:
@@ -138,10 +150,12 @@ class SidebarController:
             self._update_button_width()
 
     def on_show(self) -> None:
-        try:
-            self.update_route(self._current_route)
-        except Exception:
-            pass
+        if not getattr(self, "_route_applied_once", False):
+            try:
+                self.update_route(self._current_route)
+            except Exception:
+                pass
+            self._route_applied_once = True
         try:
             QTimer.singleShot(10, self._update_button_width)
         except Exception:
@@ -292,8 +306,6 @@ class SidebarController:
             desired = True if persisted is None else bool(persisted)
         else:
             desired = False
-            if persisted is True:
-                self._state.set_bool(key, False)
         try:
             section.set_expanded(bool(desired))
         except Exception:
@@ -346,7 +358,11 @@ class SidebarController:
                 )
             ),
         )
-        self._bank_section.set_items(section.as_collapsible_items())
+        new_items = section.as_collapsible_items()
+        new_labels = [lbl for lbl, _ in new_items]
+        cur_labels = [lbl for lbl, _ in self._bank_section._items]
+        if new_labels != cur_labels:
+            self._bank_section.set_items(new_items)
         self._bank_section.set_expanded(section.expanded)
 
     def _rebuild_savings_items(self) -> None:
@@ -358,7 +374,11 @@ class SidebarController:
             expanded=expanded,
             click_handler=self._on_savings_account_clicked,
         )
-        self._savings_section.set_items(section.as_collapsible_items())
+        new_items = section.as_collapsible_items()
+        new_labels = [lbl for lbl, _ in new_items]
+        cur_labels = [lbl for lbl, _ in self._savings_section._items]
+        if new_labels != cur_labels:
+            self._savings_section.set_items(new_items)
         self._savings_section.set_expanded(section.expanded)
 
     def _on_savings_account_clicked(self, account: MoneyAccount) -> None:

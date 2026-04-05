@@ -59,7 +59,7 @@ class LockDialog(QDialog):
                 pass
 
         error_label = QLabel("", self)
-        error_label.setStyleSheet("color: #b91c1c;")
+        error_label.setObjectName("ErrorLabel")
         try:
             error_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         except Exception:

@@ -18,7 +18,7 @@ from ...models.workspace_local_cache_reset import reset_workspace_local_cache
 class FirebaseSyncCard(QWidget):
     def __init__(self, *, parent: object, store: FirebaseSessionStore) -> None:
         super().__init__(parent)
-        self.setObjectName("Sidebar")
+        self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

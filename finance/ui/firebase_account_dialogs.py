@@ -233,7 +233,7 @@ def open_firebase_account_dialog(
     remember_pw_cb.setChecked(False)
 
     status = QLabel("", dlg)
-    status.setStyleSheet("color: #b91c1c;")
+    status.setObjectName("ErrorLabel")
     status.setWordWrap(True)
     status.setMinimumHeight(0)
     status.setMaximumHeight(80)
@@ -446,7 +446,7 @@ def open_firebase_password_prompt(
     lay.addWidget(remember)
 
     status = QLabel("", dlg)
-    status.setStyleSheet("color: #b91c1c;")
+    status.setObjectName("ErrorLabel")
     status.setWordWrap(True)
     status.hide()
     lay.addWidget(status)

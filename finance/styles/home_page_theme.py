@@ -6,20 +6,20 @@ def load_home_page_light_styles() -> str:
     QLabel#StatTitle {
         font-size: 18px;
         font-weight: 600;
-        color: #0b1220;
+        color: #0f172a;
         letter-spacing: .2px;
         background: transparent;
     }
     QWidget#TrendsControlsBar QLabel {
         font-size: 18px;
         font-weight: 600;
-        color: #0b1220;
+        color: #0f172a;
         background: transparent;
     }
     QWidget#TrendsControlsBar QCheckBox {
         font-size: 18px;
         font-weight: 600;
-        color: #0b1220;
+        color: #0f172a;
         background: transparent;
         spacing: 0px;
         padding: 0px;
@@ -34,29 +34,29 @@ def load_home_page_light_styles() -> str:
     QWidget#TrendsControlsBar QComboBox {
         font-size: 18px;
         font-weight: 600;
-        color: #0b1220;
+        color: #0f172a;
     }
     QLabel#TrendsControlsLabel {
         font-size: 18px;
         font-weight: 700;
-        color: #0b1220;
+        color: #0f172a;
         background: transparent;
     }
     QWidget#TrendsControlsDividerLine {
-        background: #0b1220;
+        background: #0f172a;
         border-radius: 1px;
     }
     QLabel#StatValueLarge {
         font-size: 56px;
         font-weight: 900;
-        color: #0b1220;
+        color: #0f172a;
         padding: 6px 8px;
         background: transparent;
     }
     QLabel#StatValueCard {
         font-size: 28px;
         font-weight: 900;
-        color: #0b1220;
+        color: #0f172a;
         padding: 0px;
         background: transparent;
     }
@@ -123,7 +123,7 @@ def load_home_page_light_styles() -> str:
         border-radius: 18px;
     }
     QLabel#ActionHistoryTitle {
-        color: #0b1220;
+        color: #0f172a;
         font-size: 15px;
         font-weight: 800;
         background: transparent;
@@ -135,7 +135,7 @@ def load_home_page_light_styles() -> str:
         background: transparent;
     }
     QLabel#ActionHistoryBody {
-        color: #0b1220;
+        color: #0f172a;
         font-size: 13px;
         font-weight: 600;
         background: transparent;

@@ -343,7 +343,7 @@ def create_savings_history_chart_card(
     format_amount: Callable[[float], str],
 ) -> QWidget:
     chart_card = QWidget(parent)
-    chart_card.setObjectName("Sidebar")
+    chart_card.setObjectName("ContentPanel")
     try:
         chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
     except Exception:

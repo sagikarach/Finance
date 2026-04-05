@@ -14,7 +14,7 @@ class CollapsibleCard(QWidget):
         expanded: bool = False,
     ) -> None:
         super().__init__(parent)
-        self.setObjectName("Sidebar")
+        self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -31,11 +31,19 @@ class CollapsibleCard(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(8)
 
-        self._toggle = QPushButton("▲" if self._expanded else "▼", header)
+        self._toggle = QPushButton("", header)
         self._toggle.setObjectName("SidebarNavToggle")
         self._toggle.setCheckable(True)
         self._toggle.setChecked(self._expanded)
         self._toggle.setFixedWidth(32)
+        try:
+            from ..utils.icons import make_icon
+            from ..qt import QSize
+            icon_name = "chevron_up" if self._expanded else "chevron_down"
+            self._toggle.setIcon(make_icon(icon_name, size=14))
+            self._toggle.setIconSize(QSize(14, 14))
+        except Exception:
+            self._toggle.setText("▲" if self._expanded else "▼")
         try:
             self._toggle.setSizePolicy(
                 QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
@@ -93,4 +101,12 @@ class CollapsibleCard(QWidget):
     def _apply_visibility(self) -> None:
         self._content.setVisible(self._expanded)
         self._toggle.setChecked(self._expanded)
-        self._toggle.setText("▲" if self._expanded else "▼")
+        try:
+            from ..utils.icons import make_icon
+            from ..qt import QSize
+            icon_name = "chevron_up" if self._expanded else "chevron_down"
+            self._toggle.setIcon(make_icon(icon_name, size=14))
+            self._toggle.setIconSize(QSize(14, 14))
+            self._toggle.setText("")
+        except Exception:
+            self._toggle.setText("▲" if self._expanded else "▼")

@@ -72,7 +72,7 @@ class SeparatorItemDelegate(QStyledItemDelegate):
 class YearlyMonthsTableCard(QWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setObjectName("Sidebar")
+        self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -395,8 +395,8 @@ class YearlyMonthsTableCard(QWidget):
             if app is not None:
                 is_dark = str(app.property("theme") or "light") == "dark"
 
-            handle = "#4b5563" if is_dark else "#9fc6f7"
-            handle_hover = "#6b7280" if is_dark else "#9fc6f7"
+            handle = "#1e3a5f" if is_dark else "#93c5fd"
+            handle_hover = "#2d5a8e" if is_dark else "#60a5fa"
             header_line = "#e1ecfb" if not is_dark else "#334155"
 
             qss = f"""

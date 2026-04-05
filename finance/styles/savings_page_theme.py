@@ -55,55 +55,59 @@ def load_savings_page_light_styles() -> str:
     }
 
     QPushButton#AddButton {
-        background: #a3baed; /* base blue */
-        border-color: #c9d5f5;
+        background: #22c55e;
+        border: 1px solid #16a34a;
         font-weight: 600;
-        color: #111827;
+        color: #ffffff;
     }
     QPushButton#AddButton:hover {
-        background: #b6d7a8; /* green */
+        background: #16a34a;
+        border: 1px solid #15803d;
     }
     QPushButton#AddButton:pressed {
-        background: #93c47d; /* darker green */
+        background: #15803d;
     }
 
     QPushButton#EditButton {
-        background: #a3baed; /* base blue */
-        border-color: #c9d5f5;
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
         font-weight: 600;
-        color: #111827;
+        color: #ffffff;
     }
     QPushButton#EditButton:hover {
-        background: #9fc5e8; /* blue */
+        background: #1d4ed8;
+        border: 1px solid #1e40af;
     }
     QPushButton#EditButton:pressed {
-        background: #6fa8dc; /* darker blue */
+        background: #1e40af;
     }
 
     QPushButton#DeleteButton {
-        background: #a3baed; /* base blue */
-        border-color: #c9d5f5;
+        background: #ef4444;
+        border: 1px solid #dc2626;
         font-weight: 600;
-        color: #111827;
+        color: #ffffff;
     }
     QPushButton#DeleteButton:hover {
-        background: #ea9999; /* red */
+        background: #dc2626;
+        border: 1px solid #b91c1c;
     }
     QPushButton#DeleteButton:pressed {
-        background: #e06666; /* darker red */
+        background: #b91c1c;
     }
 
     QPushButton#MoveButton {
-        background: #a3baed;
+        background: #8b5cf6;
+        border: 1px solid #7c3aed;
         font-weight: 600;
-        color: #111827;
-        border-color: #c9d5f5;
+        color: #ffffff;
     }
     QPushButton#MoveButton:hover {
-        background: #d5a6bd; /* stronger purple */
+        background: #7c3aed;
+        border: 1px solid #6d28d9;
     }
     QPushButton#MoveButton:pressed {
-        background: #c27ba0; /* darker purple */
+        background: #6d28d9;
     }
     """
 
@@ -162,54 +166,58 @@ def load_savings_page_dark_styles() -> str:
     }
 
     QPushButton#AddButton {
-        background: #1d4ed8; /* base blue */
-        border-color: #1e3a8a;
+        background: #16a34a;
+        border: 1px solid #15803d;
         font-weight: 600;
-        color: #e5e7eb;
+        color: #ffffff;
     }
     QPushButton#AddButton:hover {
-        background: #16a34a; /* green */
+        background: #15803d;
+        border: 1px solid #166534;
     }
     QPushButton#AddButton:pressed {
-        background: #15803d; /* darker green */
+        background: #166534;
     }
 
     QPushButton#EditButton {
-        background: #1d4ed8; /* base blue */
-        border-color: #1e3a8a;
+        background: #1d4ed8;
+        border: 1px solid #1e3a8a;
         font-weight: 600;
-        color: #e5e7eb;
+        color: #ffffff;
     }
     QPushButton#EditButton:hover {
-        background: #2563eb; /* blue */
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
     }
     QPushButton#EditButton:pressed {
-        background: #1d4ed8; /* darker blue */
+        background: #1e40af;
     }
 
     QPushButton#DeleteButton {
-        background: #1d4ed8; /* base blue */
-        border-color: #1e3a8a;
+        background: #dc2626;
+        border: 1px solid #b91c1c;
         font-weight: 600;
-        color: #e5e7eb;
+        color: #ffffff;
     }
     QPushButton#DeleteButton:hover {
-        background: #dc2626; /* red */
+        background: #b91c1c;
+        border: 1px solid #991b1b;
     }
     QPushButton#DeleteButton:pressed {
-        background: #b91c1c; /* darker red */
+        background: #991b1b;
     }
 
     QPushButton#MoveButton {
-        background: #1d4ed8; /* base purple */
-        border-color: #1e3a8a;
+        background: #7c3aed;
+        border: 1px solid #6d28d9;
         font-weight: 600;
-        color: #e5e7eb;
+        color: #ffffff;
     }
     QPushButton#MoveButton:hover {
-        background: #7c3aed; /* brighter purple */
+        background: #6d28d9;
+        border: 1px solid #5b21b6;
     }
     QPushButton#MoveButton:pressed {
-        background: #5b21b6; /* darker purple */
+        background: #5b21b6;
     }
     """

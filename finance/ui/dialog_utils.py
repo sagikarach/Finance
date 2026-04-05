@@ -62,6 +62,7 @@ def create_standard_buttons_row(
     buttons_row.setSpacing(12)
 
     cancel_btn = QPushButton(cancel_text, parent)
+    cancel_btn.setObjectName("SecondaryButton")
     primary_btn = QPushButton(primary_text, parent)
 
     try:

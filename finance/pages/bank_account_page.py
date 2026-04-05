@@ -57,7 +57,11 @@ class BankAccountPage(BasePage):
         buttons: List[Any] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         navigate = self._navigate
         if navigate is not None:
@@ -98,7 +102,7 @@ class BankAccountPage(BasePage):
             return
 
         top_card = QWidget(self)
-        top_card.setObjectName("Sidebar")
+        top_card.setObjectName("ContentPanel")
         try:
             top_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

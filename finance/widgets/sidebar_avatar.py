@@ -81,7 +81,14 @@ class SidebarAvatar:
 
         self._firebase_menu_btn = QToolButton(self._name_row)
         self._firebase_menu_btn.setObjectName("FirebaseAccountMenuButton")
-        self._firebase_menu_btn.setText("▾")
+        try:
+            from ..utils.icons import make_icon
+            from ..qt import QSize
+            self._firebase_menu_btn.setIcon(make_icon("chevron_down", size=14))
+            self._firebase_menu_btn.setIconSize(QSize(14, 14))
+            self._firebase_menu_btn.setText("")
+        except Exception:
+            self._firebase_menu_btn.setText("▾")
         try:
             self._firebase_menu_btn.setToolTip("החלף חשבון שיתוף")
         except Exception:
@@ -132,9 +139,14 @@ class SidebarAvatar:
         except Exception:
             pass
         try:
-            btn.setText("▴" if new_expanded else "▾")
+            from ..utils.icons import make_icon
+            from ..qt import QSize
+            icon_name = "chevron_up" if new_expanded else "chevron_down"
+            btn.setIcon(make_icon(icon_name, size=14))
+            btn.setIconSize(QSize(14, 14))
+            btn.setText("")
         except Exception:
-            pass
+            btn.setText("▴" if new_expanded else "▾")
 
     def _reload_firebase_accounts_list(self) -> None:
         lst = self._firebase_accounts_list

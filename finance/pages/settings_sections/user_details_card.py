@@ -31,7 +31,7 @@ class UserDetailsCard(QWidget):
         on_profile_saved: Optional[Callable[[], None]] = None,
     ) -> None:
         super().__init__(parent)
-        self.setObjectName("Sidebar")
+        self.setObjectName("ContentPanel")
         self._user = user
         self._user_store = user_store
         self._on_profile_saved = on_profile_saved

@@ -55,7 +55,7 @@ def create_bank_history_chart_card(
     movements: Optional[List[BankMovement]] = None,
 ) -> QWidget:
     chart_card = QWidget(parent)
-    chart_card.setObjectName("Sidebar")
+    chart_card.setObjectName("ContentPanel")
     try:
         chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
     except Exception:

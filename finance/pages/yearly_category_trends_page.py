@@ -72,7 +72,11 @@ class YearlyCategoryTrendsPage(BasePage):
         buttons: List[QToolButton] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
             settings_btn.clicked.connect(lambda: self._navigate("settings"))
@@ -252,7 +256,7 @@ class YearlyCategoryTrendsPage(BasePage):
         layout.addWidget(top_controls, 0)
 
         chart_card = QWidget(container)
-        chart_card.setObjectName("Sidebar")
+        chart_card.setObjectName("ContentPanel")
         try:
             chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

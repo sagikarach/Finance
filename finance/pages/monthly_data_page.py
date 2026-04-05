@@ -63,7 +63,11 @@ class MonthlyDataPage(BasePage):
         buttons: List[QToolButton] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
             settings_btn.clicked.connect(lambda: self._navigate("settings"))
@@ -133,7 +137,7 @@ class MonthlyDataPage(BasePage):
         left_layout.addWidget(self._one_time_table, 1)
 
         chart_card_income = QWidget(right_container)
-        chart_card_income.setObjectName("Sidebar")
+        chart_card_income.setObjectName("ContentPanel")
         try:
             chart_card_income.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -145,7 +149,7 @@ class MonthlyDataPage(BasePage):
         chart_income_layout.addWidget(self._income_chart, 1)
 
         chart_card_expense = QWidget(right_container)
-        chart_card_expense.setObjectName("Sidebar")
+        chart_card_expense.setObjectName("ContentPanel")
         try:
             chart_card_expense.setAttribute(
                 Qt.WidgetAttribute.WA_StyledBackground, True

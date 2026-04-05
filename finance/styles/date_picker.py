@@ -4,19 +4,22 @@ from __future__ import annotations
 def load_date_picker_light_styles() -> str:
     return """
     QDateEdit, QDateEdit#DateEdit {
-        background: #f8fafc;
+        background: #f8faff;
         color: #0f172a;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #bfdbfe;
         border-radius: 8px;
         padding: 6px 10px;
         min-height: 28px;
+    }
+    QDateEdit:focus {
+        border: 1px solid #2563eb;
     }
     QDateEdit::drop-down {
         subcontrol-origin: padding;
         subcontrol-position: right center;
         width: 24px;
-        border-left: 1px solid #e2e8f0;
-        background: #e5f0ff;
+        border-left: 1px solid #bfdbfe;
+        background: #dbeafe;
         margin: 0px;
     }
     QDateEdit::down-arrow {

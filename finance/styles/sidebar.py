@@ -57,31 +57,34 @@ def load_sidebar_light_styles() -> str:
     }
     QPushButton#SidebarNavButton:checked,
     QPushButton#SidebarNavButton:pressed {
-        background: #dcecff;
-        color: #0f172a;
-        border-top: 2px solid #a0bce2;
-        border-bottom: 2px solid #a0bce2;
-        border-left: none;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-top: 1px solid #bfdbfe;
+        border-bottom: 1px solid #bfdbfe;
         border-right: none;
-        padding: 10px 16px;
+        border-left: 4px solid #2563eb;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButton[collapsibleExpanded="true"] {
-        background: #dcecff;
-        color: #0f172a;
-        border-top: 2px solid #a0bce2;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-top: 1px solid #bfdbfe;
         border-bottom: none;
-        border-left: none;
         border-right: none;
-        padding: 10px 16px;
+        border-left: 4px solid #2563eb;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButton:disabled {
         background: #dbeafe;
-        color: #0f172a;
-        border-top: 2px solid #a0bce2;
-        border-bottom: 2px solid #a0bce2;
-        border-left: none;
+        color: #1d4ed8;
+        border-top: 1px solid #bfdbfe;
+        border-bottom: 1px solid #bfdbfe;
         border-right: none;
-        padding: 10px 16px;
+        border-left: 4px solid #2563eb;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings {
         background: #bfdbfe;
@@ -101,31 +104,34 @@ def load_sidebar_light_styles() -> str:
     }
     QPushButton#SidebarNavButtonSavings:checked,
     QPushButton#SidebarNavButtonSavings:pressed {
-        background: #dcecff;
-        color: #0f172a;
-        border-top: 2px solid #a0bce2;
-        border-bottom: 2px solid #a0bce2;
-        border-left: none;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-top: 1px solid #bfdbfe;
+        border-bottom: 1px solid #bfdbfe;
         border-right: none;
-        padding: 10px 16px;
+        border-left: 4px solid #2563eb;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings[collapsibleExpanded="true"] {
-        background: #dcecff;
-        color: #0f172a;
-        border-top: 2px solid #a0bce2;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-top: 1px solid #bfdbfe;
         border-bottom: none;
-        border-left: none;
         border-right: none;
-        padding: 10px 16px;
+        border-left: 4px solid #2563eb;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings:disabled {
         background: #dbeafe;
-        color: #0f172a;
-        border-top: 2px solid #a0bce2;
-        border-bottom: 2px solid #a0bce2;
-        border-left: none;
+        color: #1d4ed8;
+        border-top: 1px solid #bfdbfe;
+        border-bottom: 1px solid #bfdbfe;
         border-right: none;
-        padding: 10px 16px;
+        border-left: 4px solid #2563eb;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavToggle {
         background: #dcecff;
@@ -225,25 +231,34 @@ def load_sidebar_dark_styles() -> str:
     }
     QPushButton#SidebarNavButton:checked,
     QPushButton#SidebarNavButton:pressed {
-        background: #020617;
-        color: #e5e7eb;
-        border-top: 2px solid #1f2937;
-        border-bottom: 2px solid #1f2937;
-        padding: 10px 16px;
+        background: #0f172a;
+        color: #60a5fa;
+        border-top: 1px solid #1e3a5f;
+        border-bottom: 1px solid #1e3a5f;
+        border-right: none;
+        border-left: 4px solid #3b82f6;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButton[collapsibleExpanded="true"] {
-        background: #020617;
-        color: #e5e7eb;
-        border-top: 2px solid #1f2937;
+        background: #0f172a;
+        color: #60a5fa;
+        border-top: 1px solid #1e3a5f;
         border-bottom: none;
-        padding: 10px 16px;
+        border-right: none;
+        border-left: 4px solid #3b82f6;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButton:disabled {
-        background: #020617;
-        color: #e5e7eb;
-        border-top: 2px solid #1f2937;
-        border-bottom: 2px solid #1f2937;
-        padding: 10px 16px;
+        background: #0f172a;
+        color: #60a5fa;
+        border-top: 1px solid #1e3a5f;
+        border-bottom: 1px solid #1e3a5f;
+        border-right: none;
+        border-left: 4px solid #3b82f6;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavToggle {
         background: #020617;
@@ -339,24 +354,33 @@ def load_sidebar_dark_styles() -> str:
     }
     QPushButton#SidebarNavButtonSavings:checked,
     QPushButton#SidebarNavButtonSavings:pressed {
-        background: #020617;
-        color: #e5e7eb;
-        border-top: 2px solid #1f2937;
-        border-bottom: 2px solid #1f2937;
-        padding: 10px 16px;
+        background: #0f172a;
+        color: #60a5fa;
+        border-top: 1px solid #1e3a5f;
+        border-bottom: 1px solid #1e3a5f;
+        border-right: none;
+        border-left: 4px solid #3b82f6;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings[collapsibleExpanded="true"] {
-        background: #020617;
-        color: #e5e7eb;
-        border-top: 2px solid #1f2937;
+        background: #0f172a;
+        color: #60a5fa;
+        border-top: 1px solid #1e3a5f;
         border-bottom: none;
-        padding: 10px 16px;
+        border-right: none;
+        border-left: 4px solid #3b82f6;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings:disabled {
-        background: #020617;
-        color: #e5e7eb;
-        border-top: 2px solid #1f2937;
-        border-bottom: 2px solid #1f2937;
-        padding: 10px 16px;
+        background: #0f172a;
+        color: #60a5fa;
+        border-top: 1px solid #1e3a5f;
+        border-bottom: 1px solid #1e3a5f;
+        border-right: none;
+        border-left: 4px solid #3b82f6;
+        padding: 10px 16px 10px 12px;
+        font-weight: 700;
     }
     """

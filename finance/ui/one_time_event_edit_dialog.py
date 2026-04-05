@@ -54,7 +54,7 @@ class OneTimeEventEditDialog(QDialog):
         self._name_error = QLabel("", self)
         self._name_error.setObjectName("Subtitle")
         try:
-            self._name_error.setStyleSheet("color: #ef4444; background: transparent;")
+            self._name_error.setObjectName("ErrorLabel")
         except Exception:
             pass
         self._name_error.setVisible(False)

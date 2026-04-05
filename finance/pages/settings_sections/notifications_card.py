@@ -23,7 +23,7 @@ class NotificationsCard(QWidget):
         on_refreshed: Optional[Callable[[], None]] = None,
     ) -> None:
         super().__init__(parent)
-        self.setObjectName("Sidebar")
+        self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

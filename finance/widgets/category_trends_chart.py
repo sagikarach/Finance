@@ -56,7 +56,7 @@ class CategoryTrendsChart(QWidget):
             self.set_empty_state("אין נתונים להצגה")
         else:
             placeholder = QLabel(
-                "Charts are unavailable on this backend. Install QtCharts.", self
+                "גרפים אינם זמינים. נדרשת התקנת QtCharts.", self
             )
             placeholder.setObjectName("Subtitle")
             self._layout.addWidget(placeholder, 1)

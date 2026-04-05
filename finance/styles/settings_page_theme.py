@@ -20,17 +20,18 @@ def load_settings_page_light_styles() -> str:
     }
 
     QPushButton#SaveButton {
-        background: #e5e7eb; /* grey */
-        border: 1px solid rgba(15,23,42,0.18);
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
         font-weight: 600;
         min-width: 96px;
-        color: #111827;
+        color: #ffffff;
     }
     QPushButton#SaveButton:hover {
-        background: #d1d5db;
+        background: #1d4ed8;
+        border: 1px solid #1e40af;
     }
     QPushButton#SaveButton:pressed {
-        background: #cbd5e1;
+        background: #1e40af;
     }
 
     QPushButton#SecondaryButton {
@@ -86,8 +87,11 @@ def load_settings_page_light_styles() -> str:
         background: #c9e1fe;
     }
     QListWidget#SettingsMenu::item:selected {
-        background: #dcecff;
-        color: #0f172a;
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-left: 4px solid #2563eb;
+        padding-left: 8px;
+        font-weight: 700;
     }
     """
 
@@ -95,7 +99,7 @@ def load_settings_page_light_styles() -> str:
 def load_settings_page_dark_styles() -> str:
     return """
     QLineEdit#SettingsInput {
-        background: #0b1220;
+        background: #0f172a;
         color: #e5e7eb;
         border: 1px solid rgba(148,163,184,0.25);
         border-radius: 10px;
@@ -111,18 +115,18 @@ def load_settings_page_dark_styles() -> str:
     }
 
     QPushButton#SaveButton {
-        background: #374151; /* grey */
-        border: 1px solid rgba(148,163,184,0.25);
+        background: #1d4ed8;
+        border: 1px solid #1e3a8a;
         font-weight: 600;
         min-width: 96px;
-        color: #e5e7eb;
+        color: #ffffff;
     }
     QPushButton#SaveButton:hover {
-        background: #4b5563;
-        border: 1px solid rgba(148,163,184,0.35);
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
     }
     QPushButton#SaveButton:pressed {
-        background: #334155;
+        background: #1e40af;
     }
 
     QPushButton#SecondaryButton {
@@ -179,7 +183,10 @@ def load_settings_page_dark_styles() -> str:
         background: #1f2937;
     }
     QListWidget#SettingsMenu::item:selected {
-        background: #020617;
-        color: #e5e7eb;
+        background: #0f172a;
+        color: #60a5fa;
+        border-left: 4px solid #3b82f6;
+        padding-left: 8px;
+        font-weight: 700;
     }
     """

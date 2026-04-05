@@ -20,7 +20,7 @@ from ..qt import (
 class MovementsTableCard(QWidget):
     def __init__(self, title: str, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setObjectName("Sidebar")
+        self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -182,8 +182,8 @@ class MovementsTableCard(QWidget):
             except Exception:
                 is_dark = False
 
-            handle = "#4b5563" if is_dark else "#9fc6f7"
-            handle_hover = "#6b7280" if is_dark else "#9fc6f7"
+            handle = "#1e3a5f" if is_dark else "#93c5fd"
+            handle_hover = "#2d5a8e" if is_dark else "#60a5fa"
 
             qss = """
                 QTableWidget#MovementsTable { border: none; gridline-color: transparent; }

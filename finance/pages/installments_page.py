@@ -224,7 +224,11 @@ class InstallmentsPage(BasePage):
         buttons: List[QToolButton] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
             settings_btn.clicked.connect(lambda: self._navigate("settings"))
@@ -299,7 +303,11 @@ class InstallmentsPage(BasePage):
 
         self._edit_btn = QToolButton(header_card)
         self._edit_btn.setObjectName("IconButton")
-        self._edit_btn.setText("✎")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(self._edit_btn, "edit", size=18, is_dark=self._is_dark_theme())
+        except Exception:
+            self._edit_btn.setText("✎")
         self._edit_btn.setToolTip("עריכת תכנית")
         self._edit_btn.clicked.connect(self._on_edit_clicked)
         header_row.addWidget(self._edit_btn)
@@ -344,7 +352,7 @@ class InstallmentsPage(BasePage):
         cards_col_l.addStretch(1)
 
         table_card = QWidget(row1)
-        table_card.setObjectName("Sidebar")
+        table_card.setObjectName("ContentPanel")
         try:
             table_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

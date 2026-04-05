@@ -224,8 +224,12 @@ class BasePage(QWidget):
 
         self._bell_btn = QToolButton(bell_wrap)
         self._bell_btn.setObjectName("HeaderIconButton")
-        self._bell_btn.setText("🔔")
         self._bell_btn.setToolTip("התראות")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(self._bell_btn, "bell", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            self._bell_btn.setText("🔔")
         self._bell_btn.clicked.connect(self._open_notifications)
         try:
             self._bell_btn.setFixedSize(44, 44)
@@ -337,8 +341,12 @@ class BasePage(QWidget):
             try:
                 btn.setEnabled(False)
                 btn.setToolTip("מסנכרן...")
-                btn.setIcon(QIcon())
-                btn.setText("⏳")
+                try:
+                    from ..utils.icons import apply_icon
+                    apply_icon(btn, "hourglass", size=20, is_dark=self._is_dark_theme())
+                except Exception:
+                    btn.setIcon(QIcon())
+                    btn.setText("⏳")
             except Exception:
                 pass
             return
@@ -346,10 +354,14 @@ class BasePage(QWidget):
             self._update_sync_icon()
         except Exception:
             try:
-                btn.setIcon(QIcon())
-                btn.setText("🔄")
+                from ..utils.icons import apply_icon
+                apply_icon(btn, "refresh", size=20, is_dark=self._is_dark_theme())
             except Exception:
-                pass
+                try:
+                    btn.setIcon(QIcon())
+                    btn.setText("🔄")
+                except Exception:
+                    pass
         try:
             from ..models.firebase_session import FirebaseSessionStore
 
@@ -357,13 +369,13 @@ class BasePage(QWidget):
             ok = bool(
                 s.is_logged_in and str(getattr(s, "workspace_id", "") or "").strip()
             )
-            btn.setEnabled(bool(ok))
+            btn.setEnabled(True)
             btn.setToolTip(
                 "סנכרן עכשיו" if ok else "התחבר ל-Firebase ובחר Workspace בהגדרות"
             )
         except Exception:
             try:
-                btn.setEnabled(False)
+                btn.setEnabled(True)
             except Exception:
                 pass
 
@@ -377,12 +389,20 @@ class BasePage(QWidget):
             wid = str(getattr(s, "workspace_id", "") or "").strip()
             if not (s.is_logged_in and wid):
                 try:
-                    QToolTip.showText(
-                        QCursor.pos(),
-                        "כדי לסנכרן צריך להתחבר ל-Firebase ולבחור Workspace בהגדרות",
-                    )
+                    from ..qt import QMessageBox
+                    msg = QMessageBox(self)
+                    msg.setWindowTitle("סנכרון")
+                    msg.setText("כדי לסנכרן צריך להתחבר ל-Firebase ולבחור Workspace בהגדרות")
+                    msg.setIcon(QMessageBox.Icon.Information)
+                    msg.exec()
                 except Exception:
-                    pass
+                    try:
+                        QToolTip.showText(
+                            QCursor.pos(),
+                            "כדי לסנכרן צריך להתחבר ל-Firebase ולבחור Workspace בהגדרות",
+                        )
+                    except Exception:
+                        pass
                 return
         except Exception:
             return
@@ -398,7 +418,11 @@ class BasePage(QWidget):
                 try:
                     self._update_sync_icon()
                 except Exception:
-                    self._sync_btn.setText("⏳")
+                    try:
+                        from ..utils.icons import apply_icon
+                        apply_icon(self._sync_btn, "hourglass", size=20, is_dark=self._is_dark_theme())
+                    except Exception:
+                        self._sync_btn.setText("⏳")
                 self._sync_btn.setToolTip("מסנכרן...")
         except Exception:
             pass
@@ -446,9 +470,14 @@ class BasePage(QWidget):
         except Exception:
             try:
                 if self._sync_btn is not None:
-                    self._sync_btn.setText("🔄")
+                    from ..utils.icons import apply_icon
+                    apply_icon(self._sync_btn, "refresh", size=20, is_dark=self._is_dark_theme())
             except Exception:
-                pass
+                try:
+                    if self._sync_btn is not None:
+                        self._sync_btn.setText("🔄")
+                except Exception:
+                    pass
         self._refresh_sync_button_state()
 
         try:
@@ -861,8 +890,12 @@ class BasePage(QWidget):
                 current_theme = "light"
         is_dark = current_theme == "dark"
         theme_btn.setChecked(is_dark)
-        theme_btn.setText("🌙" if is_dark else "☀")
         theme_btn.setToolTip("מצב כהה / מצב בהיר")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(theme_btn, "moon" if is_dark else "sun", size=20, is_dark=is_dark)
+        except Exception:
+            theme_btn.setText("🌙" if is_dark else "☀")
 
         def on_theme_toggled(checked: bool) -> None:
             app_ = QApplication.instance()
@@ -876,7 +909,11 @@ class BasePage(QWidget):
                     ss = getattr(app_, "setStyleSheet", None)
                     if callable(ss):
                         ss(load_dark_stylesheet())
-                    theme_btn.setText("🌙")
+                    try:
+                        from ..utils.icons import apply_icon
+                        apply_icon(theme_btn, "moon", size=20, is_dark=True)
+                    except Exception:
+                        theme_btn.setText("🌙")
                 else:
                     setter = getattr(app_, "setProperty", None)
                     if callable(setter):
@@ -884,7 +921,11 @@ class BasePage(QWidget):
                     ss = getattr(app_, "setStyleSheet", None)
                     if callable(ss):
                         ss(load_default_stylesheet())
-                    theme_btn.setText("☀")
+                    try:
+                        from ..utils.icons import apply_icon
+                        apply_icon(theme_btn, "sun", size=20, is_dark=False)
+                    except Exception:
+                        theme_btn.setText("☀")
             except Exception:
                 pass
             try:
@@ -953,72 +994,46 @@ class BasePage(QWidget):
         btn = self._sync_btn
         if btn is None:
             return
-
-        if self._sync_in_progress:
-            try:
-                btn.setIcon(QIcon())
-            except Exception:
-                pass
-            btn.setText("⏳")
-            return
-
-        icon_path = self._sync_icon_path(self._is_dark_theme())
-        if icon_path is None:
-            try:
-                btn.setIcon(QIcon())
-            except Exception:
-                pass
-            btn.setText("🔄")
-            return
-
-        pixmap = QPixmap(str(icon_path))
-        if pixmap.isNull():
-            try:
-                btn.setIcon(QIcon())
-            except Exception:
-                pass
-            btn.setText("🔄")
-            return
-
+        is_dark = self._is_dark_theme()
         try:
-            scaled = pixmap.scaled(
-                QSize(35, 35),
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            btn.setIconSize(QSize(35, 35))
-            btn.setIcon(QIcon(scaled))
-            btn.setText("")
-            return
+            from ..utils.icons import apply_icon
+            if self._sync_in_progress:
+                apply_icon(btn, "hourglass", size=20, is_dark=is_dark)
+            else:
+                apply_icon(btn, "refresh", size=20, is_dark=is_dark)
+        except Exception:
+            try:
+                btn.setIcon(QIcon())
+            except Exception:
+                pass
+            btn.setText("⏳" if self._sync_in_progress else "🔄")
+
+    def _refresh_all_svg_icons(self, is_dark: bool) -> None:
+        """Re-render every SVG icon button in this page for the new theme."""
+        try:
+            from ..utils.icons import refresh_icon
+            from ..qt import QToolButton as _QTB
+            for btn in self.findChildren(_QTB):
+                try:
+                    if btn.property("svg_icon"):
+                        refresh_icon(btn, is_dark)
+                except Exception:
+                    pass
         except Exception:
             pass
-
-        try:
-            scaled = pixmap.scaled(
-                35,
-                35,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-            try:
-                btn.setIconSize(QSize(35, 35))
-            except Exception:
-                pass
-            btn.setIcon(QIcon(scaled))
-            btn.setText("")
-            return
-        except Exception:
-            try:
-                btn.setIcon(QIcon())
-            except Exception:
-                pass
-            btn.setText("🔄")
-            return
 
     def _on_theme_changed(self, is_dark: bool) -> None:
         if self._theme_btn is not None:
             self._theme_btn.setChecked(is_dark)
-            self._theme_btn.setText("🌙" if is_dark else "☀")
+            try:
+                from ..utils.icons import apply_icon
+                apply_icon(self._theme_btn, "moon" if is_dark else "sun", size=20, is_dark=is_dark)
+            except Exception:
+                self._theme_btn.setText("🌙" if is_dark else "☀")
+        try:
+            self._refresh_all_svg_icons(is_dark)
+        except Exception:
+            pass
 
         try:
             self._update_sync_icon()
@@ -1138,7 +1153,11 @@ class BasePage(QWidget):
             is_dark = current_theme == "dark"
             self._theme_btn.blockSignals(True)
             self._theme_btn.setChecked(is_dark)
-            self._theme_btn.setText("🌙" if is_dark else "☀")
+            try:
+                from ..utils.icons import apply_icon
+                apply_icon(self._theme_btn, "moon" if is_dark else "sun", size=20, is_dark=is_dark)
+            except Exception:
+                self._theme_btn.setText("🌙" if is_dark else "☀")
             self._theme_btn.blockSignals(False)
             try:
                 self._update_password_eye_icons(is_dark)

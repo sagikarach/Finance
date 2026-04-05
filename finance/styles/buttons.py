@@ -13,17 +13,17 @@ def load_buttons_light_styles() -> str:
     QPushButton#MonthEditButton {
         background: #d1e6ff;
         color: #0f172a;
-        border: 1px solid #87aeda important;
+        border: 1px solid #87aeda;
         border-radius: 10px;
         padding: 8px 12px;
     }
     QPushButton#MonthEditButton:hover {
         background: #bfdbfe;
-        border: 1px solid #87aeda important;
+        border: 1px solid #6baed6;
     }
     QPushButton#MonthEditButton:pressed {
         background: #87aeda;
-        border: 1px solid #87aeda important;
+        border: 1px solid #5b9fcc;
     }
     QPushButton:hover {
         background: #1d4ed8;
@@ -78,12 +78,42 @@ def load_buttons_light_styles() -> str:
         padding: 4px 8px;
         font-size: 22px;
         font-weight: 800;
-        color: #0b1220;
+        color: #0f172a;
     }
     QToolButton#EventSelectorButton::menu-indicator {
         image: none;
         width: 0px;
         height: 0px;
+    }
+    QPushButton#SecondaryButton {
+        background: #e2eeff;
+        border: 1px solid #bfdbfe;
+        font-weight: 600;
+        color: #1e40af;
+        padding: 8px 14px;
+        border-radius: 8px;
+    }
+    QPushButton#SecondaryButton:hover {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+    }
+    QPushButton#SecondaryButton:pressed {
+        background: #bfdbfe;
+    }
+    QPushButton#DangerButton {
+        background: #fee2e2;
+        border: 1px solid #fca5a5;
+        font-weight: 700;
+        color: #b91c1c;
+        padding: 8px 14px;
+        border-radius: 8px;
+    }
+    QPushButton#DangerButton:hover {
+        background: #fecaca;
+        border: 1px solid #f87171;
+    }
+    QPushButton#DangerButton:pressed {
+        background: #fca5a5;
     }
     QLabel#NotificationsBadge {
         background: #ef4444;
@@ -109,17 +139,17 @@ def load_buttons_dark_styles() -> str:
     QPushButton#MonthEditButton {
         background: #111827;
         color: #e5e7eb;
-        border: 1px solid #334155 important;
+        border: 1px solid #334155;
         border-radius: 10px;
         padding: 8px 12px;
     }
     QPushButton#MonthEditButton:hover {
         background: #1f2937;
-        border: 1px solid #475569 important;
+        border: 1px solid #475569;
     }
     QPushButton#MonthEditButton:pressed {
-        background: #0b1220;
-        border: 1px solid #64748b important;
+        background: #0f172a;
+        border: 1px solid #64748b;
     }
     QPushButton:hover {
         background: #2563eb;
@@ -174,6 +204,36 @@ def load_buttons_dark_styles() -> str:
         image: none;
         width: 0px;
         height: 0px;
+    }
+    QPushButton#SecondaryButton {
+        background: #1e293b;
+        border: 1px solid #334155;
+        font-weight: 600;
+        color: #93c5fd;
+        padding: 8px 14px;
+        border-radius: 8px;
+    }
+    QPushButton#SecondaryButton:hover {
+        background: #273549;
+        border: 1px solid #475569;
+    }
+    QPushButton#SecondaryButton:pressed {
+        background: #0f172a;
+    }
+    QPushButton#DangerButton {
+        background: #3f1515;
+        border: 1px solid #7f1d1d;
+        font-weight: 700;
+        color: #fca5a5;
+        padding: 8px 14px;
+        border-radius: 8px;
+    }
+    QPushButton#DangerButton:hover {
+        background: #4c1a1a;
+        border: 1px solid #991b1b;
+    }
+    QPushButton#DangerButton:pressed {
+        background: #290d0d;
     }
     QLabel#NotificationsBadge {
         background: #ef4444;

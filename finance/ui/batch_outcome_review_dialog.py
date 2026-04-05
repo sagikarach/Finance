@@ -38,16 +38,18 @@ class BatchOutcomeReviewDialog(QDialog):
         self._on_category_added = on_category_added
         self._results: List[Optional[BankMovement]] = [None] * len(self._expenses)
 
+        self.setMinimumWidth(500)
         layout: QVBoxLayout = setup_standard_rtl_dialog(
             self,
             title="סיווג הוצאות (3 הוצאות עם בטחון נמוך)",
-            margins=(32, 24, 32, 24),
+            margins=(24, 20, 24, 20),
             spacing=12,
         )
 
         info_label = QLabel(
             f"נמצאו {len(self._expenses)} הוצאות עם בטחון נמוך. אנא סווג אותן:", self
         )
+        info_label.setObjectName("Subtitle")
         layout.addWidget(info_label)
 
         scroll = QScrollArea(self)
@@ -66,9 +68,14 @@ class BatchOutcomeReviewDialog(QDialog):
             suggested_type = classified_expense.suggested_type
             confidence = classified_expense.confidence
             expense_container = QWidget()
+            expense_container.setObjectName("ContentPanel")
+            try:
+                expense_container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            except Exception:
+                pass
             expense_layout = QVBoxLayout(expense_container)
             expense_layout.setSpacing(8)
-            expense_layout.setContentsMargins(12, 12, 12, 12)
+            expense_layout.setContentsMargins(14, 12, 14, 12)
 
             header_text = (
                 f"הוצאה {idx + 1}: {movement.description or 'ללא תיאור'} | "
@@ -90,6 +97,7 @@ class BatchOutcomeReviewDialog(QDialog):
                 suggestion_text = "לא נמצאה הצעה מתאימה מה-AI"
 
             suggestion_label = QLabel(suggestion_text, expense_container)
+            suggestion_label.setObjectName("AiSuggestionLabel")
             confidence_row.addWidget(suggestion_label)
 
             confidence_bar = QProgressBar(expense_container)
@@ -101,19 +109,25 @@ class BatchOutcomeReviewDialog(QDialog):
             confidence_bar.setMaximumWidth(200)
 
             if confidence < 0.3:
-                color = "#e74c3c"
+                color = "#ef4444"
+                track = "#fecaca"
             elif confidence < 0.7:
-                color = "#f39c12"
+                color = "#f59e0b"
+                track = "#fde68a"
             else:
-                color = "#27ae60"
+                color = "#22c55e"
+                track = "#bbf7d0"
 
             confidence_bar.setStyleSheet(
                 f"""
                 QProgressBar {{
-                    border: 1px solid
+                    border: 1px solid {track};
                     border-radius: 4px;
                     text-align: center;
-                    font-weight: bold;
+                    background: {track};
+                    color: #0f172a;
+                    font-weight: 600;
+                    font-size: 12px;
                 }}
                 QProgressBar::chunk {{
                     background-color: {color};
@@ -143,14 +157,6 @@ class BatchOutcomeReviewDialog(QDialog):
                     category_combo.setLayoutDirection(Qt.RightToLeft)
                 except Exception:
                     pass
-            try:
-                category_combo.setStyleSheet(
-                    "QComboBox { text-align: right; } "
-                    "QComboBox QAbstractItemView::item { text-align: right; }"
-                )
-            except Exception:
-                pass
-
             if suggested_cat and suggested_cat in self._categories:
                 idx_cat = self._categories.index(suggested_cat)
                 category_combo.setCurrentIndex(idx_cat)
@@ -183,14 +189,6 @@ class BatchOutcomeReviewDialog(QDialog):
                     type_combo.setLayoutDirection(Qt.RightToLeft)
                 except Exception:
                     pass
-            try:
-                type_combo.setStyleSheet(
-                    "QComboBox { text-align: right; } "
-                    "QComboBox QAbstractItemView::item { text-align: right; }"
-                )
-            except Exception:
-                pass
-
             for mt in MovementType:
                 type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
             if suggested_type is not None:

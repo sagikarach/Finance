@@ -44,7 +44,11 @@ class HomePage(BasePage):
         buttons = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
             settings_btn.clicked.connect(lambda: self._navigate("settings"))
@@ -125,7 +129,7 @@ class HomePage(BasePage):
         chart = AccountsPieChart(accounts=overview.accounts, parent=parent_widget)
 
         chart_card = QWidget(parent_widget)
-        chart_card.setObjectName("Sidebar")
+        chart_card.setObjectName("ContentPanel")
         try:
             chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -136,7 +140,7 @@ class HomePage(BasePage):
         chart_card_layout.addWidget(chart, 1)
 
         chart_side_card = QWidget(parent_widget)
-        chart_side_card.setObjectName("Sidebar")
+        chart_side_card.setObjectName("ContentPanel")
         try:
             chart_side_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

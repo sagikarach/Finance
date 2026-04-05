@@ -47,7 +47,7 @@ class NewCategoryDialog(QDialog):
         row.addWidget(self._edit, 1)
 
         self._error_label = QLabel("", self)
-        self._error_label.setStyleSheet("color: #b91c1c;")
+        self._error_label.setObjectName("ErrorLabel")
         self._error_label.setWordWrap(True)
         self._error_label.hide()
 
@@ -254,7 +254,7 @@ class BankMovementDialog(QDialog):
         desc_row.addWidget(self._description_edit, 1)
 
         self._error_label = QLabel("", self)
-        self._error_label.setStyleSheet("color: #b91c1c;")
+        self._error_label.setObjectName("ErrorLabel")
         self._error_label.setWordWrap(True)
         self._error_label.setMinimumHeight(0)
         self._error_label.setMaximumHeight(60)

@@ -53,7 +53,11 @@ class SavingsAccountPage(BasePage):
         buttons: List[QToolButton] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
             settings_btn.clicked.connect(lambda: self._navigate("settings"))
@@ -87,7 +91,7 @@ class SavingsAccountPage(BasePage):
             return
 
         top_card = QWidget(self)
-        top_card.setObjectName("Sidebar")
+        top_card.setObjectName("ContentPanel")
         try:
             top_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -255,7 +259,7 @@ class SavingsAccountPage(BasePage):
         date_row.addWidget(date_edit, 1)
 
         error_label = QLabel("", dlg)
-        error_label.setStyleSheet("color: #b91c1c;")
+        error_label.setObjectName("ErrorLabel")
         error_label.setWordWrap(True)
         error_label.hide()
 
@@ -354,7 +358,7 @@ class SavingsAccountPage(BasePage):
         savings_combo.currentIndexChanged.connect(on_saving_selected)
 
         error_label = QLabel("", dlg)
-        error_label.setStyleSheet("color: #b91c1c;")
+        error_label.setObjectName("ErrorLabel")
         error_label.setWordWrap(True)
         error_label.hide()
 

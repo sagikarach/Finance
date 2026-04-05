@@ -51,7 +51,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         if not charts_available:
             self._root.addWidget(
                 self._placeholder(
-                    "Charts are unavailable on this backend. Install QtCharts."
+                    "גרפים אינם זמינים. נדרשת התקנת QtCharts."
                 ),
                 1,
             )

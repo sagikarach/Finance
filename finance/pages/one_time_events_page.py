@@ -67,7 +67,11 @@ class OneTimeEventsPage(BasePage):
         buttons: List[QToolButton] = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
             settings_btn.clicked.connect(lambda: self._navigate("settings"))
@@ -143,14 +147,22 @@ class OneTimeEventsPage(BasePage):
 
         self._assign_btn = QToolButton(header_card)
         self._assign_btn.setObjectName("IconButton")
-        self._assign_btn.setText("➕")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(self._assign_btn, "plus", size=18, is_dark=self._is_dark_theme())
+        except Exception:
+            self._assign_btn.setText("➕")
         self._assign_btn.setToolTip("שיוך תנועות לאירוע")
         self._assign_btn.clicked.connect(self._open_assign_dialog)
         header_row.addWidget(self._assign_btn)
 
         self._edit_btn = QToolButton(header_card)
         self._edit_btn.setObjectName("IconButton")
-        self._edit_btn.setText("✎")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(self._edit_btn, "edit", size=18, is_dark=self._is_dark_theme())
+        except Exception:
+            self._edit_btn.setText("✎")
         self._edit_btn.setToolTip("עריכת אירוע")
         self._edit_btn.clicked.connect(self._open_edit_selected_event)
         header_row.addWidget(self._edit_btn)
@@ -172,7 +184,7 @@ class OneTimeEventsPage(BasePage):
         charts_row_l.setSpacing(12)
 
         pie_card = QWidget(charts_row)
-        pie_card.setObjectName("Sidebar")
+        pie_card.setObjectName("ContentPanel")
         try:
             pie_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -195,7 +207,7 @@ class OneTimeEventsPage(BasePage):
             pie_card_l.addWidget(self._pie, 1)
 
         line_card = QWidget(charts_row)
-        line_card.setObjectName("Sidebar")
+        line_card.setObjectName("ContentPanel")
         try:
             line_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:

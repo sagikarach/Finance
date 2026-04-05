@@ -79,7 +79,11 @@ class SavingsPage(BasePage):
         buttons = []
         settings_btn = QToolButton(self)
         settings_btn.setObjectName("IconButton")
-        settings_btn.setText("⚙")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            settings_btn.setText("⚙")
         settings_btn.setToolTip("הגדרות")
         if self._navigate is not None:
             settings_btn.clicked.connect(lambda: self._navigate("settings"))
@@ -183,7 +187,7 @@ class SavingsPage(BasePage):
         chart = AccountsPieChart(accounts=savings_accounts, parent=self)
 
         chart_card = QWidget(self)
-        chart_card.setObjectName("Sidebar")
+        chart_card.setObjectName("ContentPanel")
         try:
             chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -194,7 +198,7 @@ class SavingsPage(BasePage):
         chart_card_layout.addWidget(chart, 1)
 
         chart_side_card = QWidget(self)
-        chart_side_card.setObjectName("Sidebar")
+        chart_side_card.setObjectName("ContentPanel")
         try:
             chart_side_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -453,7 +457,7 @@ class SavingsPage(BasePage):
         amount_row.addWidget(amount_edit, 1)
 
         error_label = QLabel("", dlg)
-        error_label.setStyleSheet("color: #b91c1c;")
+        error_label.setObjectName("ErrorLabel")
         error_label.setWordWrap(True)
         error_label.hide()
 

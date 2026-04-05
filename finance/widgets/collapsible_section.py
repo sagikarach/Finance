@@ -46,7 +46,7 @@ class CollapsibleButtonList(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(0)
 
-        self._toggle_btn = QPushButton("▼", self._header)
+        self._toggle_btn = QPushButton("", self._header)
         self._toggle_btn.setObjectName("SidebarNavToggle")
         self._toggle_btn.setFixedWidth(32)
         self._toggle_btn.setCheckable(True)
@@ -56,6 +56,13 @@ class CollapsibleButtonList(QWidget):
             )
         except Exception:
             pass
+        try:
+            from ..utils.icons import make_icon
+            from ..qt import QIcon, QSize
+            self._toggle_btn.setIcon(make_icon("chevron_down", size=14))
+            self._toggle_btn.setIconSize(QSize(14, 14))
+        except Exception:
+            self._toggle_btn.setText("▼")
 
         self._title_btn = _NoAutoToggleButton(title, self._header)
         self._title_btn.setObjectName(header_object_name)
@@ -268,7 +275,15 @@ class CollapsibleButtonList(QWidget):
         self._content.setVisible(show_content)
 
         self._toggle_btn.setChecked(self._expanded)
-        self._toggle_btn.setText("▲" if show_content else "▼")
+        try:
+            from ..utils.icons import make_icon
+            from ..qt import QIcon, QSize
+            icon_name = "chevron_up" if show_content else "chevron_down"
+            self._toggle_btn.setIcon(make_icon(icon_name, size=14))
+            self._toggle_btn.setIconSize(QSize(14, 14))
+            self._toggle_btn.setText("")
+        except Exception:
+            self._toggle_btn.setText("▲" if show_content else "▼")
 
         self._title_btn.setChecked(bool(self._expanded or self._active))
         try:

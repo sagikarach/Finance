@@ -385,8 +385,8 @@ class ActionHistoryTable(QWidget):
             except Exception:
                 is_dark = False
 
-            handle = "#4b5563" if is_dark else "#9fc6f7"
-            handle_hover = "#6b7280" if is_dark else "#9fc6f7"
+            handle = "#1e3a5f" if is_dark else "#93c5fd"
+            handle_hover = "#2d5a8e" if is_dark else "#60a5fa"
 
             qss = """
                 QListWidget#ActionHistoryListWidget { border: none; background: transparent; }
@@ -504,6 +504,33 @@ class ActionHistoryTable(QWidget):
             pass
 
         if not self._history:
+            try:
+                empty_item = QListWidgetItem()
+                empty_item.setFlags(Qt.ItemFlag.NoItemFlags)
+                empty_w = QWidget()
+                empty_l = QVBoxLayout(empty_w)
+                empty_l.setContentsMargins(16, 24, 16, 24)
+                empty_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                icon_lbl = QLabel("📋")
+                icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                icon_lbl.setStyleSheet("font-size: 28px; color: #94a3b8; background: transparent;")
+                msg_lbl = QLabel("אין היסטוריית פעולות עדיין")
+                msg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                msg_lbl.setObjectName("Subtitle")
+                msg_lbl.setStyleSheet("background: transparent;")
+                sub_lbl = QLabel("פעולות כמו הוספת תנועות יופיעו כאן")
+                sub_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                sub_lbl.setStyleSheet("font-size: 12px; color: #94a3b8; background: transparent;")
+                empty_l.addWidget(icon_lbl)
+                empty_l.addSpacing(8)
+                empty_l.addWidget(msg_lbl)
+                empty_l.addSpacing(4)
+                empty_l.addWidget(sub_lbl)
+                empty_item.setSizeHint(empty_w.sizeHint())
+                self._list.addItem(empty_item)
+                self._list.setItemWidget(empty_item, empty_w)
+            except Exception:
+                pass
             return
 
         max_rows = int(self._max_rows or 10)

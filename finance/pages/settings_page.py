@@ -60,7 +60,11 @@ class SettingsPage(BasePage):
         buttons = []
         back_btn = QToolButton(self)
         back_btn.setObjectName("IconButton")
-        back_btn.setText("←")
+        try:
+            from ..utils.icons import apply_icon
+            apply_icon(back_btn, "arrow_left", size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            back_btn.setText("←")
         back_btn.setToolTip("חזרה")
         if self._navigate is not None:
 

@@ -86,7 +86,7 @@ class CategoryPieChart(QWidget):
             self._render_chart()
         else:
             placeholder = QLabel(
-                "Charts are unavailable on this backend. Install QtCharts."
+                "גרפים אינם זמינים. נדרשת התקנת QtCharts."
             )
             placeholder.setObjectName("Subtitle")
             self._layout.addWidget(placeholder)
