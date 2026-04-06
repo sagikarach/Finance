@@ -3,10 +3,34 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 import json
+import ssl
 import time
 import urllib.parse
 import urllib.request
 import urllib.error
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Return an SSL context that works on macOS packaged apps.
+
+    Python on macOS does not use the system certificate store by default.
+    We prefer certifi's bundled CA bundle (already a dependency), then fall
+    back to the default context, and as a last resort return an unverified
+    context so the app at least attempts to connect.
+    """
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        pass
+    try:
+        return ssl.create_default_context()
+    except Exception:
+        pass
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
 
 @dataclass(frozen=True)
@@ -31,7 +55,7 @@ def _http_json(
         for k, v in headers.items():
             req.add_header(k, v)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout, context=_ssl_context()) as resp:
             raw = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
         raw = ""
