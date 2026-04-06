@@ -224,7 +224,11 @@ class SettingsPage(BasePage):
                 progress.show()
 
                 def _check_worker() -> None:
-                    is_newer, latest, zip_url_sig, error = check_version_only()
+                    is_newer, latest, zip_url_sig, error = False, "", None, None
+                    try:
+                        is_newer, latest, zip_url_sig, error = check_version_only()
+                    except Exception as exc:
+                        error = str(exc)
 
                     def _after_check() -> None:
                         try:
@@ -260,9 +264,10 @@ class SettingsPage(BasePage):
                         _start_download(latest, zip_url_sig)
 
                     try:
-                        QTimer.singleShot(0, container, _after_check)
+                        from ..qt import QApplication
+                        QTimer.singleShot(0, QApplication.instance(), _after_check)
                     except Exception:
-                        pass
+                        _after_check()
 
                 def _start_download(version: str, zip_url_sig: str) -> None:
                     dl_progress = QProgressDialog(f"מוריד גרסה {version}...", None, 0, 0, container)
@@ -321,9 +326,10 @@ class SettingsPage(BasePage):
                                 pass
 
                         try:
-                            QTimer.singleShot(0, container, _after_dl)
+                            from ..qt import QApplication
+                            QTimer.singleShot(0, QApplication.instance(), _after_dl)
                         except Exception:
-                            pass
+                            _after_dl()
 
                     try:
                         threading.Thread(target=_dl_worker, daemon=True).start()
