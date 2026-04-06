@@ -128,24 +128,23 @@ def run_pull_sync_with_progress(
                     QMessageBox.warning(
                         parent,
                         "שגיאת סנכרון",
-                        f"הסנכרון נכשל: {err}",
+                        f"החשבון הוחלף, אך הסנכרון נכשל:\n{err}\n\nהנתונים עשויים להיות חלקיים.",
                     )
                 except Exception:
                     pass
-            else:
+            try:
+                _refresh_current_route(parent)
+            except Exception:
+                pass
+            if on_done is not None:
                 try:
-                    _refresh_current_route(parent)
+                    _ctx = parent if parent is not None else progress
+                    QTimer.singleShot(0, _ctx, on_done)
                 except Exception:
-                    pass
-                if on_done is not None:
                     try:
-                        _ctx = parent if parent is not None else progress
-                        QTimer.singleShot(0, _ctx, on_done)
+                        on_done()
                     except Exception:
-                        try:
-                            on_done()
-                        except Exception:
-                            pass
+                        pass
             return
         try:
             QTimer.singleShot(120, _poll)
