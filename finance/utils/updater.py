@@ -89,8 +89,18 @@ def _verify_signature(path: pathlib.Path, signature_b64: str) -> Optional[str]:
 
 
 def _extract_zip(zip_path: pathlib.Path, dest_dir: pathlib.Path) -> pathlib.Path:
+    import subprocess, sys
     dest_dir.mkdir(parents=True, exist_ok=True)
-    shutil.unpack_archive(str(zip_path), str(dest_dir))
+    if sys.platform == "darwin":
+        # Use ditto on macOS — shutil/zipfile corrupts fat binaries and resource forks.
+        result = subprocess.run(
+            ["ditto", "-x", "-k", "--sequesterRsrc", str(zip_path), str(dest_dir)],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"ditto extraction failed: {result.stderr.strip()}")
+    else:
+        shutil.unpack_archive(str(zip_path), str(dest_dir))
     return dest_dir
 
 
