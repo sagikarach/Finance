@@ -19,23 +19,42 @@ PUBLIC_KEY_ENV = "FINANCE_ED25519_PUBKEY"
 DEFAULT_PUBLIC_KEY = PUBLIC_KEY_B64
 
 
+def _http_get(url: str, timeout: int = 12) -> bytes:
+    """
+    Fetch URL bytes. On macOS uses curl (system certs, never hangs in bundles).
+    Falls back to urllib on other platforms.
+    """
+    import sys
+    if sys.platform == "darwin":
+        import subprocess
+        result = subprocess.run(
+            ["curl", "-s", "-f", "-L", "--max-time", str(timeout),
+             "-H", "User-Agent: Finance-App-Updater", url],
+            capture_output=True, timeout=timeout + 3,
+        )
+        if result.returncode != 0:
+            stderr = result.stderr.decode(errors="replace").strip()
+            raise RuntimeError(f"curl error {result.returncode}: {stderr}")
+        return result.stdout
+    # Non-macOS fallback
+    import ssl as _ssl
+    try:
+        import certifi
+        ctx = _ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        ctx = _ssl.create_default_context()
+    req = urllib.request.Request(url, headers={"User-Agent": "Finance-App-Updater"})
+    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+        return resp.read()
+
+
 def _ssl_context() -> ssl.SSLContext:
-    """Return an SSL context that works inside a PyInstaller bundle on macOS."""
+    """Kept for download() which still uses urllib on non-macOS."""
     try:
         import certifi
         return ssl.create_default_context(cafile=certifi.where())
     except Exception:
         pass
-    try:
-        # macOS system keychain fallback
-        ctx = ssl.create_default_context()
-        ctx.load_verify_locations(
-            cafile="/etc/ssl/cert.pem"  # available on macOS
-        )
-        return ctx
-    except Exception:
-        pass
-    # Last resort: unverified (better than crashing — update is still signed)
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
@@ -65,13 +84,11 @@ class _NoReleaseFound(Exception):
 def _github_latest_release(repo: str) -> dict:
     url = f"https://api.github.com/repos/{repo}/releases/latest"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Finance-App-Updater"})
-        with urllib.request.urlopen(req, timeout=15, context=_ssl_context()) as resp:
-            return json.load(resp)
+        data = _http_get(url)
+        return json.loads(data)
     except Exception as exc:
         msg = str(exc)
-        # 404 → repo exists but has no releases (or is private with no auth).
-        if "404" in msg or "Not Found" in msg:
+        if "404" in msg or "Not Found" in msg or "curl error 22" in msg:
             raise _NoReleaseFound("אין גרסאות פורסמו עדיין.") from exc
         raise
 
@@ -85,10 +102,8 @@ def _find_asset(release: dict, name: str) -> Optional[dict]:
 
 def _download(url: str, dest_path: pathlib.Path) -> pathlib.Path:
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    req = urllib.request.Request(url, headers={"User-Agent": "Finance-App-Updater"})
-    with urllib.request.urlopen(req, timeout=60, context=_ssl_context()) as resp, \
-         open(dest_path, "wb") as fh:
-        fh.write(resp.read())
+    data = _http_get(url, timeout=120)
+    dest_path.write_bytes(data)
     return dest_path
 
 
@@ -148,12 +163,7 @@ def check_version_only(repo: Optional[str] = None) -> Tuple[bool, str, Optional[
             is_newer_tag = _is_newer(latest_tag, __version__)
             return is_newer_tag, latest_tag, None, None
 
-        req = urllib.request.Request(
-            appcast_asset["browser_download_url"],
-            headers={"User-Agent": "Finance-App-Updater"},
-        )
-        with urllib.request.urlopen(req, timeout=15, context=_ssl_context()) as resp:
-            appcast = json.load(resp)
+        appcast = json.loads(_http_get(appcast_asset["browser_download_url"]))
 
         latest_version = str(appcast.get("version", latest_tag)).lstrip("v")
         if not _is_newer(latest_version, __version__):
