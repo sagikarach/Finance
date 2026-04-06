@@ -159,7 +159,6 @@ def check_version_only(repo: Optional[str] = None) -> Tuple[bool, str, Optional[
 
         appcast_asset = _find_asset(release, "appcast.json")
         if not appcast_asset:
-            # Fall back to comparing raw tag names when appcast is missing.
             is_newer_tag = _is_newer(latest_tag, __version__)
             return is_newer_tag, latest_tag, None, None
 

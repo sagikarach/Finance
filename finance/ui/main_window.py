@@ -270,7 +270,7 @@ class MainWindow(QMainWindow):
         progress = QProgressDialog("בודק עדכונים...", None, 0, 0, self)
         progress.setWindowTitle("עדכון")
         progress.setMinimumDuration(0)
-        progress.setWindowModality(2)  # WindowModal
+        progress.setWindowModality(Qt.WindowModality.WindowModal)  # WindowModal
         progress.setValue(0)
         progress.show()
 
@@ -356,7 +356,7 @@ class MainWindow(QMainWindow):
         progress = QProgressDialog(f"מוריד גרסה {version}...", None, 0, 0, self)
         progress.setWindowTitle("עדכון")
         progress.setMinimumDuration(0)
-        progress.setWindowModality(2)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setValue(0)
         progress.show()
 

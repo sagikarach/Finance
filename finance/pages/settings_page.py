@@ -219,7 +219,7 @@ class SettingsPage(BasePage):
                 progress = QProgressDialog("בודק עדכונים...", None, 0, 0, container)
                 progress.setWindowTitle("עדכון")
                 progress.setMinimumDuration(0)
-                progress.setWindowModality(2)
+                progress.setWindowModality(Qt.WindowModality.WindowModal)
                 progress.setValue(0)
                 progress.show()
 
@@ -291,7 +291,7 @@ class SettingsPage(BasePage):
                     dl_progress = QProgressDialog(f"מוריד גרסה {version}...", None, 0, 0, container)
                     dl_progress.setWindowTitle("עדכון")
                     dl_progress.setMinimumDuration(0)
-                    dl_progress.setWindowModality(2)
+                    dl_progress.setWindowModality(Qt.WindowModality.WindowModal)
                     dl_progress.setValue(0)
                     dl_progress.show()
 
