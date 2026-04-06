@@ -25,6 +25,7 @@ from ..qt import (
 )
 from ..utils.formatting import format_currency
 from .savings_history_chart import ShadowChartView
+from .time_range_bar import TimeRangeBar
 
 
 @dataclass(frozen=True)
@@ -37,10 +38,15 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._view: Optional[ShadowChartView] = None
+        self._axis_x: Optional[QCategoryAxis] = None
+        self._axis_y: Optional[QValueAxis] = None
+        self._all_values: List[float] = []      # cumulative values for all days
+        self._all_labels: List[str] = []        # date labels for all days
+        self._range_bar: Optional[TimeRangeBar] = None
 
         self._root = QVBoxLayout(self)
         self._root.setContentsMargins(0, 0, 0, 0)
-        self._root.setSpacing(0)
+        self._root.setSpacing(4)
 
     def clear(self) -> None:
         self._clear_layout()
@@ -107,6 +113,10 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         if not values:
             self._root.addWidget(self._placeholder("אין הוצאות להצגה"), 1)
             return
+
+        # Store full data for range filtering
+        self._all_values = list(values)
+        self._all_labels = list(labels)
 
         line_color = QColor("#ef4444")
         try:
@@ -205,6 +215,9 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         except Exception:
             pass
 
+        self._axis_x = axis_x
+        self._axis_y = axis_y
+
         month_keys = [(0, i) for i in range(len(values))]
         tooltip_specs = [(series, "הוצאות מצטברות", values)]
         view = ShadowChartView(
@@ -236,7 +249,51 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
             pass
 
         self._view = view
-        self._root.addWidget(view, 1)
+
+        # TimeRangeBar — shown only when there are enough days to be useful
+        # Here presets represent months (converted to days for filtering)
+        if n > 30:
+            default_months = 12 if n > 365 else 0
+            range_bar = TimeRangeBar(self, default_months=default_months)
+            range_bar.range_changed.connect(self._apply_range)
+            self._range_bar = range_bar
+            self._root.addWidget(range_bar)
+            self._root.addWidget(view, 1)
+            self._apply_range(default_months)
+        else:
+            self._root.addWidget(view, 1)
+
+    def _apply_range(self, months: int) -> None:
+        """Zoom x-axis to the last *months* months worth of days (0 = all)."""
+        if self._axis_x is None or self._axis_y is None:
+            return
+        n = len(self._all_values)
+        if n == 0:
+            return
+
+        # Convert months → days for the daily series
+        days = months * 30 if months > 0 else 0
+        if days == 0 or days >= n:
+            first_idx = 0
+        else:
+            first_idx = max(0, n - days)
+
+        try:
+            self._axis_x.setRange(float(first_idx), float(n - 1))
+        except Exception:
+            pass
+
+        visible = self._all_values[first_idx:]
+        max_val = max(visible) if visible else 0.0
+        top, tick = self._nice_y_axis(max_val)
+        # Y starts at the value at first_idx (cumulative, never decreases)
+        y_min = float(self._all_values[first_idx]) if self._all_values else 0.0
+        y_min = max(0.0, y_min - (top - y_min) * 0.05)  # small padding below
+        try:
+            self._axis_y.setRange(y_min, float(top))
+            self._axis_y.setTickInterval(float(tick))
+        except Exception:
+            pass
 
     @staticmethod
     def _placeholder(text: str) -> QWidget:
@@ -263,6 +320,11 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         except Exception:
             pass
         self._view = None
+        self._axis_x = None
+        self._axis_y = None
+        self._all_values = []
+        self._all_labels = []
+        self._range_bar = None
 
     @staticmethod
     def _nice_y_axis(max_val: float) -> tuple[float, float]:

@@ -119,6 +119,26 @@ def load_buttons_light_styles() -> str:
     QPushButton#DangerButton:pressed {
         background: #fca5a5;
     }
+    QPushButton#RangeBtn {
+        background: transparent;
+        color: #6b7280;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        padding: 2px 10px;
+        font-size: 12px;
+        min-width: 32px;
+        max-height: 24px;
+    }
+    QPushButton#RangeBtn:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+    QPushButton#RangeBtn:checked {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+        font-weight: 600;
+    }
     QLabel#NotificationsBadge {
         background: #ef4444;
         color: white;
@@ -242,6 +262,26 @@ def load_buttons_dark_styles() -> str:
     }
     QPushButton#DangerButton:pressed {
         background: #290d0d;
+    }
+    QPushButton#RangeBtn {
+        background: transparent;
+        color: #9ca3af;
+        border: 1px solid #374151;
+        border-radius: 10px;
+        padding: 2px 10px;
+        font-size: 12px;
+        min-width: 32px;
+        max-height: 24px;
+    }
+    QPushButton#RangeBtn:hover {
+        background: #1f2937;
+        border-color: #4b5563;
+    }
+    QPushButton#RangeBtn:checked {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #2563eb;
+        font-weight: 600;
     }
     QLabel#NotificationsBadge {
         background: #ef4444;

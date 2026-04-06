@@ -1,36 +1,112 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional
 import math
+from typing import Callable, Dict, List, Optional
 
 from ..qt import (
     QApplication,
-    QLabel,
-    QWidget,
-    QVBoxLayout,
+    QColor,
+    QCursor,
     QFrame,
+    QLabel,
+    QLinearGradient,
+    QLineSeries,
+    QPainter,
+    QPainterPath,
+    QPointF,
     Qt,
     QChart,
     QChartView,
-    QLineSeries,
-    QValueAxis,
     QCategoryAxis,
-    QColor,
-    QPainter,
-    QPainterPath,
-    QLinearGradient,
-    QPointF,
+    QValueAxis,
     QToolTip,
-    QCursor,
+    QVBoxLayout,
+    QWidget,
     charts_available,
 )
 from ..models.accounts import MoneySnapshot, SavingsAccount
 from ..models.charts import (
     build_base_values,
-    latest_snapshots_by_month_with_axis,
     catmull_rom_spline_samples,
+    latest_snapshots_by_month_with_axis,
 )
+from .time_range_bar import TimeRangeBar
 
+
+# ─────────────────────────────────────────────────────────────── helpers ──
+
+def _label_color() -> QColor:
+    color = QColor("#0f172a")
+    app = QApplication.instance()
+    if app is not None:
+        try:
+            if str(app.property("theme") or "light") == "dark":
+                color = QColor("#ffffff")
+        except Exception:
+            pass
+    return color
+
+
+def _apply_line_pen(series: QLineSeries, color: QColor) -> None:
+    try:
+        pen = series.pen()
+        pen.setColor(color)
+        try:
+            pen.setWidthF(2.0)
+        except Exception:
+            pass
+        try:
+            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        except Exception:
+            pass
+        series.setPen(pen)
+    except Exception:
+        pass
+
+
+def _build_x_axis(
+    month_keys: List[tuple[int, int]],
+    label_step: int,
+) -> QCategoryAxis:
+    """Build a QCategoryAxis with one label every *label_step* months."""
+    axis = QCategoryAxis()
+    n = len(month_keys)
+    for i, (year, month) in enumerate(month_keys):
+        if i % label_step == 0 or i == n - 1:
+            axis.append(f"{month:02d}/{year % 100:02d}", float(i))
+    try:
+        axis.setGridLineVisible(False)
+        axis.setMinorGridLineVisible(False)
+    except Exception:
+        pass
+    return axis
+
+
+def _build_y_axis(max_val: float, min_val: float = 0.0) -> QValueAxis:
+    axis = QValueAxis()
+    axis.setLabelFormat("%.0f")
+    top = float(math.ceil(abs(max_val) / 1000.0) * 1000.0) or 1000.0
+    bottom = float(-math.ceil(abs(min_val) / 1000.0) * 1000.0) if min_val < 0.0 else 0.0
+    axis.setRange(bottom, top)
+    try:
+        axis.setTickInterval(max(1000.0, (top - bottom) / 5.0))
+    except Exception:
+        pass
+    try:
+        axis.setGridLineVisible(False)
+        axis.setMinorGridLineVisible(False)
+    except Exception:
+        pass
+    return axis
+
+
+def _label_step_for(n_visible: int) -> int:
+    """Return a label step that gives at most ~7 labels."""
+    return max(1, (n_visible + 6) // 7)
+
+
+# ──────────────────────────────────────────────────── ShadowChartView ──
 
 class ShadowChartView(QChartView):
     def __init__(
@@ -48,9 +124,9 @@ class ShadowChartView(QChartView):
         baseline_value: Optional[float] = None,
     ) -> None:
         super().__init__(chart, parent)
-        self._shadows: List[tuple[QLineSeries, QColor]] = shadows
-        self._month_keys: List[tuple[int, int]] = month_keys
-        self._tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = tooltip_specs
+        self._shadows = shadows
+        self._month_keys = month_keys
+        self._tooltip_specs = tooltip_specs
         self._format_amount = format_amount
         self._x_labels: Optional[List[str]] = x_labels
         self._on_series_clicked = on_series_clicked
@@ -125,9 +201,6 @@ class ShadowChartView(QChartView):
             try:
                 path.lineTo(QPointF(last_pos.x(), baseline_y))
                 path.lineTo(QPointF(first_pos.x(), baseline_y))
-            except Exception:
-                pass
-            try:
                 path.closeSubpath()
             except Exception:
                 pass
@@ -136,37 +209,27 @@ class ShadowChartView(QChartView):
             try:
                 if baseline_val is None:
                     raise RuntimeError("no baseline")
-
                 min_y_val = min(float(p.y()) for p in pts)
                 max_y_val = max(float(p.y()) for p in pts)
-
-                # Anchor the fill to the baseline line (not the chart bottom).
-                # If the series crosses the baseline, fall back to a solid fill.
                 crosses = bool(min_y_val < float(baseline_val) < max_y_val)
                 if crosses:
                     gradient = None
                 elif max_y_val <= float(baseline_val):
-                    # Entire series at/below baseline: fade from baseline -> downwards.
+                    # Series at/below baseline: fade from baseline downward
                     y0 = float(baseline_y)
                     y1 = float(max(max_y, baseline_y))
                     gradient = QLinearGradient(QPointF(0.0, y0), QPointF(0.0, y1))
-                    c0 = QColor(base_color)
-                    c1 = QColor(base_color)
-                    c0.setAlpha(180)
-                    c1.setAlpha(0)
-                    gradient.setColorAt(0.0, c0)
-                    gradient.setColorAt(1.0, c1)
+                    c0, c1 = QColor(base_color), QColor(base_color)
+                    c0.setAlpha(180); c1.setAlpha(0)
+                    gradient.setColorAt(0.0, c0); gradient.setColorAt(1.0, c1)
                 else:
-                    # Entire series at/above baseline: fade from baseline -> upwards.
+                    # Series at/above baseline: fade from baseline upward
                     y0 = float(min(min_y, baseline_y))
                     y1 = float(baseline_y)
                     gradient = QLinearGradient(QPointF(0.0, y0), QPointF(0.0, y1))
-                    c0 = QColor(base_color)
-                    c1 = QColor(base_color)
-                    c0.setAlpha(0)
-                    c1.setAlpha(180)
-                    gradient.setColorAt(0.0, c0)
-                    gradient.setColorAt(1.0, c1)
+                    c0, c1 = QColor(base_color), QColor(base_color)
+                    c0.setAlpha(0); c1.setAlpha(180)
+                    gradient.setColorAt(0.0, c0); gradient.setColorAt(1.0, c1)
             except Exception:
                 gradient = None
 
@@ -186,10 +249,7 @@ class ShadowChartView(QChartView):
                         painter.setPen(no_pen)
                     except Exception:
                         pass
-            if gradient is not None:
-                painter.setBrush(gradient)
-            else:
-                painter.setBrush(fill)
+            painter.setBrush(gradient if gradient is not None else fill)
             try:
                 painter.drawPath(path)
             except Exception:
@@ -225,8 +285,6 @@ class ShadowChartView(QChartView):
         except Exception:
             return
 
-        if not self._month_keys:
-            return
         idx = int(round(x_val))
         if idx < 0 or idx >= len(self._month_keys):
             return
@@ -236,14 +294,11 @@ class ShadowChartView(QChartView):
         best_dist2: Optional[float] = None
 
         for series, name, values in self._tooltip_specs:
-            if idx < 0 or idx >= len(values):
+            if idx >= len(values):
                 continue
             amount_val = float(values[idx])
             try:
-                series_pos = chart.mapToPosition(
-                    QPointF(float(idx), amount_val),
-                    series,
-                )
+                series_pos = chart.mapToPosition(QPointF(float(idx), amount_val), series)
             except Exception:
                 continue
             dx = float(series_pos.x() - pos.x())
@@ -262,14 +317,10 @@ class ShadowChartView(QChartView):
             month_label = str(self._x_labels[idx])
         if month_label is None:
             year, month = self._month_keys[idx]
-            if year > 0:
-                month_label = f"{month:02d}/{year % 100:02d}"
-            else:
-                month_label = str(idx)
+            month_label = f"{month:02d}/{year % 100:02d}" if year > 0 else str(idx)
 
-        text = f"{best_name}\n{month_label}: {self._format_amount(best_amount)}"
         try:
-            QToolTip.showText(QCursor.pos(), text, self)
+            QToolTip.showText(QCursor.pos(), f"{best_name}\n{month_label}: {self._format_amount(best_amount)}", self)
         except Exception:
             pass
 
@@ -279,16 +330,14 @@ class ShadowChartView(QChartView):
         except Exception:
             pass
 
-        if self._on_series_clicked is None:
-            return
-        if not self._month_keys or not self._tooltip_specs:
+        if self._on_series_clicked is None or not self._month_keys or not self._tooltip_specs:
             return
 
         chart = None
         try:
             chart = self.chart()
         except Exception:
-            chart = None
+            return
         if chart is None:
             return
 
@@ -309,68 +358,75 @@ class ShadowChartView(QChartView):
                     pts = list(series.pointsVector())
                 except Exception:
                     pts = []
-            if not pts:
-                continue
-
             for pt in pts:
                 try:
-                    series_pos = chart.mapToPosition(pt, series)
+                    sp = chart.mapToPosition(pt, series)
                 except Exception:
                     continue
-                dx = float(series_pos.x() - pos.x())
-                dy = float(series_pos.y() - pos.y())
+                dx = float(sp.x() - pos.x())
+                dy = float(sp.y() - pos.y())
                 dist2 = dx * dx + dy * dy
                 if best_dist2 is None or dist2 < best_dist2:
                     best_dist2 = dist2
                     best_name = name
-                    if best_dist2 <= float(self._click_threshold2) * 0.25:
-                        break
 
         if best_name is None or best_dist2 is None:
             return
         if float(best_dist2) > float(self._click_threshold2):
             return
-
         try:
             self._on_series_clicked(best_name)
         except Exception:
             pass
 
 
-def create_savings_history_chart_card(
-    parent: QWidget,
-    account: SavingsAccount,
-    format_amount: Callable[[float], str],
-) -> QWidget:
-    chart_card = QWidget(parent)
-    chart_card.setObjectName("ContentPanel")
-    try:
-        chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-    except Exception:
-        pass
-    chart_layout = QVBoxLayout(chart_card)
-    chart_layout.setContentsMargins(8, 8, 8, 8)
-    chart_layout.setSpacing(8)
+# ──────────────────────────────────────────── SavingsHistoryChartCard ──
 
-    if charts_available and account.savings:
-        chart = QChart()
-        # Animations are pretty but expensive on large histories; disable for snappy navigation.
+class SavingsHistoryChartCard(QWidget):
+    """
+    Chart card for a SavingsAccount's sub-account history lines.
+
+    Includes a TimeRangeBar (3M / 6M / 1Y / 2Y / הכל).
+    On each range change the series and axes are rebuilt for the visible slice
+    with a smart label density, preventing truncation and fill glitches.
+    """
+
+    def __init__(
+        self,
+        parent: QWidget,
+        account: SavingsAccount,
+        format_amount: Callable[[float], str],
+    ) -> None:
+        super().__init__(parent)
+        self.setObjectName("ContentPanel")
         try:
-            chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+            self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
-            try:
-                chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
-            except Exception:
-                pass
-        chart.legend().setVisible(False)
-        chart.setBackgroundRoundness(0)
-        chart.setBackgroundBrush(Qt.GlobalColor.transparent)
-        chart.setPlotAreaBackgroundVisible(False)
+            pass
 
-        # One pass per saving: build latest-per-month and collect axis keys, without scanning history twice.
+        self._chart: Optional[QChart] = None
+        self._chart_view: Optional[ShadowChartView] = None
+        self._all_month_keys: List[tuple[int, int]] = []
+        # list of (name, full_base_values, color)
+        self._all_series_data: List[tuple[str, List[float], QColor]] = []
+        self._format_amount = format_amount
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
+
+        if not (charts_available and account.savings):
+            placeholder = QLabel("אין נתוני היסטוריה להצגה", self)
+            placeholder.setObjectName("Subtitle")
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(placeholder, 1)
+            return
+
+        # ── pre-compute all data ──────────────────────────────────────────
         axis_seen: set[tuple[int, int]] = set()
         axis_keys: List[tuple[int, int]] = []
         latest_by_saving: Dict[str, Dict[tuple[int, int], MoneySnapshot]] = {}
+
         for s in account.savings:
             try:
                 axis_s, latest = latest_snapshots_by_month_with_axis(s.history)
@@ -381,145 +437,147 @@ def create_savings_history_chart_card(
                         axis_keys.append(k)
             except Exception:
                 latest_by_saving[str(getattr(s, "name", "") or "")] = {}
-                continue
-        axis_keys.sort(key=lambda k: (k[0], k[1]))
+
+        axis_keys.sort()
         if not axis_keys:
             axis_keys = [(0, 1)]
-        axis = type(
-            "MonthAxisTmp",
-            (),
-            {
-                "keys": axis_keys,
-                "month_to_index": {k: i for i, k in enumerate(axis_keys)},
-            },
+
+        axis_obj = type(
+            "_Ax", (),
+            {"keys": axis_keys, "month_to_index": {k: i for i, k in enumerate(axis_keys)}},
         )()
-        month_keys = axis.keys
-        month_to_index = axis.month_to_index
-
-        max_amount = 0.0
-
-        shadow_specs: List[tuple[QLineSeries, QColor]] = []
-        tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = []
+        self._all_month_keys = list(axis_keys)
 
         total_savings = max(1, len(account.savings))
-
         for idx, s in enumerate(account.savings):
+            latest = latest_by_saving.get(str(s.name), {}) or {}
+            base_values, _ = build_base_values(
+                axis=axis_obj, latest_by_month=latest, fallback_amount=s.amount
+            )
+            try:
+                hue = int((360.0 * idx) / float(total_savings))
+                color = QColor.fromHsl(hue, 180, 140)
+            except Exception:
+                color = QColor("#f97316")
+            self._all_series_data.append((str(s.name), list(base_values), color))
+
+        # ── create chart + view (initially empty) ────────────────────────
+        chart = QChart()
+        try:
+            chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
+        except Exception:
+            pass
+        chart.legend().setVisible(False)
+        chart.setBackgroundRoundness(0)
+        chart.setBackgroundBrush(Qt.GlobalColor.transparent)
+        chart.setPlotAreaBackgroundVisible(False)
+        self._chart = chart
+
+        chart_view = ShadowChartView(chart, [], [], [], format_amount, self)
+        chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        chart_view.setFrameShape(QFrame.Shape.NoFrame)
+        chart_view.setStyleSheet("background: transparent;")
+        self._chart_view = chart_view
+
+        # ── range bar ─────────────────────────────────────────────────────
+        n = len(self._all_month_keys)
+        default_months = 12 if n > 12 else 0
+        range_bar = TimeRangeBar(self, default_months=default_months)
+        range_bar.range_changed.connect(self._apply_range)
+        layout.addWidget(range_bar)
+        layout.addWidget(chart_view, 1)
+
+        # populate with the initial range
+        self._apply_range(default_months)
+
+    # ------------------------------------------------------------------ range
+
+    def _apply_range(self, months: int) -> None:
+        if self._chart is None or self._chart_view is None:
+            return
+        n = len(self._all_month_keys)
+        if n == 0:
+            return
+
+        first_idx = max(0, n - months) if 0 < months < n else 0
+        visible_keys = self._all_month_keys[first_idx:]
+        n_vis = len(visible_keys)
+        if n_vis == 0:
+            return
+
+        # ── clear old content ────────────────────────────────────────────
+        try:
+            self._chart.removeAllSeries()
+        except Exception:
+            for s in list(self._chart.series()):
+                try:
+                    self._chart.removeSeries(s)
+                except Exception:
+                    pass
+        for ax in list(self._chart.axes()):
+            try:
+                self._chart.removeAxis(ax)
+            except Exception:
+                pass
+
+        # ── rebuild series ───────────────────────────────────────────────
+        label_step = _label_step_for(n_vis)
+        shadow_specs: List[tuple[QLineSeries, QColor]] = []
+        tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = []
+        max_v = 0.0
+
+        for name, all_vals, color in self._all_series_data:
+            vals = list(all_vals[first_idx:])
+            if not vals:
+                continue
+            seg_max = max(vals)
+            if seg_max > max_v:
+                max_v = seg_max
+
             series = QLineSeries()
-            series.setName(s.name)
+            series.setName(name)
             try:
                 series.setPointsVisible(False)
             except Exception:
                 pass
-
-            latest_by_month = latest_by_saving.get(str(s.name), {}) or {}
-            base_values, series_max = build_base_values(
-                axis=axis,
-                latest_by_month=latest_by_month,
-                fallback_amount=s.amount,
-            )
-            if series_max > max_amount:
-                max_amount = series_max
-
-            samples = catmull_rom_spline_samples(base_values)
-            for x_val, y_val in samples:
+            _apply_line_pen(series, color)
+            for x_val, y_val in catmull_rom_spline_samples(vals):
                 series.append(x_val, y_val)
 
-            try:
-                hue = int((360.0 * idx) / float(total_savings))
-                base_color = QColor.fromHsl(hue, 180, 140)
-            except Exception:
-                base_color = QColor("#f97316")
+            self._chart.addSeries(series)
+            shadow_specs.append((series, color))
+            tooltip_specs.append((series, name, vals))
 
-            try:
-                pen = series.pen()
-                pen.setColor(base_color)
-                try:
-                    pen.setWidthF(2.0)
-                except Exception:
-                    pass
-                try:
-                    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-                    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                except Exception:
-                    pass
-                series.setPen(pen)
-            except Exception:
-                pass
-
-            shadow_specs.append((series, base_color))
-            chart.addSeries(series)
-
-            tooltip_specs.append((series, s.name, list(base_values)))
-
-        axis_x = QCategoryAxis()
-        for key in month_keys:
-            year, month = key
-            label = f"{month:02d}/{year % 100:02d}"
-            axis_x.append(label, float(month_to_index[key]))
+        # ── rebuild axes ─────────────────────────────────────────────────
+        axis_x = _build_x_axis(visible_keys, label_step)
+        axis_y = _build_y_axis(max_v if max_v > 0 else 1000.0)
+        lc = _label_color()
         try:
-            axis_x.setGridLineVisible(False)
-            axis_x.setMinorGridLineVisible(False)
+            axis_x.setLabelsBrush(lc)
+            axis_y.setLabelsBrush(lc)
         except Exception:
             pass
 
-        axis_y = QValueAxis()
-        axis_y.setLabelFormat("%.0f")
-        if max_amount > 0:
-            top = float(math.ceil(max_amount / 1000.0) * 1000.0)
-        else:
-            top = 1000.0
-        axis_y.setRange(0.0, top)
-        try:
-            axis_y.setTickInterval(1000.0)
-        except Exception:
-            pass
-        try:
-            axis_y.setGridLineVisible(False)
-            axis_y.setMinorGridLineVisible(False)
-        except Exception:
-            pass
-
-        label_color = QColor("#0f172a")
-        app = QApplication.instance()
-        if app is not None:
-            try:
-                theme = str(app.property("theme") or "light")
-                if theme == "dark":
-                    label_color = QColor("#ffffff")
-            except Exception:
-                pass
-        try:
-            axis_x.setLabelsBrush(label_color)
-            axis_y.setLabelsBrush(label_color)
-        except Exception:
-            pass
-
-        chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
-        chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
-
-        for s_obj in chart.series():
+        self._chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
+        self._chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
+        for s_obj in self._chart.series():
             try:
                 s_obj.attachAxis(axis_x)
                 s_obj.attachAxis(axis_y)
             except Exception:
                 pass
 
-        chart_view = ShadowChartView(
-            chart,
-            shadow_specs,
-            month_keys,
-            tooltip_specs,
-            format_amount,
-            chart_card,
-        )
-        chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
-        chart_view.setFrameShape(QFrame.Shape.NoFrame)
-        chart_view.setStyleSheet("background: transparent;")
-        chart_layout.addWidget(chart_view, 1)
-    else:
-        placeholder = QLabel("אין נתוני היסטוריה להצגה", chart_card)
-        placeholder.setObjectName("Subtitle")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        chart_layout.addWidget(placeholder, 1)
+        # ── update chart_view internals ──────────────────────────────────
+        self._chart_view._shadows = shadow_specs
+        self._chart_view._tooltip_specs = tooltip_specs
+        self._chart_view._month_keys = list(visible_keys)
+        self._chart_view._x_labels = [f"{m:02d}/{y % 100:02d}" for y, m in visible_keys]
 
-    return chart_card
+
+def create_savings_history_chart_card(
+    parent: QWidget,
+    account: SavingsAccount,
+    format_amount: Callable[[float], str],
+) -> QWidget:
+    """Backward-compatible factory — returns a SavingsHistoryChartCard."""
+    return SavingsHistoryChartCard(parent, account, format_amount)
