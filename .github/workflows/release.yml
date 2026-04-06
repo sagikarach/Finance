@@ -97,7 +97,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
           SIGNATURE: ${{ steps.sign.outputs.signature }}
-          REPO: ${{ github.repository }}
+          REPO: ${{ github.repository }}   # resolves to sagikarach/Finence
         run: |
           python3 - <<'PYEOF'
           import json, os

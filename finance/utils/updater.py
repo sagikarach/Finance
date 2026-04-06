@@ -100,7 +100,7 @@ def check_version_only(repo: Optional[str] = None) -> Tuple[bool, str, Optional[
 
     Returns: (is_update_available, latest_version, zip_url_or_None, error_or_None)
     """
-    repo = repo or os.environ.get("FINANCE_UPDATE_REPO", "sagikarach/Finance")
+    repo = repo or os.environ.get("FINANCE_UPDATE_REPO", "sagikarach/Finence")
     try:
         release = _github_latest_release(repo)
         latest_tag = str(release.get("tag_name", "")).lstrip("v")
