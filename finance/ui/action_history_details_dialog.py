@@ -150,6 +150,10 @@ class ActionHistoryDetailsDialog(QDialog):
                 self._expenses_table = expenses_table
                 expenses_table.setColumnCount(5)
                 expenses_table.setRowCount(len(expenses_data))
+                try:
+                    expenses_table.verticalHeader().setDefaultSectionSize(38)
+                except Exception:
+                    pass
 
                 rtl_direction = None
                 try:

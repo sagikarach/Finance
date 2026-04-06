@@ -18,7 +18,7 @@ from ..qt import (
     Qt,
     QVBoxLayout,
 )
-from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl, unwrap_rtl
+from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button
 
 
 class MonthMovementsDialog(QDialog):
@@ -112,6 +112,7 @@ class MonthMovementsDialog(QDialog):
         t.setHorizontalHeaderLabels(headers)
         try:
             t.verticalHeader().setVisible(False)
+            t.verticalHeader().setDefaultSectionSize(38)
             t.setShowGrid(False)
             t.setAlternatingRowColors(False)
             t.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
@@ -200,7 +201,7 @@ class MonthMovementsDialog(QDialog):
                 pass
             acct_item = QTableWidgetItem(str(m.account_name))
             amount_item = QTableWidgetItem(str(m.amount))
-            desc_item = QTableWidgetItem(wrap_hebrew_rtl(m.description or ""))
+            desc_item = QTableWidgetItem(m.description or "")
 
             for it in (date_item, acct_item, amount_item):
                 try:
@@ -225,7 +226,7 @@ class MonthMovementsDialog(QDialog):
                 cat_combo.setCurrentText(m.category)
 
             type_combo = QComboBox(table)
-            type_combo.addItems([wrap_hebrew_rtl(x) for x in type_options])
+            type_combo.addItems(type_options)
             current_type = m.type.value
             for idx, opt in enumerate(type_options):
                 if opt == current_type:
@@ -238,18 +239,15 @@ class MonthMovementsDialog(QDialog):
             table.setCellWidget(row, 3, cat_combo)
             table.setCellWidget(row, 4, type_combo)
             table.setItem(row, 5, desc_item)
-            delete_btn = QPushButton("מחק", table)
-            delete_btn.setObjectName("DeleteButton")
-            try:
-                delete_btn.clicked.connect(
-                    lambda _=False, mid=str(m.id): self._delete_movement(mid)
-                )
-            except Exception:
-                pass
+            delete_btn = make_table_danger_button("מחק", table)
+            delete_btn.clicked.connect(
+                lambda _=False, mid=str(m.id): self._delete_movement(mid)
+            )
             table.setCellWidget(row, 6, delete_btn)
 
         try:
             table.resizeColumnsToContents()
+            table.resizeRowsToContents()
         except Exception:
             pass
 
@@ -265,7 +263,7 @@ class MonthMovementsDialog(QDialog):
         try:
             item = table.item(row, 5)
             if item is not None:
-                desc = unwrap_rtl(item.text()).strip()
+                desc = item.text().strip()
         except Exception:
             desc = ""
         return cat, desc
@@ -274,7 +272,7 @@ class MonthMovementsDialog(QDialog):
         try:
             w = table.cellWidget(row, 4)
             if isinstance(w, QComboBox):
-                txt = unwrap_rtl(w.currentText()).strip()
+                txt = w.currentText().strip()
                 return MovementType(txt)
         except Exception:
             return None

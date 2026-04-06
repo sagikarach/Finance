@@ -11,6 +11,7 @@ from ..qt import (
     QComboBox,
     QDialog,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QPushButton,
     QTableWidget,
@@ -66,11 +67,25 @@ class SibusExpensesDialog(QDialog):
             ["תאריך", "סכום", "קטגוריה", "סוג", "תיאור", "מחיקה"]
         )
         self._table.verticalHeader().setVisible(False)
+        self._table.verticalHeader().setDefaultSectionSize(38)
         self._table.setEditTriggers(QTableWidget.EditTrigger.AllEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
         try:
             self._table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        except Exception:
+            pass
+        try:
+            hh = self._table.horizontalHeader()
+            hh.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # תאריך
+            hh.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)  # סכום
+            hh.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)             # קטגוריה
+            hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)             # סוג
+            hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)           # תיאור
+            hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)             # מחיקה
+            self._table.setColumnWidth(2, 130)
+            self._table.setColumnWidth(3, 110)
+            self._table.setColumnWidth(5, 80)
         except Exception:
             pass
         layout.addWidget(self._table, 1)
@@ -137,7 +152,7 @@ class SibusExpensesDialog(QDialog):
         for row, m in enumerate(expenses):
             date_item = QTableWidgetItem(str(m.date))
             amount_item = QTableWidgetItem(str(abs(float(m.amount))))
-            desc_item = QTableWidgetItem(wrap_hebrew_rtl(m.description or ""))
+            desc_item = QTableWidgetItem(m.description or "")
 
             # Store movement id for save/delete operations.
             try:
@@ -169,7 +184,7 @@ class SibusExpensesDialog(QDialog):
                 cat_combo.setCurrentText(m.category)
 
             type_combo = QComboBox(self._table)
-            type_combo.addItems([wrap_hebrew_rtl(x) for x in type_options])
+            type_combo.addItems(type_options)
             current_type = str(m.type.value)
             for idx, opt in enumerate(type_options):
                 if opt == current_type:
@@ -189,7 +204,7 @@ class SibusExpensesDialog(QDialog):
             self._table.setCellWidget(row, 5, delete_btn)
 
         try:
-            self._table.resizeColumnsToContents()
+            self._table.resizeRowsToContents()
         except Exception:
             pass
 
@@ -203,7 +218,7 @@ class SibusExpensesDialog(QDialog):
 
         type_widget = self._table.cellWidget(row, 3)
         if isinstance(type_widget, QComboBox):
-            type_str = unwrap_rtl(type_widget.currentText())
+            type_str = type_widget.currentText()
             try:
                 mtype = MovementType(type_str)
             except Exception:
