@@ -122,6 +122,8 @@ def make_table_danger_button(text: str, parent: QWidget) -> QPushButton:
             color: #b91c1c;
             padding: 4px 10px;
             border-radius: 6px;
+            min-width: 56px;
+            max-width: 100px;
         }
         QPushButton:hover {
             background: #fecaca;
@@ -131,6 +133,11 @@ def make_table_danger_button(text: str, parent: QWidget) -> QPushButton:
             background: #fca5a5;
         }
     """)
+    try:
+        from ..qt import QSizePolicy  # type: ignore[attr-defined]
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    except Exception:
+        pass
     return btn
 
 

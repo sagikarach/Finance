@@ -81,10 +81,9 @@ class AccountMovementsDialog(QDialog):
             hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)             # קטגוריה
             hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)             # סוג
             hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)           # תיאור
-            hh.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)             # מחיקה
+            hh.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)  # מחיקה
             self._table.setColumnWidth(3, 130)
             self._table.setColumnWidth(4, 110)
-            self._table.setColumnWidth(6, 80)
         except Exception:
             pass
         try:

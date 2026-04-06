@@ -82,10 +82,9 @@ class SibusExpensesDialog(QDialog):
             hh.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)             # קטגוריה
             hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)             # סוג
             hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)           # תיאור
-            hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)             # מחיקה
+            hh.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # מחיקה
             self._table.setColumnWidth(2, 130)
             self._table.setColumnWidth(3, 110)
-            self._table.setColumnWidth(5, 80)
         except Exception:
             pass
         layout.addWidget(self._table, 1)
