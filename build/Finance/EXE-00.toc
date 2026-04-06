@@ -57,7 +57,7 @@
  [],
  False,
  False,
- 1775384421,
+ 1775462934,
  [('runw',
    '/Users/sagikarach/private/Finance/.venv/lib/python3.12/site-packages/PyInstaller/bootloader/Darwin-64bit/runw',
    'EXECUTABLE')],
