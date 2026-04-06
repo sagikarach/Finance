@@ -18,7 +18,7 @@ from ..qt import (
     Qt,
     QVBoxLayout,
 )
-from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button
+from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button, FullCellDelegate
 
 
 class MonthMovementsDialog(QDialog):
@@ -136,9 +136,11 @@ class MonthMovementsDialog(QDialog):
                 header.setSectionResizeMode(3, rtc)  # category
                 header.setSectionResizeMode(4, rtc)  # type
                 header.setSectionResizeMode(5, stretch)  # description
-                header.setSectionResizeMode(6, rtc)  # delete button
+                header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # מחק
+                t.setColumnWidth(6, 80)
         except Exception:
             pass
+        t.setItemDelegateForColumn(6, FullCellDelegate(t))
         return t
 
     def _list_categories(self, is_income: bool) -> List[str]:

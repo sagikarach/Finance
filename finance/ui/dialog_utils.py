@@ -1,6 +1,65 @@
 from __future__ import annotations
 
-from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt, QComboBox, QWidget
+from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt, QComboBox, QWidget, QStyledItemDelegate
+
+try:
+    from PySide6.QtWidgets import QCalendarWidget as _BaseCalendar
+    from PySide6.QtCore import QDate
+    from PySide6.QtGui import QColor, QPainter
+
+    class _LTRCalendarWidget(_BaseCalendar):
+        """
+        QCalendarWidget replacement that draws all cell text with explicit
+        colors, bypassing Qt's palette / RTL-direction rendering that makes
+        double-digit day numbers invisible inside RTL parent dialogs.
+        """
+
+        def paintCell(self, painter: QPainter, rect, date: QDate) -> None:  # type: ignore[override]
+            try:
+                align = Qt.AlignmentFlag.AlignCenter
+            except AttributeError:
+                align = Qt.AlignCenter  # type: ignore[attr-defined]
+
+            today = QDate.currentDate()
+            selected = self.selectedDate()
+            is_current = (date.month() == self.monthShown()
+                          and date.year() == self.yearShown())
+            is_weekend = date.dayOfWeek() >= 6  # Saturday=6, Sunday=7
+
+            if date == selected:
+                bg = QColor("#2563eb")
+                fg = QColor("#ffffff")
+            elif date == today:
+                bg = QColor("#bfdbfe")
+                fg = QColor("#1d4ed8")
+            elif not is_current:
+                bg = QColor("#e5f0ff")
+                fg = QColor("#94a3b8")
+            elif is_weekend:
+                bg = QColor("#e5f0ff")
+                fg = QColor("#ef4444")
+            else:
+                bg = QColor("#e5f0ff")
+                fg = QColor("#0f172a")
+
+            painter.save()
+            painter.fillRect(rect, bg)
+            painter.setPen(fg)
+            font = painter.font()
+            font.setPointSize(11)
+            painter.setFont(font)
+            painter.drawText(rect, align, str(date.day()))
+            painter.restore()
+
+except Exception:
+    _LTRCalendarWidget = None  # type: ignore[assignment,misc]
+
+
+class FullCellDelegate(QStyledItemDelegate):
+    def updateEditorGeometry(self, editor, option, index):  # type: ignore[override]
+        r = option.rect
+        editor.setFixedWidth(r.width())
+        editor.setGeometry(r)
 
 
 def setup_standard_rtl_dialog(
@@ -78,25 +137,46 @@ def create_standard_buttons_row(
 
 
 def setup_calendar_popup(date_edit: "QWidget") -> None:
-    """
-    Call after setCalendarPopup(True).
+    try:
+        ltr = Qt.LayoutDirection.LeftToRight
+    except AttributeError:
+        ltr = Qt.LeftToRight  # type: ignore[attr-defined]
 
-    QCalendarWidget inherits the parent's layout direction. On RTL dialogs
-    this flips the day-header row to the bottom of the grid and hides weeks.
-    Force it back to LTR so the grid renders correctly.
-    Also sets a sensible minimum size so all weeks are visible.
-    """
+    try:
+        from PySide6.QtWidgets import QWidget as _QWidget
+    except Exception:
+        _QWidget = QWidget  # type: ignore[assignment]
+
+    if _LTRCalendarWidget is not None:
+        try:
+            custom_cal = _LTRCalendarWidget()
+            custom_cal.setLayoutDirection(ltr)
+            date_edit.setCalendarWidget(custom_cal)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+    try:
+        date_edit.setLayoutDirection(ltr)
+        for child in date_edit.findChildren(_QWidget):
+            try:
+                child.setLayoutDirection(ltr)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     try:
         cal = date_edit.calendarWidget()  # type: ignore[attr-defined]
         if cal is None:
             return
         try:
-            cal.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+            from PySide6.QtWidgets import QCalendarWidget as _QCal
+            cal.setVerticalHeaderFormat(_QCal.VerticalHeaderFormat.NoVerticalHeader)
         except Exception:
             try:
-                cal.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+                cal.setVerticalHeaderFormat(0)  # 0 = NoVerticalHeader
             except Exception:
                 pass
+
         try:
             cal.setMinimumSize(280, 220)
         except Exception:
@@ -107,37 +187,33 @@ def setup_calendar_popup(date_edit: "QWidget") -> None:
 
 def make_table_danger_button(text: str, parent: QWidget) -> QPushButton:
     """
-    Create a red 'delete' button safe to use as a QTableWidget cell widget.
+    Create a red delete button for use as a QTableWidget cell widget.
 
-    Global objectName-based QSS is not reliably applied to cell widgets on
-    macOS, so we inject the style directly on the button instance.
+    Pair with ``FullCellDelegate`` on the column so that Qt's
+    ``updateEditorGeometry`` passes the full cell rect (not the padded text
+    rect).  Do NOT call ``setFixedWidth`` here — the delegate already gives
+    the button exactly the column width and any hard size constraint would
+    cause the button to overflow the cell by 1 px.
     """
     btn = QPushButton(text, parent)
     btn.setObjectName("DangerButton")
     btn.setStyleSheet("""
-        QPushButton {
+        QPushButton#DangerButton {
             background: #fee2e2;
             border: 1px solid #fca5a5;
             font-weight: 700;
             color: #b91c1c;
-            padding: 4px 10px;
+            padding: 4px 8px;
             border-radius: 6px;
-            min-width: 56px;
-            max-width: 100px;
         }
-        QPushButton:hover {
+        QPushButton#DangerButton:hover {
             background: #fecaca;
             border: 1px solid #f87171;
         }
-        QPushButton:pressed {
+        QPushButton#DangerButton:pressed {
             background: #fca5a5;
         }
     """)
-    try:
-        from ..qt import QSizePolicy  # type: ignore[attr-defined]
-        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-    except Exception:
-        pass
     return btn
 
 

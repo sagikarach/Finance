@@ -20,7 +20,7 @@ from ..qt import (
     QVBoxLayout,
     QWidget,
 )
-from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl, unwrap_rtl, make_table_danger_button
+from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl, unwrap_rtl, make_table_danger_button, FullCellDelegate
 
 
 class AccountMovementsDialog(QDialog):
@@ -81,11 +81,14 @@ class AccountMovementsDialog(QDialog):
             hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)             # קטגוריה
             hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)             # סוג
             hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)           # תיאור
-            hh.setSectionResizeMode(6, QHeaderView.ResizeMode.ResizeToContents)  # מחיקה
+            hh.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)             # מחק
+            hh.setStretchLastSection(False)
             self._table.setColumnWidth(3, 130)
             self._table.setColumnWidth(4, 110)
+            self._table.setColumnWidth(6, 80)
         except Exception:
             pass
+        self._table.setItemDelegateForColumn(6, FullCellDelegate(self._table))
         try:
             self._table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         except Exception:

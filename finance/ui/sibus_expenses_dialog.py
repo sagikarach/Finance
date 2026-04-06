@@ -20,7 +20,7 @@ from ..qt import (
     QVBoxLayout,
     QWidget,
 )
-from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl, unwrap_rtl, make_table_danger_button
+from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl, unwrap_rtl, make_table_danger_button, FullCellDelegate
 
 
 class SibusExpensesDialog(QDialog):
@@ -82,11 +82,14 @@ class SibusExpensesDialog(QDialog):
             hh.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)             # קטגוריה
             hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)             # סוג
             hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)           # תיאור
-            hh.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)  # מחיקה
+            hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)             # מחק
+            hh.setStretchLastSection(False)
             self._table.setColumnWidth(2, 130)
             self._table.setColumnWidth(3, 110)
+            self._table.setColumnWidth(5, 80)
         except Exception:
             pass
+        self._table.setItemDelegateForColumn(5, FullCellDelegate(self._table))
         layout.addWidget(self._table, 1)
 
         buttons = QHBoxLayout()
