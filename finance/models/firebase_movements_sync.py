@@ -173,6 +173,11 @@ class FirebaseMovementsSyncService:
 
         return pulled, remote_ids, remote_by_id, local_by_id
 
+    # Workspace-cache TTL: skip expensive full collection scans on background
+    # pull-only syncs if a successful pull was done within this window.
+    # Manual push+pull syncs always refresh regardless of TTL.
+    _CACHE_TTL_MS: int = 15 * 60 * 1000  # 15 minutes
+
     def _pull_workspace_caches(
         self,
         *,
@@ -181,9 +186,21 @@ class FirebaseMovementsSyncService:
         uid: str,
         id_token: str,
         allow_push: bool,
+        state=None,
     ) -> None:
         if not wid:
             return
+
+        # On background pull-only syncs, skip if caches were refreshed recently.
+        if not bool(allow_push) and state is not None:
+            try:
+                last_ms = int(getattr(state, "last_workspace_cache_pull_at_ms", 0) or 0)
+                now_ms = int(time.time() * 1000)
+                if last_ms > 0 and (now_ms - last_ms) < self._CACHE_TTL_MS:
+                    return
+            except Exception:
+                pass
+
         # Run sequentially for stability (avoid native crashes seen under heavy concurrent pulls).
         pull_ml_seed_best_effort(workspace_id=wid, ensure_in_firebase=bool(allow_push))
         pull_events_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
@@ -210,6 +227,13 @@ class FirebaseMovementsSyncService:
             id_token=id_token,
             history_provider=self._history_provider,
         )
+
+        # Record successful pull time so the TTL check above works next time.
+        if state is not None:
+            try:
+                state.last_workspace_cache_pull_at_ms = int(time.time() * 1000)
+            except Exception:
+                pass
 
     def _apply_balances_once(
         self,
@@ -304,6 +328,7 @@ class FirebaseMovementsSyncService:
                 uid=uid,
                 id_token=session.id_token,
                 allow_push=bool(allow_push),
+                state=state,
             )
             t_cache = float(time.perf_counter() - t_cache0)
 

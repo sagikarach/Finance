@@ -35,7 +35,7 @@ def pull_remote_movements(
             updated_after_ms = int(updated_after_ms or 0)
         except Exception:
             updated_after_ms = 0
-        docs = []
+        docs = None
         if updated_after_ms > 0:
             try:
                 docs = fs.query_workspace_movements_updated_after_ms(
@@ -45,7 +45,7 @@ def pull_remote_movements(
                     limit=1000,
                 )
             except Exception:
-                docs = []
+                docs = None
         elif updated_after:
             try:
                 docs = fs.query_workspace_movements_updated_after(
@@ -54,8 +54,8 @@ def pull_remote_movements(
                     updated_after=updated_after,
                 )
             except Exception:
-                docs = []
-        if not docs:
+                docs = None
+        if docs is None:
             docs = fs.list_workspace_movements(
                 workspace_id=workspace_id, id_token=id_token
             )

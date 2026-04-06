@@ -24,6 +24,7 @@ class SyncState:
     pending_delete_installment_plan_ids: List[str]
     last_remote_updated_at: str
     last_remote_updated_at_ms: int
+    last_workspace_cache_pull_at_ms: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -37,6 +38,9 @@ class SyncState:
             ),
             "last_remote_updated_at": str(self.last_remote_updated_at or ""),
             "last_remote_updated_at_ms": int(self.last_remote_updated_at_ms or 0),
+            "last_workspace_cache_pull_at_ms": int(
+                self.last_workspace_cache_pull_at_ms or 0
+            ),
         }
 
     @staticmethod
@@ -51,6 +55,7 @@ class SyncState:
                 pending_delete_installment_plan_ids=[],
                 last_remote_updated_at="",
                 last_remote_updated_at_ms=0,
+                last_workspace_cache_pull_at_ms=0,
             )
         raw = d.get("remote_ids", [])
         if not isinstance(raw, list):
@@ -87,6 +92,12 @@ class SyncState:
             last_remote_updated_at_ms = int(d.get("last_remote_updated_at_ms", 0) or 0)
         except Exception:
             last_remote_updated_at_ms = 0
+        try:
+            last_workspace_cache_pull_at_ms = int(
+                d.get("last_workspace_cache_pull_at_ms", 0) or 0
+            )
+        except Exception:
+            last_workspace_cache_pull_at_ms = 0
         return SyncState(
             remote_ids=ids,
             applied_balance_ids=applied,
@@ -96,6 +107,7 @@ class SyncState:
             pending_delete_installment_plan_ids=del_pl,
             last_remote_updated_at=last_remote_updated_at,
             last_remote_updated_at_ms=last_remote_updated_at_ms,
+            last_workspace_cache_pull_at_ms=last_workspace_cache_pull_at_ms,
         )
 
 
