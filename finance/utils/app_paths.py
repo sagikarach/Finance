@@ -87,8 +87,43 @@ def avatars_data_dir() -> Path:
     return p
 
 
-def user_profile_path() -> Path:
-    return app_data_dir() / "user_profile.json"
+def user_profile_path(uid: Optional[str] = None) -> Path:
+    """
+    Return the user-profile JSON path for *uid*.
+
+    If *uid* is not given it is auto-detected from the current Firebase session.
+    Falls back to the legacy shared ``user_profile.json`` when no uid is known
+    (e.g. the user has never logged in).
+
+    On first use with a uid, the legacy file is migrated automatically so
+    existing profile data is not lost.
+    """
+    base = app_data_dir() / "user_profile.json"
+
+    # Resolve uid if not supplied.
+    if uid is None:
+        try:
+            from ..models.firebase_session import FirebaseSessionStore
+            sess = FirebaseSessionStore().load()
+            candidate = (sess.workspace_id or sess.uid or "").strip()
+            uid = candidate if candidate else None
+        except Exception:
+            uid = None
+
+    if not uid:
+        return base
+
+    suffixed = app_data_dir() / f"user_profile_{uid}.json"
+
+    # One-time migration: copy legacy file so the user doesn't lose their data.
+    if not suffixed.exists() and base.exists():
+        try:
+            import shutil as _shutil
+            _shutil.copy2(base, suffixed)
+        except Exception:
+            pass
+
+    return suffixed
 
 
 def legacy_accounts_dirs() -> Iterable[Path]:
