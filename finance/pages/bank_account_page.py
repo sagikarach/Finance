@@ -489,7 +489,16 @@ class BankAccountPage(BasePage):
                                     service.classifier.learn(confirmed_expense)
                                 except Exception:
                                     pass
-                        except Exception:
+                        except Exception as _apply_err:
+                            try:
+                                from ..qt import QMessageBox
+                                QMessageBox.warning(
+                                    self,
+                                    "לא ניתן להוסיף הוצאה",
+                                    str(_apply_err),
+                                )
+                            except Exception:
+                                pass
                             continue
 
         try:

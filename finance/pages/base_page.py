@@ -729,7 +729,12 @@ class BasePage(QWidget):
                     pass
             except Exception as e:
                 try:
-                    QToolTip.showText(QCursor.pos(), str(e))
+                    from ..qt import QMessageBox
+                    QMessageBox.warning(
+                        None,
+                        "לא ניתן להוסיף הוצאה",
+                        str(e),
+                    )
                 except Exception:
                     pass
                 return
