@@ -29,7 +29,7 @@ from .settings_sections import (
     UserDetailsCard,
 )
 from ..utils.defaults import load_defaults
-from ..utils.updater import check_for_updates_mac
+from ..utils.updater import check_version_only, download_and_install_update, install_app_to_applications
 
 
 class SettingsPage(BasePage):
@@ -210,70 +210,130 @@ class SettingsPage(BasePage):
             def _do_check() -> None:
                 if sys.platform != "darwin":
                     QMessageBox.information(
-                        container,
-                        "עדכונים",
+                        container, "עדכונים",
                         "בדיקת עדכונים נתמכת רק ב-macOS.",
                     )
                     return
 
-                def _worker() -> None:
-                    is_newer = False
-                    latest = ""
-                    extracted_dir = None
-                    error = None
-                    try:
-                        is_newer, latest, extracted_dir, error = check_for_updates_mac()
-                    except Exception as exc:  # noqa: BLE001
-                        error = f"{exc}"
+                from ..qt import QProgressDialog  # type: ignore[attr-defined]
+                progress = QProgressDialog("בודק עדכונים...", None, 0, 0, container)
+                progress.setWindowTitle("עדכון")
+                progress.setMinimumDuration(0)
+                progress.setWindowModality(2)
+                progress.setValue(0)
+                progress.show()
 
-                    def _notify() -> None:
+                def _check_worker() -> None:
+                    is_newer, latest, zip_url_sig, error = check_version_only()
+
+                    def _after_check() -> None:
+                        try:
+                            progress.close()
+                        except Exception:
+                            pass
                         if error:
-                            try:
-                                print(f"[updater] error: {error}", flush=True)
-                            except Exception:
-                                pass
-                            QMessageBox.information(
-                                container,
-                                "עדכונים",
-                                f"בדיקת העדכונים נכשלה: {error}",
-                            )
+                            QMessageBox.warning(container, "עדכון", f"בדיקת עדכון נכשלה:\n{error}")
                             return
+                        from ..__version__ import __version__
                         if not is_newer:
                             QMessageBox.information(
-                                container,
-                                "עדכונים",
-                                "אתה כבר על הגרסה העדכנית.",
+                                container, "עדכון",
+                                f"הגרסה הנוכחית ({__version__}) היא העדכנית ביותר." if latest
+                                else "לא נמצאה גרסה חדשה יותר.",
                             )
                             return
-
-                        app_path = None
-                        if extracted_dir:
-                            candidate = pathlib.Path(extracted_dir) / "Finance.app"
-                            if candidate.exists():
-                                app_path = candidate
-
-                        details = [f"גרסה חדשה זמינה: {latest}"]
-                        if app_path:
-                            details.append(f"נמצא: {app_path}")
-                            details.append("החלף את Finance.app הקיים ואז הפעל מחדש.")
-                        else:
-                            details.append(f"הקבצים הופקו אל: {extracted_dir or 'לא ידוע'}")
-
-                        QMessageBox.information(
-                            container,
-                            "עדכון זמין",
-                            "\n".join(details),
+                        answer = QMessageBox.question(
+                            container, "עדכון זמין",
+                            f"גרסה חדשה {latest} זמינה (הגרסה שלך: {__version__}).\n\n"
+                            "האם להוריד ולהתקין עכשיו?",
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                         )
+                        if answer != QMessageBox.StandardButton.Yes:
+                            return
+                        if not zip_url_sig:
+                            QMessageBox.warning(
+                                container, "עדכון",
+                                f"גרסה {latest} זמינה אך לא ניתן להוריד אוטומטית.\n"
+                                "יש להוריד ידנית מ-GitHub.",
+                            )
+                            return
+                        _start_download(latest, zip_url_sig)
 
                     try:
-                        QTimer.singleShot(0, container, _notify)
+                        QTimer.singleShot(0, container, _after_check)
                     except Exception:
                         pass
 
+                def _start_download(version: str, zip_url_sig: str) -> None:
+                    dl_progress = QProgressDialog(f"מוריד גרסה {version}...", None, 0, 0, container)
+                    dl_progress.setWindowTitle("עדכון")
+                    dl_progress.setMinimumDuration(0)
+                    dl_progress.setWindowModality(2)
+                    dl_progress.setValue(0)
+                    dl_progress.show()
+
+                    def _dl_worker() -> None:
+                        app_path, dl_err = download_and_install_update(zip_url_sig)
+
+                        def _after_dl() -> None:
+                            try:
+                                dl_progress.close()
+                            except Exception:
+                                pass
+                            if dl_err or app_path is None:
+                                QMessageBox.warning(
+                                    container, "עדכון",
+                                    f"הורדת העדכון נכשלה:\n{dl_err or 'Finance.app לא נמצא'}",
+                                )
+                                return
+                            answer = QMessageBox.question(
+                                container, "התקנת עדכון",
+                                f"גרסה {version} הורדה בהצלחה.\n\n"
+                                "להתקין ל-/Applications/Finance.app ולהפעיל מחדש?",
+                                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                            )
+                            if answer != QMessageBox.StandardButton.Yes:
+                                QMessageBox.information(
+                                    container, "עדכון",
+                                    f"הקובץ נמצא ב:\n{app_path}\n\nגרור ל-/Applications/ ידנית.",
+                                )
+                                return
+                            inst_err = install_app_to_applications(app_path)
+                            if inst_err:
+                                QMessageBox.warning(
+                                    container, "עדכון",
+                                    f"ההתקנה נכשלה:\n{inst_err}\n\nהעתק ידנית מ:\n{app_path}",
+                                )
+                                return
+                            QMessageBox.information(
+                                container, "עדכון הותקן",
+                                f"גרסה {version} הותקנה.\nיש להפעיל מחדש את האפליקציה.",
+                            )
+                            try:
+                                import subprocess
+                                subprocess.Popen(["open", "-n", "/Applications/Finance.app"])
+                            except Exception:
+                                pass
+                            try:
+                                from ..qt import QApplication
+                                QApplication.quit()
+                            except Exception:
+                                pass
+
+                        try:
+                            QTimer.singleShot(0, container, _after_dl)
+                        except Exception:
+                            pass
+
+                    try:
+                        threading.Thread(target=_dl_worker, daemon=True).start()
+                    except Exception:
+                        _dl_worker()
+
                 try:
-                    threading.Thread(target=_worker, daemon=True).start()
+                    threading.Thread(target=_check_worker, daemon=True).start()
                 except Exception:
-                    _worker()
+                    _check_worker()
 
             update_btn.clicked.connect(_do_check)
 
