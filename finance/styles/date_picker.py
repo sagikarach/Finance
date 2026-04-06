@@ -71,6 +71,16 @@ def load_date_picker_light_styles() -> str:
         gridline-color: #bfdbfe;
         font-size: 13px;
     }
+    /* Day-of-week header — must stay LTR or it renders at the bottom */
+    QCalendarWidget QHeaderView::section {
+        background: #dbeafe;
+        color: #1e40af;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 4px;
+        border: none;
+        border-bottom: 1px solid #93c5fd;
+    }
     """
 
 
@@ -140,5 +150,14 @@ def load_date_picker_dark_styles() -> str:
         outline: none;
         gridline-color: #1f2937;
         font-size: 13px;
+    }
+    QCalendarWidget QHeaderView::section {
+        background: #1f2937;
+        color: #60a5fa;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 4px;
+        border: none;
+        border-bottom: 1px solid #374151;
     }
     """

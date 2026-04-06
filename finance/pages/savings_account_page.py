@@ -225,16 +225,14 @@ class SavingsAccountPage(BasePage):
             date_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
             date_edit.setDate(QDate.currentDate())
             try:
-                try:
-                    heb = QLocale(QLocale.Language.Hebrew, QLocale.Country.Israel)
-                except Exception:
-                    heb = QLocale(QLocale.Hebrew, QLocale.Israel)
-                date_edit.setLocale(heb)
-                date_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 cal = date_edit.calendarWidget()
                 if cal is not None:
-                    cal.setLocale(heb)
-                    cal.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                    # QCalendarWidget must stay LTR — setting RTL flips the
+                    # day-header row to the bottom of the grid.
+                    try:
+                        cal.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+                    except Exception:
+                        pass
             except Exception:
                 pass
         except Exception:
