@@ -22,7 +22,7 @@ from .router import Router
 from ..utils.app_paths import migrate_legacy_accounts_data
 from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_movements_sync import FirebaseMovementsSyncService
-from ..utils.updater import check_for_updates_mac
+from ..utils.updater import check_version_only, download_and_install_update, install_app_to_applications
 
 
 class MainWindow(QMainWindow):
@@ -73,13 +73,26 @@ class MainWindow(QMainWindow):
         except Exception:
             return
 
+        # Mark syncing globally so any active BasePage shows the hourglass icon.
+        try:
+            from ..pages.base_page import BasePage
+            BasePage._GLOBAL_SYNCING = True
+            self._startup_sync_update_current_page_btn(syncing=True)
+        except Exception:
+            pass
+
         def _worker() -> None:
             try:
                 FirebaseMovementsSyncService().sync_now(allow_push=False)
             except Exception:
-                return
+                pass
 
             def _ui_refresh() -> None:
+                try:
+                    from ..pages.base_page import BasePage
+                    BasePage._GLOBAL_SYNCING = False
+                except Exception:
+                    pass
                 try:
                     if isinstance(self._app_context, dict):
                         self._app_context["_balances_dirty"] = "1"
@@ -94,11 +107,37 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(0, self, _ui_refresh)
 
         try:
-            import threading
-
             threading.Thread(target=_worker, daemon=True).start()
         except Exception:
             _worker()
+
+    def _startup_sync_update_current_page_btn(self, *, syncing: bool) -> None:
+        """Update the sync button on the currently visible page."""
+        try:
+            page = self._stack.currentWidget()
+            if page is None:
+                return
+            from ..pages.base_page import BasePage
+            if not isinstance(page, BasePage):
+                return
+            if syncing:
+                try:
+                    page._sync_in_progress = True
+                    page._update_sync_icon()
+                    if page._sync_btn is not None:
+                        page._sync_btn.setEnabled(False)
+                        page._sync_btn.setToolTip("מסנכרן...")
+                except Exception:
+                    pass
+            else:
+                try:
+                    page._sync_in_progress = False
+                    page._update_sync_icon()
+                    page._refresh_sync_button_state()
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     def _register_pages(self) -> None:
         self.router.register(
@@ -224,62 +263,138 @@ class MainWindow(QMainWindow):
         if sys.platform != "darwin":
             return
 
-        def _worker() -> None:
-            is_newer, latest, extracted_dir, error = check_for_updates_mac()
-            def _notify() -> None:
+        from ..qt import QMessageBox, QProgressDialog  # type: ignore[attr-defined]
+
+        # Show "checking…" dialog while querying GitHub (non-blocking via thread).
+        progress = QProgressDialog("בודק עדכונים...", None, 0, 0, self)
+        progress.setWindowTitle("עדכון")
+        progress.setMinimumDuration(0)
+        progress.setWindowModality(2)  # WindowModal
+        progress.setValue(0)
+        progress.show()
+
+        def _check_worker() -> None:
+            is_newer, latest, zip_url_sig, error = check_version_only()
+
+            def _after_check() -> None:
                 try:
-                    from ..qt import QMessageBox
+                    progress.close()
                 except Exception:
-                    return
+                    pass
 
                 if error:
-                    QMessageBox.information(
-                        self,
-                        "Update",
-                        f"Update check failed: {error}",
-                    )
+                    from ..qt import QMessageBox
+                    QMessageBox.warning(self, "עדכון", f"בדיקת עדכון נכשלה:\n{error}")
                     return
 
+                from ..__version__ import __version__
+                from ..qt import QMessageBox
                 if not is_newer:
                     QMessageBox.information(
                         self,
-                        "Update",
-                        "You already have the latest version."
-                        if latest
-                        else "No newer version found.",
+                        "עדכון",
+                        f"הגרסה הנוכחית ({__version__}) היא העדכנית ביותר." if latest
+                        else "לא נמצאה גרסה חדשה יותר.",
                     )
                     return
 
-                app_path = None
-                if extracted_dir:
-                    # Try to find Finance.app inside the extracted folder.
-                    candidate = pathlib.Path(extracted_dir) / "Finance.app"
-                    if candidate.exists():
-                        app_path = candidate
-
-                details = [
-                    "A new version is available.",
-                    f"Latest: {latest}",
-                ]
-                if app_path:
-                    details.append(f"Extracted: {app_path}")
-                    details.append(
-                        "Replace your existing Finance.app with this one, then restart."
-                    )
-                else:
-                    details.append(
-                        f"Files extracted to: {extracted_dir or 'unknown'}"
-                    )
-
-                QMessageBox.information(
+                # Newer version found — ask user before downloading.
+                answer = QMessageBox.question(
                     self,
-                    "Update available",
-                    "\n".join(details),
+                    "עדכון זמין",
+                    f"גרסה חדשה {latest} זמינה (הגרסה שלך: {__version__}).\n\n"
+                    "האם להוריד ולהתקין עכשיו?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
+                if answer != QMessageBox.StandardButton.Yes:
+                    return
 
-            QTimer.singleShot(0, self, _notify)
+                if not zip_url_sig:
+                    QMessageBox.warning(
+                        self, "עדכון",
+                        f"גרסה {latest} זמינה אך לא ניתן להוריד אוטומטית.\n"
+                        "יש להוריד ידנית מ-GitHub.",
+                    )
+                    return
+
+                self._download_and_install_update(latest, zip_url_sig)
+
+            QTimer.singleShot(0, self, _after_check)
 
         try:
-            threading.Thread(target=_worker, daemon=True).start()
+            threading.Thread(target=_check_worker, daemon=True).start()
         except Exception:
-            _worker()
+            _check_worker()
+
+    def _download_and_install_update(self, version: str, zip_url_sig: str) -> None:
+        from ..qt import QMessageBox, QProgressDialog  # type: ignore[attr-defined]
+        import subprocess
+
+        progress = QProgressDialog(f"מוריד גרסה {version}...", None, 0, 0, self)
+        progress.setWindowTitle("עדכון")
+        progress.setMinimumDuration(0)
+        progress.setWindowModality(2)
+        progress.setValue(0)
+        progress.show()
+
+        def _dl_worker() -> None:
+            app_path, error = download_and_install_update(zip_url_sig)
+
+            def _after_dl() -> None:
+                try:
+                    progress.close()
+                except Exception:
+                    pass
+
+                if error or app_path is None:
+                    QMessageBox.warning(
+                        self, "עדכון",
+                        f"הורדת העדכון נכשלה:\n{error or 'Finance.app לא נמצא'}",
+                    )
+                    return
+
+                # Ask whether to install to /Applications/ now.
+                answer = QMessageBox.question(
+                    self,
+                    "התקנת עדכון",
+                    f"גרסה {version} הורדה בהצלחה.\n\n"
+                    "להתקין ל-/Applications/Finance.app ולהפעיל מחדש?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                if answer != QMessageBox.StandardButton.Yes:
+                    QMessageBox.information(
+                        self, "עדכון",
+                        f"הקובץ נמצא ב:\n{app_path}\n\nגרור ל-/Applications/ ידנית.",
+                    )
+                    return
+
+                inst_err = install_app_to_applications(app_path)
+                if inst_err:
+                    QMessageBox.warning(
+                        self, "עדכון",
+                        f"ההתקנה נכשלה:\n{inst_err}\n\n"
+                        f"העתק ידנית מ:\n{app_path}",
+                    )
+                    return
+
+                QMessageBox.information(
+                    self, "עדכון הותקן",
+                    f"גרסה {version} הותקנה ב-/Applications/Finance.app.\n\n"
+                    "יש להפעיל מחדש את האפליקציה.",
+                )
+                try:
+                    subprocess.Popen(["open", "-n", "/Applications/Finance.app"])
+                except Exception:
+                    pass
+                try:
+                    from ..qt import QApplication
+                    QApplication.quit()
+                except Exception:
+                    pass
+
+            QTimer.singleShot(0, self, _after_dl)
+
+        try:
+            threading.Thread(target=_dl_worker, daemon=True).start()
+        except Exception:
+            _dl_worker()

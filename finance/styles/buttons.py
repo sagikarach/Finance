@@ -31,6 +31,10 @@ def load_buttons_light_styles() -> str:
     QPushButton:pressed {
         background: #1e40af;
     }
+    QPushButton:focus {
+        outline: 2px solid #93c5fd;
+        outline-offset: 2px;
+    }
     QToolButton#IconButton {
         background: transparent;
         border: none;
@@ -156,6 +160,10 @@ def load_buttons_dark_styles() -> str:
     }
     QPushButton:pressed {
         background: #1e40af;
+    }
+    QPushButton:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
     }
     QToolButton#IconButton,
     QToolButton#PasswordEye {

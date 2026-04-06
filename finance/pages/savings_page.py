@@ -72,8 +72,13 @@ class SavingsPage(BasePage):
 
         self._on_theme_changed(is_dark)
         if isinstance(self._content_col, QVBoxLayout):
-            self._clear_content_layout(self._content_col)
-            self._build_content(self._content_col)
+            try:
+                self.setUpdatesEnabled(False)
+                self._clear_content_layout(self._content_col)
+                self._build_content(self._content_col)
+            finally:
+                self.setUpdatesEnabled(True)
+                self.update()
 
     def _build_header_left_buttons(self) -> List[QToolButton]:
         buttons = []

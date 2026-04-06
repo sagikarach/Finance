@@ -395,13 +395,6 @@ class MonthlyDataPage(BasePage):
                     self._clear_layout_recursive(sub_layout)
                     sub_layout.deleteLater()
 
-        try:
-            from ..qt import QApplication
-
-            QApplication.processEvents()
-        except Exception:
-            pass
-
     def _clear_layout_recursive(self, layout) -> None:
         while layout.count():
             item = layout.takeAt(0)
@@ -419,8 +412,13 @@ class MonthlyDataPage(BasePage):
         super().on_route_activated()
         self._load_and_refresh_accounts()
         if isinstance(self._content_col, QVBoxLayout):
-            self._clear_content_layout(self._content_col)
-            self._build_content(self._content_col)
+            try:
+                self.setUpdatesEnabled(False)
+                self._clear_content_layout(self._content_col)
+                self._build_content(self._content_col)
+            finally:
+                self.setUpdatesEnabled(True)
+                self.update()
 
     def _on_theme_changed(self, is_dark: bool) -> None:
         super()._on_theme_changed(is_dark)

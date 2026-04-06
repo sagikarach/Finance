@@ -627,11 +627,6 @@ class BasePage(QWidget):
                     self._clear_layout_recursive(sub_layout)
                     sub_layout.deleteLater()
 
-        try:
-            QApplication.processEvents()
-        except Exception:
-            pass
-
     def _clear_layout_recursive(self, layout) -> None:
         while layout.count():
             item = layout.takeAt(0)

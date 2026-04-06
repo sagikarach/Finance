@@ -4,18 +4,18 @@ from __future__ import annotations
 def load_base_light_styles() -> str:
     return """
     QWidget {
-        background: #dbeafe;
+        background: #f5f8ff;
         color: #0f172a;
         font-size: 14px;
         font-family: "Varela Round", "Arial Hebrew", "Helvetica Neue", Arial;
     }
     QMainWindow {
-        background: #dbeafe;
+        background: #f5f8ff;
     }
 
     /* ── Dialogs ── */
     QDialog {
-        background: #dbeafe;
+        background: #f5f8ff;
     }
 
     /* ── Text inputs ── */
@@ -163,6 +163,85 @@ def load_base_light_styles() -> str:
     }
     QTextEdit:focus, QPlainTextEdit:focus {
         border: 1px solid #2563eb;
+    }
+
+    /* ── Tables ── */
+    QTableWidget, QTableView {
+        background: #ffffff;
+        alternate-background-color: #f5f8ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        gridline-color: #e8f0fe;
+        selection-background-color: #dbeafe;
+        selection-color: #1d4ed8;
+        outline: none;
+    }
+    QTableWidget::item, QTableView::item {
+        padding: 6px 10px;
+        border: none;
+    }
+    QTableWidget::item:hover, QTableView::item:hover {
+        background: #eff6ff;
+    }
+    QTableWidget::item:selected, QTableView::item:selected {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+    QHeaderView {
+        background: #f5f8ff;
+        border: none;
+    }
+    QHeaderView::section {
+        background: #e8f3ff;
+        color: #1e40af;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 8px 10px;
+        border: none;
+        border-bottom: 1px solid #93c5fd;
+        border-right: 1px solid #c7dffe;
+    }
+    QHeaderView::section:first {
+        border-top-left-radius: 10px;
+    }
+    QHeaderView::section:last {
+        border-right: none;
+        border-top-right-radius: 10px;
+    }
+    QTableCornerButton::section {
+        background: #e8f3ff;
+        border: none;
+        border-bottom: 1px solid #93c5fd;
+        border-top-left-radius: 10px;
+    }
+
+    /* ── Checkboxes ── */
+    QCheckBox {
+        spacing: 8px;
+        color: #0f172a;
+    }
+    QCheckBox::indicator {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        border: 2px solid #93c5fd;
+        background: #f8faff;
+    }
+    QCheckBox::indicator:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+    QCheckBox::indicator:checked {
+        background: #2563eb;
+        border-color: #2563eb;
+    }
+    QCheckBox::indicator:checked:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+    QCheckBox::indicator:disabled {
+        background: #e2e8f0;
+        border-color: #cbd5e1;
     }
     """
 
@@ -329,5 +408,84 @@ def load_base_dark_styles() -> str:
     }
     QTextEdit:focus, QPlainTextEdit:focus {
         border: 1px solid #3b82f6;
+    }
+
+    /* ── Tables ── */
+    QTableWidget, QTableView {
+        background: #0f172a;
+        alternate-background-color: #111827;
+        border: 1px solid #1e3a5f;
+        border-radius: 10px;
+        gridline-color: #1e293b;
+        selection-background-color: #1e3a5f;
+        selection-color: #93c5fd;
+        outline: none;
+    }
+    QTableWidget::item, QTableView::item {
+        padding: 6px 10px;
+        border: none;
+    }
+    QTableWidget::item:hover, QTableView::item:hover {
+        background: #1e293b;
+    }
+    QTableWidget::item:selected, QTableView::item:selected {
+        background: #1e3a5f;
+        color: #93c5fd;
+    }
+    QHeaderView {
+        background: #020617;
+        border: none;
+    }
+    QHeaderView::section {
+        background: #111827;
+        color: #60a5fa;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 8px 10px;
+        border: none;
+        border-bottom: 1px solid #1e3a5f;
+        border-right: 1px solid #1e293b;
+    }
+    QHeaderView::section:first {
+        border-top-left-radius: 10px;
+    }
+    QHeaderView::section:last {
+        border-right: none;
+        border-top-right-radius: 10px;
+    }
+    QTableCornerButton::section {
+        background: #111827;
+        border: none;
+        border-bottom: 1px solid #1e3a5f;
+        border-top-left-radius: 10px;
+    }
+
+    /* ── Checkboxes ── */
+    QCheckBox {
+        spacing: 8px;
+        color: #e5e7eb;
+    }
+    QCheckBox::indicator {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        border: 2px solid #2d5a8e;
+        background: #0f172a;
+    }
+    QCheckBox::indicator:hover {
+        border-color: #3b82f6;
+        background: #1e293b;
+    }
+    QCheckBox::indicator:checked {
+        background: #2563eb;
+        border-color: #2563eb;
+    }
+    QCheckBox::indicator:checked:hover {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    QCheckBox::indicator:disabled {
+        background: #1e293b;
+        border-color: #374151;
     }
     """

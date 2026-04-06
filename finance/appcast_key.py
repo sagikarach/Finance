@@ -1,2 +1,1 @@
-PUBLIC_KEY_B64 = ""
-
+PUBLIC_KEY_B64 = "t+05oEyVEpFMfSFlNm4KOdbiyvFWTZ7jEPwBCKuy/+Q="

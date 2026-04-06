@@ -78,6 +78,7 @@ QTableWidgetItem = _get(_widgets, "QTableWidgetItem")
 QHeaderView = _get(_widgets, "QHeaderView")
 QScrollArea = _get(_widgets, "QScrollArea")
 QProgressBar = _get(_widgets, "QProgressBar")
+QProgressDialog = _get(_widgets, "QProgressDialog")
 QMessageBox = _get(_widgets, "QMessageBox")
 QFileDialog: Any = _get(_widgets, "QFileDialog")
 
@@ -170,6 +171,7 @@ __all__ = [
     "QHeaderView",
     "QScrollArea",
     "QProgressBar",
+    "QProgressDialog",
     "QMessageBox",
     "QFileDialog",
     "charts_available",

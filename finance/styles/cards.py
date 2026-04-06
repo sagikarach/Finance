@@ -4,8 +4,8 @@ from __future__ import annotations
 def load_cards_light_styles() -> str:
     return """
     QWidget#ChartCard, QWidget#TotalsCard, QWidget#StatCard {
-        background: #f8faff;
-        border: 1px solid #bfdbfe;
+        background: #e8f3fd;
+        border: 1px solid #c7dffe;
         border-radius: 12px;
     }
     QWidget#StatCardGreen {
@@ -42,7 +42,7 @@ def load_cards_light_styles() -> str:
         color: rgba(15,23,42,0.65);
     }
     QWidget#PageCard {
-        background: #dbeafe;
+        background: transparent;
         border: none;
         border-radius: 16px;
     }
@@ -50,8 +50,8 @@ def load_cards_light_styles() -> str:
         background: transparent;
     }
     QWidget#ContentPanel {
-        background: #bfdbfe;
-        border: 1px solid #93c5fd;
+        background: #e8f3fd;
+        border: 1px solid #c7dffe;
         border-radius: 12px;
     }
     QWidget#ContentPanel * {

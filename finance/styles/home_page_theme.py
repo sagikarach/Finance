@@ -54,7 +54,7 @@ def load_home_page_light_styles() -> str:
         background: transparent;
     }
     QLabel#StatValueCard {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 900;
         color: #0f172a;
         padding: 0px;
@@ -118,8 +118,8 @@ def load_home_page_light_styles() -> str:
         height: 0px;
     }
     QFrame#ActionHistoryCard {
-        background: #dbeafe;
-        border: 1px solid #bfdbfe;
+        background: #e8f3fd;
+        border: 1px solid #c7dffe;
         border-radius: 18px;
     }
     QLabel#ActionHistoryTitle {
@@ -196,7 +196,7 @@ def load_home_page_dark_styles() -> str:
         background: transparent;
     }
     QLabel#StatValueCard {
-        font-size: 28px;
+        font-size: 24px;
         font-weight: 900;
         color: #e5e7eb;
         padding: 0px;

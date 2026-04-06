@@ -194,5 +194,10 @@ class HomePage(BasePage):
         super().on_route_activated()
         self._load_and_refresh_accounts()
         if isinstance(self._content_col, QVBoxLayout):
-            self._clear_content_layout(self._content_col)
-            self._build_content(self._content_col)
+            try:
+                self.setUpdatesEnabled(False)
+                self._clear_content_layout(self._content_col)
+                self._build_content(self._content_col)
+            finally:
+                self.setUpdatesEnabled(True)
+                self.update()

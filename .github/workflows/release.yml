@@ -1,0 +1,121 @@
+name: Release
+
+# Triggers when you push a tag like v1.2.3
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Python ───────────────────────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ── 3. Install dependencies ────────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # ── 4. Extract version from tag ────────────────────────────────────────
+      - name: Extract version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. v1.2.3
+          VERSION="${TAG#v}"                 # e.g. 1.2.3
+          echo "tag=$TAG"       >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # ── 5. Build Finance.app ───────────────────────────────────────────────
+      - name: Build macOS app
+        run: |
+          python3 -m PyInstaller --clean --noconfirm --windowed \
+            --name Finance \
+            --icon app-icon.icns \
+            --add-data "data/assets/icons:data/assets/icons" \
+            --hidden-import PySide6 \
+            --hidden-import shiboken6 \
+            --hidden-import PySide6.QtCore \
+            --hidden-import PySide6.QtGui \
+            --hidden-import PySide6.QtWidgets \
+            --hidden-import PySide6.QtCharts \
+            --hidden-import cffi \
+            --hidden-import _cffi_backend \
+            --hidden-import nacl \
+            --hidden-import nacl.bindings \
+            main.py
+
+          # Ad-hoc sign so macOS shows "Open" instead of blocking
+          codesign --force --deep --sign - dist/Finance.app
+
+          # Zip preserving macOS bundle metadata
+          ditto -c -k --sequesterRsrc --keepParent dist/Finance.app dist/Finance-mac.zip
+
+      # ── 6. Sign the zip ────────────────────────────────────────────────────
+      # Requires the secret FINANCE_PRIVATE_KEY_B64 to be set in repo settings.
+      # If the secret is empty the zip is published unsigned (still works).
+      - name: Sign zip
+        id: sign
+        env:
+          PRIVATE_KEY_B64: ${{ secrets.FINANCE_PRIVATE_KEY_B64 }}
+        run: |
+          SIGNATURE=$(python3 - <<'PYEOF'
+          import base64, os, sys
+          key_b64 = os.environ.get("PRIVATE_KEY_B64", "").strip()
+          if not key_b64:
+              print("")   # empty signature — unsigned build
+              sys.exit(0)
+          try:
+              from nacl.signing import SigningKey
+              sk = SigningKey(base64.b64decode(key_b64))
+              data = open("dist/Finance-mac.zip", "rb").read()
+              signed = sk.sign(data)
+              print(base64.b64encode(signed.signature).decode())
+          except Exception as e:
+              print(f"", file=sys.stderr)   # don't fail the build
+              sys.exit(0)
+          PYEOF
+          )
+          echo "signature=$SIGNATURE" >> "$GITHUB_OUTPUT"
+
+      # ── 7. Create appcast.json ─────────────────────────────────────────────
+      - name: Create appcast.json
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          SIGNATURE: ${{ steps.sign.outputs.signature }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+          version   = os.environ["VERSION"]
+          tag       = os.environ["TAG"]
+          repo      = os.environ["REPO"]
+          signature = os.environ.get("SIGNATURE", "")
+          url = f"https://github.com/{repo}/releases/download/{tag}/Finance-mac.zip"
+          data = {"version": version, "url": url, "signature": signature}
+          with open("dist/appcast.json", "w") as f:
+              json.dump(data, f, indent=2)
+          print(f"appcast.json: {data}")
+          PYEOF
+
+      # ── 8. Publish GitHub release ──────────────────────────────────────────
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Finance ${{ steps.version.outputs.version }}"
+          body: "גרסה ${{ steps.version.outputs.version }}"
+          files: |
+            dist/Finance-mac.zip
+            dist/appcast.json
