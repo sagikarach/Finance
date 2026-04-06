@@ -160,7 +160,12 @@ def download_and_install_update(zip_url_and_sig: str) -> Tuple[Optional[pathlib.
             next(extract_dir.rglob("Finance.app"), None),  # type: ignore[arg-type]
         ]:
             if candidate is not None and pathlib.Path(candidate).exists():
-                return pathlib.Path(candidate), None
+                app = pathlib.Path(candidate)
+                # Restore executable bit on the main binary (may be lost during zip extraction).
+                main_bin = app / "Contents" / "MacOS" / "Finance"
+                if main_bin.exists():
+                    main_bin.chmod(main_bin.stat().st_mode | 0o111)
+                return app, None
 
         return None, f"Finance.app not found in extracted archive ({extract_dir})."
     except Exception as exc:  # noqa: BLE001

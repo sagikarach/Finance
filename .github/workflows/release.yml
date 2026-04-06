@@ -58,10 +58,18 @@ jobs:
             --hidden-import nacl.bindings \
             main.py
 
+          # Ensure all binaries inside the bundle are executable
+          find dist/Finance.app -type f -name "*.so" -exec chmod +x {} \;
+          find dist/Finance.app -type f -name "*.dylib" -exec chmod +x {} \;
+          chmod +x dist/Finance.app/Contents/MacOS/Finance
+
           # Ad-hoc sign so macOS shows "Open" instead of blocking
           codesign --force --deep --sign - dist/Finance.app
 
-          # Zip preserving macOS bundle metadata
+          # Remove quarantine flags before zipping
+          xattr -cr dist/Finance.app
+
+          # Zip preserving macOS bundle metadata and permissions
           ditto -c -k --sequesterRsrc --keepParent dist/Finance.app dist/Finance-mac.zip
 
       # ── 6. Sign the zip ────────────────────────────────────────────────────
