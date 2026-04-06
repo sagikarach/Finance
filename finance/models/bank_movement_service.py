@@ -23,6 +23,14 @@ from .csv_expense_parser import CsvExpenseParser
 from .movement_classifier import SimilarityBasedClassifier
 
 
+class OverBudgetError(ValueError):
+    """Raised when an expense exceeds the remaining monthly budget."""
+
+    def __init__(self, message: str, over_by: float = 0.0) -> None:
+        super().__init__(message)
+        self.over_by = over_by
+
+
 @dataclass
 class BankMovementService:
     movement_provider: BankMovementProvider
@@ -92,6 +100,7 @@ class BankMovementService:
         movement: BankMovement,
         is_income_hint: Optional[bool] = None,
         record_history: bool = True,
+        allow_over_budget: bool = False,
     ) -> List[MoneyAccount]:
         target_acc: Optional[MoneyAccount] = None
         try:
@@ -160,8 +169,13 @@ class BankMovementService:
 
             already_spent = float(spent_by_period.get(movement_period_key, 0.0))
             remaining = float(budget) - float(already_spent)
-            if abs(float(amt)) > remaining:
-                raise ValueError(f"אין מספיק תקציב בחודש הזה בחשבון {target_acc.name}")
+            over_by = abs(float(amt)) - remaining
+            if over_by > 0 and not allow_over_budget:
+                raise OverBudgetError(
+                    f"ההוצאה חורגת מהתקציב החודשי של חשבון {target_acc.name} "
+                    f"ב-{over_by:.2f} ₪.",
+                    over_by=over_by,
+                )
 
         try:
             self.movement_provider.add_movement(movement)

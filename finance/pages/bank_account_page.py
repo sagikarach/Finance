@@ -18,6 +18,7 @@ from ..qt import (
 )
 from ..data.provider import AccountsProvider
 from ..models.accounts import BankAccount, BudgetAccount
+from ..models.bank_movement_service import OverBudgetError
 from ..models.accounts_service import AccountsService
 from ..models.bank_movement import MovementType
 from ..models.action_history import (
@@ -489,6 +490,28 @@ class BankAccountPage(BasePage):
                                     service.classifier.learn(confirmed_expense)
                                 except Exception:
                                     pass
+                        except OverBudgetError as _obe:
+                            try:
+                                from ..qt import QMessageBox
+                                answer = QMessageBox.warning(
+                                    self,
+                                    "חריגה מהתקציב",
+                                    f"{_obe}\n\nהאם להוסיף את ההוצאה בכל זאת?",
+                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                    QMessageBox.StandardButton.No,
+                                )
+                                if answer == QMessageBox.StandardButton.Yes:
+                                    self._accounts = service.apply_movement(
+                                        self._accounts,
+                                        updated,
+                                        is_income_hint=False,
+                                        record_history=False,
+                                        allow_over_budget=True,
+                                    )
+                                    from_dialog.append(updated)
+                            except Exception:
+                                pass
+                            continue
                         except Exception as _apply_err:
                             try:
                                 from ..qt import QMessageBox

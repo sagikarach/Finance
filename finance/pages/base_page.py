@@ -32,7 +32,7 @@ from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..models.accounts import BankAccount, BudgetAccount, MoneyAccount
 from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts_service import AccountsService
-from ..models.bank_movement_service import BankMovementService
+from ..models.bank_movement_service import BankMovementService, OverBudgetError
 from ..models.movement_classifier import SimilarityBasedClassifier
 from ..ui.bank_movement_dialog import BankMovementDialog
 from ..ui.notifications_dialog import NotificationsDialog
@@ -727,14 +727,39 @@ class BasePage(QWidget):
                         self._app_context["_balances_dirty"] = "1"
                 except Exception:
                     pass
+            except OverBudgetError as obe:
+                # Ask user whether to proceed despite exceeding the budget.
+                try:
+                    from ..qt import QMessageBox
+                    answer = QMessageBox.warning(
+                        None,
+                        "חריגה מהתקציב",
+                        f"{obe}\n\nהאם להוסיף את ההוצאה בכל זאת?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No,
+                    )
+                    if answer != QMessageBox.StandardButton.Yes:
+                        return
+                    self._accounts = service.apply_movement(
+                        self._accounts,
+                        movement,
+                        is_income_hint=is_income,
+                        record_history=True,
+                        allow_over_budget=True,
+                    )
+                    try:
+                        if isinstance(self._app_context, dict):
+                            self._app_context["_balances_dirty"] = "1"
+                    except Exception:
+                        pass
+                except OverBudgetError:
+                    return
+                except Exception:
+                    return
             except Exception as e:
                 try:
                     from ..qt import QMessageBox
-                    QMessageBox.warning(
-                        None,
-                        "לא ניתן להוסיף הוצאה",
-                        str(e),
-                    )
+                    QMessageBox.warning(None, "לא ניתן להוסיף הוצאה", str(e))
                 except Exception:
                     pass
                 return
