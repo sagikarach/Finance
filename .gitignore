@@ -9,3 +9,6 @@ venv/
 .vscode/
 
 
+
+# Local Firebase credentials — never commit
+finance/firebase_defaults_local.py
