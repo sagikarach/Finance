@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 import shutil
+import ssl
 import tempfile
 import urllib.request
 from typing import Optional, Tuple
@@ -16,6 +17,29 @@ from ..appcast_key import PUBLIC_KEY_B64
 
 PUBLIC_KEY_ENV = "FINANCE_ED25519_PUBKEY"
 DEFAULT_PUBLIC_KEY = PUBLIC_KEY_B64
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Return an SSL context that works inside a PyInstaller bundle on macOS."""
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        pass
+    try:
+        # macOS system keychain fallback
+        ctx = ssl.create_default_context()
+        ctx.load_verify_locations(
+            cafile="/etc/ssl/cert.pem"  # available on macOS
+        )
+        return ctx
+    except Exception:
+        pass
+    # Last resort: unverified (better than crashing — update is still signed)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
 
 
 def _parse_version(v: str) -> Tuple[int, ...]:
@@ -41,7 +65,8 @@ class _NoReleaseFound(Exception):
 def _github_latest_release(repo: str) -> dict:
     url = f"https://api.github.com/repos/{repo}/releases/latest"
     try:
-        with urllib.request.urlopen(url, timeout=15) as resp:
+        req = urllib.request.Request(url, headers={"User-Agent": "Finance-App-Updater"})
+        with urllib.request.urlopen(req, timeout=15, context=_ssl_context()) as resp:
             return json.load(resp)
     except Exception as exc:
         msg = str(exc)
@@ -60,7 +85,9 @@ def _find_asset(release: dict, name: str) -> Optional[dict]:
 
 def _download(url: str, dest_path: pathlib.Path) -> pathlib.Path:
     dest_path.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(url, timeout=15) as resp, open(dest_path, "wb") as fh:
+    req = urllib.request.Request(url, headers={"User-Agent": "Finance-App-Updater"})
+    with urllib.request.urlopen(req, timeout=60, context=_ssl_context()) as resp, \
+         open(dest_path, "wb") as fh:
         fh.write(resp.read())
     return dest_path
 
@@ -121,7 +148,11 @@ def check_version_only(repo: Optional[str] = None) -> Tuple[bool, str, Optional[
             is_newer_tag = _is_newer(latest_tag, __version__)
             return is_newer_tag, latest_tag, None, None
 
-        with urllib.request.urlopen(appcast_asset["browser_download_url"], timeout=15) as resp:
+        req = urllib.request.Request(
+            appcast_asset["browser_download_url"],
+            headers={"User-Agent": "Finance-App-Updater"},
+        )
+        with urllib.request.urlopen(req, timeout=15, context=_ssl_context()) as resp:
             appcast = json.load(resp)
 
         latest_version = str(appcast.get("version", latest_tag)).lstrip("v")

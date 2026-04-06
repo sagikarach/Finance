@@ -56,6 +56,7 @@ jobs:
             --hidden-import _cffi_backend \
             --hidden-import nacl \
             --hidden-import nacl.bindings \
+            --hidden-import certifi \
             main.py
 
           # Ensure all binaries inside the bundle are executable
