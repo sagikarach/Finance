@@ -77,6 +77,34 @@ def create_standard_buttons_row(
     return buttons_row, primary_btn, cancel_btn
 
 
+def setup_calendar_popup(date_edit: "QWidget") -> None:
+    """
+    Call after setCalendarPopup(True).
+
+    QCalendarWidget inherits the parent's layout direction. On RTL dialogs
+    this flips the day-header row to the bottom of the grid and hides weeks.
+    Force it back to LTR so the grid renders correctly.
+    Also sets a sensible minimum size so all weeks are visible.
+    """
+    try:
+        cal = date_edit.calendarWidget()  # type: ignore[attr-defined]
+        if cal is None:
+            return
+        try:
+            cal.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+        except Exception:
+            try:
+                cal.setLayoutDirection(Qt.LeftToRight)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        try:
+            cal.setMinimumSize(280, 220)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
 def make_table_danger_button(text: str, parent: QWidget) -> QPushButton:
     """
     Create a red 'delete' button safe to use as a QTableWidget cell widget.

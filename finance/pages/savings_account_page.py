@@ -15,14 +15,13 @@ from ..qt import (
     QComboBox,
     QDateEdit,
     QDate,
-    QLocale,
     QDialog,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import SavingsAccount
 from ..models.accounts_service import AccountsService
-from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
+from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row, setup_calendar_popup
 from ..widgets.savings_history_chart import create_savings_history_chart_card
 from ..utils.formatting import format_currency
 from .base_page import BasePage
@@ -224,17 +223,7 @@ class SavingsAccountPage(BasePage):
             date_edit.setObjectName("DateEdit")
             date_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
             date_edit.setDate(QDate.currentDate())
-            try:
-                cal = date_edit.calendarWidget()
-                if cal is not None:
-                    # QCalendarWidget must stay LTR — setting RTL flips the
-                    # day-header row to the bottom of the grid.
-                    try:
-                        cal.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+            setup_calendar_popup(date_edit)
         except Exception:
             pass
         return date_edit

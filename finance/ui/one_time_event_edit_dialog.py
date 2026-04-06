@@ -15,7 +15,7 @@ from ..qt import (
     Qt,
 )
 from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus
-from .dialog_utils import create_standard_buttons_row, setup_standard_rtl_dialog
+from .dialog_utils import create_standard_buttons_row, setup_standard_rtl_dialog, setup_calendar_popup
 
 
 class OneTimeEventEditDialog(QDialog):
@@ -94,7 +94,9 @@ class OneTimeEventEditDialog(QDialog):
         self._end = QDateEdit(self)
         try:
             self._start.setCalendarPopup(True)
+            setup_calendar_popup(self._start)
             self._end.setCalendarPopup(True)
+            setup_calendar_popup(self._end)
         except Exception:
             pass
 

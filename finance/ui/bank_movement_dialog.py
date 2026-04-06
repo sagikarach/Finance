@@ -19,6 +19,7 @@ from .dialog_utils import (
     create_standard_buttons_row,
     wrap_hebrew_rtl,
     apply_rtl_alignment,
+    setup_calendar_popup,
 )
 from ..models.accounts import BudgetAccount, MoneyAccount
 from ..models.bank_movement import BankMovement, MovementType
@@ -134,6 +135,7 @@ class BankMovementDialog(QDialog):
         self._date_edit = QDateEdit(self)
         try:
             self._date_edit.setCalendarPopup(True)
+            setup_calendar_popup(self._date_edit)
         except Exception:
             pass
         try:

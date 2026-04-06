@@ -23,6 +23,7 @@ from ..qt import (
     QDate,
 )
 from ..models.accounts import BankAccount, BudgetAccount, MoneyAccount, parse_iso_date
+from ..ui.dialog_utils import setup_calendar_popup
 from ..models.installment_plan import InstallmentPlan
 from ..models.installments_service import InstallmentsService
 from ..widgets.installments_selector import InstallmentsSelector
@@ -97,6 +98,7 @@ class InstallmentPlanDialog(QDialog):
 
         self._start_date = QDateEdit(self)
         self._start_date.setCalendarPopup(True)
+        setup_calendar_popup(self._start_date)
         try:
             self._start_date.setDisplayFormat("yyyy-MM-dd")
         except Exception:
