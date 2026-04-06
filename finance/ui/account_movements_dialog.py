@@ -19,7 +19,7 @@ from ..qt import (
     QVBoxLayout,
     QWidget,
 )
-from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl, unwrap_rtl
+from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl, unwrap_rtl, make_table_danger_button
 
 
 class AccountMovementsDialog(QDialog):
@@ -183,8 +183,7 @@ class AccountMovementsDialog(QDialog):
                     type_combo.setCurrentIndex(idx)
                     break
 
-            delete_btn = QPushButton("מחק", self._table)
-            delete_btn.setObjectName("DangerButton")
+            delete_btn = make_table_danger_button("מחק", self._table)
             delete_btn.clicked.connect(
                 lambda _=None, mid=str(m.id): self._on_delete(mid)
             )

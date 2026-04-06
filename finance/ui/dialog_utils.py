@@ -77,6 +77,35 @@ def create_standard_buttons_row(
     return buttons_row, primary_btn, cancel_btn
 
 
+def make_table_danger_button(text: str, parent: QWidget) -> QPushButton:
+    """
+    Create a red 'delete' button safe to use as a QTableWidget cell widget.
+
+    Global objectName-based QSS is not reliably applied to cell widgets on
+    macOS, so we inject the style directly on the button instance.
+    """
+    btn = QPushButton(text, parent)
+    btn.setObjectName("DangerButton")
+    btn.setStyleSheet("""
+        QPushButton {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            font-weight: 700;
+            color: #b91c1c;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+        QPushButton:hover {
+            background: #fecaca;
+            border: 1px solid #f87171;
+        }
+        QPushButton:pressed {
+            background: #fca5a5;
+        }
+    """)
+    return btn
+
+
 def wrap_hebrew_rtl(text: str) -> str:
     if not text:
         return text
