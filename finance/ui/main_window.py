@@ -274,10 +274,32 @@ class MainWindow(QMainWindow):
         progress.setValue(0)
         progress.show()
 
+        # Safety: force-close after 25 seconds if the network call hangs.
+        _deadline = QTimer(self)
+        _deadline.setSingleShot(True)
+        def _on_deadline() -> None:
+            try:
+                progress.close()
+            except Exception:
+                pass
+            QMessageBox.warning(self, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
+        _deadline.timeout.connect(_on_deadline)
+        _deadline.start(25000)
+
         def _check_worker() -> None:
-            is_newer, latest, zip_url_sig, error = check_version_only()
+            import socket
+            socket.setdefaulttimeout(15)
+            is_newer, latest, zip_url_sig, error = False, "", None, None
+            try:
+                is_newer, latest, zip_url_sig, error = check_version_only()
+            except Exception as exc:
+                error = str(exc)
 
             def _after_check() -> None:
+                try:
+                    _deadline.stop()
+                except Exception:
+                    pass
                 try:
                     progress.close()
                 except Exception:

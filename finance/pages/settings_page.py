@@ -223,7 +223,21 @@ class SettingsPage(BasePage):
                 progress.setValue(0)
                 progress.show()
 
+                # Safety: force-close the dialog after 25 seconds if the thread hangs.
+                _deadline = QTimer()
+                _deadline.setSingleShot(True)
+                def _on_deadline() -> None:
+                    try:
+                        progress.close()
+                    except Exception:
+                        pass
+                    QMessageBox.warning(container, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
+                _deadline.timeout.connect(_on_deadline)
+                _deadline.start(25000)
+
                 def _check_worker() -> None:
+                    import socket
+                    socket.setdefaulttimeout(15)
                     is_newer, latest, zip_url_sig, error = False, "", None, None
                     try:
                         is_newer, latest, zip_url_sig, error = check_version_only()
@@ -231,6 +245,10 @@ class SettingsPage(BasePage):
                         error = str(exc)
 
                     def _after_check() -> None:
+                        try:
+                            _deadline.stop()
+                        except Exception:
+                            pass
                         try:
                             progress.close()
                         except Exception:
