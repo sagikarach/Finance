@@ -93,6 +93,7 @@ class MainWindow(QMainWindow):
                     BasePage._GLOBAL_SYNCING = False
                 except Exception:
                     pass
+                self._startup_sync_update_current_page_btn(syncing=False)
                 try:
                     if isinstance(self._app_context, dict):
                         self._app_context["_balances_dirty"] = "1"
