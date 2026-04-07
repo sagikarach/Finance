@@ -416,13 +416,12 @@ class CategoryTrendsChart(QWidget):
         except Exception:
             pass
 
+        n = len(month_labels)
         max_val = 0.0
         categories_sorted = sorted(data_by_category.items(), key=lambda kv: -sum(kv[1]))
         shadow_specs: List[tuple[QLineSeries, QColor]] = []
         tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = []
-        month_keys: List[tuple[int, int]] = [
-            (0, i + 1) for i in range(min(12, len(month_labels)))
-        ]
+        month_keys: List[tuple[int, int]] = [(0, i + 1) for i in range(n)]
 
         for _idx, (category, values) in enumerate(categories_sorted):
             series = QLineSeries()
@@ -432,9 +431,9 @@ class CategoryTrendsChart(QWidget):
             except Exception:
                 pass
 
-            base_values = [float(v) for v in values[:12]]
-            if len(base_values) < 12:
-                base_values = base_values + [0.0] * (12 - len(base_values))
+            base_values = [float(v) for v in values[:n]]
+            if len(base_values) < n:
+                base_values = base_values + [0.0] * (n - len(base_values))
             for y in base_values:
                 if y > max_val:
                     max_val = y
@@ -464,7 +463,7 @@ class CategoryTrendsChart(QWidget):
             chart.addSeries(series)
 
         axis_x = QCategoryAxis()
-        for i, label in enumerate(month_labels[:12]):
+        for i, label in enumerate(month_labels[:n]):
             axis_x.append(label, float(i))
         try:
             axis_x.setGridLineVisible(False)
@@ -527,7 +526,7 @@ class CategoryTrendsChart(QWidget):
             tooltip_specs,
             lambda v: format_currency(v, use_compact=True),
             self,
-            x_labels=month_labels[:12],
+            x_labels=list(month_labels[:n]),
             on_series_clicked=self._on_series_clicked,
         )
         try:
@@ -649,6 +648,7 @@ class CategoryTrendsChart(QWidget):
         except Exception:
             pass
 
+        n = len(month_labels)
         max_val = 0.0
         min_val = 0.0
 
@@ -656,9 +656,7 @@ class CategoryTrendsChart(QWidget):
         expense_sorted = sorted(expense_by_category.items(), key=lambda kv: -sum(kv[1]))
         shadow_specs: List[tuple[QLineSeries, QColor]] = []
         tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = []
-        month_keys: List[tuple[int, int]] = [
-            (0, i + 1) for i in range(min(12, len(month_labels)))
-        ]
+        month_keys: List[tuple[int, int]] = [(0, i + 1) for i in range(n)]
 
         def add_series(
             *,
@@ -679,7 +677,7 @@ class CategoryTrendsChart(QWidget):
                     pass
 
                 base_values: List[float] = []
-                for v in values[:12]:
+                for v in values[:n]:
                     y_raw = float(v)
                     y = (
                         -abs(y_raw)
@@ -687,8 +685,8 @@ class CategoryTrendsChart(QWidget):
                         else abs(y_raw)
                     )
                     base_values.append(float(y))
-                if len(base_values) < 12:
-                    base_values = base_values + [0.0] * (12 - len(base_values))
+                if len(base_values) < n:
+                    base_values = base_values + [0.0] * (n - len(base_values))
                 for y in base_values:
                     if y > max_val:
                         max_val = y
@@ -735,7 +733,7 @@ class CategoryTrendsChart(QWidget):
         )
 
         axis_x = QCategoryAxis()
-        for i, label in enumerate(month_labels[:12]):
+        for i, label in enumerate(month_labels[:n]):
             axis_x.append(label, float(i))
         try:
             axis_x.setGridLineVisible(False)
@@ -800,7 +798,7 @@ class CategoryTrendsChart(QWidget):
             tooltip_specs,
             lambda v: format_currency(v, use_compact=True),
             self,
-            x_labels=month_labels[:12],
+            x_labels=list(month_labels[:n]),
             on_series_clicked=self._on_series_clicked,
         )
         try:

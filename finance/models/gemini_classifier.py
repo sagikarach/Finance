@@ -308,6 +308,228 @@ class GeminiClassifier:
         return self._parse_filter_response(raw, id_map)
 
     # ------------------------------------------------------------------
+    # Monthly net cash-flow prediction (for annual overview chart)
+    # ------------------------------------------------------------------
+
+    def predict_monthly_net(
+        self,
+        history: List[Tuple[str, float]],
+        horizon: int = 6,
+    ) -> List[float]:
+        """Predict net cash-flow (income - expenses) for the next *horizon* months.
+
+        Args:
+            history: list of (label, net_amount) pairs, oldest first.
+            horizon: number of future months to predict.
+
+        Returns list[float] of length *horizon*, or [] on failure.
+        """
+        if not history:
+            return []
+        api_key = get_gemini_api_key()
+        if not api_key:
+            return []
+        try:
+            import google.genai as genai  # type: ignore[import]
+        except ImportError:
+            return []
+
+        from datetime import date as _date
+
+        today = _date.today()
+        future_months: List[str] = []
+        y, m = today.year, today.month
+        for _ in range(horizon):
+            m += 1
+            if m > 12:
+                m = 1
+                y += 1
+            future_months.append(f"{y}-{m:02d}")
+
+        hist_lines = "\n".join(
+            f"  {label}: {net:+,.0f}₪" for label, net in history[-24:]
+        )
+
+        prompt = (
+            "אתה יועץ פיננסי אישי. מטה מופיע תזרים המזומנים החודשי הנטו (הכנסות פחות הוצאות) "
+            "לאורך הזמן:\n\n"
+            + hist_lines
+            + "\n\nחזה את יתרת הנטו החודשית לחודשים הבאים: "
+            + ", ".join(future_months)
+            + "\n\nהנחות: שמור על מגמה שנצפתה. הסתמך על הנתונים בלבד.\n\n"
+            "החזר אך ורק JSON array תקין:\n"
+            '[{"month": "YYYY-MM", "net": 5000}, ...]\n'
+            f"מספר האלמנטים: {horizon}."
+        )
+
+        try:
+            client = genai.Client(api_key=api_key)
+            raw = _generate_with_retry(client, prompt)
+        except Exception:
+            return []
+
+        return self._parse_monthly_net_response(raw, future_months)
+
+    def _parse_monthly_net_response(
+        self, raw: str, future_months: List[str]
+    ) -> List[float]:
+        cleaned = re.sub(r"```[a-z]*\n?", "", raw).strip()
+        try:
+            data = json.loads(cleaned)
+        except Exception:
+            m = re.search(r"\[.*\]", cleaned, re.DOTALL)
+            if not m:
+                return []
+            try:
+                data = json.loads(m.group(0))
+            except Exception:
+                return []
+
+        if not isinstance(data, list):
+            return []
+
+        month_to_net: Dict[str, float] = {}
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            try:
+                month_to_net[str(item["month"])] = float(item["net"])
+            except Exception:
+                continue
+
+        result: List[float] = []
+        last = 0.0
+        for fm in future_months:
+            val = month_to_net.get(fm)
+            if val is not None:
+                last = val
+            result.append(last)
+
+        return result if any(v != 0.0 for v in result) else []
+
+    # ------------------------------------------------------------------
+    # Category trend prediction (for category trends chart)
+    # ------------------------------------------------------------------
+
+    def predict_category_trends(
+        self,
+        category_history: Dict[str, List[float]],
+        month_labels: List[str],
+        horizon: int = 6,
+        max_categories: int = 8,
+    ) -> Dict[str, List[float]]:
+        """Predict per-category monthly totals for the next *horizon* months.
+
+        Args:
+            category_history: category → list of monthly amounts (oldest first).
+            month_labels: labels for each history month (for context in prompt).
+            horizon: future months to predict.
+            max_categories: limit prompt size by only predicting top N categories.
+
+        Returns dict mapping category name → list[float] of length *horizon*.
+        """
+        if not category_history:
+            return {}
+        api_key = get_gemini_api_key()
+        if not api_key:
+            return {}
+        try:
+            import google.genai as genai  # type: ignore[import]
+        except ImportError:
+            return {}
+
+        from datetime import date as _date
+
+        today = _date.today()
+        future_months: List[str] = []
+        y, m = today.year, today.month
+        for _ in range(horizon):
+            m += 1
+            if m > 12:
+                m = 1
+                y += 1
+            future_months.append(f"{y}-{m:02d}")
+
+        # Keep only top-N categories by total amount
+        top_cats = sorted(
+            category_history.items(), key=lambda kv: -sum(kv[1])
+        )[:max_categories]
+
+        hist_lines: List[str] = []
+        for cat_name, vals in top_cats:
+            row = ", ".join(f"{v:,.0f}" for v in vals[-12:])
+            hist_lines.append(f'  "{cat_name}": [{row}]')
+
+        prompt = (
+            "אתה יועץ פיננסי אישי. מטה מופיעים סכומי ההוצאה החודשיים לפי קטגוריה "
+            f"(חודשים: {', '.join(month_labels[-12:])}):\n\n"
+            + "\n".join(hist_lines)
+            + "\n\nחזה את הסכום החודשי לכל קטגוריה לחודשים: "
+            + ", ".join(future_months)
+            + "\n\nהנחות: שמור על מגמה שנצפתה. הסתמך על הנתונים בלבד.\n\n"
+            "החזר אך ורק JSON array תקין:\n"
+            '[{"category": "שם", "projections": [1234, 2345, ...]}, ...]\n'
+            f"מספר ה-projections בכל אובייקט: {horizon}."
+        )
+
+        try:
+            client = genai.Client(api_key=api_key)
+            raw = _generate_with_retry(client, prompt)
+        except Exception:
+            return {}
+
+        return self._parse_category_trends_response(raw, top_cats, horizon)
+
+    def _parse_category_trends_response(
+        self,
+        raw: str,
+        top_cats: List[Tuple[str, List[float]]],
+        horizon: int,
+    ) -> Dict[str, List[float]]:
+        cleaned = re.sub(r"```[a-z]*\n?", "", raw).strip()
+        try:
+            data = json.loads(cleaned)
+        except Exception:
+            m = re.search(r"\[.*\]", cleaned, re.DOTALL)
+            if not m:
+                return {}
+            try:
+                data = json.loads(m.group(0))
+            except Exception:
+                return {}
+
+        if not isinstance(data, list):
+            return {}
+
+        known = {str(cat): vals for cat, vals in top_cats}
+        result: Dict[str, List[float]] = {}
+
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("category") or "").strip()
+            if not name:
+                continue
+            matched = name if name in known else next(
+                (k for k in known if k in name or name in k), name
+            )
+            projs = item.get("projections") or []
+            if not isinstance(projs, list):
+                continue
+            vals = []
+            for p in projs[:horizon]:
+                try:
+                    vals.append(float(p))
+                except Exception:
+                    vals.append(0.0)
+            while len(vals) < horizon:
+                vals.append(vals[-1] if vals else 0.0)
+            if any(v > 0 for v in vals):
+                result[matched] = vals
+
+        return result
+
+    # ------------------------------------------------------------------
     # Savings balance projection
     # ------------------------------------------------------------------
 

@@ -1,23 +1,44 @@
 from __future__ import annotations
 
+import threading
+import weakref
+from datetime import date
 from typing import Callable, Dict, List, Optional
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..data.provider import AccountsProvider
 from ..models.yearly_report_service import YearlyReportService
+from ..models.gemini_classifier import get_gemini_classifier, has_gemini_api_key
 from ..qt import (
     QLabel,
     QHBoxLayout,
     QSizePolicy,
     QToolButton,
+    QTimer,
     QVBoxLayout,
     QWidget,
     Qt,
 )
 from ..utils.formatting import format_currency
 from ..widgets.yearly_balance_chart import YearlyBalanceChart
-from ..widgets.year_picker import YearPickerWidget
+from ..widgets.time_range_bar import TimeRangeBar
 from .base_page import BasePage
+
+
+def _future_month_labels(horizon: int) -> List[str]:
+    """Return short Hebrew month labels for the next *horizon* months."""
+    heb = ["ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
+           "יול", "אוג", "ספט", "אוק", "נוב", "דצמ"]
+    today = date.today()
+    labels: List[str] = []
+    y, m = today.year, today.month
+    for _ in range(horizon):
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+        labels.append(f"{heb[m - 1]} {y % 100:02d}")
+    return labels
 
 
 class AutoStatCard(QWidget):
@@ -112,14 +133,18 @@ class YearlyOverviewPage(BasePage):
     ) -> None:
         self._movement_provider = movement_provider or JsonFileBankMovementProvider()
         self._yearly_service = YearlyReportService(self._movement_provider)
-        self._current_year: Optional[int] = None
-        self._available_years: List[int] = []
+        self._current_months: int = 12
 
-        self._year_picker: Optional[YearPickerWidget] = None
+        self._range_bar: Optional[TimeRangeBar] = None
         self._income_value: Optional[QLabel] = None
         self._expense_value: Optional[QLabel] = None
         self._net_value: Optional[QLabel] = None
         self._balance_chart: Optional[YearlyBalanceChart] = None
+        self._proj_status_label: Optional[QLabel] = None
+
+        self._proj_loading: bool = False
+        self._proj_error: Optional[str] = None
+        self._proj_nets: Optional[List[float]] = None
 
         super().__init__(
             app_context=app_context,
@@ -152,40 +177,12 @@ class YearlyOverviewPage(BasePage):
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
-
         try:
             container.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             pass
 
-        year_picker_block = QWidget(container)
-        year_picker_block_layout = QVBoxLayout(year_picker_block)
-        year_picker_block_layout.setContentsMargins(0, 0, 0, 0)
-        year_picker_block_layout.setSpacing(4)
-
-        year_picker_label = QLabel("בחר שנה", year_picker_block)
-        year_picker_label.setObjectName("Subtitle")
-        try:
-            year_picker_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        except Exception:
-            pass
-        year_picker_block_layout.addWidget(year_picker_label, 0)
-
-        self._year_picker = YearPickerWidget(
-            year_picker_block,
-            label_text="",
-            on_changed=self._on_year_changed,
-            centered=False,
-            label_on_right=False,
-        )
-        try:
-            for lbl in self._year_picker.findChildren(QLabel):
-                if not (lbl.text() or "").strip():
-                    lbl.setVisible(False)
-        except Exception:
-            pass
-        year_picker_block_layout.addWidget(self._year_picker, 0)
-
+        # ── stat cards row (no year picker) ──────────────────────────────
         top_row = QWidget(container)
         top_row_layout = QHBoxLayout(top_row)
         top_row_layout.setContentsMargins(0, 0, 0, 0)
@@ -208,18 +205,11 @@ class YearlyOverviewPage(BasePage):
         self._expense_value = expense_card.value_label()
         self._net_value = net_card.value_label()
 
-        try:
-            year_picker_block.setSizePolicy(
-                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
-            )
-        except Exception:
-            pass
-        top_row_layout.addWidget(year_picker_block, 0, Qt.AlignmentFlag.AlignVCenter)
-
         top_row_layout.addWidget(income_card, 1)
         top_row_layout.addWidget(expense_card, 1)
         top_row_layout.addWidget(net_card, 1)
 
+        # ── chart card with TimeRangeBar inside ───────────────────────────
         chart_card = QWidget(container)
         chart_card.setObjectName("ContentPanel")
         try:
@@ -230,87 +220,124 @@ class YearlyOverviewPage(BasePage):
         chart_layout.setContentsMargins(16, 16, 16, 16)
         chart_layout.setSpacing(8)
 
+        self._range_bar = TimeRangeBar(chart_card, default_months=self._current_months)
+        self._range_bar.range_changed.connect(self._on_range_changed)
+        chart_layout.addWidget(self._range_bar)
+
+        self._proj_status_label = QLabel("", chart_card)
+        self._proj_status_label.setObjectName("Subtitle")
+        try:
+            self._proj_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        self._proj_status_label.hide()
+        chart_layout.addWidget(self._proj_status_label)
+
         self._balance_chart = YearlyBalanceChart(chart_card)
         chart_layout.addWidget(self._balance_chart, 1)
 
-        self._available_years = list(self._yearly_service.get_available_years())
-        if not self._available_years:
-            placeholder = QLabel("אין נתונים שנתיים להצגה", container)
-            placeholder.setObjectName("Title")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(placeholder, 1)
-            main_col.addWidget(container, 1)
-            return
-
         layout.addWidget(top_row, 0)
         layout.addWidget(chart_card, 1)
-
         main_col.addWidget(container, 1)
 
-        if (
-            self._current_year is None
-            or self._current_year not in self._available_years
-        ):
-            self._current_year = self._available_years[0]
-
-        if self._year_picker is not None:
-            self._year_picker.set_years(
-                self._available_years, current=self._current_year
-            )
-
         self._refresh()
+
+    # ------------------------------------------------------------------ range
+
+    def _on_range_changed(self, months: int) -> None:
+        self._current_months = months
+        self._proj_nets = None
+        self._proj_error = None
+        self._refresh()
+        if months == -1 and has_gemini_api_key():
+            self._start_forecast_thread()
 
     def _refresh(self) -> None:
-        if self._current_year is None:
-            return
+        forecast = self._current_months == -1
+        actual_months = 3 if forecast else self._current_months
 
-        report = self._yearly_service.get_yearly_report(self._current_year)
-        if report is not None:
-            if self._income_value is not None:
-                self._income_value.setText(format_currency(report.summary.total_income))
-            if self._expense_value is not None:
-                self._expense_value.setText(
-                    format_currency(report.summary.total_outcome)
-                )
-            if self._net_value is not None:
-                self._net_value.setText(format_currency(report.summary.net_amount))
-        else:
-            if self._income_value is not None:
-                self._income_value.setText(format_currency(0.0))
-            if self._expense_value is not None:
-                self._expense_value.setText(format_currency(0.0))
-            if self._net_value is not None:
-                self._net_value.setText(format_currency(0.0))
+        # Stat cards
+        income, expense, net = self._yearly_service.get_window_totals(actual_months)
+        if self._income_value is not None:
+            self._income_value.setText(format_currency(income))
+        if self._expense_value is not None:
+            self._expense_value.setText(format_currency(expense))
+        if self._net_value is not None:
+            self._net_value.setText(format_currency(net))
+
+        # Chart
+        window_data = self._yearly_service.get_window_nets(actual_months)
+        labels = [lbl for lbl, _ in window_data]
+        nets = [n for _, n in window_data]
 
         if self._balance_chart is not None:
-            month_labels = [
-                "ינואר",
-                "פברואר",
-                "מרץ",
-                "אפריל",
-                "מאי",
-                "יוני",
-                "יולי",
-                "אוגוסט",
-                "ספטמבר",
-                "אוקטובר",
-                "נובמבר",
-                "דצמבר",
-            ]
-            nets = [0.0] * 12
-            for s in self._yearly_service.get_month_type_summaries(self._current_year):
-                try:
-                    idx = max(0, min(11, int(s.month) - 1))
-                    nets[idx] = float(s.net_balance)
-                except Exception:
-                    continue
-            self._balance_chart.set_monthly_net(nets, month_labels)
+            if forecast and self._proj_nets:
+                self._balance_chart.set_monthly_net(
+                    nets, labels,
+                    proj_values=self._proj_nets,
+                    proj_labels=_future_month_labels(len(self._proj_nets)),
+                )
+            else:
+                self._balance_chart.set_monthly_net(nets, labels)
 
-    def _on_year_changed(self, year: int) -> None:
-        if year == self._current_year:
-            return
-        self._current_year = year
-        self._refresh()
+        # Status label
+        if self._proj_status_label is not None:
+            if forecast:
+                if self._proj_loading:
+                    self._proj_status_label.setText("⏳ מחשב תחזית AI...")
+                    self._proj_status_label.show()
+                elif self._proj_error:
+                    self._proj_status_label.setText(f"❌ {self._proj_error}")
+                    self._proj_status_label.show()
+                else:
+                    self._proj_status_label.hide()
+            else:
+                self._proj_status_label.hide()
+
+    # ------------------------------------------------------------------ forecast
+
+    def _start_forecast_thread(self) -> None:
+        svc = self._yearly_service
+        page_ref = weakref.ref(self)
+
+        def _set_loading(val: bool) -> None:
+            page = page_ref()
+            if page is not None:
+                page._proj_loading = val
+                page._refresh()
+
+        def _set_data(result: List[float]) -> None:
+            page = page_ref()
+            if page is not None:
+                page._proj_loading = False
+                page._proj_nets = result
+                page._refresh()
+
+        def _set_failed(msg: str) -> None:
+            page = page_ref()
+            if page is not None:
+                page._proj_loading = False
+                page._proj_error = msg
+                page._refresh()
+
+        QTimer.singleShot(0, lambda: _set_loading(True))
+
+        def _run() -> None:
+            try:
+                history = svc.get_window_nets(12)
+                result = get_gemini_classifier().predict_monthly_net(history, horizon=6)
+                if result:
+                    QTimer.singleShot(0, lambda: _set_data(result))
+                else:
+                    QTimer.singleShot(
+                        0, lambda: _set_failed("לא התקבלה תחזית מה-AI — נסה שוב מאוחר יותר")
+                    )
+            except Exception:
+                QTimer.singleShot(0, lambda: _set_failed("תחזית נכשלה — בדוק חיבור לאינטרנט"))
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    # ------------------------------------------------------------------ lifecycle
 
     def on_route_activated(self) -> None:
         super().on_route_activated()

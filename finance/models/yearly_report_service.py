@@ -210,6 +210,171 @@ class YearlyReportService:
 
         return dict(out)
 
+    # ──────────────────────────────────────── sliding-window helpers ──
+
+    _HEB_MONTHS = [
+        "ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
+        "יול", "אוג", "ספט", "אוק", "נוב", "דצמ",
+    ]
+
+    def _build_window_keys(self, months: int) -> List[Tuple[int, int]]:
+        """Return (year, month) keys for the last *months* calendar months.
+
+        If months == 0 all months that appear in stored movements are returned.
+        """
+        from datetime import date as _date, datetime as _dt
+
+        if months <= 0:
+            try:
+                all_mvs = self.movement_provider.list_movements()
+            except Exception:
+                return []
+            keys_seen: Set[Tuple[int, int]] = set()
+            for mv in all_mvs:
+                try:
+                    dt = parse_iso_date(mv.date)
+                    if dt != _dt.min:
+                        keys_seen.add((dt.year, dt.month))
+                except Exception:
+                    continue
+            return sorted(keys_seen)
+
+        today = _date.today()
+        keys: List[Tuple[int, int]] = []
+        y, m = today.year, today.month
+        for _ in range(months):
+            keys.append((y, m))
+            m -= 1
+            if m < 1:
+                m = 12
+                y -= 1
+        keys.reverse()
+        return keys
+
+    def get_window_nets(
+        self, months: int
+    ) -> List[Tuple[str, float]]:
+        """Return [(label, net_amount)] for each month in the window."""
+        from datetime import datetime as _dt
+
+        window = self._build_window_keys(months)
+        if not window:
+            return []
+        try:
+            all_mvs = list(self.movement_provider.list_movements())
+        except Exception:
+            return []
+
+        nets: Dict[Tuple[int, int], float] = defaultdict(float)
+        for mv in all_mvs:
+            try:
+                if self._is_transfer(mv):
+                    continue
+                dt = parse_iso_date(mv.date)
+                if dt == _dt.min:
+                    continue
+                nets[(dt.year, dt.month)] += float(mv.amount)
+            except Exception:
+                continue
+
+        result: List[Tuple[str, float]] = []
+        for yr, mo in window:
+            label = f"{self._HEB_MONTHS[mo - 1]} {yr % 100:02d}"
+            result.append((label, nets.get((yr, mo), 0.0)))
+        return result
+
+    def get_window_totals(
+        self, months: int
+    ) -> Tuple[float, float, float]:
+        """Return (total_income, total_expense, net) for the window."""
+        from datetime import datetime as _dt
+
+        window_set = set(self._build_window_keys(months))
+        if not window_set:
+            return 0.0, 0.0, 0.0
+        try:
+            all_mvs = list(self.movement_provider.list_movements())
+        except Exception:
+            return 0.0, 0.0, 0.0
+
+        income = 0.0
+        expense = 0.0
+        for mv in all_mvs:
+            try:
+                if self._is_transfer(mv):
+                    continue
+                dt = parse_iso_date(mv.date)
+                if dt == _dt.min:
+                    continue
+                if (dt.year, dt.month) not in window_set:
+                    continue
+                amount = float(mv.amount)
+                if amount > 0:
+                    income += amount
+                elif amount < 0:
+                    expense += abs(amount)
+            except Exception:
+                continue
+        return income, expense, income - expense
+
+    def get_window_category_totals(
+        self,
+        months: int,
+        *,
+        is_income: bool,
+        movement_types: Optional[Set[MovementType]] = None,
+        account_names: Optional[List[str]] = None,
+    ) -> Tuple[Dict[str, List[float]], List[str]]:
+        """Like get_category_month_totals but for a sliding window.
+
+        Returns (category_dict, month_labels).
+        """
+        from datetime import datetime as _dt
+
+        window = self._build_window_keys(months)
+        if not window:
+            return {}, []
+        n = len(window)
+        key_to_idx: Dict[Tuple[int, int], int] = {k: i for i, k in enumerate(window)}
+
+        try:
+            all_mvs = list(self.movement_provider.list_movements())
+        except Exception:
+            return {}, []
+
+        account_set: Optional[Set[str]] = set(account_names) if account_names else None
+        type_set: Optional[Set[MovementType]] = (
+            set(movement_types) if movement_types is not None else None
+        )
+
+        out: Dict[str, List[float]] = defaultdict(lambda: [0.0] * n)
+        for mv in all_mvs:
+            try:
+                if account_set is not None and mv.account_name not in account_set:
+                    continue
+                if type_set is not None and mv.type not in type_set:
+                    continue
+                if self._is_transfer(mv):
+                    continue
+                dt = parse_iso_date(mv.date)
+                key = (dt.year, dt.month)
+                if key not in key_to_idx:
+                    continue
+                amount = float(mv.amount)
+                if is_income and amount <= 0:
+                    continue
+                if (not is_income) and amount >= 0:
+                    continue
+                category = mv.category or "שונות"
+                out[category][key_to_idx[key]] += abs(amount)
+            except Exception:
+                continue
+
+        labels = [
+            f"{self._HEB_MONTHS[mo - 1]} {yr % 100:02d}" for yr, mo in window
+        ]
+        return dict(out), labels
+
     def _calculate_summary(
         self, movements: List[BankMovement], year: int
     ) -> YearlyMovementSummary:

@@ -1,24 +1,44 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional, Set
+import threading
+import weakref
+from datetime import date
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..data.provider import AccountsProvider
 from ..models.bank_movement import MovementType
 from ..models.yearly_report_service import YearlyReportService
+from ..models.gemini_classifier import get_gemini_classifier, has_gemini_api_key
 from ..qt import (
     QLabel,
     QCheckBox,
     QHBoxLayout,
     QToolButton,
+    QTimer,
     QVBoxLayout,
     QWidget,
     QSizePolicy,
     Qt,
 )
 from ..widgets.category_trends_chart import CategoryTrendsChart
-from ..widgets.year_picker import YearPickerWidget
+from ..widgets.time_range_bar import TimeRangeBar
 from .base_page import BasePage
+
+
+def _future_month_labels(horizon: int) -> List[str]:
+    heb = ["ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
+           "יול", "אוג", "ספט", "אוק", "נוב", "דצמ"]
+    today = date.today()
+    labels: List[str] = []
+    y, m = today.year, today.month
+    for _ in range(horizon):
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+        labels.append(f"{heb[m - 1]} {y % 100:02d}")
+    return labels
 
 
 class YearlyCategoryTrendsPage(BasePage):
@@ -37,10 +57,9 @@ class YearlyCategoryTrendsPage(BasePage):
             self._movement_provider
         )
         self._initial_movement_types = movement_types
+        self._current_months: int = 12
 
-        self._current_year: Optional[int] = None
-        self._available_years: List[int] = []
-        self._year_picker: Optional[YearPickerWidget] = None
+        self._range_bar: Optional[TimeRangeBar] = None
         self._combined_chart: Optional[CategoryTrendsChart] = None
 
         self._show_income: bool = True
@@ -58,6 +77,12 @@ class YearlyCategoryTrendsPage(BasePage):
         self._monthly_cb: Optional[QCheckBox] = None
         self._one_time_cb: Optional[QCheckBox] = None
         self._yearly_cb: Optional[QCheckBox] = None
+
+        self._proj_status_label: Optional[QLabel] = None
+        self._proj_loading: bool = False
+        self._proj_error: Optional[str] = None
+        self._proj_income: Optional[Dict[str, List[float]]] = None
+        self._proj_expense: Optional[Dict[str, List[float]]] = None
 
         super().__init__(
             app_context=app_context,
@@ -91,35 +116,27 @@ class YearlyCategoryTrendsPage(BasePage):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
 
+        # ── top controls: TimeRangeBar + filters ─────────────────────────
         top_controls = QWidget(container)
         top_controls.setObjectName("TrendsControlsBar")
         try:
             top_controls.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
-            rtl = getattr(Qt, "RightToLeft", None)
-            if rtl is not None:
-                try:
-                    top_controls.setLayoutDirection(rtl)
-                except Exception:
-                    pass
+            pass
         top_controls_layout = QHBoxLayout(top_controls)
         top_controls_layout.setContentsMargins(0, 0, 0, 0)
         top_controls_layout.setSpacing(8)
 
-        self._year_picker = YearPickerWidget(
-            container, on_changed=self._on_year_changed, centered=False
+        self._range_bar = TimeRangeBar(
+            top_controls, default_months=self._current_months
         )
+        self._range_bar.range_changed.connect(self._on_range_changed)
 
         filters_box = QWidget(container)
         try:
             filters_box.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
-            rtl = getattr(Qt, "RightToLeft", None)
-            if rtl is not None:
-                try:
-                    filters_box.setLayoutDirection(rtl)
-                except Exception:
-                    pass
+            pass
         filters_box_layout = QHBoxLayout(filters_box)
         filters_box_layout.setContentsMargins(0, 0, 0, 0)
         filters_box_layout.setSpacing(8)
@@ -154,12 +171,7 @@ class YearlyCategoryTrendsPage(BasePage):
             try:
                 w.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             except Exception:
-                fixed = getattr(QSizePolicy, "Fixed", None)
-                if fixed is not None:
-                    try:
-                        w.setSizePolicy(fixed, fixed)
-                    except Exception:
-                        pass
+                pass
             try:
                 hint = w.sizeHint()
                 w.setMinimumWidth(int(hint.width()) + 2)
@@ -169,53 +181,31 @@ class YearlyCategoryTrendsPage(BasePage):
         def _fix_checkbox_min_width(cb: QCheckBox) -> None:
             try:
                 cb.ensurePolished()
-            except Exception:
-                pass
-            try:
                 fm = cb.fontMetrics()
                 text = cb.text() or ""
                 try:
                     text_w = int(fm.horizontalAdvance(text))
                 except Exception:
-                    width_fn = getattr(fm, "width", None)
-                    if callable(width_fn):
-                        try:
-                            text_w = int(width_fn(text))
-                        except Exception:
-                            text_w = int(len(text) * 10)
-                    else:
-                        text_w = int(len(text) * 10)
-
-                indicator_w = 18
-                gap = 12
-                extra = 8
-                cb.setMinimumWidth(text_w + indicator_w + gap + extra)
+                    text_w = int(len(text) * 10)
+                cb.setMinimumWidth(text_w + 18 + 12 + 8)
             except Exception:
                 _fix_min_width(cb)
 
         for w in (
-            show_label,
-            self._income_cb,
-            self._expense_cb,
-            types_label,
-            self._monthly_cb,
-            self._one_time_cb,
-            self._yearly_cb,
+            show_label, self._income_cb, self._expense_cb,
+            types_label, self._monthly_cb, self._one_time_cb, self._yearly_cb,
         ):
-            try:
-                if w is not None:
-                    if isinstance(w, QCheckBox):
-                        _fix_checkbox_min_width(w)
-                    else:
-                        _fix_min_width(w)
-            except Exception:
-                pass
+            if w is not None:
+                if isinstance(w, QCheckBox):
+                    _fix_checkbox_min_width(w)
+                else:
+                    _fix_min_width(w)
 
-        divider_between_show_and_types = QWidget(filters_box)
-        divider_between_show_and_types.setObjectName("TrendsControlsDividerLine")
+        divider = QWidget(filters_box)
+        divider.setObjectName("TrendsControlsDividerLine")
         try:
-            divider_between_show_and_types.setFixedWidth(3)
-            divider_between_show_and_types.setFixedHeight(22)
+            divider.setFixedWidth(3)
+            divider.setFixedHeight(22)
         except Exception:
             pass
 
@@ -224,9 +214,7 @@ class YearlyCategoryTrendsPage(BasePage):
         filters_box_layout.addWidget(self._expense_cb, 0, Qt.AlignmentFlag.AlignRight)
         filters_box_layout.addSpacing(8)
         filters_box_layout.addWidget(
-            divider_between_show_and_types,
-            0,
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+            divider, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         )
         filters_box_layout.addSpacing(8)
         filters_box_layout.addWidget(types_label, 0, Qt.AlignmentFlag.AlignRight)
@@ -234,27 +222,14 @@ class YearlyCategoryTrendsPage(BasePage):
         filters_box_layout.addWidget(self._one_time_cb, 0, Qt.AlignmentFlag.AlignRight)
         filters_box_layout.addWidget(self._yearly_cb, 0, Qt.AlignmentFlag.AlignRight)
 
-        divider_between_year_and_filters = QWidget(top_controls)
-        divider_between_year_and_filters.setObjectName("TrendsControlsDividerLine")
-        try:
-            divider_between_year_and_filters.setFixedWidth(3)
-            divider_between_year_and_filters.setFixedHeight(22)
-        except Exception:
-            pass
-
-        top_controls_layout.addWidget(self._year_picker, 0, Qt.AlignmentFlag.AlignRight)
-        top_controls_layout.addSpacing(8)
-        top_controls_layout.addWidget(
-            divider_between_year_and_filters,
-            0,
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-        )
+        top_controls_layout.addWidget(self._range_bar, 0, Qt.AlignmentFlag.AlignRight)
         top_controls_layout.addSpacing(8)
         top_controls_layout.addWidget(filters_box, 0, Qt.AlignmentFlag.AlignRight)
         top_controls_layout.addStretch(1)
 
         layout.addWidget(top_controls, 0)
 
+        # ── chart card ────────────────────────────────────────────────────
         chart_card = QWidget(container)
         chart_card.setObjectName("ContentPanel")
         try:
@@ -263,32 +238,22 @@ class YearlyCategoryTrendsPage(BasePage):
             pass
         chart_layout = QVBoxLayout(chart_card)
         chart_layout.setContentsMargins(16, 16, 16, 16)
-        chart_layout.setSpacing(12)
+        chart_layout.setSpacing(8)
+
+        self._proj_status_label = QLabel("", chart_card)
+        self._proj_status_label.setObjectName("Subtitle")
+        try:
+            self._proj_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        self._proj_status_label.hide()
+        chart_layout.addWidget(self._proj_status_label)
 
         self._combined_chart = CategoryTrendsChart(chart_card)
         chart_layout.addWidget(self._combined_chart, 1)
 
         layout.addWidget(chart_card, 1)
         main_col.addWidget(container, 1)
-
-        self._available_years = list(self._yearly_service.get_available_years())
-        if not self._available_years:
-            placeholder = QLabel("אין נתונים להצגה", container)
-            placeholder.setObjectName("Title")
-            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(placeholder, 1)
-            return
-
-        if (
-            self._current_year is None
-            or self._current_year not in self._available_years
-        ):
-            self._current_year = self._available_years[0]
-
-        if self._year_picker is not None:
-            self._year_picker.set_years(
-                self._available_years, current=self._current_year
-            )
 
         try:
             if self._combined_chart is not None:
@@ -309,24 +274,23 @@ class YearlyCategoryTrendsPage(BasePage):
         except Exception:
             pass
 
+    # ------------------------------------------------------------------ range
+
+    def _on_range_changed(self, months: int) -> None:
+        self._current_months = months
+        self._proj_income = None
+        self._proj_expense = None
+        self._proj_error = None
+        self._refresh()
+        if months == -1 and has_gemini_api_key():
+            self._start_forecast_thread()
+
     def _refresh(self) -> None:
-        if self._current_year is None or self._combined_chart is None:
+        if self._combined_chart is None:
             return
 
-        month_labels = [
-            "ינואר",
-            "פברואר",
-            "מרץ",
-            "אפריל",
-            "מאי",
-            "יוני",
-            "יולי",
-            "אוגוסט",
-            "ספטמבר",
-            "אוקטובר",
-            "נובמבר",
-            "דצמבר",
-        ]
+        forecast = self._current_months == -1
+        actual_months = 3 if forecast else self._current_months
 
         types: Set[MovementType] = set()
         if self._type_monthly:
@@ -337,34 +301,141 @@ class YearlyCategoryTrendsPage(BasePage):
             types.add(MovementType.YEARLY)
         types_filter: Optional[Set[MovementType]] = types if types else set()
 
-        income = (
-            self._yearly_service.get_category_month_totals(
-                self._current_year,
-                is_income=True,
-                movement_types=types_filter,
+        income: Dict[str, List[float]] = {}
+        income_labels: List[str] = []
+        if self._show_income:
+            income, income_labels = self._yearly_service.get_window_category_totals(
+                actual_months, is_income=True, movement_types=types_filter
             )
-            if self._show_income
-            else {}
-        )
-        expense = (
-            self._yearly_service.get_category_month_totals(
-                self._current_year,
-                is_income=False,
-                movement_types=types_filter,
+
+        expense: Dict[str, List[float]] = {}
+        expense_labels: List[str] = []
+        if self._show_expense:
+            expense, expense_labels = self._yearly_service.get_window_category_totals(
+                actual_months, is_income=False, movement_types=types_filter
             )
-            if self._show_expense
-            else {}
-        )
 
-        self._combined_chart.set_combined_series(
-            income, expense, month_labels, expenses_negative=False
-        )
+        month_labels = income_labels or expense_labels
 
-    def _on_year_changed(self, year: int) -> None:
-        if year == self._current_year:
-            return
-        self._current_year = year
-        self._refresh()
+        # In forecast mode, append projection data when available
+        if forecast and (self._proj_income or self._proj_expense):
+            proj_labels = _future_month_labels(6)
+            # Extend actual data with projection values
+            combined_labels = month_labels + proj_labels
+            n_actual = len(month_labels)
+            n_proj = len(proj_labels)
+
+            def _extend(actual: Dict[str, List[float]], proj: Dict[str, List[float]]) -> Dict[str, List[float]]:
+                merged: Dict[str, List[float]] = {}
+                all_cats = set(actual.keys()) | set(proj.keys())
+                for cat in all_cats:
+                    act_vals = list(actual.get(cat, [0.0] * n_actual))
+                    prj_vals = list(proj.get(cat, [0.0] * n_proj))
+                    if len(act_vals) < n_actual:
+                        act_vals += [0.0] * (n_actual - len(act_vals))
+                    if len(prj_vals) < n_proj:
+                        prj_vals += [0.0] * (n_proj - len(prj_vals))
+                    merged[cat] = act_vals + prj_vals
+                return merged
+
+            combined_income = _extend(income, self._proj_income or {})
+            combined_expense = _extend(expense, self._proj_expense or {})
+            self._combined_chart.set_combined_series(
+                combined_income, combined_expense, combined_labels, expenses_negative=False
+            )
+        else:
+            self._combined_chart.set_combined_series(
+                income, expense, month_labels, expenses_negative=False
+            )
+
+        # Status label
+        if self._proj_status_label is not None:
+            if forecast:
+                if self._proj_loading:
+                    self._proj_status_label.setText("⏳ מחשב תחזית AI...")
+                    self._proj_status_label.show()
+                elif self._proj_error:
+                    self._proj_status_label.setText(f"❌ {self._proj_error}")
+                    self._proj_status_label.show()
+                else:
+                    self._proj_status_label.hide()
+            else:
+                self._proj_status_label.hide()
+
+    # ------------------------------------------------------------------ forecast
+
+    def _start_forecast_thread(self) -> None:
+        svc = self._yearly_service
+        page_ref = weakref.ref(self)
+
+        types: Set[MovementType] = set()
+        if self._type_monthly:
+            types.add(MovementType.MONTHLY)
+        if self._type_one_time:
+            types.add(MovementType.ONE_TIME)
+        if self._type_yearly:
+            types.add(MovementType.YEARLY)
+        types_filter: Optional[Set[MovementType]] = types if types else set()
+        show_inc = self._show_income
+        show_exp = self._show_expense
+
+        def _set_loading(val: bool) -> None:
+            page = page_ref()
+            if page is not None:
+                page._proj_loading = val
+                page._refresh()
+
+        def _set_data(inc: Dict[str, List[float]], exp: Dict[str, List[float]]) -> None:
+            page = page_ref()
+            if page is not None:
+                page._proj_loading = False
+                page._proj_income = inc
+                page._proj_expense = exp
+                page._refresh()
+
+        def _set_failed(msg: str) -> None:
+            page = page_ref()
+            if page is not None:
+                page._proj_loading = False
+                page._proj_error = msg
+                page._refresh()
+
+        QTimer.singleShot(0, lambda: _set_loading(True))
+
+        def _run() -> None:
+            try:
+                inc_hist, hist_labels = svc.get_window_category_totals(
+                    12, is_income=True, movement_types=types_filter
+                )
+                exp_hist, _ = svc.get_window_category_totals(
+                    12, is_income=False, movement_types=types_filter
+                )
+
+                proj_inc: Dict[str, List[float]] = {}
+                proj_exp: Dict[str, List[float]] = {}
+
+                if show_inc and inc_hist:
+                    proj_inc = get_gemini_classifier().predict_category_trends(
+                        inc_hist, hist_labels, horizon=6
+                    )
+                if show_exp and exp_hist:
+                    proj_exp = get_gemini_classifier().predict_category_trends(
+                        exp_hist, hist_labels, horizon=6
+                    )
+
+                if proj_inc or proj_exp:
+                    QTimer.singleShot(0, lambda: _set_data(proj_inc, proj_exp))
+                else:
+                    QTimer.singleShot(
+                        0,
+                        lambda: _set_failed("לא התקבלה תחזית מה-AI — נסה שוב מאוחר יותר"),
+                    )
+            except Exception:
+                QTimer.singleShot(0, lambda: _set_failed("תחזית נכשלה — בדוק חיבור לאינטרנט"))
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    # ------------------------------------------------------------------ filters
 
     def _on_filters_changed(self, _checked: bool) -> None:
         try:
@@ -381,6 +452,8 @@ class YearlyCategoryTrendsPage(BasePage):
         except Exception:
             pass
         self._refresh()
+
+    # ------------------------------------------------------------------ lifecycle
 
     def on_route_activated(self) -> None:
         super().on_route_activated()

@@ -32,17 +32,22 @@ class YearlyBalanceChart(QWidget):
         self._layout.setSpacing(0)
         self._view: Optional[ShadowChartView] = None
 
-    def set_monthly_net(self, values: List[float], month_labels: List[str]) -> None:
+    def set_monthly_net(
+        self,
+        values: List[float],
+        month_labels: List[str],
+        *,
+        proj_values: Optional[List[float]] = None,
+        proj_labels: Optional[List[str]] = None,
+    ) -> None:
         if not charts_available:
             return
 
-        base_values = [float(v) for v in (values[:12] if values else [])]
-        if len(base_values) < 12:
-            base_values = base_values + [0.0] * (12 - len(base_values))
-
-        labels = list(month_labels[:12])
-        if len(labels) < 12:
-            labels = labels + [""] * (12 - len(labels))
+        n = max(1, len(values))
+        base_values = [float(v) for v in values[:n]]
+        labels = list(month_labels[:n])
+        if len(labels) < n:
+            labels = labels + [""] * (n - len(labels))
 
         samples = [
             (float(x), float(y)) for x, y in catmull_rom_spline_samples(base_values)
@@ -133,7 +138,7 @@ class YearlyBalanceChart(QWidget):
             hit_series.setPointsVisible(False)
         except Exception:
             pass
-        for i, y in enumerate(base_values[:12]):
+        for i, y in enumerate(base_values):
             hit_series.append(float(i), float(y))
         try:
             pen = hit_series.pen()
@@ -147,11 +152,49 @@ class YearlyBalanceChart(QWidget):
             pass
         chart.addSeries(hit_series)
 
+        # ── projection dashed series ─────────────────────────────────────
+        p_vals: List[float] = []
+        p_labels: List[str] = []
+        if proj_values:
+            p = len(proj_values)
+            p_vals = list(proj_values[:p])
+            p_labels = list((proj_labels or [])[:p])
+            if len(p_labels) < p:
+                p_labels = p_labels + [""] * (p - len(p_labels))
+            # proj series: starts at last actual value for smooth join
+            all_proj = [base_values[-1]] + p_vals if base_values else p_vals
+            from ..models.charts import catmull_rom_spline_samples as _crs
+
+            proj_series = QLineSeries()
+            try:
+                proj_series.setPointsVisible(False)
+            except Exception:
+                pass
+            try:
+                pen = proj_series.pen()
+                pen.setColor(QColor("#f59e0b"))
+                try:
+                    pen.setWidthF(2.0)
+                    pen.setStyle(Qt.PenStyle.DashLine)
+                except Exception:
+                    pass
+                proj_series.setPen(pen)
+            except Exception:
+                pass
+            x_offset = float(n - 1)
+            for x_val, y_val in _crs(all_proj):
+                proj_series.append(x_val + x_offset, y_val)
+            chart.addSeries(proj_series)
+
+        # ── x-axis (actual + optional projection labels) ─────────────────
+        all_labels = labels + p_labels
+        total_n = n + len(p_labels)
+
         axis_x = QCategoryAxis()
-        for i, label in enumerate(labels):
+        for i, label in enumerate(all_labels):
             axis_x.append(label, float(i))
         try:
-            axis_x.setRange(0.0, 11.0)
+            axis_x.setRange(0.0, float(total_n - 1))
         except Exception:
             pass
         try:
@@ -219,7 +262,7 @@ class YearlyBalanceChart(QWidget):
         except Exception:
             pass
         zero_line.append(0.0, 0.0)
-        zero_line.append(11.0, 0.0)
+        zero_line.append(float(total_n - 1), 0.0)
         try:
             app = QApplication.instance()
             is_dark = False
@@ -271,7 +314,7 @@ class YearlyBalanceChart(QWidget):
                 except Exception:
                     pass
 
-        month_keys: List[tuple[int, int]] = [(0, i + 1) for i in range(12)]
+        month_keys: List[tuple[int, int]] = [(0, i + 1) for i in range(total_n)]
         tooltip_specs = [(hit_series, "יתרה", base_values)]
         view = ShadowChartView(
             chart,
@@ -280,7 +323,7 @@ class YearlyBalanceChart(QWidget):
             tooltip_specs,
             lambda v: format_currency(v, use_compact=True),
             self,
-            x_labels=labels,
+            x_labels=all_labels,
             baseline_value=0.0,
         )
         try:
