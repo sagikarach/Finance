@@ -9,20 +9,39 @@ from .bank_movement import MovementType
 from .keychain_passwords import delete_password, get_password, set_password
 
 _KEYCHAIN_ACCOUNT = "gemini_api_key"
-_MODEL = "gemini-2.0-flash"
+# Ordered list of models to try; first available / not quota-exhausted wins.
+_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash-lite",
+    "gemini-flash-lite-latest",
+]
 _CONFIDENCE = 0.85
 
+
 def _generate_with_retry(client: Any, prompt: str, retries: int = 2) -> str:
-    """Call Gemini with simple exponential-backoff retry on 503."""
+    """Call Gemini with fallback models and exponential-backoff retry on 503.
+
+    Tries each model in _MODELS in order.  A 429 RESOURCE_EXHAUSTED immediately
+    moves to the next model; a 503 UNAVAILABLE is retried with backoff first.
+    """
     last_err: Optional[Exception] = None
-    for attempt in range(retries + 1):
-        try:
-            response = client.models.generate_content(model=_MODEL, contents=prompt)
-            return (response.text or "").strip()
-        except Exception as exc:
-            last_err = exc
-            if attempt < retries:
-                time.sleep(2 ** attempt)
+    for model in _MODELS:
+        for attempt in range(retries + 1):
+            try:
+                response = client.models.generate_content(
+                    model=model, contents=prompt
+                )
+                return (response.text or "").strip()
+            except Exception as exc:
+                last_err = exc
+                err_str = str(exc)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    break  # quota exhausted for this model — skip to next
+                if attempt < retries:
+                    time.sleep(2 ** attempt)
+                else:
+                    break  # all retries failed for this model — skip to next
     raise last_err  # type: ignore[misc]
 
 
@@ -267,7 +286,7 @@ class GeminiClassifier:
         monthly_net_savings: float,
         today_year: int,
         today_month: int,
-        horizon: int = 12,
+        horizon: int = 6,
     ) -> Dict[str, List[float]]:
         """Predict savings balances for the next *horizon* months.
 

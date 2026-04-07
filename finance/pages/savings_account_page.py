@@ -203,6 +203,7 @@ class SavingsAccountPage(BasePage):
                     monthly_net_savings,
                     today.year,
                     today.month,
+                    horizon=6,
                 )
 
                 if result:

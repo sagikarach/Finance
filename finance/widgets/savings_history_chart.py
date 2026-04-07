@@ -73,7 +73,11 @@ def _apply_line_pen(
         pass
 
 
-def _compute_future_months(n: int = 12) -> List[tuple[int, int]]:
+_FORECAST_HISTORY_MONTHS = 3   # past months shown in forecast mode
+_FORECAST_FUTURE_MONTHS = 6   # future months shown in forecast mode
+
+
+def _compute_future_months(n: int = _FORECAST_FUTURE_MONTHS) -> List[tuple[int, int]]:
     """Return the next *n* (year, month) tuples after today."""
     today = date.today()
     keys: List[tuple[int, int]] = []
@@ -547,14 +551,20 @@ class SavingsHistoryChartCard(QWidget):
 
         self._current_months = months
 
-        first_idx = max(0, n - months) if 0 < months < n else 0
+        # Forecast mode (-1): show last 3 history months + 6 future months
+        forecast_mode = months == -1
+        if forecast_mode:
+            first_idx = max(0, n - _FORECAST_HISTORY_MONTHS)
+        else:
+            first_idx = max(0, n - months) if 0 < months < n else 0
+
         visible_hist_keys = self._all_month_keys[first_idx:]
         n_vis = len(visible_hist_keys)
         if n_vis == 0:
             return
 
-        # Always append future months to the visible axis so projections show
-        has_proj = bool(self._proj_series_data)
+        # Only append future months in forecast mode
+        has_proj = forecast_mode and bool(self._proj_series_data)
         combined_keys = list(visible_hist_keys) + (
             list(self._future_month_keys) if has_proj else []
         )
@@ -605,8 +615,10 @@ class SavingsHistoryChartCard(QWidget):
             padded: List[float] = list(vals) + [vals[-1]] * (n_combined - n_vis)
             tooltip_specs.append((series, name, padded))
 
-        # ── rebuild projection series (dashed) ───────────────────────────
-        for name, proj_vals, color in self._proj_series_data:
+        # ── rebuild projection series (dashed, forecast mode only) ───────
+        if not forecast_mode:
+            self._proj_series_data  # keep data, just don't render
+        for name, proj_vals, color in (self._proj_series_data if forecast_mode else []):
             # proj_vals[0] == last historical value, proj_vals[1..12] == future
             if not proj_vals:
                 continue
