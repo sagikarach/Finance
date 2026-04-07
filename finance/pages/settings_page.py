@@ -23,6 +23,7 @@ from ..models.accounts_service import AccountsService
 from .base_page import BasePage
 from ..models.firebase_session import FirebaseSessionStore
 from .settings_sections import (
+    AiAssistantCard,
     BankAccountsCard,
     FirebaseSyncCard,
     NotificationsCard,
@@ -146,6 +147,7 @@ class SettingsPage(BasePage):
             on_refreshed=getattr(self, "_refresh_notifications_badge", None),
         )
         firebase_card = FirebaseSyncCard(parent=self, store=FirebaseSessionStore())
+        ai_card = AiAssistantCard(parent=self)
 
         container = QWidget(self)
         try:
@@ -178,6 +180,7 @@ class SettingsPage(BasePage):
         menu.addItem("חשבונות")
         menu.addItem("התראות")
         menu.addItem("שיתוף וסנכרון")
+        menu.addItem("עוזר AI")
 
         stack = QStackedWidget(container)
 
@@ -370,6 +373,7 @@ class SettingsPage(BasePage):
         stack.addWidget(_wrap_page(bank_accounts_card))
         stack.addWidget(_wrap_page(notifications_card))
         stack.addWidget(_wrap_page(firebase_card))
+        stack.addWidget(_wrap_page(ai_card))
 
         def _save_selected(idx: int) -> None:
             try:

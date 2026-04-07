@@ -21,6 +21,7 @@ from .budget_period import budget_period_end_key, current_budget_period_end_key
 from .classified_expense import ClassifiedExpense
 from .csv_expense_parser import CsvExpenseParser
 from .movement_classifier import SimilarityBasedClassifier
+from .gemini_classifier import get_gemini_classifier, has_gemini_api_key, _CONFIDENCE as _GEMINI_CONFIDENCE
 
 
 class OverBudgetError(ValueError):
@@ -672,6 +673,43 @@ class BankMovementService:
                     record_history=False,
                 )
                 self._imported_for_last_csv.append(movement)
+
+        # --- Gemini batch fallback -------------------------------------------
+        # Upgrade any low-confidence classifications by asking Gemini in one
+        # API call.  Only runs when a Gemini API key is configured.
+        if all_classified and has_gemini_api_key():
+            low_conf_indices = [
+                i for i, c in enumerate(all_classified)
+                if c.confidence < self.min_confidence
+            ]
+            if low_conf_indices:
+                try:
+                    batch_input = [
+                        (
+                            str(all_classified[i].movement.description or ""),
+                            float(all_classified[i].movement.amount),
+                        )
+                        for i in low_conf_indices
+                    ]
+                    gemini_results = get_gemini_classifier().classify_batch(
+                        batch_input, allowed_categories
+                    )
+                    for batch_pos, orig_idx in enumerate(low_conf_indices):
+                        if batch_pos not in gemini_results:
+                            continue
+                        g_cat, g_type = gemini_results[batch_pos]
+                        if not g_cat:
+                            continue
+                        old = all_classified[orig_idx]
+                        all_classified[orig_idx] = ClassifiedExpense(
+                            movement=old.movement,
+                            suggested_category=g_cat,
+                            suggested_type=g_type,
+                            confidence=_GEMINI_CONFIDENCE,
+                        )
+                except Exception:
+                    pass
+        # ---------------------------------------------------------------------
 
         if all_classified:
             all_classified_sorted = sorted(all_classified, key=lambda x: x.confidence)
