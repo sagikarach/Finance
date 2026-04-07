@@ -257,6 +257,162 @@ class GeminiClassifier:
 
         return self._parse_filter_response(raw, id_map)
 
+    # ------------------------------------------------------------------
+    # Savings balance projection
+    # ------------------------------------------------------------------
+
+    def predict_savings_balances(
+        self,
+        savings_input: List[Dict[str, Any]],
+        monthly_net_savings: float,
+        today_year: int,
+        today_month: int,
+        horizon: int = 12,
+    ) -> Dict[str, List[float]]:
+        """Predict savings balances for the next *horizon* months.
+
+        Args:
+            savings_input: list of dicts, each with:
+                - name: str
+                - current: float  (latest known balance)
+                - history: list of {"month": "YYYY-MM", "balance": float}
+            monthly_net_savings: average monthly net savings (income-expenses)
+                computed from the last 6 months of movements data.
+            today_year / today_month: current date for the prompt context.
+            horizon: how many months to project (default 12).
+
+        Returns:
+            dict mapping saving name → list[float] of length *horizon*.
+            Missing entries mean the prediction failed for that saving.
+        """
+        if not savings_input:
+            return {}
+
+        api_key = get_gemini_api_key()
+        if not api_key:
+            return {}
+
+        try:
+            import google.genai as genai  # type: ignore[import]
+        except ImportError:
+            return {}
+
+        # Build future month labels for the prompt
+        future_months: List[str] = []
+        y, m = today_year, today_month
+        for _ in range(horizon):
+            m += 1
+            if m > 12:
+                m = 1
+                y += 1
+            future_months.append(f"{y}-{m:02d}")
+
+        # Format each saving's history (last 12 snapshots)
+        savings_lines: List[str] = []
+        for s in savings_input:
+            name = str(s.get("name") or "")
+            current = float(s.get("current") or 0.0)
+            hist = list(s.get("history") or [])
+            hist_sorted = sorted(hist, key=lambda h: str(h.get("month") or ""))
+            hist_recent = hist_sorted[-12:]
+            hist_str = ", ".join(
+                f'{h["month"]}: {float(h["balance"]):,.0f}₪' for h in hist_recent
+            )
+            savings_lines.append(
+                f'  - "{name}" | יתרה נוכחית: {current:,.0f}₪'
+                + (f' | היסטוריה: {hist_str}' if hist_str else "")
+            )
+
+        prompt = (
+            "אתה יועץ פיננסי אישי. חזה את יתרת כל חסכון לכל אחד מהחודשים הבאים.\n\n"
+            f"קצב חיסכון נטו חודשי ממוצע (הכנסות פחות הוצאות, 6 חודשים אחרונים): "
+            f"{monthly_net_savings:,.0f}₪\n\n"
+            "חסכונות:\n"
+            + "\n".join(savings_lines)
+            + "\n\n"
+            f"חודש נוכחי: {today_year}-{today_month:02d}\n"
+            f"חזה עבור חודשים: {', '.join(future_months)}\n\n"
+            "הנחות:\n"
+            "- שמור על קצב הצמיחה שנצפה בכל חסכון בפועל (מהנתונים ההיסטוריים).\n"
+            "- אם אין מספיק היסטוריה, הניח קצב יציב.\n"
+            "- אל תמציא תשואות — הסתמך רק על הנתונים שסופקו.\n\n"
+            "החזר אך ורק JSON array תקין (ללא הסברים):\n"
+            '[{"name": "שם החסכון", '
+            '"projections": [{"month": "YYYY-MM", "balance": 12345}, ...]}, ...]\n'
+            "מספר האובייקטים = מספר החסכונות. "
+            "מספר ה-projections בכל אובייקט = " + str(horizon) + "."
+        )
+
+        try:
+            client = genai.Client(api_key=api_key)
+            raw = _generate_with_retry(client, prompt)
+        except Exception:
+            return {}
+
+        return self._parse_projection_response(raw, savings_input, future_months)
+
+    def _parse_projection_response(
+        self,
+        raw: str,
+        savings_input: List[Dict[str, Any]],
+        future_months: List[str],
+    ) -> Dict[str, List[float]]:
+        cleaned = re.sub(r"```[a-z]*\n?", "", raw).strip()
+
+        try:
+            data = json.loads(cleaned)
+        except Exception:
+            m = re.search(r"\[.*\]", cleaned, re.DOTALL)
+            if not m:
+                return {}
+            try:
+                data = json.loads(m.group(0))
+            except Exception:
+                return {}
+
+        if not isinstance(data, list):
+            return {}
+
+        known_names = {str(s.get("name") or "") for s in savings_input}
+        result: Dict[str, List[float]] = {}
+
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            if not name:
+                continue
+            # Fuzzy match: allow partial name overlap
+            matched_name = name if name in known_names else next(
+                (n for n in known_names if n in name or name in n), name
+            )
+            projections = item.get("projections") or []
+            if not isinstance(projections, list):
+                continue
+
+            # Build ordered list aligned to future_months
+            month_to_bal: Dict[str, float] = {}
+            for p in projections:
+                if not isinstance(p, dict):
+                    continue
+                try:
+                    month_to_bal[str(p["month"])] = float(p["balance"])
+                except Exception:
+                    continue
+
+            balances: List[float] = []
+            last = 0.0
+            for fm in future_months:
+                val = month_to_bal.get(fm)
+                if val is not None:
+                    last = val
+                balances.append(last)
+
+            if any(b > 0 for b in balances):
+                result[matched_name] = balances
+
+        return result
+
     def _parse_filter_response(
         self, raw: str, id_map: Optional[Dict[int, str]] = None
     ) -> Dict[str, Tuple[bool, str]]:

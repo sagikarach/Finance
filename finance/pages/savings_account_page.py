@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+from datetime import date
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (
@@ -16,13 +18,15 @@ from ..qt import (
     QDateEdit,
     QDate,
     QDialog,
+    QTimer,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.action_history_provider import JsonFileActionHistoryProvider
-from ..models.accounts import SavingsAccount
+from ..models.accounts import SavingsAccount, parse_iso_date
 from ..models.accounts_service import AccountsService
+from ..models.gemini_classifier import get_gemini_classifier, has_gemini_api_key
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row, setup_calendar_popup
-from ..widgets.savings_history_chart import create_savings_history_chart_card
+from ..widgets.savings_history_chart import SavingsHistoryChartCard, create_savings_history_chart_card
 from ..utils.formatting import format_currency
 from .base_page import BasePage
 
@@ -153,6 +157,90 @@ class SavingsAccountPage(BasePage):
 
         main_col.addWidget(top_card, 1)
         main_col.addWidget(chart_card, 2)
+
+        if has_gemini_api_key() and isinstance(chart_card, SavingsHistoryChartCard):
+            self._start_projection_thread(target, chart_card)
+
+    def _start_projection_thread(
+        self, account: SavingsAccount, chart_card: SavingsHistoryChartCard
+    ) -> None:
+        """Fire a background thread to call Gemini for savings projections."""
+
+        def _run() -> None:
+            try:
+                today = date.today()
+
+                # Build per-saving history input
+                savings_input = []
+                for s in account.savings:
+                    hist = []
+                    for snap in s.history:
+                        try:
+                            dt = parse_iso_date(str(snap.date))
+                            from datetime import datetime
+                            if dt != datetime.min:
+                                hist.append(
+                                    {
+                                        "month": f"{dt.year}-{dt.month:02d}",
+                                        "balance": float(snap.amount),
+                                    }
+                                )
+                        except Exception:
+                            pass
+                    savings_input.append(
+                        {
+                            "name": str(s.name),
+                            "current": float(s.amount),
+                            "history": hist,
+                        }
+                    )
+
+                # Estimate monthly net savings from movements (last 6 months)
+                monthly_net_savings = self._compute_monthly_net(today)
+
+                result = get_gemini_classifier().predict_savings_balances(
+                    savings_input,
+                    monthly_net_savings,
+                    today.year,
+                    today.month,
+                )
+
+                if result:
+                    try:
+                        QTimer.singleShot(0, lambda: chart_card.set_projection_data(result))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _compute_monthly_net(self, today: date) -> float:
+        """Return average monthly net cash-flow over the last 6 months."""
+        try:
+            from ..data.bank_movement_provider import JsonFileBankMovementProvider
+            movements = list(JsonFileBankMovementProvider().list_movements())
+        except Exception:
+            return 0.0
+
+        nets: List[float] = []
+        for delta in range(1, 7):
+            m = today.month - delta
+            y = today.year
+            while m <= 0:
+                m += 12
+                y -= 1
+            prefix = f"{y}-{m:02d}"
+            month_mvs = [
+                mv for mv in movements
+                if str(getattr(mv, "date", "") or "").startswith(prefix)
+                and not getattr(mv, "is_transfer", False)
+            ]
+            income = sum(float(mv.amount) for mv in month_mvs if float(mv.amount) > 0)
+            expenses = sum(abs(float(mv.amount)) for mv in month_mvs if float(mv.amount) < 0)
+            nets.append(income - expenses)
+
+        return sum(nets) / len(nets) if nets else 0.0
 
     def on_route_activated(self) -> None:
         super().on_route_activated()

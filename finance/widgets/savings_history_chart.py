@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from datetime import date
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (
@@ -47,7 +48,9 @@ def _label_color() -> QColor:
     return color
 
 
-def _apply_line_pen(series: QLineSeries, color: QColor) -> None:
+def _apply_line_pen(
+    series: QLineSeries, color: QColor, *, dashed: bool = False
+) -> None:
     try:
         pen = series.pen()
         pen.setColor(color)
@@ -60,9 +63,28 @@ def _apply_line_pen(series: QLineSeries, color: QColor) -> None:
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         except Exception:
             pass
+        if dashed:
+            try:
+                pen.setStyle(Qt.PenStyle.DashLine)
+            except Exception:
+                pass
         series.setPen(pen)
     except Exception:
         pass
+
+
+def _compute_future_months(n: int = 12) -> List[tuple[int, int]]:
+    """Return the next *n* (year, month) tuples after today."""
+    today = date.today()
+    keys: List[tuple[int, int]] = []
+    y, m = today.year, today.month
+    for _ in range(n):
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+        keys.append((y, m))
+    return keys
 
 
 def _build_x_axis(
@@ -297,6 +319,9 @@ class ShadowChartView(QChartView):
             if idx >= len(values):
                 continue
             amount_val = float(values[idx])
+            # Skip zero-padded slots used by projection series before their start
+            if amount_val == 0.0 and name.startswith("תחזית:") and idx < len(values) - 1:
+                continue
             try:
                 series_pos = chart.mapToPosition(QPointF(float(idx), amount_val), series)
             except Exception:
@@ -389,6 +414,10 @@ class SavingsHistoryChartCard(QWidget):
     Includes a TimeRangeBar (3M / 6M / 1Y / 2Y / הכל).
     On each range change the series and axes are rebuilt for the visible slice
     with a smart label density, preventing truncation and fill glitches.
+
+    Projection dashed lines can be injected after construction via
+    ``set_projection_data(data)`` (called from the main thread after an async
+    Gemini response).
     """
 
     def __init__(
@@ -409,6 +438,10 @@ class SavingsHistoryChartCard(QWidget):
         self._all_month_keys: List[tuple[int, int]] = []
         # list of (name, full_base_values, color)
         self._all_series_data: List[tuple[str, List[float], QColor]] = []
+        # list of (name, proj_vals_13, color) — last-hist value + 12 future
+        self._proj_series_data: List[tuple[str, List[float], QColor]] = []
+        self._future_month_keys: List[tuple[int, int]] = _compute_future_months(12)
+        self._current_months: int = 0
         self._format_amount = format_amount
 
         layout = QVBoxLayout(self)
@@ -492,6 +525,19 @@ class SavingsHistoryChartCard(QWidget):
 
     # ------------------------------------------------------------------ range
 
+    def set_projection_data(self, data: Dict[str, List[float]]) -> None:
+        """Inject Gemini projection data and re-render.  Call from main thread."""
+        self._proj_series_data = []
+        for name, all_vals, color in self._all_series_data:
+            proj_vals = data.get(name)
+            if not proj_vals:
+                continue
+            last_hist = all_vals[-1] if all_vals else 0.0
+            # prefix with the last historical value for a smooth visual join
+            full_proj: List[float] = [last_hist] + list(proj_vals[:12])
+            self._proj_series_data.append((name, full_proj, color))
+        self._apply_range(self._current_months)
+
     def _apply_range(self, months: int) -> None:
         if self._chart is None or self._chart_view is None:
             return
@@ -499,11 +545,20 @@ class SavingsHistoryChartCard(QWidget):
         if n == 0:
             return
 
+        self._current_months = months
+
         first_idx = max(0, n - months) if 0 < months < n else 0
-        visible_keys = self._all_month_keys[first_idx:]
-        n_vis = len(visible_keys)
+        visible_hist_keys = self._all_month_keys[first_idx:]
+        n_vis = len(visible_hist_keys)
         if n_vis == 0:
             return
+
+        # Always append future months to the visible axis so projections show
+        has_proj = bool(self._proj_series_data)
+        combined_keys = list(visible_hist_keys) + (
+            list(self._future_month_keys) if has_proj else []
+        )
+        n_combined = len(combined_keys)
 
         # ── clear old content ────────────────────────────────────────────
         try:
@@ -520,8 +575,8 @@ class SavingsHistoryChartCard(QWidget):
             except Exception:
                 pass
 
-        # ── rebuild series ───────────────────────────────────────────────
-        label_step = _label_step_for(n_vis)
+        # ── rebuild historical series ────────────────────────────────────
+        label_step = _label_step_for(n_combined)
         shadow_specs: List[tuple[QLineSeries, QColor]] = []
         tooltip_specs: List[tuple[QLineSeries, str, List[float]]] = []
         max_v = 0.0
@@ -546,10 +601,46 @@ class SavingsHistoryChartCard(QWidget):
 
             self._chart.addSeries(series)
             shadow_specs.append((series, color))
-            tooltip_specs.append((series, name, vals))
+            # Pad tooltip values to combined length so mouse-hover indexes align
+            padded: List[float] = list(vals) + [vals[-1]] * (n_combined - n_vis)
+            tooltip_specs.append((series, name, padded))
+
+        # ── rebuild projection series (dashed) ───────────────────────────
+        for name, proj_vals, color in self._proj_series_data:
+            # proj_vals[0] == last historical value, proj_vals[1..12] == future
+            if not proj_vals:
+                continue
+            proj_max = max(proj_vals)
+            if proj_max > max_v:
+                max_v = proj_max
+
+            proj_series = QLineSeries()
+            proj_series.setName(f"תחזית: {name}")
+            try:
+                proj_series.setPointsVisible(False)
+            except Exception:
+                pass
+            dashed_color = QColor(color)
+            try:
+                dashed_color.setAlpha(180)
+            except Exception:
+                pass
+            _apply_line_pen(proj_series, dashed_color, dashed=True)
+            # x-offset: projection starts at index (n_vis - 1) in chart space
+            x_offset = float(n_vis - 1)
+            for x_val, y_val in catmull_rom_spline_samples(proj_vals):
+                proj_series.append(x_val + x_offset, y_val)
+
+            self._chart.addSeries(proj_series)
+            # Build tooltip value list aligned to combined_keys indices
+            proj_padded: List[float] = [0.0] * (n_vis - 1) + list(proj_vals)
+            # extend if shorter than n_combined
+            while len(proj_padded) < n_combined:
+                proj_padded.append(proj_padded[-1] if proj_padded else 0.0)
+            tooltip_specs.append((proj_series, f"תחזית: {name}", proj_padded))
 
         # ── rebuild axes ─────────────────────────────────────────────────
-        axis_x = _build_x_axis(visible_keys, label_step)
+        axis_x = _build_x_axis(combined_keys, label_step)
         axis_y = _build_y_axis(max_v if max_v > 0 else 1000.0)
         lc = _label_color()
         try:
@@ -570,8 +661,8 @@ class SavingsHistoryChartCard(QWidget):
         # ── update chart_view internals ──────────────────────────────────
         self._chart_view._shadows = shadow_specs
         self._chart_view._tooltip_specs = tooltip_specs
-        self._chart_view._month_keys = list(visible_keys)
-        self._chart_view._x_labels = [f"{m:02d}/{y % 100:02d}" for y, m in visible_keys]
+        self._chart_view._month_keys = list(combined_keys)
+        self._chart_view._x_labels = [f"{m:02d}/{y % 100:02d}" for y, m in combined_keys]
 
 
 def create_savings_history_chart_card(
