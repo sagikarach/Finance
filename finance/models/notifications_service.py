@@ -25,6 +25,7 @@ from .notifications import (
     NotificationType,
     RuleType,
 )
+from .gemini_classifier import get_gemini_classifier, has_gemini_api_key
 
 
 def _today_iso() -> str:
@@ -560,6 +561,7 @@ class NotificationsService:
                 )
             )
 
+        candidates: List[BankMovement] = []
         for m in movements:
             try:
                 amt = float(getattr(m, "amount", 0.0))
@@ -568,23 +570,61 @@ class NotificationsService:
                 dt = movement_dt.get(m.id) or parse_iso_date(getattr(m, "date", ""))
                 if dt.year != target_year or dt.month != target_month:
                     continue
-
-                abs_amt = abs(float(amt))
-                if abs_amt < cutoff_amount:
+                if abs(amt) < cutoff_amount:
                     continue
-
                 key = f"unexpected_expense:{m.id}"
                 if key in existing_by_key:
                     continue
+                candidates.append(m)
+            except Exception:
+                continue
 
-                title = "הוצאה חריגה"
-                msg = f"הוצאה חריגה (טופ {int((1.0 - percentile) * 100)}%) בסכום ₪{abs_amt:.2f}"
+        # Build per-category monthly context for the past 6 months
+        category_context = self._build_category_context(movements, today)
+
+        # Try to filter/enrich with Gemini; fall back to original logic if unavailable
+        ai_results: dict[str, tuple[bool, str]] = {}
+        if candidates and has_gemini_api_key():
+            try:
+                batch = [
+                    {
+                        "movement_id": m.id,
+                        "description": str(getattr(m, "description", "") or ""),
+                        "amount": float(getattr(m, "amount", 0.0)),
+                        "category": str(getattr(m, "category", "") or ""),
+                        "date": str(getattr(m, "date", "") or ""),
+                    }
+                    for m in candidates
+                ]
+                ai_results = get_gemini_classifier().filter_unexpected_expenses(
+                    batch, category_context
+                )
+            except Exception:
+                ai_results = {}
+
+        for m in candidates:
+            try:
+                abs_amt = abs(float(getattr(m, "amount", 0.0)))
+                key = f"unexpected_expense:{m.id}"
+
+                ai_verdict = ai_results.get(m.id)
+
+                # If Gemini said it's NOT unusual, skip the notification
+                if ai_verdict is not None and not ai_verdict[0]:
+                    continue
+
+                # Use Gemini's reason when available; fall back to the old generic message
+                if ai_verdict is not None and ai_verdict[1]:
+                    msg = ai_verdict[1]
+                else:
+                    msg = f"הוצאה חריגה (טופ {int((1.0 - percentile) * 100)}%) בסכום ₪{abs_amt:.2f}"
+
                 out.append(
                     Notification(
                         id=str(uuid.uuid4()),
                         key=key,
                         type=NotificationType.UNEXPECTED_EXPENSE,
-                        title=title,
+                        title="הוצאה חריגה",
                         message=msg,
                         severity=NotificationSeverity.WARNING,
                         created_at=_today_iso(),
@@ -592,17 +632,59 @@ class NotificationsService:
                         context={
                             "movement_id": m.id,
                             "date": getattr(m, "date", ""),
-                            "amount": float(amt),
+                            "amount": float(getattr(m, "amount", 0.0)),
                             "percentile": percentile,
                             "cutoff_amount": cutoff_amount,
                             "target_year": target_year,
                             "target_month": target_month,
+                            "ai_filtered": ai_verdict is not None,
                         },
                     )
                 )
             except Exception:
                 continue
+
         return out
+
+    def _build_category_context(
+        self, movements: List[BankMovement], today: date
+    ) -> str:
+        """Build a concise 6-month per-category spending summary for Gemini context."""
+        from collections import defaultdict
+
+        monthly_by_cat: dict[str, list[float]] = defaultdict(list)
+
+        for delta in range(1, 7):
+            y, m = today.year, today.month - delta
+            while m <= 0:
+                m += 12
+                y -= 1
+            key = f"{y}-{m:02d}"
+            cat_totals: dict[str, float] = defaultdict(float)
+            for mv in movements:
+                try:
+                    if not str(getattr(mv, "date", "") or "").startswith(key):
+                        continue
+                    if getattr(mv, "is_transfer", False):
+                        continue
+                    amt = float(getattr(mv, "amount", 0.0))
+                    if amt >= 0:
+                        continue
+                    cat = str(getattr(mv, "category", "") or "שונות")
+                    cat_totals[cat] += abs(amt)
+                except Exception:
+                    continue
+            for cat, total in cat_totals.items():
+                monthly_by_cat[cat].append(total)
+
+        lines = []
+        for cat, monthly_vals in sorted(
+            monthly_by_cat.items(), key=lambda x: -sum(x[1])
+        ):
+            avg = sum(monthly_vals) / len(monthly_vals)
+            lines.append(f"  {cat}: ממוצע חודשי {avg:,.0f}₪")
+
+        return "\n".join(lines) if lines else "  אין נתונים"
 
     def _rule_missing_monthly_upload(
         self,

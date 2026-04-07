@@ -2,14 +2,29 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Dict, List, Optional, Tuple
+import time
+from typing import Any, Dict, List, Optional, Tuple
 
 from .bank_movement import MovementType
 from .keychain_passwords import delete_password, get_password, set_password
 
 _KEYCHAIN_ACCOUNT = "gemini_api_key"
-_MODEL = "gemini-2.5-flash"
+_MODEL = "gemini-2.0-flash"
 _CONFIDENCE = 0.85
+
+def _generate_with_retry(client: Any, prompt: str, retries: int = 2) -> str:
+    """Call Gemini with simple exponential-backoff retry on 503."""
+    last_err: Optional[Exception] = None
+    for attempt in range(retries + 1):
+        try:
+            response = client.models.generate_content(model=_MODEL, contents=prompt)
+            return (response.text or "").strip()
+        except Exception as exc:
+            last_err = exc
+            if attempt < retries:
+                time.sleep(2 ** attempt)
+    raise last_err  # type: ignore[misc]
+
 
 _TYPE_MAP: Dict[str, MovementType] = {
     "חודשי": MovementType.MONTHLY,
@@ -105,11 +120,7 @@ class GeminiClassifier:
 
         try:
             client = genai.Client(api_key=api_key)
-            response = client.models.generate_content(
-                model=_MODEL,
-                contents=prompt,
-            )
-            raw = (response.text or "").strip()
+            raw = _generate_with_retry(client, prompt)
         except Exception:
             return {}
 
@@ -169,6 +180,126 @@ class GeminiClassifier:
             if cat in category or category in cat:
                 return cat
         return "שונות"
+
+
+    # ------------------------------------------------------------------
+    # Notification filter
+    # ------------------------------------------------------------------
+
+    def filter_unexpected_expenses(
+        self,
+        candidates: List[Dict[str, Any]],
+        category_context: str,
+    ) -> Dict[str, Tuple[bool, str]]:
+        """Filter candidate 'unexpected expense' notifications through Gemini.
+
+        Gemini decides whether each transaction is *genuinely* unusual given
+        the user's spending history, and provides a Hebrew explanation.
+
+        Args:
+            candidates: list of dicts with keys:
+                movement_id, description, amount (negative float),
+                category, date
+            category_context: formatted string of per-category monthly
+                averages over the past 6 months.
+
+        Returns:
+            dict mapping movement_id → (is_genuinely_unusual, reason_hebrew).
+            Missing entries mean the movement was not evaluated (treat as
+            unusual = True to preserve the original behaviour as fallback).
+        """
+        if not candidates:
+            return {}
+
+        api_key = get_gemini_api_key()
+        if not api_key:
+            return {}
+
+        try:
+            import google.genai as genai  # type: ignore[import]
+        except ImportError:
+            return {}
+
+        # Use sequential indices in the prompt — UUIDs risk being mangled by the LLM.
+        # We map back from index → movement_id after parsing.
+        id_map: Dict[int, str] = {}
+        lines = []
+        for i, c in enumerate(candidates):
+            desc = str(c.get("description") or "")
+            amt = abs(float(c.get("amount") or 0))
+            cat = str(c.get("category") or "")
+            dt = str(c.get("date") or "")
+            mid = str(c.get("movement_id") or "")
+            id_map[i] = mid
+            lines.append(f'  {i}. {dt} | {cat} | "{desc}" | {amt:,.0f}₪')
+
+        prompt = (
+            "אתה מנתח דפוסי הוצאות אישיות.\n\n"
+            "להלן ממוצעי ההוצאות החודשיים לפי קטגוריה בחצי השנה האחרונה:\n"
+            f"{category_context}\n\n"
+            "עבור כל עסקה להלן, קבע אם היא באמת חריגה ובלתי צפויה.\n"
+            "חשוב: תשלומים שנתיים ידועים (ביטוח, ארנונה), חינוך קבוע, "
+            "תשלומים חוזרים — אינם חריגים גם אם הסכום גבוה.\n"
+            "חריגה אמיתית = עלייה פתאומית בקטגוריה שרגילה להיות נמוכה, "
+            "חיוב כפול, סכום שגבוה משמעותית מהממוצע ללא סיבה צפויה.\n\n"
+            "החזר אך ורק מערך JSON תקין, ללא הסברים נוספים.\n"
+            'כל אובייקט: {"index": <מספר העסקה>, "is_unusual": true/false, '
+            '"reason": "הסבר קצר בעברית (משפט אחד)"}\n\n'
+            "עסקאות:\n"
+            + "\n".join(lines)
+        )
+
+        try:
+            client = genai.Client(api_key=api_key)
+            raw = _generate_with_retry(client, prompt)
+        except Exception:
+            return {}
+
+        return self._parse_filter_response(raw, id_map)
+
+    def _parse_filter_response(
+        self, raw: str, id_map: Optional[Dict[int, str]] = None
+    ) -> Dict[str, Tuple[bool, str]]:
+        cleaned = re.sub(r"```[a-z]*\n?", "", raw).strip()
+
+        try:
+            data = json.loads(cleaned)
+        except Exception:
+            m = re.search(r"\[.*\]", cleaned, re.DOTALL)
+            if not m:
+                return {}
+            try:
+                data = json.loads(m.group(0))
+            except Exception:
+                return {}
+
+        if not isinstance(data, list):
+            return {}
+
+        result: Dict[str, Tuple[bool, str]] = {}
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            is_unusual = bool(item.get("is_unusual", True))
+            reason = str(item.get("reason") or "").strip()
+
+            # Prefer index-based lookup (new format)
+            if id_map is not None and "index" in item:
+                try:
+                    idx = int(item["index"])
+                    mid = id_map.get(idx)
+                    if mid:
+                        result[mid] = (is_unusual, reason)
+                        continue
+                except Exception:
+                    pass
+
+            # Fallback: movement_id field (old format)
+            mid = str(item.get("movement_id") or "").strip()
+            if mid:
+                result[mid] = (is_unusual, reason)
+
+        return result
 
 
 # Singleton for reuse
