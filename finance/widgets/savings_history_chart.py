@@ -442,10 +442,13 @@ class SavingsHistoryChartCard(QWidget):
         self._all_month_keys: List[tuple[int, int]] = []
         # list of (name, full_base_values, color)
         self._all_series_data: List[tuple[str, List[float], QColor]] = []
-        # list of (name, proj_vals_13, color) — last-hist value + 12 future
+        # list of (name, proj_vals_13, color) — last-hist value + future
         self._proj_series_data: List[tuple[str, List[float], QColor]] = []
-        self._future_month_keys: List[tuple[int, int]] = _compute_future_months(12)
+        self._future_month_keys: List[tuple[int, int]] = _compute_future_months()
         self._current_months: int = 0
+        self._proj_loading: bool = False
+        self._proj_error: Optional[str] = None
+        self._proj_status_label: Optional[QLabel] = None
         self._format_amount = format_amount
 
         layout = QVBoxLayout(self)
@@ -516,12 +519,23 @@ class SavingsHistoryChartCard(QWidget):
         chart_view.setStyleSheet("background: transparent;")
         self._chart_view = chart_view
 
+        # ── projection status label (loading / error) ────────────────────
+        status_lbl = QLabel("", self)
+        status_lbl.setObjectName("Subtitle")
+        try:
+            status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+        status_lbl.hide()
+        self._proj_status_label = status_lbl
+
         # ── range bar ─────────────────────────────────────────────────────
         n = len(self._all_month_keys)
         default_months = 12 if n > 12 else 0
         range_bar = TimeRangeBar(self, default_months=default_months)
         range_bar.range_changed.connect(self._apply_range)
         layout.addWidget(range_bar)
+        layout.addWidget(status_lbl)
         layout.addWidget(chart_view, 1)
 
         # populate with the initial range
@@ -529,8 +543,23 @@ class SavingsHistoryChartCard(QWidget):
 
     # ------------------------------------------------------------------ range
 
+    def set_projection_loading(self, loading: bool) -> None:
+        """Mark that a Gemini projection request is in flight.  Call from main thread."""
+        self._proj_loading = loading
+        if self._current_months == -1:
+            self._apply_range(-1)
+
+    def set_projection_failed(self, error: str) -> None:
+        """Report that projection failed.  Call from main thread."""
+        self._proj_loading = False
+        self._proj_error = error
+        if self._current_months == -1:
+            self._apply_range(-1)
+
     def set_projection_data(self, data: Dict[str, List[float]]) -> None:
         """Inject Gemini projection data and re-render.  Call from main thread."""
+        self._proj_loading = False
+        self._proj_error = None
         self._proj_series_data = []
         for name, all_vals, color in self._all_series_data:
             proj_vals = data.get(name)
@@ -538,7 +567,7 @@ class SavingsHistoryChartCard(QWidget):
                 continue
             last_hist = all_vals[-1] if all_vals else 0.0
             # prefix with the last historical value for a smooth visual join
-            full_proj: List[float] = [last_hist] + list(proj_vals[:12])
+            full_proj: List[float] = [last_hist] + list(proj_vals[:_FORECAST_FUTURE_MONTHS])
             self._proj_series_data.append((name, full_proj, color))
         self._apply_range(self._current_months)
 
@@ -562,6 +591,22 @@ class SavingsHistoryChartCard(QWidget):
         n_vis = len(visible_hist_keys)
         if n_vis == 0:
             return
+
+        # ── update status label ───────────────────────────────────────────
+        if self._proj_status_label is not None:
+            if forecast_mode:
+                if self._proj_series_data:
+                    self._proj_status_label.hide()
+                elif self._proj_error:
+                    self._proj_status_label.setText(f"❌ {self._proj_error}")
+                    self._proj_status_label.show()
+                elif self._proj_loading:
+                    self._proj_status_label.setText("⏳ מחשב תחזית AI...")
+                    self._proj_status_label.show()
+                else:
+                    self._proj_status_label.hide()
+            else:
+                self._proj_status_label.hide()
 
         # Only append future months in forecast mode
         has_proj = forecast_mode and bool(self._proj_series_data)

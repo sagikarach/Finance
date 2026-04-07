@@ -19,14 +19,30 @@ _MODELS = [
 _CONFIDENCE = 0.85
 
 
-def _generate_with_retry(client: Any, prompt: str, retries: int = 2) -> str:
-    """Call Gemini with fallback models and exponential-backoff retry on 503.
+def _parse_retry_delay(err_str: str) -> Optional[int]:
+    """Extract retryDelay seconds from a Gemini 429 error string, if present."""
+    m = re.search(r"['\"]retryDelay['\"]:\s*['\"](\d+)s['\"]", err_str)
+    return int(m.group(1)) if m else None
 
-    Tries each model in _MODELS in order.  A 429 RESOURCE_EXHAUSTED immediately
-    moves to the next model; a 503 UNAVAILABLE is retried with backoff first.
+
+def _is_daily_quota(err_str: str) -> bool:
+    """Return True when the 429 means the *daily* quota is exhausted (skip model)."""
+    return "PerDay" in err_str or "Per1Day" in err_str or "limit: 0" in err_str
+
+
+def _generate_with_retry(client: Any, prompt: str, retries: int = 2) -> str:
+    """Call Gemini with fallback models and smart retry.
+
+    Per-model strategy:
+    - 429 daily quota exhausted  → skip immediately to next model
+    - 429 RPM (per-minute) limit → wait *retryDelay* seconds, then retry same
+      model once more before moving on
+    - 503 UNAVAILABLE            → exponential backoff, then next model
+    - other errors               → skip to next model
     """
     last_err: Optional[Exception] = None
     for model in _MODELS:
+        rpm_waited = False  # only wait once per model for RPM
         for attempt in range(retries + 1):
             try:
                 response = client.models.generate_content(
@@ -36,12 +52,27 @@ def _generate_with_retry(client: Any, prompt: str, retries: int = 2) -> str:
             except Exception as exc:
                 last_err = exc
                 err_str = str(exc)
+
                 if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    break  # quota exhausted for this model — skip to next
-                if attempt < retries:
-                    time.sleep(2 ** attempt)
+                    if _is_daily_quota(err_str):
+                        break  # daily quota gone → next model
+                    if not rpm_waited:
+                        # RPM limit: wait the suggested delay, then retry once
+                        delay = _parse_retry_delay(err_str) or 62
+                        delay = min(delay + 2, 70)  # small buffer, cap at 70 s
+                        time.sleep(delay)
+                        rpm_waited = True
+                        continue  # retry same model after waiting
+                    break  # already waited once, move to next model
+
+                if "503" in err_str or "UNAVAILABLE" in err_str:
+                    if attempt < retries:
+                        time.sleep(2 ** attempt)
+                    else:
+                        break
                 else:
-                    break  # all retries failed for this model — skip to next
+                    break  # unexpected error → try next model
+
     raise last_err  # type: ignore[misc]
 
 

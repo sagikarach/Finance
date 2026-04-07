@@ -165,20 +165,47 @@ class SavingsAccountPage(BasePage):
         self, account: SavingsAccount, chart_card: SavingsHistoryChartCard
     ) -> None:
         """Fire a background thread to call Gemini for savings projections."""
+        import weakref
+        card_ref = weakref.ref(chart_card)
+
+        def _update_loading(val: bool) -> None:
+            card = card_ref()
+            if card is not None:
+                try:
+                    card.set_projection_loading(val)
+                except Exception:
+                    pass
+
+        def _update_data(result: Dict) -> None:
+            card = card_ref()
+            if card is not None:
+                try:
+                    card.set_projection_data(result)
+                except Exception:
+                    pass
+
+        def _update_failed(msg: str) -> None:
+            card = card_ref()
+            if card is not None:
+                try:
+                    card.set_projection_failed(msg)
+                except Exception:
+                    pass
+
+        QTimer.singleShot(0, lambda: _update_loading(True))
 
         def _run() -> None:
             try:
+                from datetime import datetime as _dt
                 today = date.today()
 
-                # Build per-saving history input
                 savings_input = []
                 for s in account.savings:
                     hist = []
                     for snap in s.history:
                         try:
                             dt = parse_iso_date(str(snap.date))
-                            from datetime import datetime
-                            if dt != datetime.min:
+                            if dt != _dt.min:
                                 hist.append(
                                     {
                                         "month": f"{dt.year}-{dt.month:02d}",
@@ -195,7 +222,6 @@ class SavingsAccountPage(BasePage):
                         }
                     )
 
-                # Estimate monthly net savings from movements (last 6 months)
                 monthly_net_savings = self._compute_monthly_net(today)
 
                 result = get_gemini_classifier().predict_savings_balances(
@@ -207,12 +233,17 @@ class SavingsAccountPage(BasePage):
                 )
 
                 if result:
-                    try:
-                        QTimer.singleShot(0, lambda: chart_card.set_projection_data(result))
-                    except Exception:
-                        pass
+                    QTimer.singleShot(0, lambda: _update_data(result))
+                else:
+                    QTimer.singleShot(
+                        0,
+                        lambda: _update_failed("לא התקבלה תחזית מה-AI — נסה שוב מאוחר יותר"),
+                    )
             except Exception:
-                pass
+                QTimer.singleShot(
+                    0,
+                    lambda: _update_failed("תחזית נכשלה — בדוק חיבור לאינטרנט"),
+                )
 
         threading.Thread(target=_run, daemon=True).start()
 
