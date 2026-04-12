@@ -65,9 +65,18 @@ def _apply_line_pen(
             pass
         if dashed:
             try:
-                pen.setStyle(Qt.PenStyle.DashLine)
+                pen.setWidthF(2.5)
             except Exception:
                 pass
+            try:
+                pen.setStyle(Qt.PenStyle.DashLine)
+            except Exception:
+                try:
+                    dash = getattr(Qt.PenStyle, "DashLine", None) or getattr(Qt, "DashLine", None)
+                    if dash is not None:
+                        pen.setStyle(dash)
+                except Exception:
+                    pass
         series.setPen(pen)
     except Exception:
         pass
@@ -101,6 +110,10 @@ def _build_x_axis(
     for i, (year, month) in enumerate(month_keys):
         if i % label_step == 0 or i == n - 1:
             axis.append(f"{month:02d}/{year % 100:02d}", float(i))
+    try:
+        axis.setRange(0.0, float(n - 1))
+    except Exception:
+        pass
     try:
         axis.setGridLineVisible(False)
         axis.setMinorGridLineVisible(False)
@@ -148,6 +161,7 @@ class ShadowChartView(QChartView):
         on_series_clicked: Optional[Callable[[str], None]] = None,
         click_threshold_px: int = 26,
         baseline_value: Optional[float] = None,
+        forecast_start_x: Optional[float] = None,
     ) -> None:
         super().__init__(chart, parent)
         self._shadows = shadows
@@ -158,6 +172,7 @@ class ShadowChartView(QChartView):
         self._on_series_clicked = on_series_clicked
         self._click_threshold2 = int(click_threshold_px) * int(click_threshold_px)
         self._baseline_value: Optional[float] = baseline_value
+        self._forecast_start_x: Optional[float] = forecast_start_x
         try:
             self.setMouseTracking(True)
         except Exception:
@@ -173,7 +188,53 @@ class ShadowChartView(QChartView):
             chart = self.chart()
         except Exception:
             chart = None
-        if chart is None or not self._shadows:
+        if chart is None:
+            return
+
+        # ── forecast background shade ─────────────────────────────────────
+        if self._forecast_start_x is not None:
+            try:
+                plot_rect = chart.plotArea()
+                # Compute left edge proportionally from axis range
+                x_min: float = 0.0
+                x_max: float = 1.0
+                try:
+                    for ax in chart.axes():
+                        try:
+                            orient = ax.orientation()
+                            is_h = (
+                                orient == Qt.Orientation.Horizontal
+                                or str(orient) in ("Horizontal", "1")
+                                or int(orient) == 1
+                            )
+                            if is_h:
+                                x_min = float(ax.min())
+                                x_max = float(ax.max())
+                                break
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                x_span = x_max - x_min
+                if x_span > 0:
+                    frac = (self._forecast_start_x - x_min) / x_span
+                    left_px = plot_rect.left() + frac * plot_rect.width()
+                    right_px = plot_rect.right()
+                    shade_color = QColor(245, 158, 11, 28)  # amber, ~11% opacity
+                    try:
+                        painter.save()
+                        painter.fillRect(
+                            int(left_px), int(plot_rect.top()),
+                            int(right_px - left_px) + 1, int(plot_rect.height()),
+                            shade_color,
+                        )
+                        painter.restore()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        if not self._shadows:
             return
 
         try:
@@ -446,9 +507,6 @@ class SavingsHistoryChartCard(QWidget):
         self._proj_series_data: List[tuple[str, List[float], QColor]] = []
         self._future_month_keys: List[tuple[int, int]] = _compute_future_months()
         self._current_months: int = 0
-        self._proj_loading: bool = False
-        self._proj_error: Optional[str] = None
-        self._proj_status_label: Optional[QLabel] = None
         self._format_amount = format_amount
 
         layout = QVBoxLayout(self)
@@ -519,23 +577,12 @@ class SavingsHistoryChartCard(QWidget):
         chart_view.setStyleSheet("background: transparent;")
         self._chart_view = chart_view
 
-        # ── projection status label (loading / error) ────────────────────
-        status_lbl = QLabel("", self)
-        status_lbl.setObjectName("Subtitle")
-        try:
-            status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
-            pass
-        status_lbl.hide()
-        self._proj_status_label = status_lbl
-
         # ── range bar ─────────────────────────────────────────────────────
         n = len(self._all_month_keys)
         default_months = 12 if n > 12 else 0
         range_bar = TimeRangeBar(self, default_months=default_months)
         range_bar.range_changed.connect(self._apply_range)
         layout.addWidget(range_bar)
-        layout.addWidget(status_lbl)
         layout.addWidget(chart_view, 1)
 
         # populate with the initial range
@@ -543,23 +590,8 @@ class SavingsHistoryChartCard(QWidget):
 
     # ------------------------------------------------------------------ range
 
-    def set_projection_loading(self, loading: bool) -> None:
-        """Mark that a Gemini projection request is in flight.  Call from main thread."""
-        self._proj_loading = loading
-        if self._current_months == -1:
-            self._apply_range(-1)
-
-    def set_projection_failed(self, error: str) -> None:
-        """Report that projection failed.  Call from main thread."""
-        self._proj_loading = False
-        self._proj_error = error
-        if self._current_months == -1:
-            self._apply_range(-1)
-
     def set_projection_data(self, data: Dict[str, List[float]]) -> None:
-        """Inject Gemini projection data and re-render.  Call from main thread."""
-        self._proj_loading = False
-        self._proj_error = None
+        """Inject forecast projection data and re-render."""
         self._proj_series_data = []
         for name, all_vals, color in self._all_series_data:
             proj_vals = data.get(name)
@@ -591,22 +623,6 @@ class SavingsHistoryChartCard(QWidget):
         n_vis = len(visible_hist_keys)
         if n_vis == 0:
             return
-
-        # ── update status label ───────────────────────────────────────────
-        if self._proj_status_label is not None:
-            if forecast_mode:
-                if self._proj_series_data:
-                    self._proj_status_label.hide()
-                elif self._proj_error:
-                    self._proj_status_label.setText(f"❌ {self._proj_error}")
-                    self._proj_status_label.show()
-                elif self._proj_loading:
-                    self._proj_status_label.setText("⏳ מחשב תחזית AI...")
-                    self._proj_status_label.show()
-                else:
-                    self._proj_status_label.hide()
-            else:
-                self._proj_status_label.hide()
 
         # Only append future months in forecast mode
         has_proj = forecast_mode and bool(self._proj_series_data)
@@ -696,6 +712,32 @@ class SavingsHistoryChartCard(QWidget):
                 proj_padded.append(proj_padded[-1] if proj_padded else 0.0)
             tooltip_specs.append((proj_series, f"תחזית: {name}", proj_padded))
 
+        # ── vertical separator at forecast boundary ───────────────────────
+        if has_proj:
+            sep = QLineSeries()
+            try:
+                sep.setPointsVisible(False)
+            except Exception:
+                pass
+            y_top = max_v if max_v > 0 else 1000.0
+            sep.append(float(n_vis - 1), 0.0)
+            sep.append(float(n_vis - 1), y_top)
+            try:
+                sep_pen = sep.pen()
+                sep_pen.setColor(QColor("#f59e0b"))
+                try:
+                    sep_pen.setWidthF(1.5)
+                except Exception:
+                    pass
+                try:
+                    sep_pen.setStyle(Qt.PenStyle.DashLine)
+                except Exception:
+                    pass
+                sep.setPen(sep_pen)
+            except Exception:
+                pass
+            self._chart.addSeries(sep)
+
         # ── rebuild axes ─────────────────────────────────────────────────
         axis_x = _build_x_axis(combined_keys, label_step)
         axis_y = _build_y_axis(max_v if max_v > 0 else 1000.0)
@@ -720,6 +762,11 @@ class SavingsHistoryChartCard(QWidget):
         self._chart_view._tooltip_specs = tooltip_specs
         self._chart_view._month_keys = list(combined_keys)
         self._chart_view._x_labels = [f"{m:02d}/{y % 100:02d}" for y, m in combined_keys]
+        self._chart_view._forecast_start_x = float(n_vis - 1) if has_proj else None
+        try:
+            self._chart_view.update()
+        except Exception:
+            pass
 
 
 def create_savings_history_chart_card(

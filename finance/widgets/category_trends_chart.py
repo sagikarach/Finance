@@ -574,6 +574,9 @@ class CategoryTrendsChart(QWidget):
         expenses_negative: bool = True,
         income_prefix: str = "הכנסות: ",
         expense_prefix: str = "הוצאות: ",
+        proj_income: Optional[Dict[str, List[float]]] = None,
+        proj_expense: Optional[Dict[str, List[float]]] = None,
+        proj_labels: Optional[List[str]] = None,
     ) -> None:
         self._last_mode = "combined"
         self._last_month_labels = list(month_labels)
@@ -582,6 +585,9 @@ class CategoryTrendsChart(QWidget):
         self._last_combined_expenses_negative = bool(expenses_negative)
         self._last_income_prefix = str(income_prefix)
         self._last_expense_prefix = str(expense_prefix)
+        self._last_proj_income = proj_income
+        self._last_proj_expense = proj_expense
+        self._last_proj_labels = proj_labels
         self._render_combined(
             income_by_category,
             expense_by_category,
@@ -589,6 +595,9 @@ class CategoryTrendsChart(QWidget):
             expenses_negative=expenses_negative,
             income_prefix=income_prefix,
             expense_prefix=expense_prefix,
+            proj_income=proj_income,
+            proj_expense=proj_expense,
+            proj_labels=proj_labels,
         )
 
     def _render_combined(
@@ -600,6 +609,9 @@ class CategoryTrendsChart(QWidget):
         expenses_negative: bool = True,
         income_prefix: str = "הכנסות: ",
         expense_prefix: str = "הוצאות: ",
+        proj_income: Optional[Dict[str, List[float]]] = None,
+        proj_expense: Optional[Dict[str, List[float]]] = None,
+        proj_labels: Optional[List[str]] = None,
     ) -> None:
         if not charts_available:
             return
@@ -732,9 +744,99 @@ class CategoryTrendsChart(QWidget):
             start_idx=next_idx,
         )
 
+        # ── projection series (dotted, NO fill) ──────────────────────────
+        n_proj = 0
+        combined_labels = list(month_labels[:n])
+        if proj_labels and (proj_income or proj_expense):
+            n_proj = len(proj_labels)
+            combined_labels = combined_labels + list(proj_labels)
+            month_keys = [(0, i + 1) for i in range(n + n_proj)]
+
+            def _get_last_actual(cat: str, is_expense_kind: bool) -> float:
+                src = expense_by_category if is_expense_kind else income_by_category
+                vals = src.get(cat) or []
+                return float(vals[n - 1]) if len(vals) >= n else 0.0
+
+            def add_proj_series(
+                *,
+                proj_data: Dict[str, List[float]],
+                name_prefix: str,
+                is_expense: bool,
+            ) -> None:
+                nonlocal max_val, min_val
+                top_cats = sorted(proj_data.items(), key=lambda kv: -sum(kv[1]))
+                for category, values in top_cats:
+                    last_actual = _get_last_actual(category, is_expense)
+                    proj_base = [last_actual] + [float(v) for v in values[:n_proj]]
+                    for v_raw in proj_base:
+                        abs_y = (
+                            -abs(v_raw) if (is_expense and expenses_negative) else abs(v_raw)
+                        )
+                        if abs_y > max_val:
+                            max_val = abs_y
+                        if abs_y < min_val:
+                            min_val = abs_y
+
+                    proj_series = QLineSeries()
+                    proj_name = f"תחזית: {name_prefix}{category}"
+                    proj_series.setName(proj_name)
+                    try:
+                        proj_series.setPointsVisible(False)
+                    except Exception:
+                        pass
+
+                    base_color = self._color_for_series_name(f"{name_prefix}{category}")
+                    try:
+                        pen = proj_series.pen()
+                        pen.setColor(base_color)
+                        try:
+                            pen.setWidthF(2.5)
+                        except Exception:
+                            pass
+                        try:
+                            pen.setStyle(Qt.PenStyle.DashLine)
+                        except Exception:
+                            try:
+                                dash = getattr(Qt.PenStyle, "DashLine", None) or getattr(Qt, "DashLine", None)
+                                if dash is not None:
+                                    pen.setStyle(dash)
+                            except Exception:
+                                pass
+                        proj_series.setPen(pen)
+                    except Exception:
+                        pass
+
+                    x_offset = float(n - 1)
+                    for x_val, y_val in catmull_rom_spline_samples(proj_base):
+                        proj_series.append(x_val + x_offset, y_val)
+
+                    chart.addSeries(proj_series)
+                    # NOT in shadow_specs → no gradient fill
+                    padded: List[float] = [0.0] * (n - 1) + proj_base
+                    while len(padded) < n + n_proj:
+                        padded.append(padded[-1] if padded else 0.0)
+                    tooltip_specs.append((proj_series, proj_name, padded))
+
+            if proj_income:
+                add_proj_series(
+                    proj_data=proj_income,
+                    name_prefix=income_prefix,
+                    is_expense=False,
+                )
+            if proj_expense:
+                add_proj_series(
+                    proj_data=proj_expense,
+                    name_prefix=expense_prefix,
+                    is_expense=True,
+                )
+
         axis_x = QCategoryAxis()
-        for i, label in enumerate(month_labels[:n]):
+        for i, label in enumerate(combined_labels):
             axis_x.append(label, float(i))
+        try:
+            axis_x.setRange(0.0, float(len(combined_labels) - 1))
+        except Exception:
+            pass
         try:
             axis_x.setGridLineVisible(False)
             axis_x.setMinorGridLineVisible(False)
@@ -752,6 +854,31 @@ class CategoryTrendsChart(QWidget):
         top, tick = self._nice_y_axis(max_val)
         bottom = 0.0 if not expenses_negative else min(0.0, min_val)
         axis_y.setRange(float(bottom), float(top))
+
+        # ── vertical separator at forecast boundary ───────────────────────
+        if n_proj > 0:
+            sep = QLineSeries()
+            try:
+                sep.setPointsVisible(False)
+            except Exception:
+                pass
+            sep.append(float(n - 1), float(bottom))
+            sep.append(float(n - 1), float(top))
+            try:
+                sep_pen = sep.pen()
+                sep_pen.setColor(QColor("#f59e0b"))
+                try:
+                    sep_pen.setWidthF(1.5)
+                except Exception:
+                    pass
+                try:
+                    sep_pen.setStyle(Qt.PenStyle.DashLine)
+                except Exception:
+                    pass
+                sep.setPen(sep_pen)
+            except Exception:
+                pass
+            chart.addSeries(sep)
         try:
             tick_dynamic = None
             try:
@@ -798,8 +925,9 @@ class CategoryTrendsChart(QWidget):
             tooltip_specs,
             lambda v: format_currency(v, use_compact=True),
             self,
-            x_labels=list(month_labels[:n]),
+            x_labels=combined_labels,
             on_series_clicked=self._on_series_clicked,
+            forecast_start_x=float(n - 1) if n_proj > 0 else None,
         )
         try:
             hint = None

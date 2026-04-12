@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-import threading
-import weakref
 from datetime import date
 from typing import Callable, Dict, List, Optional
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..data.provider import AccountsProvider
-from ..models.yearly_report_service import YearlyReportService
-from ..models.gemini_classifier import get_gemini_classifier, has_gemini_api_key
+from ..models.yearly_report_service import YearlyReportService, forecast_net
 from ..qt import (
     QLabel,
     QHBoxLayout,
     QSizePolicy,
     QToolButton,
-    QTimer,
     QVBoxLayout,
     QWidget,
     Qt,
@@ -140,10 +136,6 @@ class YearlyOverviewPage(BasePage):
         self._expense_value: Optional[QLabel] = None
         self._net_value: Optional[QLabel] = None
         self._balance_chart: Optional[YearlyBalanceChart] = None
-        self._proj_status_label: Optional[QLabel] = None
-
-        self._proj_loading: bool = False
-        self._proj_error: Optional[str] = None
         self._proj_nets: Optional[List[float]] = None
 
         super().__init__(
@@ -182,7 +174,7 @@ class YearlyOverviewPage(BasePage):
         except Exception:
             pass
 
-        # ── stat cards row (no year picker) ──────────────────────────────
+        # ── stat cards row ────────────────────────────────────────────────
         top_row = QWidget(container)
         top_row_layout = QHBoxLayout(top_row)
         top_row_layout.setContentsMargins(0, 0, 0, 0)
@@ -224,15 +216,6 @@ class YearlyOverviewPage(BasePage):
         self._range_bar.range_changed.connect(self._on_range_changed)
         chart_layout.addWidget(self._range_bar)
 
-        self._proj_status_label = QLabel("", chart_card)
-        self._proj_status_label.setObjectName("Subtitle")
-        try:
-            self._proj_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
-            pass
-        self._proj_status_label.hide()
-        chart_layout.addWidget(self._proj_status_label)
-
         self._balance_chart = YearlyBalanceChart(chart_card)
         chart_layout.addWidget(self._balance_chart, 1)
 
@@ -247,16 +230,15 @@ class YearlyOverviewPage(BasePage):
     def _on_range_changed(self, months: int) -> None:
         self._current_months = months
         self._proj_nets = None
-        self._proj_error = None
+        if months == -1:
+            history = self._yearly_service.get_window_nets(12)
+            self._proj_nets = forecast_net(history, horizon=6)
         self._refresh()
-        if months == -1 and has_gemini_api_key():
-            self._start_forecast_thread()
 
     def _refresh(self) -> None:
         forecast = self._current_months == -1
         actual_months = 3 if forecast else self._current_months
 
-        # Stat cards
         income, expense, net = self._yearly_service.get_window_totals(actual_months)
         if self._income_value is not None:
             self._income_value.setText(format_currency(income))
@@ -265,7 +247,6 @@ class YearlyOverviewPage(BasePage):
         if self._net_value is not None:
             self._net_value.setText(format_currency(net))
 
-        # Chart
         window_data = self._yearly_service.get_window_nets(actual_months)
         labels = [lbl for lbl, _ in window_data]
         nets = [n for _, n in window_data]
@@ -279,63 +260,6 @@ class YearlyOverviewPage(BasePage):
                 )
             else:
                 self._balance_chart.set_monthly_net(nets, labels)
-
-        # Status label
-        if self._proj_status_label is not None:
-            if forecast:
-                if self._proj_loading:
-                    self._proj_status_label.setText("⏳ מחשב תחזית AI...")
-                    self._proj_status_label.show()
-                elif self._proj_error:
-                    self._proj_status_label.setText(f"❌ {self._proj_error}")
-                    self._proj_status_label.show()
-                else:
-                    self._proj_status_label.hide()
-            else:
-                self._proj_status_label.hide()
-
-    # ------------------------------------------------------------------ forecast
-
-    def _start_forecast_thread(self) -> None:
-        svc = self._yearly_service
-        page_ref = weakref.ref(self)
-
-        def _set_loading(val: bool) -> None:
-            page = page_ref()
-            if page is not None:
-                page._proj_loading = val
-                page._refresh()
-
-        def _set_data(result: List[float]) -> None:
-            page = page_ref()
-            if page is not None:
-                page._proj_loading = False
-                page._proj_nets = result
-                page._refresh()
-
-        def _set_failed(msg: str) -> None:
-            page = page_ref()
-            if page is not None:
-                page._proj_loading = False
-                page._proj_error = msg
-                page._refresh()
-
-        QTimer.singleShot(0, lambda: _set_loading(True))
-
-        def _run() -> None:
-            try:
-                history = svc.get_window_nets(12)
-                result = get_gemini_classifier().predict_monthly_net(history, horizon=6)
-                if result:
-                    QTimer.singleShot(0, lambda: _set_data(result))
-                else:
-                    QTimer.singleShot(
-                        0, lambda: _set_failed("לא התקבלה תחזית מה-AI — נסה שוב מאוחר יותר")
-                    )
-            except Exception:
-                QTimer.singleShot(0, lambda: _set_failed("תחזית נכשלה — בדוק חיבור לאינטרנט"))
-
-        threading.Thread(target=_run, daemon=True).start()
 
     # ------------------------------------------------------------------ lifecycle
 

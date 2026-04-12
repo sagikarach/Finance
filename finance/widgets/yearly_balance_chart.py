@@ -174,10 +174,18 @@ class YearlyBalanceChart(QWidget):
                 pen = proj_series.pen()
                 pen.setColor(QColor("#f59e0b"))
                 try:
-                    pen.setWidthF(2.0)
-                    pen.setStyle(Qt.PenStyle.DashLine)
+                    pen.setWidthF(2.5)
                 except Exception:
                     pass
+                try:
+                    pen.setStyle(Qt.PenStyle.DashLine)
+                except Exception:
+                    try:
+                        dash = getattr(Qt.PenStyle, "DashLine", None) or getattr(Qt, "DashLine", None)
+                        if dash is not None:
+                            pen.setStyle(dash)
+                    except Exception:
+                        pass
                 proj_series.setPen(pen)
             except Exception:
                 pass
@@ -185,6 +193,9 @@ class YearlyBalanceChart(QWidget):
             for x_val, y_val in _crs(all_proj):
                 proj_series.append(x_val + x_offset, y_val)
             chart.addSeries(proj_series)
+
+            # Include projection values in y-range calculation
+            base_values = base_values + p_vals
 
         # ── x-axis (actual + optional projection labels) ─────────────────
         all_labels = labels + p_labels
@@ -217,6 +228,31 @@ class YearlyBalanceChart(QWidget):
         y0_min = min(y0_min, 0.0)
         y0_max = max(y0_max, 0.0)
         axis_y.setRange(y0_min, y0_max)
+
+        # ── vertical separator at forecast boundary ───────────────────────
+        if p_vals:
+            sep = QLineSeries()
+            try:
+                sep.setPointsVisible(False)
+            except Exception:
+                pass
+            sep.append(float(n - 1), y0_min)
+            sep.append(float(n - 1), y0_max)
+            try:
+                sep_pen = sep.pen()
+                sep_pen.setColor(QColor("#f59e0b"))
+                try:
+                    sep_pen.setWidthF(1.5)
+                except Exception:
+                    pass
+                try:
+                    sep_pen.setStyle(Qt.PenStyle.DashLine)
+                except Exception:
+                    pass
+                sep.setPen(sep_pen)
+            except Exception:
+                pass
+            chart.addSeries(sep)
         try:
             axis_y.setTickType(QValueAxis.TickType.TicksDynamic)
             try:
@@ -325,6 +361,7 @@ class YearlyBalanceChart(QWidget):
             self,
             x_labels=all_labels,
             baseline_value=0.0,
+            forecast_start_x=float(n - 1) if proj_values else None,
         )
         try:
             hint = None

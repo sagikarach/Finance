@@ -42,27 +42,6 @@ class TimeRangeBar(QWidget):
             border-color: #2563eb;
             font-weight: 600;
         }
-        QPushButton#ForecastBtn {
-            background: transparent;
-            color: #d97706;
-            border: 1px dashed #d97706;
-            border-radius: 10px;
-            padding: 2px 10px;
-            font-size: 12px;
-            min-width: 32px;
-            max-height: 24px;
-        }
-        QPushButton#ForecastBtn:hover {
-            background: #fef3c7;
-            border-color: #b45309;
-            color: #b45309;
-        }
-        QPushButton#ForecastBtn:checked {
-            background: #d97706;
-            color: #ffffff;
-            border: 1px solid #d97706;
-            font-weight: 600;
-        }
     """
 
     def __init__(
@@ -82,9 +61,7 @@ class TimeRangeBar(QWidget):
 
         for label, months in self.PRESETS:
             btn = QPushButton(label, self)
-            btn.setObjectName(
-                "ForecastBtn" if months == self.FORECAST_VALUE else "RangeBtn"
-            )
+            btn.setObjectName("RangeBtn")
             try:
                 btn.setCheckable(True)
                 btn.setChecked(months == default_months)

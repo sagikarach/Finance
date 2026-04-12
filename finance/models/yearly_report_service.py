@@ -503,3 +503,70 @@ class YearlyReportService:
             )
 
         return out
+
+
+# ---------------------------------------------------------------------------
+# Naive mathematical forecast helpers (no external dependencies)
+# ---------------------------------------------------------------------------
+
+def _linear_trend(values: List[float]) -> float:
+    """Return per-step slope from simple linear regression over *values*."""
+    n = len(values)
+    if n < 2:
+        return 0.0
+    x_mean = (n - 1) / 2.0
+    y_mean = sum(values) / n
+    num = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(values))
+    den = sum((i - x_mean) ** 2 for i in range(n))
+    return num / den if den else 0.0
+
+
+def forecast_net(history: List[Tuple[str, float]], horizon: int = 6) -> List[float]:
+    """Forecast net cash-flow using recent average + capped linear trend."""
+    if not history:
+        return [0.0] * horizon
+    values = [v for _, v in history]
+    recent = values[-12:]
+    avg = sum(recent) / len(recent)
+    slope = _linear_trend(recent)
+    if avg != 0:
+        cap = abs(avg) * 0.10
+        slope = max(-cap, min(cap, slope))
+    last = recent[-1]
+    return [last + slope * (i + 1) for i in range(horizon)]
+
+
+def forecast_category_totals(
+    category_history: Dict[str, List[float]],
+    horizon: int = 6,
+) -> Dict[str, List[float]]:
+    """Forecast per-category monthly totals using average + capped trend."""
+    result: Dict[str, List[float]] = {}
+    for cat, values in category_history.items():
+        if not values:
+            result[cat] = [0.0] * horizon
+            continue
+        recent = values[-6:]
+        avg = sum(recent) / len(recent)
+        slope = _linear_trend(recent)
+        if avg != 0:
+            cap = abs(avg) * 0.08
+            slope = max(-cap, min(cap, slope))
+        last = recent[-1]
+        result[cat] = [max(0.0, last + slope * (i + 1)) for i in range(horizon)]
+    return result
+
+
+def forecast_savings_balance(
+    history: List[float],
+    current_balance: float,
+    horizon: int = 6,
+) -> List[float]:
+    """Forecast a savings account balance using linear extrapolation."""
+    all_vals = list(history) + [current_balance]
+    recent = all_vals[-6:] if len(all_vals) >= 6 else all_vals
+    slope = _linear_trend(recent)
+    if current_balance != 0:
+        cap = abs(current_balance) * 0.05
+        slope = max(-cap, min(cap, slope))
+    return [max(0.0, current_balance + slope * (i + 1)) for i in range(horizon)]

@@ -1,21 +1,17 @@
 from __future__ import annotations
 
-import threading
-import weakref
 from datetime import date
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..data.provider import AccountsProvider
 from ..models.bank_movement import MovementType
-from ..models.yearly_report_service import YearlyReportService
-from ..models.gemini_classifier import get_gemini_classifier, has_gemini_api_key
+from ..models.yearly_report_service import YearlyReportService, forecast_category_totals
 from ..qt import (
     QLabel,
     QCheckBox,
     QHBoxLayout,
     QToolButton,
-    QTimer,
     QVBoxLayout,
     QWidget,
     QSizePolicy,
@@ -78,9 +74,6 @@ class YearlyCategoryTrendsPage(BasePage):
         self._one_time_cb: Optional[QCheckBox] = None
         self._yearly_cb: Optional[QCheckBox] = None
 
-        self._proj_status_label: Optional[QLabel] = None
-        self._proj_loading: bool = False
-        self._proj_error: Optional[str] = None
         self._proj_income: Optional[Dict[str, List[float]]] = None
         self._proj_expense: Optional[Dict[str, List[float]]] = None
 
@@ -240,15 +233,6 @@ class YearlyCategoryTrendsPage(BasePage):
         chart_layout.setContentsMargins(16, 16, 16, 16)
         chart_layout.setSpacing(8)
 
-        self._proj_status_label = QLabel("", chart_card)
-        self._proj_status_label.setObjectName("Subtitle")
-        try:
-            self._proj_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
-            pass
-        self._proj_status_label.hide()
-        chart_layout.addWidget(self._proj_status_label)
-
         self._combined_chart = CategoryTrendsChart(chart_card)
         chart_layout.addWidget(self._combined_chart, 1)
 
@@ -280,10 +264,9 @@ class YearlyCategoryTrendsPage(BasePage):
         self._current_months = months
         self._proj_income = None
         self._proj_expense = None
-        self._proj_error = None
+        if months == -1:
+            self._compute_forecast()
         self._refresh()
-        if months == -1 and has_gemini_api_key():
-            self._start_forecast_thread()
 
     def _refresh(self) -> None:
         if self._combined_chart is None:
@@ -317,57 +300,24 @@ class YearlyCategoryTrendsPage(BasePage):
 
         month_labels = income_labels or expense_labels
 
-        # In forecast mode, append projection data when available
         if forecast and (self._proj_income or self._proj_expense):
-            proj_labels = _future_month_labels(6)
-            # Extend actual data with projection values
-            combined_labels = month_labels + proj_labels
-            n_actual = len(month_labels)
-            n_proj = len(proj_labels)
-
-            def _extend(actual: Dict[str, List[float]], proj: Dict[str, List[float]]) -> Dict[str, List[float]]:
-                merged: Dict[str, List[float]] = {}
-                all_cats = set(actual.keys()) | set(proj.keys())
-                for cat in all_cats:
-                    act_vals = list(actual.get(cat, [0.0] * n_actual))
-                    prj_vals = list(proj.get(cat, [0.0] * n_proj))
-                    if len(act_vals) < n_actual:
-                        act_vals += [0.0] * (n_actual - len(act_vals))
-                    if len(prj_vals) < n_proj:
-                        prj_vals += [0.0] * (n_proj - len(prj_vals))
-                    merged[cat] = act_vals + prj_vals
-                return merged
-
-            combined_income = _extend(income, self._proj_income or {})
-            combined_expense = _extend(expense, self._proj_expense or {})
             self._combined_chart.set_combined_series(
-                combined_income, combined_expense, combined_labels, expenses_negative=False
+                income,
+                expense,
+                month_labels,
+                expenses_negative=False,
+                proj_income=self._proj_income,
+                proj_expense=self._proj_expense,
+                proj_labels=_future_month_labels(6),
             )
         else:
             self._combined_chart.set_combined_series(
                 income, expense, month_labels, expenses_negative=False
             )
 
-        # Status label
-        if self._proj_status_label is not None:
-            if forecast:
-                if self._proj_loading:
-                    self._proj_status_label.setText("⏳ מחשב תחזית AI...")
-                    self._proj_status_label.show()
-                elif self._proj_error:
-                    self._proj_status_label.setText(f"❌ {self._proj_error}")
-                    self._proj_status_label.show()
-                else:
-                    self._proj_status_label.hide()
-            else:
-                self._proj_status_label.hide()
-
     # ------------------------------------------------------------------ forecast
 
-    def _start_forecast_thread(self) -> None:
-        svc = self._yearly_service
-        page_ref = weakref.ref(self)
-
+    def _compute_forecast(self) -> None:
         types: Set[MovementType] = set()
         if self._type_monthly:
             types.add(MovementType.MONTHLY)
@@ -376,64 +326,17 @@ class YearlyCategoryTrendsPage(BasePage):
         if self._type_yearly:
             types.add(MovementType.YEARLY)
         types_filter: Optional[Set[MovementType]] = types if types else set()
-        show_inc = self._show_income
-        show_exp = self._show_expense
 
-        def _set_loading(val: bool) -> None:
-            page = page_ref()
-            if page is not None:
-                page._proj_loading = val
-                page._refresh()
-
-        def _set_data(inc: Dict[str, List[float]], exp: Dict[str, List[float]]) -> None:
-            page = page_ref()
-            if page is not None:
-                page._proj_loading = False
-                page._proj_income = inc
-                page._proj_expense = exp
-                page._refresh()
-
-        def _set_failed(msg: str) -> None:
-            page = page_ref()
-            if page is not None:
-                page._proj_loading = False
-                page._proj_error = msg
-                page._refresh()
-
-        QTimer.singleShot(0, lambda: _set_loading(True))
-
-        def _run() -> None:
-            try:
-                inc_hist, hist_labels = svc.get_window_category_totals(
-                    12, is_income=True, movement_types=types_filter
-                )
-                exp_hist, _ = svc.get_window_category_totals(
-                    12, is_income=False, movement_types=types_filter
-                )
-
-                proj_inc: Dict[str, List[float]] = {}
-                proj_exp: Dict[str, List[float]] = {}
-
-                if show_inc and inc_hist:
-                    proj_inc = get_gemini_classifier().predict_category_trends(
-                        inc_hist, hist_labels, horizon=6
-                    )
-                if show_exp and exp_hist:
-                    proj_exp = get_gemini_classifier().predict_category_trends(
-                        exp_hist, hist_labels, horizon=6
-                    )
-
-                if proj_inc or proj_exp:
-                    QTimer.singleShot(0, lambda: _set_data(proj_inc, proj_exp))
-                else:
-                    QTimer.singleShot(
-                        0,
-                        lambda: _set_failed("לא התקבלה תחזית מה-AI — נסה שוב מאוחר יותר"),
-                    )
-            except Exception:
-                QTimer.singleShot(0, lambda: _set_failed("תחזית נכשלה — בדוק חיבור לאינטרנט"))
-
-        threading.Thread(target=_run, daemon=True).start()
+        if self._show_income:
+            inc_hist, _ = self._yearly_service.get_window_category_totals(
+                12, is_income=True, movement_types=types_filter
+            )
+            self._proj_income = forecast_category_totals(inc_hist, horizon=6)
+        if self._show_expense:
+            exp_hist, _ = self._yearly_service.get_window_category_totals(
+                12, is_income=False, movement_types=types_filter
+            )
+            self._proj_expense = forecast_category_totals(exp_hist, horizon=6)
 
     # ------------------------------------------------------------------ filters
 

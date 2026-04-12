@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import threading
-from datetime import date
+from datetime import date, datetime as _dt
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (
@@ -18,13 +17,12 @@ from ..qt import (
     QDateEdit,
     QDate,
     QDialog,
-    QTimer,
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.action_history_provider import JsonFileActionHistoryProvider
 from ..models.accounts import SavingsAccount, parse_iso_date
 from ..models.accounts_service import AccountsService
-from ..models.gemini_classifier import get_gemini_classifier, has_gemini_api_key
+from ..models.yearly_report_service import forecast_savings_balance
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row, setup_calendar_popup
 from ..widgets.savings_history_chart import SavingsHistoryChartCard, create_savings_history_chart_card
 from ..utils.formatting import format_currency
@@ -158,121 +156,27 @@ class SavingsAccountPage(BasePage):
         main_col.addWidget(top_card, 1)
         main_col.addWidget(chart_card, 2)
 
-        if has_gemini_api_key() and isinstance(chart_card, SavingsHistoryChartCard):
-            self._start_projection_thread(target, chart_card)
+        if isinstance(chart_card, SavingsHistoryChartCard):
+            self._inject_math_projection(target, chart_card)
 
-    def _start_projection_thread(
+    def _inject_math_projection(
         self, account: SavingsAccount, chart_card: SavingsHistoryChartCard
     ) -> None:
-        """Fire a background thread to call Gemini for savings projections."""
-        import weakref
-        card_ref = weakref.ref(chart_card)
-
-        def _update_loading(val: bool) -> None:
-            card = card_ref()
-            if card is not None:
+        """Compute and inject forecast data synchronously using linear extrapolation."""
+        result: Dict[str, List[float]] = {}
+        for s in account.savings:
+            history_vals: List[float] = []
+            for snap in s.history:
                 try:
-                    card.set_projection_loading(val)
+                    dt = parse_iso_date(str(snap.date))
+                    if dt != _dt.min:
+                        history_vals.append(float(snap.amount))
                 except Exception:
                     pass
-
-        def _update_data(result: Dict) -> None:
-            card = card_ref()
-            if card is not None:
-                try:
-                    card.set_projection_data(result)
-                except Exception:
-                    pass
-
-        def _update_failed(msg: str) -> None:
-            card = card_ref()
-            if card is not None:
-                try:
-                    card.set_projection_failed(msg)
-                except Exception:
-                    pass
-
-        QTimer.singleShot(0, lambda: _update_loading(True))
-
-        def _run() -> None:
-            try:
-                from datetime import datetime as _dt
-                today = date.today()
-
-                savings_input = []
-                for s in account.savings:
-                    hist = []
-                    for snap in s.history:
-                        try:
-                            dt = parse_iso_date(str(snap.date))
-                            if dt != _dt.min:
-                                hist.append(
-                                    {
-                                        "month": f"{dt.year}-{dt.month:02d}",
-                                        "balance": float(snap.amount),
-                                    }
-                                )
-                        except Exception:
-                            pass
-                    savings_input.append(
-                        {
-                            "name": str(s.name),
-                            "current": float(s.amount),
-                            "history": hist,
-                        }
-                    )
-
-                monthly_net_savings = self._compute_monthly_net(today)
-
-                result = get_gemini_classifier().predict_savings_balances(
-                    savings_input,
-                    monthly_net_savings,
-                    today.year,
-                    today.month,
-                    horizon=6,
-                )
-
-                if result:
-                    QTimer.singleShot(0, lambda: _update_data(result))
-                else:
-                    QTimer.singleShot(
-                        0,
-                        lambda: _update_failed("לא התקבלה תחזית מה-AI — נסה שוב מאוחר יותר"),
-                    )
-            except Exception:
-                QTimer.singleShot(
-                    0,
-                    lambda: _update_failed("תחזית נכשלה — בדוק חיבור לאינטרנט"),
-                )
-
-        threading.Thread(target=_run, daemon=True).start()
-
-    def _compute_monthly_net(self, today: date) -> float:
-        """Return average monthly net cash-flow over the last 6 months."""
-        try:
-            from ..data.bank_movement_provider import JsonFileBankMovementProvider
-            movements = list(JsonFileBankMovementProvider().list_movements())
-        except Exception:
-            return 0.0
-
-        nets: List[float] = []
-        for delta in range(1, 7):
-            m = today.month - delta
-            y = today.year
-            while m <= 0:
-                m += 12
-                y -= 1
-            prefix = f"{y}-{m:02d}"
-            month_mvs = [
-                mv for mv in movements
-                if str(getattr(mv, "date", "") or "").startswith(prefix)
-                and not getattr(mv, "is_transfer", False)
-            ]
-            income = sum(float(mv.amount) for mv in month_mvs if float(mv.amount) > 0)
-            expenses = sum(abs(float(mv.amount)) for mv in month_mvs if float(mv.amount) < 0)
-            nets.append(income - expenses)
-
-        return sum(nets) / len(nets) if nets else 0.0
+            result[str(s.name)] = forecast_savings_balance(
+                history_vals, float(s.amount), horizon=6
+            )
+        chart_card.set_projection_data(result)
 
     def on_route_activated(self) -> None:
         super().on_route_activated()
