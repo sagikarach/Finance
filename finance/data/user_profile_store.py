@@ -7,6 +7,7 @@ from typing import List, Optional
 from ..models.accounts import MoneyAccount
 from ..models.user import UserProfile
 from ..utils.app_paths import user_profile_path
+from ..utils.password_hash import hash_password, is_hashed
 
 
 class UserProfileStore:
@@ -52,10 +53,20 @@ class UserProfileStore:
         return profile
 
     def save(self, profile: UserProfile) -> None:
+        # Hash the lock PIN before persisting. If it's already hashed (e.g.
+        # the value came back unchanged from a settings save), keep it as-is
+        # so we don't double-hash. Empty/None passwords pass through untouched.
+        pw = profile.password
+        if pw and not is_hashed(pw):
+            pw = hash_password(pw)
+            # Mirror the hash back onto the in-memory profile so any code
+            # that re-reads .password after save sees the canonical form.
+            profile.password = pw
+
         data = {
             "full_name": profile.full_name,
             "avatar_path": profile.avatar_path,
-            "password": profile.password,
+            "password": pw,
             "lock_enabled": profile.lock_enabled,
         }
         try:

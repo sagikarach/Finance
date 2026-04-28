@@ -418,6 +418,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _pullFromServer({required bool showToast}) async {
     if (!_session.isLoggedIn) return;
     if (!mounted) return;
+    // Guard against overlapping syncs — concurrent pulls race on _items,
+    // _actionItems, and _movementDetailsById and produce UI flicker.
+    if (_syncing) return;
     setState(() {
       _syncing = true;
       _loading = true;

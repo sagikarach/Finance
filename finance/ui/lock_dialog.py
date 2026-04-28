@@ -11,6 +11,7 @@ from ..qt import (
     QPushButton,
     Qt,
 )
+from ..utils.password_hash import verify_password
 
 
 class LockDialog(QDialog):
@@ -82,7 +83,11 @@ class LockDialog(QDialog):
         layout.addLayout(buttons_row)
 
         def try_unlock() -> None:
-            if password_edit.text() == self._expected_password:
+            # verify_password handles both the new hashed format and the
+            # legacy plaintext format (constant-time comparison either way),
+            # so existing user_profile.json entries keep working until the
+            # next save rewrites them as a hash.
+            if verify_password(password_edit.text(), self._expected_password):
                 self.accept()
             else:
                 error_label.setText("סיסמה שגויה, נסה שוב")

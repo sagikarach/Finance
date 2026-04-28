@@ -131,7 +131,8 @@ def _verify_signature(path: pathlib.Path, signature_b64: str) -> Optional[str]:
 
 
 def _extract_zip(zip_path: pathlib.Path, dest_dir: pathlib.Path) -> pathlib.Path:
-    import subprocess, sys
+    import subprocess
+    import sys
     dest_dir.mkdir(parents=True, exist_ok=True)
     if sys.platform == "darwin":
         # Use ditto on macOS — shutil/zipfile corrupts fat binaries and resource forks.

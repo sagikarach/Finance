@@ -18,7 +18,7 @@ from ..qt import (
     Qt,
     QVBoxLayout,
 )
-from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button, FullCellDelegate
+from .dialog_utils import setup_standard_rtl_dialog, make_table_danger_button, FullCellDelegate
 
 
 class MonthMovementsDialog(QDialog):

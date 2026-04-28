@@ -13,6 +13,7 @@ class WorkspaceGate extends StatefulWidget {
 
 class _WorkspaceGateState extends State<WorkspaceGate> {
   final _workspaces = WorkspaceFacade();
+  final TextEditingController _codeCtrl = TextEditingController();
   bool _loading = true;
   String? _workspaceId;
   String? _error;
@@ -21,6 +22,12 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _codeCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -66,6 +73,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
   Future<void> _createWorkspace() async {
     if (!_workspaces.isLoggedIn) return;
     if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() {
       _loading = true;
       _error = null;
@@ -74,7 +82,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
       final wid = await _workspaces.createWorkspace();
       if (!mounted) return;
       setState(() => _workspaceId = wid);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(content: Text('נוצר קוד שיתוף: $wid')),
       );
     } catch (e) {
@@ -99,7 +107,6 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
       );
     }
 
-    final codeCtrl = TextEditingController();
     return Scaffold(
       appBar: AppBar(title: const Text('שיתוף נתונים')),
       body: SafeArea(
@@ -117,7 +124,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: codeCtrl,
+                    controller: _codeCtrl,
                     decoration: const InputDecoration(
                       labelText: 'קוד שיתוף',
                       hintText: 'AAAA-BBBB-CCCC',
@@ -129,7 +136,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
                   ],
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => _joinByCode(codeCtrl.text),
+                    onPressed: () => _joinByCode(_codeCtrl.text),
                     child: const Text('הצטרף כשׁותף (Editor)'),
                   ),
                   const SizedBox(height: 8),
@@ -154,7 +161,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
             ),
           ),
           child: ElevatedButton(
-            onPressed: () => _joinByCode(codeCtrl.text),
+            onPressed: () => _joinByCode(_codeCtrl.text),
             child: const Text('הצטרף'),
           ),
         ),

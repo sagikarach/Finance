@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Callable, Dict, List, Optional, Set
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..data.provider import AccountsProvider

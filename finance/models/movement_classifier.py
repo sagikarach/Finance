@@ -4,11 +4,54 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Tuple
 import json
+import os
 import re
+import tempfile
+import threading
 
 from .bank_movement import BankMovement, MovementType
 from ..utils.app_paths import app_data_dir
 from .firebase_session import current_firebase_uid, current_firebase_workspace_id
+
+
+# Module-level lock guards the JSON writes from concurrent learn()/set_training_data()
+# calls (e.g., a background classifier learn racing with a sync-driven training reset).
+_TRAINING_WRITE_LOCK = threading.Lock()
+
+
+def _atomic_write_json(path: Path, data: Any) -> None:
+    """Write *data* to *path* as JSON atomically.
+
+    Writes to a temp file in the same directory and uses os.replace to swap it
+    into place — this avoids leaving a half-written file if the process is
+    killed mid-write. Serialized via a module-level lock so concurrent writers
+    don't clobber each other's tempfiles.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with _TRAINING_WRITE_LOCK:
+        # delete=False so we can rename it after closing on Windows.
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=path.name + ".",
+            suffix=".tmp",
+            dir=str(path.parent),
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError:
+                    # fsync isn't available on every filesystem; harmless.
+                    pass
+            os.replace(tmp_name, path)
+        except Exception:
+            # Best-effort cleanup if the rename never happened.
+            try:
+                os.unlink(tmp_name)
+            except OSError:
+                pass
+            raise
 
 
 @dataclass
@@ -97,9 +140,7 @@ class SimilarityBasedClassifier:
         self._training_data = list(training)
         self._is_initialized = True
         try:
-            self.training_data_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.training_data_path.open("w", encoding="utf-8") as f:
-                json.dump(self._training_data, f, ensure_ascii=False, indent=2)
+            _atomic_write_json(self.training_data_path, self._training_data)
         except Exception:
             pass
 
@@ -317,9 +358,7 @@ class SimilarityBasedClassifier:
             self._training_data.append(confirmed_expense)
 
             try:
-                self.training_data_path.parent.mkdir(parents=True, exist_ok=True)
-                with self.training_data_path.open("w", encoding="utf-8") as f:
-                    json.dump(self._training_data, f, ensure_ascii=False, indent=2)
+                _atomic_write_json(self.training_data_path, self._training_data)
             except Exception:
                 pass
 

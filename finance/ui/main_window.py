@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Dict
 import sys
 import threading
-import pathlib
 
 from ..pages.home_page import HomePage
 from ..pages.settings_page import SettingsPage
@@ -17,7 +16,7 @@ from ..pages.installments_page import InstallmentsPage
 from ..pages.yearly_summary_page import YearlySummaryPage
 from ..pages.yearly_category_trends_page import YearlyCategoryTrendsPage
 from ..pages.yearly_overview_page import YearlyOverviewPage
-from ..qt import QAction, QMainWindow, QStackedWidget, QTimer
+from ..qt import QAction, QMainWindow, QStackedWidget, Qt, QTimer
 from .router import Router
 from ..utils.app_paths import migrate_legacy_accounts_data
 from ..models.firebase_session import FirebaseSessionStore

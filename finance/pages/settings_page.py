@@ -4,7 +4,6 @@ from typing import Callable, Dict, List, Optional, Any
 
 import sys
 import threading
-import pathlib
 
 from ..qt import (
     QHBoxLayout,

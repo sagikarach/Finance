@@ -14,7 +14,6 @@ import base64
 import hashlib
 import json
 import os
-import sys
 from pathlib import Path
 
 from nacl.signing import SigningKey

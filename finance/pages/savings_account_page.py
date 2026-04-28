@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime as _dt
+from datetime import datetime as _dt
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (

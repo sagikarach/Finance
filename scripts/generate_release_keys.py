@@ -47,10 +47,10 @@ def main() -> None:
     print(f"    Public key: {pub_b64}")
     print()
     print("Next steps:")
-    print(f"  1. Add this to your shell profile:")
+    print("  1. Add this to your shell profile:")
     print(f"     export FINANCE_PRIVATE_KEY_PATH={private_key_path}")
-    print(f"  2. Commit the updated finance/appcast_key.py")
-    print(f"  3. Run releases with: scripts/release.sh 1.0.0")
+    print("  2. Commit the updated finance/appcast_key.py")
+    print("  3. Run releases with: scripts/release.sh 1.0.0")
 
 
 if __name__ == "__main__":

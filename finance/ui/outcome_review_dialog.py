@@ -8,6 +8,7 @@ from ..qt import (
     QHBoxLayout,
     QLabel,
     QComboBox,
+    QWidget,
     Qt,
 )
 from .dialog_utils import (

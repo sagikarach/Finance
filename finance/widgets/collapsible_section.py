@@ -58,7 +58,7 @@ class CollapsibleButtonList(QWidget):
             pass
         try:
             from ..utils.icons import make_icon
-            from ..qt import QIcon, QSize
+            from ..qt import QSize
             self._toggle_btn.setIcon(make_icon("chevron_down", size=14))
             self._toggle_btn.setIconSize(QSize(14, 14))
         except Exception:
@@ -277,7 +277,7 @@ class CollapsibleButtonList(QWidget):
         self._toggle_btn.setChecked(self._expanded)
         try:
             from ..utils.icons import make_icon
-            from ..qt import QIcon, QSize
+            from ..qt import QSize
             icon_name = "chevron_up" if show_content else "chevron_down"
             self._toggle_btn.setIcon(make_icon(icon_name, size=14))
             self._toggle_btn.setIconSize(QSize(14, 14))

@@ -329,7 +329,6 @@ class YearlyReportService:
 
         Returns (category_dict, month_labels).
         """
-        from datetime import datetime as _dt
 
         window = self._build_window_keys(months)
         if not window:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from datetime import datetime
 from typing import Callable, List, Optional
 
@@ -12,7 +11,6 @@ from ..models.charts import (
     latest_snapshots_by_month_with_axis,
 )
 from ..qt import (
-    QApplication,
     QCategoryAxis,
     QChart,
     QColor,
@@ -21,7 +19,6 @@ from ..qt import (
     QLineSeries,
     QPainter,
     Qt,
-    QValueAxis,
     QVBoxLayout,
     QWidget,
     charts_available,
