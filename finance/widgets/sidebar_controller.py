@@ -76,6 +76,7 @@ class SidebarController:
         is_monthly_data = route == "monthly_data"
         is_one_time_events = route == "one_time_events"
         is_installments = route == "installments"
+        is_mortgage = route in ("assets", "asset", "mortgage")
         is_yearly_section = route in (
             "yearly_overview",
             "yearly_data",
@@ -119,6 +120,17 @@ class SidebarController:
             installments_btn.setChecked(is_installments)
             installments_btn.setEnabled(not is_installments)
             installments_btn.blockSignals(False)
+
+        mortgage_btn = (
+            self._navigation.get_mortgage_button()
+            if hasattr(self._navigation, "get_mortgage_button")
+            else None
+        )
+        if mortgage_btn:
+            mortgage_btn.blockSignals(True)
+            mortgage_btn.setChecked(is_mortgage)
+            mortgage_btn.setEnabled(not is_mortgage)
+            mortgage_btn.blockSignals(False)
 
         self._bank_section.set_active(bool(is_bank_section))
         self._yearly_section.set_active(bool(is_yearly_section))
@@ -219,6 +231,17 @@ class SidebarController:
             installments_btn.setChecked(False)
             installments_btn.setEnabled(True)
             installments_btn.blockSignals(False)
+
+        mortgage_btn = (
+            self._navigation.get_mortgage_button()
+            if hasattr(self._navigation, "get_mortgage_button")
+            else None
+        )
+        if mortgage_btn:
+            mortgage_btn.blockSignals(True)
+            mortgage_btn.setChecked(False)
+            mortgage_btn.setEnabled(True)
+            mortgage_btn.blockSignals(False)
 
     def _on_yearly_clicked(self) -> None:
         self._clear_page_button_presses()

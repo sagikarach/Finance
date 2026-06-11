@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Optional
-import unicodedata
 
 from ..data.action_history_provider import (
     ActionHistoryProvider,
@@ -16,7 +15,6 @@ from ..data.installment_plan_provider import (
     InstallmentPlanProvider,
     JsonFileInstallmentPlanProvider,
 )
-from .accounts import parse_iso_date
 from .action_history import (
     Action,
     ActionHistory,
@@ -25,6 +23,7 @@ from .action_history import (
 )
 from .bank_movement import BankMovement
 from .installment_plan import InstallmentPlan
+from .movement_matching import match_movements
 
 
 @dataclass(frozen=True)
@@ -261,77 +260,12 @@ class InstallmentsService:
         )
 
     def _match_movements(self, plan: InstallmentPlan) -> List[BankMovement]:
-        def _normalize_text(value: str) -> str:
-            value = str(value or "")
-            try:
-                value = unicodedata.normalize("NFKC", value)
-            except Exception:
-                pass
-            drop = {
-                "\u200e",
-                "\u200f",
-                "\u202a",
-                "\u202b",
-                "\u202c",
-                "\u202d",
-                "\u202e",
-                "\u2066",
-                "\u2067",
-                "\u2068",
-                "\u2069",
-                "\u200b",
-                "\u200c",
-                "\u200d",
-                "\ufeff",
-            }
-            try:
-                value = "".join(ch for ch in value if ch not in drop)
-            except Exception:
-                pass
-            try:
-                value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
-            except Exception:
-                pass
-            value = " ".join(value.split())
-            return value
-
-        vendor_query = _normalize_text(plan.vendor_query).strip()
-        account_name = str(plan.account_name or "").strip().casefold()
-        if not vendor_query or not account_name:
-            return []
-        vendor_norm = _normalize_text(vendor_query).casefold()
-        start_dt = (
-            parse_iso_date(str(plan.start_date or "").strip())
-            if plan.start_date
-            else None
-        )
-        excluded = set(getattr(plan, "excluded_movement_ids", []) or [])
-
-        out: List[BankMovement] = []
-        for m in self._movements_provider.list_movements():
-            try:
-                if str(getattr(m, "account_name", "") or "").strip().casefold() != account_name:
-                    continue
-                if bool(getattr(m, "is_transfer", False)):
-                    continue
-                if float(getattr(m, "amount", 0.0) or 0.0) >= 0:
-                    continue
-                if str(getattr(m, "id", "") or "") in excluded:
-                    continue
-                desc = str(getattr(m, "description", "") or "")
-                if not desc:
-                    continue
-                desc_norm = _normalize_text(desc).casefold()
-                if vendor_norm not in desc_norm:
-                    continue
-                if start_dt is not None:
-                    if parse_iso_date(str(getattr(m, "date", "") or "")) < start_dt:
-                        continue
-                out.append(m)
-            except Exception:
-                continue
-        out.sort(key=lambda x: parse_iso_date(str(getattr(x, "date", "") or "")))
         payments_count = int(getattr(plan, "payments_count", 0) or 0)
-        if payments_count > 0:
-            out = out[:payments_count]
-        return out
+        return match_movements(
+            self._movements_provider.list_movements(),
+            vendor_query=plan.vendor_query,
+            account_name=plan.account_name,
+            start_date=str(plan.start_date or ""),
+            excluded_ids=getattr(plan, "excluded_movement_ids", []) or [],
+            max_count=payments_count if payments_count > 0 else None,
+        )

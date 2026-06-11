@@ -18,12 +18,15 @@ from ..models.action_history import (
     AddSavingsAccountAction,
     AssignMovementToOneTimeEventAction,
     DeactivateBankAccountAction,
+    AddMortgageAction,
     DeleteInstallmentPlanAction,
+    DeleteMortgageAction,
     DeleteMovementAction,
     DeleteOneTimeEventAction,
     DeleteSavingAction,
     DeleteSavingsAccountAction,
     EditInstallmentPlanAction,
+    EditMortgageAction,
     EditOneTimeEventAction,
     EditSavingAction,
     EditSavingsAccountAction,
@@ -207,6 +210,9 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             "add_installment_plan": AddInstallmentPlanAction,
             "edit_installment_plan": EditInstallmentPlanAction,
             "delete_installment_plan": DeleteInstallmentPlanAction,
+            "add_mortgage": AddMortgageAction,
+            "edit_mortgage": EditMortgageAction,
+            "delete_mortgage": DeleteMortgageAction,
         }
 
         action_class = action_class_map.get(action_name)

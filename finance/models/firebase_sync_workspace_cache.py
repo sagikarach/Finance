@@ -136,6 +136,46 @@ def pull_installment_plans_to_local_cache(
         pass
 
 
+def pull_mortgages_to_local_cache(
+    *, fs: FirestoreClient, workspace_id: str, id_token: str
+) -> None:
+    workspace_id = str(workspace_id or "").strip()
+    if not workspace_id:
+        return
+    try:
+        from ..data.mortgage_provider import (
+            JsonFileMortgageProvider,
+            deserialize_mortgage,
+        )
+
+        docs = fs.list_collection(
+            collection_path=f"workspaces/{workspace_id}/mortgages",
+            id_token=id_token,
+        )
+        provider = JsonFileMortgageProvider()
+        local_by_id = {m.id: m for m in provider.list_mortgages()}
+        for d in docs:
+            try:
+                doc_id, parsed = fs.parse_any_doc(d)
+                mid = str(parsed.get("id") or doc_id).strip()
+                if not mid:
+                    continue
+                if bool(parsed.get("deleted", False)):
+                    local_by_id.pop(mid, None)
+                    continue
+                # parse_any_doc already decodes nested maps/arrays to plain dicts,
+                # so the shared deserializer handles the track list directly.
+                parsed.setdefault("id", mid)
+                mortgage = deserialize_mortgage(parsed)
+                if mortgage is not None:
+                    local_by_id[mid] = mortgage
+            except Exception:
+                continue
+        provider.save_mortgages(list(local_by_id.values()))
+    except Exception:
+        pass
+
+
 def pull_notifications_to_local_cache(
     *, fs: FirestoreClient, workspace_id: str, id_token: str
 ) -> None:

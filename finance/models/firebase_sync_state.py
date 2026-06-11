@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 import json
@@ -25,6 +25,7 @@ class SyncState:
     last_remote_updated_at: str
     last_remote_updated_at_ms: int
     last_workspace_cache_pull_at_ms: int = 0
+    pending_delete_mortgage_ids: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -41,6 +42,7 @@ class SyncState:
             "last_workspace_cache_pull_at_ms": int(
                 self.last_workspace_cache_pull_at_ms or 0
             ),
+            "pending_delete_mortgage_ids": list(self.pending_delete_mortgage_ids),
         }
 
     @staticmethod
@@ -87,6 +89,11 @@ class SyncState:
             raw_del_pl = []
         del_pl = [str(x) for x in raw_del_pl if isinstance(x, str) and str(x).strip()]
 
+        raw_del_mg = d.get("pending_delete_mortgage_ids", [])
+        if not isinstance(raw_del_mg, list):
+            raw_del_mg = []
+        del_mg = [str(x) for x in raw_del_mg if isinstance(x, str) and str(x).strip()]
+
         last_remote_updated_at = str(d.get("last_remote_updated_at", "") or "").strip()
         try:
             last_remote_updated_at_ms = int(d.get("last_remote_updated_at_ms", 0) or 0)
@@ -108,6 +115,7 @@ class SyncState:
             last_remote_updated_at=last_remote_updated_at,
             last_remote_updated_at_ms=last_remote_updated_at_ms,
             last_workspace_cache_pull_at_ms=last_workspace_cache_pull_at_ms,
+            pending_delete_mortgage_ids=del_mg,
         )
 
 
@@ -155,7 +163,7 @@ def _uniq(items: List[str]) -> List[str]:
 def add_pending_delete(*, key: str, kind: str, item_id: str) -> None:
     """
     Record a delete to be pushed on next Sync.
-    kind: movement | event | installment_plan
+    kind: movement | event | installment_plan | mortgage
     """
     key = str(key or "").strip()
     item_id = str(item_id or "").strip()
@@ -176,6 +184,11 @@ def add_pending_delete(*, key: str, kind: str, item_id: str) -> None:
         elif kind in ("installment", "installment_plan", "plan"):
             state.pending_delete_installment_plan_ids = _uniq(
                 list(getattr(state, "pending_delete_installment_plan_ids", []) or [])
+                + [item_id]
+            )
+        elif kind == "mortgage":
+            state.pending_delete_mortgage_ids = _uniq(
+                list(getattr(state, "pending_delete_mortgage_ids", []) or [])
                 + [item_id]
             )
         save_sync_state(key, state)

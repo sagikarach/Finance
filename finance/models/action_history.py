@@ -187,6 +187,40 @@ class DeleteInstallmentPlanAction(Action):
 
 
 @dataclass(frozen=True)
+class AddMortgageAction(Action):
+    mortgage_id: str = field(default="")
+    mortgage_name: str = field(default="")
+    account_name: str = field(default="")
+    start_date: str = field(default="")
+    tracks_count: int = field(default=0)
+    original_principal: float = field(default=0.0)
+
+
+@dataclass(frozen=True)
+class EditMortgageAction(Action):
+    mortgage_id: str = field(default="")
+    mortgage_name: str = field(default="")
+    old_name: Optional[str] = field(default=None)
+    new_name: Optional[str] = field(default=None)
+    old_account_name: Optional[str] = field(default=None)
+    new_account_name: Optional[str] = field(default=None)
+    old_start_date: Optional[str] = field(default=None)
+    new_start_date: Optional[str] = field(default=None)
+    old_tracks_count: Optional[int] = field(default=None)
+    new_tracks_count: Optional[int] = field(default=None)
+    old_original_principal: Optional[float] = field(default=None)
+    new_original_principal: Optional[float] = field(default=None)
+    old_archived: Optional[bool] = field(default=None)
+    new_archived: Optional[bool] = field(default=None)
+
+
+@dataclass(frozen=True)
+class DeleteMortgageAction(Action):
+    mortgage_id: str = field(default="")
+    mortgage_name: str = field(default="")
+
+
+@dataclass(frozen=True)
 class ActionHistory:
     id: str
     timestamp: str

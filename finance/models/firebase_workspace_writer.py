@@ -9,6 +9,7 @@ from ..models.firebase_session_manager import FirebaseSessionManager
 from ..models.bank_movement import BankMovement
 from ..models.one_time_event import OneTimeEvent
 from ..models.installment_plan import InstallmentPlan
+from ..models.mortgage import Mortgage
 from ..models.notifications import Notification
 from ..models.accounts import (
     MoneyAccount,
@@ -221,6 +222,54 @@ class FirebaseWorkspaceWriter:
             document_path=f"workspaces/{wid}/installment_plans/{plan_id}",
             id_token=s.id_token,
             fields={"id": plan_id, "deleted": True},
+        )
+
+    def upsert_mortgage(self, mortgage: Mortgage) -> None:
+        from ..data.mortgage_provider import serialize_cost, serialize_track
+
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/mortgages/{mortgage.id}",
+            id_token=s.id_token,
+            fields={
+                "id": mortgage.id,
+                "name": mortgage.name,
+                "account_name": mortgage.account_name,
+                "vendor_query": mortgage.vendor_query,
+                "start_date": mortgage.start_date,
+                "tracks": [serialize_track(t) for t in mortgage.tracks],
+                "excluded_movement_ids": list(
+                    getattr(mortgage, "excluded_movement_ids", []) or []
+                ),
+                "archived": bool(getattr(mortgage, "archived", False)),
+                "property_price": float(
+                    getattr(mortgage, "property_price", 0.0) or 0.0
+                ),
+                "equity": float(getattr(mortgage, "equity", 0.0) or 0.0),
+                "equity_query": str(getattr(mortgage, "equity_query", "") or ""),
+                "one_time_costs": [
+                    serialize_cost(c) for c in mortgage.one_time_costs
+                ],
+                "monthly_costs": [serialize_cost(c) for c in mortgage.monthly_costs],
+                "kind": str(getattr(mortgage.kind, "value", mortgage.kind)),
+                "current_value": float(getattr(mortgage, "current_value", 0.0) or 0.0),
+                "deleted": False,
+            },
+        )
+
+    def delete_mortgage(self, *, mortgage_id: str) -> None:
+        mortgage_id = str(mortgage_id or "").strip()
+        if not mortgage_id:
+            return
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.upsert_document(
+            document_path=f"workspaces/{wid}/mortgages/{mortgage_id}",
+            id_token=s.id_token,
+            fields={"id": mortgage_id, "deleted": True},
         )
 
     def upsert_accounts_snapshot(self, accounts: List[MoneyAccount]) -> None:

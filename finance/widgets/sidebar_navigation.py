@@ -35,6 +35,8 @@ class SidebarNavigation:
         self._one_time_events_container: Optional[QWidget] = None
         self._installments_btn: Optional[QPushButton] = None
         self._installments_container: Optional[QWidget] = None
+        self._mortgage_btn: Optional[QPushButton] = None
+        self._mortgage_container: Optional[QWidget] = None
         self._yearly_summary_btn: Optional[QPushButton] = None
         self._yearly_summary_container: Optional[QWidget] = None
 
@@ -45,6 +47,7 @@ class SidebarNavigation:
         self._setup_yearly_summary_button()
         self._setup_one_time_events_button()
         self._setup_installments_button()
+        self._setup_mortgage_button()
 
     def _setup_dashboard_button(self) -> None:
         button_container = QWidget(self._parent)
@@ -250,6 +253,35 @@ class SidebarNavigation:
         self._installments_container = button_container
         self._layout.addWidget(button_container)
 
+    def _setup_mortgage_button(self) -> None:
+        button_container = QWidget(self._parent)
+        button_container_layout = QHBoxLayout(button_container)
+        button_container_layout.setContentsMargins(0, 0, 0, 0)
+        button_container_layout.setSpacing(0)
+
+        # "נכסים" — מסך רשימת הנכסים; משכנתא היא נכס מסוג רכישה בתוכו.
+        is_active = self._current_route in ("assets", "asset", "mortgage")
+        self._mortgage_btn = QPushButton("נכסים", button_container)
+        self._mortgage_btn.setObjectName("SidebarNavButton")
+        self._mortgage_btn.setCheckable(True)
+        self._mortgage_btn.setChecked(is_active)
+        self._mortgage_btn.setEnabled(not is_active)
+        try:
+            self._mortgage_btn.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
+        except Exception:
+            pass
+
+        if self._navigate is not None:
+            self._mortgage_btn.clicked.connect(lambda: self._navigate("assets"))
+
+        self._mortgage_btn.setMinimumHeight(40)
+        button_container_layout.addWidget(self._mortgage_btn)
+
+        self._mortgage_container = button_container
+        self._layout.addWidget(button_container)
+
     def get_dashboard_button(self) -> Optional[QPushButton]:
         return self._dashboard_btn
 
@@ -285,6 +317,12 @@ class SidebarNavigation:
 
     def get_installments_container(self) -> Optional[QWidget]:
         return self._installments_container
+
+    def get_mortgage_button(self) -> Optional[QPushButton]:
+        return self._mortgage_btn
+
+    def get_mortgage_container(self) -> Optional[QWidget]:
+        return self._mortgage_container
 
     def get_yearly_summary_button(self) -> Optional[QPushButton]:
         return self._yearly_summary_btn

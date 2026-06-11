@@ -67,4 +67,29 @@ Movement document fields:
 - `event_id` (optional)
 - `deleted` (bool)
 
+#### Mortgage document (`workspaces/{workspaceId}/mortgages/{mortgageId}`)
+Desktop-only today; documented so a future mobile mortgage view stays
+consistent. Mortgage **reconciliation already works with mobile-created
+movements** — it matches by `account_name` + `description`, so no mobile code
+is required for that. Fields:
+- `id` (uuid)
+- `name` (free text)
+- `account_name` (source account, used to match real payments)
+- `vendor_query` (text matched against movement `description`)
+- `start_date` (YYYY-MM-DD)
+- `excluded_movement_ids` (array of movement ids to exclude from matching)
+- `archived` (bool)
+- `deleted` (bool)
+- `tracks` (array of maps — the תמהיל), each:
+  - `id` (uuid)
+  - `name` (free text)
+  - `kind` (פריים | קבועה לא צמודה | קבועה צמודה | משתנה לא צמודה | משתנה צמודה)
+  - `principal` (number)
+  - `annual_rate` (number, % — ignored for prime tracks)
+  - `term_months` (int)
+  - `amortization` (שפיצר | קרן שווה)
+  - `cpi_linked` (bool)
+  - `prime_spread` (number — for prime: effective rate = prime + spread)
+  - `reset_months` (int — variable-rate reset period, 0 = none)
+
 

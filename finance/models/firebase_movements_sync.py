@@ -23,6 +23,7 @@ from ..models.firebase_sync_pullers import (
 from ..models.firebase_sync_workspace_cache import (
     pull_events_to_local_cache,
     pull_installment_plans_to_local_cache,
+    pull_mortgages_to_local_cache,
     pull_notifications_to_local_cache,
     pull_notifications_meta_to_local_cache,
     pull_user_profile_to_local_cache,
@@ -207,6 +208,7 @@ class FirebaseMovementsSyncService:
         pull_installment_plans_to_local_cache(
             fs=fs, workspace_id=wid, id_token=id_token
         )
+        pull_mortgages_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
         pull_notifications_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
         pull_notifications_meta_to_local_cache(
             fs=fs, workspace_id=wid, id_token=id_token
@@ -395,6 +397,7 @@ class FirebaseMovementsSyncService:
             from ..data.notifications_provider import JsonFileNotificationsProvider
             from ..data.one_time_event_provider import JsonFileOneTimeEventProvider
             from ..data.installment_plan_provider import JsonFileInstallmentPlanProvider
+            from ..data.mortgage_provider import JsonFileMortgageProvider
             from ..data.action_history_provider import JsonFileActionHistoryProvider
             from ..models.firebase_sync_state import save_sync_state
             from ..utils.app_paths import user_profile_path
@@ -448,6 +451,16 @@ class FirebaseMovementsSyncService:
                     kept_pl.append(str(pid))
             state.pending_delete_installment_plan_ids = kept_pl
 
+            del_mg = list(getattr(state, "pending_delete_mortgage_ids", []) or [])
+            kept_mg: list[str] = []
+            for mgid in del_mg:
+                try:
+                    writer.delete_mortgage(mortgage_id=str(mgid))
+                    pushed += 1
+                except Exception:
+                    kept_mg.append(str(mgid))
+            state.pending_delete_mortgage_ids = kept_mg
+
             try:
                 movements = list(self._provider.list_movements())
             except Exception:
@@ -485,6 +498,13 @@ class FirebaseMovementsSyncService:
             for p in list(JsonFileInstallmentPlanProvider().list_plans()):
                 try:
                     writer.upsert_installment_plan(p)
+                    pushed += 1
+                except Exception:
+                    continue
+
+            for mg in list(JsonFileMortgageProvider().list_mortgages()):
+                try:
+                    writer.upsert_mortgage(mg)
                     pushed += 1
                 except Exception:
                     continue

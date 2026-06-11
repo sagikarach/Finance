@@ -13,6 +13,9 @@ from ..pages.bank_account_page import BankAccountPage
 from ..pages.monthly_data_page import MonthlyDataPage
 from ..pages.one_time_events_page import OneTimeEventsPage
 from ..pages.installments_page import InstallmentsPage
+from ..pages.mortgage_page import MortgagePage
+from ..pages.assets_page import AssetsPage
+from ..pages.asset_detail_page import AssetDetailPage
 from ..pages.yearly_summary_page import YearlySummaryPage
 from ..pages.yearly_category_trends_page import YearlyCategoryTrendsPage
 from ..pages.yearly_overview_page import YearlyOverviewPage
@@ -208,6 +211,30 @@ class MainWindow(QMainWindow):
         self.router.register(
             "installments",
             lambda: InstallmentsPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
+            "mortgage",
+            lambda: MortgagePage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
+            "assets",
+            lambda: AssetsPage(
+                app_context=self._app_context,
+                parent=self._stack,
+                navigate=self.router.navigate,
+            ),
+        )
+        self.router.register(
+            "asset",
+            lambda: AssetDetailPage(
                 app_context=self._app_context,
                 parent=self._stack,
                 navigate=self.router.navigate,
