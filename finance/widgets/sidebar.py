@@ -178,6 +178,49 @@ class Sidebar(QWidget):
         else:
             layout.addWidget(self._yearly_summary_section)
 
+        # "נכסים" — מקטע מתקפל המציג את רשימת הנכסים, כמו חשבונות/חסכונות.
+        self._assets_section = CollapsibleButtonList(
+            content_parent,
+            title="נכסים",
+            header_object_name="SidebarNavButton",
+            header_tooltip="נכסים",
+        )
+        self._assets_section.set_arrow_visible(False)
+        self._assets_section.set_expanded(False)
+
+        assets_container = (
+            self._navigation.get_mortgage_container()
+            if hasattr(self._navigation, "get_mortgage_container")
+            else None
+        )
+        if assets_container is not None:
+            try:
+                idx_assets = layout.indexOf(assets_container)
+                if idx_assets != -1:
+                    layout.insertWidget(idx_assets, self._assets_section)
+                else:
+                    layout.addWidget(self._assets_section)
+            except Exception:
+                layout.addWidget(self._assets_section)
+            try:
+                layout.removeWidget(assets_container)
+                assets_container.setVisible(False)
+                assets_container.setParent(None)
+                assets_container.deleteLater()
+            except Exception:
+                pass
+            try:
+                assets_btn = getattr(
+                    self._navigation, "get_mortgage_button", lambda: None
+                )()
+                if assets_btn is not None:
+                    assets_btn.setVisible(False)
+                    assets_btn.setEnabled(False)
+            except Exception:
+                pass
+        else:
+            layout.addWidget(self._assets_section)
+
         layout.addStretch(1)
 
         self._controller = SidebarController(
@@ -188,6 +231,7 @@ class Sidebar(QWidget):
             bank_section=self._bank_section,
             savings_section=self._savings_section,
             yearly_section=self._yearly_summary_section,
+            assets_section=self._assets_section,
             navigate=self._navigate,
             current_route=self._current_route,
             accounts=self._accounts,

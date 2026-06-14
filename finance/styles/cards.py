@@ -57,6 +57,18 @@ def load_cards_light_styles() -> str:
     QWidget#ContentPanel * {
         background: transparent;
     }
+    QWidget#AssetTablePanel {
+        background: #e8f3fd;
+        border: 1px solid #c7dffe;
+        border-top: none;
+        border-top-left-radius: 0px;
+        border-top-right-radius: 0px;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+    QWidget#AssetTablePanel * {
+        background: transparent;
+    }
     """
 
 
@@ -101,6 +113,18 @@ def load_cards_dark_styles() -> str:
         border-radius: 12px;
     }
     QWidget#ContentPanel * {
+        background: transparent;
+    }
+    QWidget#AssetTablePanel {
+        background: #111827;
+        border: 1px solid #1e293b;
+        border-top: none;
+        border-top-left-radius: 0px;
+        border-top-right-radius: 0px;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+    QWidget#AssetTablePanel * {
         background: transparent;
     }
     """

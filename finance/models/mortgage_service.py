@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import List, Optional
 
 from ..data.action_history_provider import (
@@ -291,22 +291,5 @@ class MortgageService:
         if movement_id in excluded:
             return
         excluded.append(movement_id)
-        self.upsert_mortgage(
-            Mortgage(
-                id=target.id,
-                name=target.name,
-                account_name=target.account_name,
-                vendor_query=target.vendor_query,
-                start_date=target.start_date,
-                tracks=list(target.tracks),
-                excluded_movement_ids=excluded,
-                archived=bool(target.archived),
-                property_price=float(target.property_price),
-                price_query=str(target.price_query),
-                one_time_costs=list(target.one_time_costs),
-                monthly_costs=list(target.monthly_costs),
-                funding_sources=list(target.funding_sources),
-                kind=target.kind,
-                current_value=float(target.current_value),
-            )
-        )
+        # replace() נושא את כל השדות — עמיד להוספת שדות חדשים בעתיד.
+        self.upsert_mortgage(replace(target, excluded_movement_ids=excluded))

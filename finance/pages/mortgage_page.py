@@ -443,6 +443,10 @@ class MortgageDialog(QDialog):
         # נכס שנוצר/נערך במסך המשכנתא הוא תמיד מסוג רכישה.
         kind = prev.kind if prev is not None else AssetKind.PURCHASE
         current_value = float(prev.current_value) if prev is not None else 0.0
+        # מצב המכירה נשמר מהרשומה הקודמת — עריכת המשכנתא אינה משנה אותו.
+        sold = bool(prev.sold) if prev is not None else False
+        sale_price = float(prev.sale_price) if prev is not None else 0.0
+        sale_date = str(prev.sale_date) if prev is not None else ""
         self._mortgage = Mortgage(
             **({"id": existing_id} if existing_id else {}),
             name=name,
@@ -459,6 +463,9 @@ class MortgageDialog(QDialog):
             funding_sources=funding_sources,
             kind=kind,
             current_value=current_value,
+            sold=sold,
+            sale_price=sale_price,
+            sale_date=sale_date,
         )
         self.accept()
 
@@ -910,13 +917,7 @@ class MortgagePage(BasePage):
         header_row.addWidget(self._selector, 0)
         header_row.addStretch(1)
 
-        add_btn = QToolButton(header_card)
-        add_btn.setObjectName("IconButton")
-        add_btn.setText("➕")
-        add_btn.setToolTip("הוסף משכנתא")
-        add_btn.clicked.connect(self._on_add_clicked)
-        header_row.addWidget(add_btn)
-
+        # יצירת נכס חדש מתבצעת רק בעמוד "נכסים" — כאן רק עורכים נכס קיים.
         self._edit_btn = QToolButton(header_card)
         self._edit_btn.setObjectName("IconButton")
         self._edit_btn.setText("✎")
@@ -1172,17 +1173,6 @@ class MortgagePage(BasePage):
         except Exception:
             self._selected_id = None
         self._refresh_details()
-
-    def _on_add_clicked(self) -> None:
-        dlg = MortgageDialog(accounts=self._accounts, parent=self)
-        if dlg.exec() != QDialog.DialogCode.Accepted:
-            return
-        mortgage = dlg.get_mortgage()
-        if mortgage is None:
-            return
-        self._service.upsert_mortgage(mortgage)
-        self._selected_id = mortgage.id
-        self._reload()
 
     def _on_edit_clicked(self) -> None:
         m = self._selected_mortgage()

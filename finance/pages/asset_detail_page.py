@@ -112,6 +112,36 @@ def funding_available(
     return 0.0  # עתידי — טרם התקבל
 
 
+def account_transferred_out(movements: List, account_name: str) -> float:
+    """סך ההעברות היוצאות מחשבון נתון (העברות בלבד, סכום שלילי) — הכסף שהוזרם
+    מהחשבון אל חשבון הבנק לצורך הרכישה."""
+    name = str(account_name or "").strip()
+    if not name:
+        return 0.0
+    total = 0.0
+    for m in movements:
+        try:
+            if (
+                bool(getattr(m, "is_transfer", False))
+                and float(getattr(m, "amount", 0.0) or 0.0) < 0
+                and str(getattr(m, "account_name", "") or "").strip() == name
+            ):
+                total += abs(float(m.amount))
+        except Exception:
+            continue
+    return float(total)
+
+
+def funding_spent(source: FundingSource, movements: List) -> Optional[float]:
+    """כמה נוצל בפועל ממקור המימון. חשבון → העברות יוצאות ממנו אל הבנק;
+    תנועות → ההכנסה שנתפסה; עתידי → None ('—'). חשבון הבנק עצמו מטופל בנפרד."""
+    if source.kind == FundingKind.ACCOUNT:
+        return account_transferred_out(movements, source.account_name)
+    if source.kind == FundingKind.MOVEMENTS:
+        return query_received_amount(source.query, movements, include_transfers=True)
+    return None  # עתידי
+
+
 class FundingSourceDialog(QDialog):
     """עריכת מקור מימון: שם, סוג, סכום מוקצה, וחיפוש/חשבון לפי הסוג."""
 
@@ -367,6 +397,9 @@ class AssetDetailPage(BasePage):
         self._one_time_costs: List[CostItem] = []
         self._monthly_table: Optional[QTableWidget] = None
         self._monthly_costs: List[CostItem] = []
+        self._active_tab: str = "expenses"
+        self._tab_cards: dict = {}
+        self._tab_buttons: dict = {}
         super().__init__(*args, **kwargs)
 
     def _load_accounts(self) -> List[MoneyAccount]:
@@ -417,7 +450,9 @@ class AssetDetailPage(BasePage):
             lay.addStretch(1)
             return
 
-        # כותרת + כפתורי פעולה (חזרה, עריכת רכישה) — אייקונים בלבד.
+        s = self._service.purchase_summary(m)
+
+        # כותרת + כפתורי פעולה (חזרה, משכנתא, עריכת רכישה) — כולם בשורת הכותרת.
         title_row = QHBoxLayout()
         back_btn = QToolButton(root)
         back_btn.setObjectName("IconButton")
@@ -436,6 +471,30 @@ class AssetDetailPage(BasePage):
         name_lbl.setObjectName("HeaderTitle")
         title_row.addWidget(name_lbl, 0)
         title_row.addStretch(1)
+
+        # כפתור המשכנתא — בשורת הכותרת לצד שאר הכפתורים, פותח את פרטי המשכנתא.
+        if s.tracks_total > 0:
+            mort_text = (
+                f"משכנתא: {_fmt_money(s.tracks_total)} ₪ · "
+                f"{_fmt_money(s.mortgage_monthly)} ₪/חודש   ›"
+            )
+        elif s.required_mortgage > 0:
+            mort_text = f"משכנתא: בנה תמהיל בסך {_fmt_money(s.required_mortgage)} ₪   ›"
+        else:
+            mort_text = "משכנתא — פתח פרטים   ›"
+        mort_btn = QPushButton(mort_text, root)
+        mort_btn.setObjectName("SecondaryButton")
+        mort_btn.setToolTip("פתח את פרטי המשכנתא (תמהיל, לוח סילוקין, תנועות)")
+        try:
+            mort_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            mort_btn.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+            )
+        except Exception:
+            pass
+        mort_btn.clicked.connect(self._open_mortgage)
+        title_row.addWidget(mort_btn, 0)
+
         edit_btn = QToolButton(root)
         edit_btn.setObjectName("IconButton")
         try:
@@ -449,15 +508,27 @@ class AssetDetailPage(BasePage):
         title_row.addWidget(edit_btn)
         lay.addLayout(title_row, 0)
 
-        s = self._service.purchase_summary(m)
         movements = self._service.list_movements()
         accounts = self._load_accounts()
         self._funding_sources = list(m.funding_sources)
 
-        # חשבון "בנק" מכסה את היתרה; יישאר אחרי הרכישה = יתרת הבנק − היתרה לכיסוי.
+        # מה שכבר שולם מהבנק לרכישה = מחיר ששולם + עלויות ששולמו.
+        price_query = str(getattr(m, "price_query", "") or "").strip()
+        price_paid = (
+            query_paid_amount(price_query, movements, include_transfers=True)
+            if price_query
+            else 0.0
+        )
+        exp_paid = price_paid + sum(
+            cost_paid_amount(c, movements) for c in m.one_time_costs
+        )
+
+        # חשבון "בנק" מכסה את היתרה. הסכום שכבר שולם מהבנק מקוזז כדי לא לספור
+        # פעמיים (הכסף כבר ירד מהיתרה).
         bank_balance = _endpoint_balance(accounts, _BANK_ACCOUNT_NAME, "")
         residual = s.residual_from_bank
-        left_in_bank = bank_balance - residual
+        remaining_need = max(0.0, residual - exp_paid)
+        left_in_bank = bank_balance - remaining_need
 
         # כרטיסי סיכום
         cards_row = QHBoxLayout()
@@ -494,41 +565,16 @@ class AssetDetailPage(BasePage):
 
         build_card("עלות רכישה", _fmt_money(s.acquisition_cost), "StatCardRed")
         build_card("כסף שנשתמש בו", _fmt_money(s.upfront_cash), "StatCardYellow")
-        # אדום אם חשבון הבנק לא מספיק לכיסוי היתרה (ערך שלילי).
+        build_card("תשלום חודשי כולל", _fmt_money(s.monthly_total), "StatCardPurple")
+        # אדום אם חשבון הבנק לא מספיק לכיסוי היתרה שנותרה (ערך שלילי).
         build_card(
             "יישאר בבנק אחרי הרכישה",
             _fmt_money(left_in_bank),
             "StatCardGreen",
             value_color="#dc2626" if left_in_bank < 0 else None,
         )
-        build_card("תשלום חודשי כולל", _fmt_money(s.monthly_total), "StatCardPurple")
         build_card("יחס מימון", f"{s.ltv * 100:.0f}%", "StatCardYellow")
         lay.addLayout(cards_row, 0)
-
-        # חלק המשכנתא — לחיץ, פותח את פרטי המשכנתא
-        if s.tracks_total > 0:
-            mort_text = (
-                f"משכנתא: {_fmt_money(s.tracks_total)} ₪ · "
-                f"{_fmt_money(s.mortgage_monthly)} ₪/חודש   ›"
-            )
-        elif s.required_mortgage > 0:
-            mort_text = (
-                f"משכנתא: בנה תמהיל בסך {_fmt_money(s.required_mortgage)} ₪   ›"
-            )
-        else:
-            mort_text = "משכנתא — פתח פרטים   ›"
-        mort_btn = QPushButton(mort_text, root)
-        mort_btn.setObjectName("SidebarNavButton")
-        mort_btn.setToolTip("פתח את פרטי המשכנתא (תמהיל, לוח סילוקין, תנועות)")
-        try:
-            mort_btn.setMinimumHeight(48)
-            mort_btn.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-            )
-        except Exception:
-            pass
-        mort_btn.clicked.connect(self._open_mortgage)
-        lay.addWidget(mort_btn, 0)
 
         # ───────── צד ההוצאות (יציאה) — מחיר הדירה + עלויות, בהוספה כמו ההכנסות ─
         self._one_time_costs = list(m.one_time_costs)
@@ -543,15 +589,8 @@ class AssetDetailPage(BasePage):
         expenses_table.setHorizontalHeaderLabels(["רכיב", "סכום", "שולם בפועל"])
         expenses_table.doubleClicked.connect(self._on_edit_cost)
         # שורה 0 = מחיר הדירה; שורות 1..n = עלויות (אינדקס עלות = שורה − 1); ואז סה״כ.
+        # (price_paid / exp_paid חושבו למעלה.)
         exp_total = float(m.property_price)
-        # תשלום בפועל למחיר הדירה — לפי חיפוש תנועות (כולל העברות/משכנתא למוכר).
-        price_query = str(getattr(m, "price_query", "") or "").strip()
-        price_paid = (
-            query_paid_amount(price_query, movements, include_transfers=True)
-            if price_query
-            else 0.0
-        )
-        exp_paid = price_paid
         expenses_table.setRowCount(len(self._one_time_costs) + 2)
         expenses_table.setItem(0, 0, QTableWidgetItem("מחיר הדירה"))
         expenses_table.setItem(0, 1, QTableWidgetItem(_fmt_money(m.property_price)))
@@ -563,7 +602,6 @@ class AssetDetailPage(BasePage):
             paid = cost_paid_amount(c, movements)
             total = planned if planned > 0 else paid
             exp_total += total
-            exp_paid += paid
             r = i + 1
             expenses_table.setItem(r, 0, QTableWidgetItem(str(c.name)))
             expenses_table.setItem(r, 1, QTableWidgetItem(_fmt_money(total)))
@@ -577,7 +615,7 @@ class AssetDetailPage(BasePage):
 
         # ───────── צד ההכנסות / מקורות מימון (כניסה) ─────────
         income_card = QWidget(root)
-        income_card.setObjectName("ContentPanel")
+        income_card.setObjectName("AssetTablePanel")
         try:
             income_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             income_card.setSizePolicy(
@@ -610,8 +648,10 @@ class AssetDetailPage(BasePage):
 
         income_table = QTableWidget(income_card)
         income_table.setObjectName("ActionHistoryTableWidget")
-        income_table.setColumnCount(4)
-        income_table.setHorizontalHeaderLabels(["מקור", "סוג", "סכום", "זמין בפועל"])
+        income_table.setColumnCount(5)
+        income_table.setHorizontalHeaderLabels(
+            ["מקור", "סוג", "סכום", "זמין בפועל", "הוצא בפועל"]
+        )
         income_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         income_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         income_table.setAlternatingRowColors(True)
@@ -634,6 +674,7 @@ class AssetDetailPage(BasePage):
         income_table.setRowCount(len(self._funding_sources) + 3)
         for i, f in enumerate(self._funding_sources):
             avail = funding_available(f, movements, accounts)
+            spent = funding_spent(f, movements)
             inc_total += float(f.amount)
             inc_avail += avail
             income_table.setItem(i, 0, QTableWidgetItem(str(f.name)))
@@ -642,7 +683,10 @@ class AssetDetailPage(BasePage):
             )
             income_table.setItem(i, 2, QTableWidgetItem(_fmt_money(f.amount)))
             income_table.setItem(i, 3, QTableWidgetItem(_fmt_money(avail)))
-        # שורת המשכנתא (= התמהיל שנבנה)
+            income_table.setItem(
+                i, 4, QTableWidgetItem(_fmt_money(spent) if spent else "—")
+            )
+        # שורת המשכנתא (= התמהיל שנבנה); הכסף "יוצא" כתשלומי המשכנתא — לא נמדד כאן.
         loan = float(s.tracks_total)
         mrow = len(self._funding_sources)
         inc_total += loan
@@ -651,35 +695,31 @@ class AssetDetailPage(BasePage):
         income_table.setItem(mrow, 1, QTableWidgetItem("מימון"))
         income_table.setItem(mrow, 2, QTableWidgetItem(_fmt_money(loan)))
         income_table.setItem(mrow, 3, QTableWidgetItem(_fmt_money(loan)))
-        # שורת חשבון הבנק — מכסה את היתרה (זמין = יתרת הבנק; אדום אם לא מספיק)
+        income_table.setItem(mrow, 4, QTableWidgetItem("—"))
+        # שורת חשבון הבנק — מכסה את היתרה:
+        #   סכום       = הסכום שצריך לשלם מהבנק (היתרה).
+        #   זמין בפועל = הסכום שצריך לשלם פחות מה שכבר שולם (מה שנותר לשלם).
+        #   הוצא בפועל = הסכום שכבר שולם בפועל.
         brow = mrow + 1
         inc_total += residual
-        inc_avail += bank_balance
+        inc_avail += remaining_need
         income_table.setItem(brow, 0, QTableWidgetItem(f"חשבון {_BANK_ACCOUNT_NAME}"))
         income_table.setItem(brow, 1, QTableWidgetItem("יתרה"))
         income_table.setItem(brow, 2, QTableWidgetItem(_fmt_money(residual)))
-        bank_item = QTableWidgetItem(_fmt_money(bank_balance))
-        if left_in_bank < 0:
-            try:
-                from ..qt import QColor
-
-                bank_item.setForeground(QColor("#dc2626"))
-            except Exception:
-                pass
-        income_table.setItem(brow, 3, bank_item)
+        income_table.setItem(brow, 3, QTableWidgetItem(_fmt_money(remaining_need)))
+        income_table.setItem(
+            brow,
+            4,
+            QTableWidgetItem(_fmt_money(exp_paid) if exp_paid else "—"),
+        )
         # סה״כ
         trow = brow + 1
         income_table.setItem(trow, 0, QTableWidgetItem("סה״כ"))
         income_table.setItem(trow, 1, QTableWidgetItem(""))
         income_table.setItem(trow, 2, QTableWidgetItem(_fmt_money(inc_total)))
         income_table.setItem(trow, 3, QTableWidgetItem(_fmt_money(inc_avail)))
+        income_table.setItem(trow, 4, QTableWidgetItem(""))
         il.addWidget(income_table, 1)
-
-        bottom_row = QHBoxLayout()
-        bottom_row.setSpacing(12)
-        bottom_row.addWidget(expenses_card, 1)
-        bottom_row.addWidget(income_card, 1)
-        lay.addLayout(bottom_row, 1)
 
         # ───────── עלויות חודשיות נלוות (מנוהל אינליין כמו השאר) ─────────
         self._monthly_costs = list(m.monthly_costs)
@@ -703,14 +743,73 @@ class AssetDetailPage(BasePage):
         monthly_table.setItem(
             len(self._monthly_costs), 1, QTableWidgetItem(_fmt_money(m_total))
         )
-        lay.addWidget(monthly_card, 0)
+
+        # ───────── בורר טבלאות — מציגים טבלה אחת בכל פעם ─────────
+        self._tab_cards = {
+            "expenses": expenses_card,
+            "income": income_card,
+            "monthly": monthly_card,
+        }
+        # עוטפים את הבורר ואת הטבלאות באותו מיכל ללא רווח, כך שהכפתור הפעיל
+        # והטבלה שמתחתיו נראים על אותו רקע רציף.
+        self._tab_buttons = {}
+        tabs_wrap = QWidget(root)
+        tabs_wrap_l = QVBoxLayout(tabs_wrap)
+        tabs_wrap_l.setContentsMargins(0, 0, 0, 0)
+        tabs_wrap_l.setSpacing(0)
+
+        tab_bar_w = QWidget(tabs_wrap)
+        tab_bar = QHBoxLayout(tab_bar_w)
+        tab_bar.setContentsMargins(0, 0, 0, 0)
+        tab_bar.setSpacing(4)
+        for key, label in (
+            ("expenses", "הוצאות"),
+            ("income", "הכנסות / מימון"),
+            ("monthly", "עלויות חודשיות"),
+        ):
+            btn = QPushButton(label, tab_bar_w)
+            btn.setObjectName("AssetTabButton")
+            btn.setCheckable(True)
+            try:
+                btn.setMinimumHeight(34)
+                btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            except Exception:
+                pass
+            btn.clicked.connect(lambda _checked=False, k=key: self._show_table(k))
+            tab_bar.addWidget(btn)
+            self._tab_buttons[key] = btn
+        tab_bar.addStretch(1)
+        tabs_wrap_l.addWidget(tab_bar_w, 0)
+
+        for card in self._tab_cards.values():
+            tabs_wrap_l.addWidget(card, 1)
+
+        lay.addWidget(tabs_wrap, 1)
+
+        if self._active_tab not in self._tab_cards:
+            self._active_tab = "expenses"
+        self._show_table(self._active_tab)
+
+    def _show_table(self, key: str) -> None:
+        """הצג את הטבלה הנבחרת בלבד והדגש את הכפתור המתאים."""
+        self._active_tab = key
+        for k, card in (self._tab_cards or {}).items():
+            try:
+                card.setVisible(k == key)
+            except Exception:
+                pass
+        for k, btn in (self._tab_buttons or {}).items():
+            try:
+                btn.setChecked(k == key)
+            except Exception:
+                pass
 
     def _panel_with_actions(
         self, title_text, on_add, on_edit, on_remove
     ) -> tuple[QWidget, QTableWidget]:
         """כרטיס עם כותרת + כפתורי הוסף/ערוך/מחק + טבלה — להוספה אחידה."""
         card = QWidget(self)
-        card.setObjectName("ContentPanel")
+        card.setObjectName("AssetTablePanel")
         try:
             card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             card.setSizePolicy(

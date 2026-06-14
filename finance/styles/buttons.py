@@ -104,6 +104,26 @@ def load_buttons_light_styles() -> str:
     QPushButton#SecondaryButton:pressed {
         background: #bfdbfe;
     }
+    QPushButton#AssetTabButton {
+        background: transparent;
+        color: #1e3a5f;
+        border: 1px solid transparent;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+        padding: 7px 18px;
+        font-weight: 600;
+    }
+    QPushButton#AssetTabButton:hover {
+        background: #d7ebfd;
+    }
+    QPushButton#AssetTabButton:checked {
+        background: #e8f3fd;
+        border: 1px solid #c7dffe;
+        border-bottom: none;
+        color: #0f2c4d;
+    }
     QPushButton#DangerButton {
         background: #fee2e2;
         border: 1px solid #fca5a5;
@@ -247,6 +267,26 @@ def load_buttons_dark_styles() -> str:
     }
     QPushButton#SecondaryButton:pressed {
         background: #0f172a;
+    }
+    QPushButton#AssetTabButton {
+        background: transparent;
+        color: #cbd5e1;
+        border: 1px solid transparent;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+        border-bottom-left-radius: 0px;
+        border-bottom-right-radius: 0px;
+        padding: 7px 18px;
+        font-weight: 600;
+    }
+    QPushButton#AssetTabButton:hover {
+        background: #1b2433;
+    }
+    QPushButton#AssetTabButton:checked {
+        background: #111827;
+        border: 1px solid #1e293b;
+        border-bottom: none;
+        color: #ffffff;
     }
     QPushButton#DangerButton {
         background: #3f1515;

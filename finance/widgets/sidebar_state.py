@@ -40,3 +40,7 @@ class SidebarState:
     @staticmethod
     def key_yearly_expanded() -> str:
         return "sidebar.yearly.expanded"
+
+    @staticmethod
+    def key_assets_expanded() -> str:
+        return "sidebar.assets.expanded"

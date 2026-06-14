@@ -156,6 +156,78 @@ class AssetDialog(QDialog):
         return self._asset
 
 
+class SellDialog(QDialog):
+    """מכירת נכס: מחיר מכירה + תאריך."""
+
+    def __init__(
+        self,
+        *,
+        asset: Mortgage,
+        suggested_price: float = 0.0,
+        parent: Optional[QWidget] = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("מכירת נכס")
+        self.setModal(True)
+        try:
+            self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            pass
+
+        self._price: Optional[float] = None
+        self._date: str = ""
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(24, 20, 24, 20)
+        root.setSpacing(10)
+
+        title = QLabel(f"מכירת הנכס: {asset.name}", self)
+        title.setObjectName("HeaderTitle")
+        root.addWidget(title)
+
+        self._price_edit = QLineEdit(self)
+        self._price_edit.setPlaceholderText("מחיר מכירה (₪)")
+        if suggested_price:
+            self._price_edit.setText(f"{float(suggested_price):.0f}")
+        root.addWidget(QLabel("מחיר מכירה", self))
+        root.addWidget(self._price_edit)
+
+        self._date_edit = QLineEdit(self)
+        self._date_edit.setPlaceholderText("YYYY-MM-DD")
+        try:
+            from datetime import date
+
+            self._date_edit.setText(date.today().isoformat())
+        except Exception:
+            pass
+        root.addWidget(QLabel("תאריך מכירה", self))
+        root.addWidget(self._date_edit)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        save_btn = QPushButton("מכור", self)
+        cancel_btn = QPushButton("בטל", self)
+        buttons.addWidget(save_btn)
+        buttons.addWidget(cancel_btn)
+        root.addLayout(buttons)
+        save_btn.clicked.connect(self._on_save)
+        cancel_btn.clicked.connect(self.reject)
+
+    def _on_save(self) -> None:
+        price = _parse_float(self._price_edit.text())
+        if price is None or price < 0:
+            QMessageBox.warning(self, "שגיאה", "הזן מחיר מכירה תקין")
+            return
+        self._price = float(price)
+        self._date = str(self._date_edit.text() or "").strip()
+        self.accept()
+
+    def get_result(self) -> Optional[tuple]:
+        if self._price is None:
+            return None
+        return (self._price, self._date)
+
+
 class AssetsPage(BasePage):
     def _build_header_left_buttons(self) -> List[QToolButton]:
         buttons: List[QToolButton] = []
@@ -179,6 +251,7 @@ class AssetsPage(BasePage):
         self._service = MortgageService()
         self._assets: List[Mortgage] = []
         self._table: Optional[QTableWidget] = None
+        self._summary_labels: dict = {}
         super().__init__(*args, **kwargs)
 
     def on_route_activated(self) -> None:
@@ -198,6 +271,36 @@ class AssetsPage(BasePage):
         lay = QVBoxLayout(root)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(12)
+
+        # ───────── כרטיסי סיכום ─────────
+        self._summary_labels = {}
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(12)
+        for key, title_txt, style in (
+            ("value", "שווי נכסים", "StatCardGreen"),
+            ("debt", "יתרת משכנתאות", "StatCardRed"),
+            ("net", "שווי נטו", "StatCardPurple"),
+            ("count", "נכסים פעילים", "StatCardYellow"),
+        ):
+            card = QWidget(root)
+            card.setObjectName(style)
+            try:
+                card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+                card.setAutoFillBackground(True)
+            except Exception:
+                pass
+            cl = QVBoxLayout(card)
+            cl.setContentsMargins(14, 12, 14, 12)
+            cl.setSpacing(6)
+            t = QLabel(title_txt, card)
+            t.setObjectName("StatTitle")
+            v = QLabel("—", card)
+            v.setObjectName("StatValueCard")
+            cl.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
+            cl.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+            cards_row.addWidget(card, 1)
+            self._summary_labels[key] = v
+        lay.addLayout(cards_row, 0)
 
         header_card = QWidget(root)
         header_card.setObjectName("Sidebar")
@@ -225,6 +328,13 @@ class AssetsPage(BasePage):
         open_btn.clicked.connect(self._on_open_selected)
         header_row.addWidget(open_btn)
 
+        sell_btn = QToolButton(header_card)
+        sell_btn.setObjectName("IconButton")
+        sell_btn.setText("💰")
+        sell_btn.setToolTip("מכור נכס")
+        sell_btn.clicked.connect(self._on_sell)
+        header_row.addWidget(sell_btn)
+
         delete_btn = QToolButton(header_card)
         delete_btn.setObjectName("IconButton")
         delete_btn.setText("🗑")
@@ -249,8 +359,8 @@ class AssetsPage(BasePage):
 
         self._table = QTableWidget(table_card)
         self._table.setObjectName("ActionHistoryTableWidget")
-        self._table.setColumnCount(3)
-        self._table.setHorizontalHeaderLabels(["שם", "סוג", "שווי"])
+        self._table.setColumnCount(4)
+        self._table.setHorizontalHeaderLabels(["שם", "סוג", "שווי", "מצב"])
         self._table.setRowCount(0)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -275,26 +385,73 @@ class AssetsPage(BasePage):
             return float(asset.property_price or 0.0)
         return float(asset.current_value or 0.0)
 
+    @staticmethod
+    def _is_sold(asset: Mortgage) -> bool:
+        return bool(getattr(asset, "sold", False)) or bool(
+            getattr(asset, "archived", False)
+        )
+
+    def _update_summary(self) -> None:
+        if not self._summary_labels:
+            return
+        active = [a for a in self._assets if not self._is_sold(a)]
+        total_value = sum(self._asset_value(a) for a in active)
+        try:
+            outstanding = self._service.total_outstanding()
+        except Exception:
+            outstanding = 0.0
+        net = total_value - outstanding
+        values = {
+            "value": _fmt_money(total_value),
+            "debt": _fmt_money(outstanding),
+            "net": _fmt_money(net),
+            "count": str(len(active)),
+        }
+        for key, lbl in self._summary_labels.items():
+            try:
+                lbl.setText(values.get(key, "—"))
+            except Exception:
+                pass
+
     def _reload(self) -> None:
         try:
             self._assets = self._service.list_mortgages()
         except Exception:
             self._assets = []
+        self._update_summary()
         if self._table is None:
             return
         self._table.setRowCount(len(self._assets))
         for row, a in enumerate(self._assets):
             kind_txt = str(getattr(a.kind, "value", a.kind))
+            sold = self._is_sold(a)
+            if sold:
+                sale_p = float(getattr(a, "sale_price", 0.0) or 0.0)
+                status_txt = (
+                    f"נמכר · {_fmt_money(sale_p)}" if sale_p else "נמכר"
+                )
+            else:
+                status_txt = "פעיל"
             name_item = QTableWidgetItem(str(a.name))
             try:
                 name_item.setData(Qt.ItemDataRole.UserRole, str(a.id))
             except Exception:
                 pass
-            self._table.setItem(row, 0, name_item)
-            self._table.setItem(row, 1, QTableWidgetItem(kind_txt))
-            self._table.setItem(
-                row, 2, QTableWidgetItem(_fmt_money(self._asset_value(a)))
-            )
+            items = [
+                name_item,
+                QTableWidgetItem(kind_txt),
+                QTableWidgetItem(_fmt_money(self._asset_value(a))),
+                QTableWidgetItem(status_txt),
+            ]
+            for col, item in enumerate(items):
+                if sold:
+                    try:
+                        from ..qt import QColor
+
+                        item.setForeground(QColor("#94a3b8"))
+                    except Exception:
+                        pass
+                self._table.setItem(row, col, item)
 
     def _selected_asset(self) -> Optional[Mortgage]:
         if self._table is None:
@@ -356,4 +513,26 @@ class AssetsPage(BasePage):
         if res != QMessageBox.StandardButton.Yes:
             return
         self._service.delete_mortgage(a.id)
+        self._reload()
+
+    def _on_sell(self) -> None:
+        a = self._selected_asset()
+        if a is None:
+            QMessageBox.information(self, "מכירה", "בחר נכס למכירה")
+            return
+        if self._is_sold(a):
+            QMessageBox.information(self, "מכירה", f'"{a.name}" כבר נמכר')
+            return
+        dlg = SellDialog(asset=a, suggested_price=self._asset_value(a), parent=self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        result = dlg.get_result()
+        if result is None:
+            return
+        price, date = result
+        # מסומן כנמכר וגם כמאורכב — כך שיוצא אוטומטית מהשווי הנקי, מהסיידבר ומהסכומים.
+        updated = replace(
+            a, sold=True, archived=True, sale_price=float(price), sale_date=str(date)
+        )
+        self._service.upsert_mortgage(updated)
         self._reload()

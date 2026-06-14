@@ -25,6 +25,7 @@ class SidebarController:
         navigate: Optional[Callable[[str], None]],
         current_route: Optional[str],
         accounts: List[MoneyAccount],
+        assets_section: Optional[CollapsibleButtonList] = None,
     ) -> None:
         self._widget = widget
         self._state = state
@@ -33,6 +34,7 @@ class SidebarController:
         self._bank_section = bank_section
         self._savings_section = savings_section
         self._yearly_section = yearly_section
+        self._assets_section = assets_section
         self._navigate = navigate
         self._current_route = current_route
         self._accounts = accounts
@@ -40,6 +42,8 @@ class SidebarController:
         self._bank_section.set_header_click_handler(self._on_bank_clicked)
         self._savings_section.set_header_click_handler(self._on_savings_clicked)
         self._yearly_section.set_header_click_handler(self._on_yearly_clicked)
+        if self._assets_section is not None:
+            self._assets_section.set_header_click_handler(self._on_assets_clicked)
 
         self._scroll.schedule_style_update(
             self._scroll.apply_scrollbar_style, delay_ms=0
@@ -54,6 +58,11 @@ class SidebarController:
         try:
             self._rebuild_bank_items()
             self._rebuild_savings_items()
+            if self._assets_section is not None:
+                try:
+                    self._rebuild_asset_items()
+                except Exception:
+                    pass
         finally:
             try:
                 self._widget.setUpdatesEnabled(True)
@@ -121,20 +130,29 @@ class SidebarController:
             installments_btn.setEnabled(not is_installments)
             installments_btn.blockSignals(False)
 
+        # When the assets section is present the נכסים nav button has been
+        # replaced (and its C++ object deleted), so it must not be touched —
+        # the section's own set_active() handles the highlight instead.
         mortgage_btn = (
             self._navigation.get_mortgage_button()
-            if hasattr(self._navigation, "get_mortgage_button")
+            if (self._assets_section is None
+                and hasattr(self._navigation, "get_mortgage_button"))
             else None
         )
         if mortgage_btn:
-            mortgage_btn.blockSignals(True)
-            mortgage_btn.setChecked(is_mortgage)
-            mortgage_btn.setEnabled(not is_mortgage)
-            mortgage_btn.blockSignals(False)
+            try:
+                mortgage_btn.blockSignals(True)
+                mortgage_btn.setChecked(is_mortgage)
+                mortgage_btn.setEnabled(not is_mortgage)
+                mortgage_btn.blockSignals(False)
+            except Exception:
+                pass
 
         self._bank_section.set_active(bool(is_bank_section))
         self._yearly_section.set_active(bool(is_yearly_section))
         self._savings_section.set_active(bool(is_savings_section))
+        if self._assets_section is not None:
+            self._assets_section.set_active(bool(is_mortgage))
 
         self._apply_section_expanded(
             section=self._bank_section,
@@ -151,6 +169,12 @@ class SidebarController:
             key=self._state.key_savings_expanded(),
             active=is_savings_section,
         )
+        if self._assets_section is not None:
+            self._apply_section_expanded(
+                section=self._assets_section,
+                key=self._state.key_assets_expanded(),
+                active=is_mortgage,
+            )
 
         self._current_route = route
         self._route_applied_once = True
@@ -180,6 +204,8 @@ class SidebarController:
                 self._bank_section.refresh_theme()
                 self._savings_section.refresh_theme()
                 self._yearly_section.refresh_theme()
+                if self._assets_section is not None:
+                    self._assets_section.refresh_theme()
                 QTimer.singleShot(0, self._scroll.apply_scrollbar_style)
         except Exception:
             pass
@@ -232,16 +258,22 @@ class SidebarController:
             installments_btn.setEnabled(True)
             installments_btn.blockSignals(False)
 
+        # See update_route(): skip the נכסים button when it was replaced by the
+        # assets section (its C++ object has been deleted).
         mortgage_btn = (
             self._navigation.get_mortgage_button()
-            if hasattr(self._navigation, "get_mortgage_button")
+            if (self._assets_section is None
+                and hasattr(self._navigation, "get_mortgage_button"))
             else None
         )
         if mortgage_btn:
-            mortgage_btn.blockSignals(True)
-            mortgage_btn.setChecked(False)
-            mortgage_btn.setEnabled(True)
-            mortgage_btn.blockSignals(False)
+            try:
+                mortgage_btn.blockSignals(True)
+                mortgage_btn.setChecked(False)
+                mortgage_btn.setEnabled(True)
+                mortgage_btn.blockSignals(False)
+            except Exception:
+                pass
 
     def _on_yearly_clicked(self) -> None:
         self._clear_page_button_presses()
@@ -320,6 +352,73 @@ class SidebarController:
         self._bank_section.set_expanded(new_expanded)
         self._state.set_bool(self._state.key_bank_expanded(), bool(new_expanded))
         self._update_button_width()
+
+    def _on_assets_clicked(self) -> None:
+        if self._assets_section is None:
+            return
+        self._clear_page_button_presses()
+        is_assets_section = bool(self._current_route in ("assets", "asset", "mortgage"))
+        if not is_assets_section:
+            if self._navigate is not None:
+                self._navigate("assets")
+            self._assets_section.set_expanded(True)
+            self._state.set_bool(self._state.key_assets_expanded(), True)
+            self._update_button_width()
+            return
+
+        if self._current_route != "assets":
+            self._assets_section.set_expanded(True)
+            self._state.set_bool(self._state.key_assets_expanded(), True)
+            if self._navigate is not None:
+                self._navigate("assets")
+            self._update_button_width()
+            return
+
+        currently = bool(self._assets_section.is_expanded())
+        new_expanded = not currently
+        self._assets_section.set_expanded(new_expanded)
+        self._state.set_bool(self._state.key_assets_expanded(), bool(new_expanded))
+        self._update_button_width()
+
+    def _rebuild_asset_items(self) -> None:
+        if self._assets_section is None:
+            return
+        try:
+            from ..models.mortgage_service import MortgageService
+
+            assets = MortgageService().list_mortgages()
+        except Exception:
+            assets = []
+
+        def make_cb(asset_id: str) -> Callable[[], None]:
+            def _cb() -> None:
+                self._on_asset_clicked(asset_id)
+
+            return _cb
+
+        new_items = [
+            (str(getattr(a, "name", "") or "נכס"), make_cb(str(getattr(a, "id", ""))))
+            for a in assets
+            if not bool(getattr(a, "archived", False))
+        ]
+        new_labels = [lbl for lbl, _ in new_items]
+        cur_labels = [lbl for lbl, _ in self._assets_section._items]
+        if new_labels != cur_labels:
+            self._assets_section.set_items(new_items)
+        self._assets_section.set_expanded(bool(self._assets_section.is_expanded()))
+
+    def _on_asset_clicked(self, asset_id: str) -> None:
+        if self._navigate is None:
+            return
+        parent: Optional[QWidget] = self._widget.parentWidget()
+        while parent is not None and not hasattr(parent, "set_selected_asset"):
+            parent = parent.parentWidget()
+        if parent is not None and hasattr(parent, "set_selected_asset"):
+            try:
+                parent.set_selected_asset(asset_id)
+            except Exception:
+                pass
+        self._navigate("asset")
 
     def _apply_section_expanded(
         self, *, section: CollapsibleButtonList, key: str, active: bool

@@ -261,6 +261,9 @@ class FirebaseWorkspaceWriter:
                 ],
                 "kind": str(getattr(mortgage.kind, "value", mortgage.kind)),
                 "current_value": float(getattr(mortgage, "current_value", 0.0) or 0.0),
+                "sold": bool(getattr(mortgage, "sold", False)),
+                "sale_price": float(getattr(mortgage, "sale_price", 0.0) or 0.0),
+                "sale_date": str(getattr(mortgage, "sale_date", "") or ""),
                 "deleted": False,
             },
         )

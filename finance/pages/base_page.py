@@ -1220,3 +1220,9 @@ class BasePage(QWidget):
             self._app_context["selected_bank_account"] = account_name
         except Exception:
             pass
+
+    def set_selected_asset(self, asset_id: str) -> None:
+        try:
+            self._app_context["selected_mortgage_id"] = str(asset_id)
+        except Exception:
+            pass
