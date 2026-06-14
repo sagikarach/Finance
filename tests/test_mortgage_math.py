@@ -30,6 +30,7 @@ from finance.models.mortgage_math import (  # noqa: E402
     MortgageAssumptions,
     annuity_payment,
     cost_paid_amount,
+    cost_total_amount,
     months_between,
     mortgage_initial_monthly,
     mortgage_outstanding,
@@ -329,6 +330,31 @@ def test_query_received_amount() -> None:
     )
     # ללא include_transfers — העברה לא נספרת.
     assert query_received_amount("תמורת מכירה", movs) == 0.0
+
+
+def test_cost_total_amount_planned_wins() -> None:
+    # סכום מתוכנן קיים → משתמשים בו (לא מתכווץ לפי מה ששולם בפועל).
+    movs = [_mv(-20_000, "מס רכישה חלקי")]
+    assert _approx(
+        cost_total_amount(CostItem("מס רכישה", 60_000, "מס רכישה"), movs), 60_000, 1.0
+    )
+    # אין סכום מתוכנן → נופלים לסכום ששולם בפועל.
+    assert _approx(
+        cost_total_amount(CostItem('עו"ד', 0, 'עו"ד'), [_mv(-5_000, 'עו"ד')]),
+        5_000,
+        1.0,
+    )
+
+
+def test_acquisition_cost_uses_planned_not_paid() -> None:
+    # רגרסיה: עלות הרכישה לא מתכווצת לסכום ששולם כשיש חיפוש תנועות חלקי.
+    movs = [_mv(-20_000, "מס רכישה חלקי")]
+    m = Mortgage(
+        property_price=2_000_000,
+        one_time_costs=[CostItem("מס רכישה", 60_000, "מס רכישה")],
+    )
+    s = purchase_summary(m, movements=movs)
+    assert _approx(s.acquisition_cost, 2_060_000, 1.0)  # מחיר + מתוכנן, לא ששולם
 
 
 def _run_all() -> int:

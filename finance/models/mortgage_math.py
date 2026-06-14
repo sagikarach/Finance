@@ -238,17 +238,6 @@ class PurchaseSummary:
     ltv_exceeds_75: bool  # התראה: מעל 75% מימון
 
 
-def cost_effective_amount(cost: CostItem, movements: Optional[list] = None) -> float:
-    """הסכום בפועל של שורת עלות: אם יש ``query`` והוא תואם תנועות — סכום
-    התנועות התואמות; אחרת הסכום המתוכנן (``amount``)."""
-    query = str(getattr(cost, "query", "") or "").strip()
-    if query and movements:
-        matched = match_movements(movements, vendor_query=query)
-        if matched:
-            return float(sum(abs(float(m.amount)) for m in matched))
-    return float(cost.amount)
-
-
 def cost_paid_amount(
     cost: CostItem,
     movements: Optional[list] = None,
@@ -256,9 +245,8 @@ def cost_paid_amount(
     include_transfers: bool = False,
 ) -> float:
     """כמה שולם בפועל עבור שורת עלות — סכום התנועות התואמות ל-``query`` (0 אם
-    אין שאילתה או אין התאמה). בניגוד ל-cost_effective_amount, אין נפילה לסכום
-    המתוכנן — זהו ה'שולם בפועל'. ``include_transfers`` שימושי להון עצמי
-    (מקדמה משולמת לרוב כהעברה)."""
+    אין שאילתה או אין התאמה). זהו ה'שולם בפועל' — אין נפילה לסכום המתוכנן.
+    ``include_transfers`` שימושי להון עצמי (מקדמה משולמת לרוב כהעברה)."""
     query = str(getattr(cost, "query", "") or "").strip()
     if query and movements:
         matched = match_movements(
@@ -266,6 +254,16 @@ def cost_paid_amount(
         )
         return float(sum(abs(float(m.amount)) for m in matched))
     return 0.0
+
+
+def cost_total_amount(cost: CostItem, movements: Optional[list] = None) -> float:
+    """הסכום הכולל (המתוכנן) של שורת עלות — לחישוב עלות הרכישה. אם הוזן סכום
+    מתוכנן משתמשים בו; אחרת נופלים לסכום ששולם בפועל (כשהוגדר רק חיפוש תנועות).
+    בניגוד ל'שולם בפועל', זה אינו מתכווץ לפי מה ששולם עד כה."""
+    planned = float(cost.amount)
+    if planned > 0:
+        return planned
+    return cost_paid_amount(cost, movements)
 
 
 def query_paid_amount(
@@ -304,9 +302,9 @@ def purchase_summary(
     # המשכנתא נקבעת ע"י המשתמש = סכום המסלולים (התמהיל), לא מחושבת כיתרה.
     tracks_total = float(mortgage.original_principal)
     mortgage_amount = tracks_total
-    # עלויות חד-פעמיות — שווי בפועל לפי שיוך תנועות (עם נפילה לסכום המתוכנן).
+    # עלויות חד-פעמיות — הסכום הכולל המתוכנן (לא מתכווץ לפי מה ששולם בפועל).
     one_time_total = float(
-        sum(cost_effective_amount(c, movements) for c in mortgage.one_time_costs)
+        sum(cost_total_amount(c, movements) for c in mortgage.one_time_costs)
     )
     # עלות הרכישה = מחיר הדירה + העלויות החד-פעמיות (מה שיוצא בפועל).
     acquisition_cost = price + one_time_total
