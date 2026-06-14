@@ -225,7 +225,11 @@ class FirebaseWorkspaceWriter:
         )
 
     def upsert_mortgage(self, mortgage: Mortgage) -> None:
-        from ..data.mortgage_provider import serialize_cost, serialize_track
+        from ..data.mortgage_provider import (
+            serialize_cost,
+            serialize_funding,
+            serialize_track,
+        )
 
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)
@@ -247,12 +251,14 @@ class FirebaseWorkspaceWriter:
                 "property_price": float(
                     getattr(mortgage, "property_price", 0.0) or 0.0
                 ),
-                "equity": float(getattr(mortgage, "equity", 0.0) or 0.0),
-                "equity_query": str(getattr(mortgage, "equity_query", "") or ""),
+                "price_query": str(getattr(mortgage, "price_query", "") or ""),
                 "one_time_costs": [
                     serialize_cost(c) for c in mortgage.one_time_costs
                 ],
                 "monthly_costs": [serialize_cost(c) for c in mortgage.monthly_costs],
+                "funding_sources": [
+                    serialize_funding(f) for f in mortgage.funding_sources
+                ],
                 "kind": str(getattr(mortgage.kind, "value", mortgage.kind)),
                 "current_value": float(getattr(mortgage, "current_value", 0.0) or 0.0),
                 "deleted": False,

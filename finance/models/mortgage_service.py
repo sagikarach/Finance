@@ -217,6 +217,18 @@ class MortgageService:
                 continue
         return float(total)
 
+    def total_other_assets_value(self, *, include_archived: bool = False) -> float:
+        """סך השווי של נכסים מסוג 'אחר' (החזקות שאינן רכישה/משכנתא)."""
+        from .mortgage import AssetKind
+
+        total = 0.0
+        for m in self._mortgages_provider.list_mortgages():
+            if not include_archived and bool(getattr(m, "archived", False)):
+                continue
+            if m.kind == AssetKind.OTHER:
+                total += float(getattr(m, "current_value", 0.0) or 0.0)
+        return float(total)
+
     def list_movements(self) -> List[BankMovement]:
         try:
             return list(self._movements_provider.list_movements())
@@ -228,13 +240,25 @@ class MortgageService:
         return purchase_summary(mortgage, movements=self.list_movements())
 
     def match_movements(self, mortgage: Mortgage) -> List[BankMovement]:
-        """תנועות בנק אמיתיות המשויכות למשכנתא (לפי טקסט הזיהוי והחשבון)."""
+        """תנועות בנק אמיתיות המשויכות למשכנתא (הוצאות — תשלומים)."""
         return match_movements(
             self._movements_provider.list_movements(),
             vendor_query=mortgage.vendor_query,
             account_name=mortgage.account_name,
             start_date=str(mortgage.start_date or ""),
             excluded_ids=getattr(mortgage, "excluded_movement_ids", []) or [],
+        )
+
+    def match_income(self, mortgage: Mortgage) -> List[BankMovement]:
+        """תנועות נכנסות המשויכות למשכנתא (הכנסות — לדוגמה מתן הלוואה/החזר)."""
+        return match_movements(
+            self._movements_provider.list_movements(),
+            vendor_query=mortgage.vendor_query,
+            account_name=mortgage.account_name,
+            start_date=str(mortgage.start_date or ""),
+            excluded_ids=getattr(mortgage, "excluded_movement_ids", []) or [],
+            include_transfers=True,
+            match_income=True,
         )
 
     def compute_stats(self, mortgage: Mortgage) -> MortgageStats:
@@ -278,10 +302,10 @@ class MortgageService:
                 excluded_movement_ids=excluded,
                 archived=bool(target.archived),
                 property_price=float(target.property_price),
-                equity=float(target.equity),
-                equity_query=str(target.equity_query),
+                price_query=str(target.price_query),
                 one_time_costs=list(target.one_time_costs),
                 monthly_costs=list(target.monthly_costs),
+                funding_sources=list(target.funding_sources),
                 kind=target.kind,
                 current_value=float(target.current_value),
             )

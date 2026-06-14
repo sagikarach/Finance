@@ -67,29 +67,39 @@ Movement document fields:
 - `event_id` (optional)
 - `deleted` (bool)
 
-#### Mortgage document (`workspaces/{workspaceId}/mortgages/{mortgageId}`)
-Desktop-only today; documented so a future mobile mortgage view stays
-consistent. Mortgage **reconciliation already works with mobile-created
-movements** — it matches by `account_name` + `description`, so no mobile code
-is required for that. Fields:
+#### Asset document (`workspaces/{workspaceId}/mortgages/{mortgageId}`)
+The collection is named `mortgages` (historical) but each doc is an **asset**.
+Desktop-only today; documented so a future mobile asset view stays consistent.
+Reconciliation **already works with mobile-created movements** — it matches by
+`description` (and `account_name` where relevant), so no mobile code is required.
+
+Top-level fields:
 - `id` (uuid)
 - `name` (free text)
-- `account_name` (source account, used to match real payments)
-- `vendor_query` (text matched against movement `description`)
+- `kind` (רכישה = purchase asset | אחר = other holding)
+- `current_value` (number — for `kind = אחר` only)
+- `account_name` (source account for the loan payments; fixed to "בנק")
+- `vendor_query` (text matched against movement `description` for loan payments)
 - `start_date` (YYYY-MM-DD)
-- `excluded_movement_ids` (array of movement ids to exclude from matching)
-- `archived` (bool)
-- `deleted` (bool)
-- `tracks` (array of maps — the תמהיל), each:
-  - `id` (uuid)
-  - `name` (free text)
+- `excluded_movement_ids` (array of movement ids excluded from matching)
+- `archived` (bool) · `deleted` (bool)
+
+Purchase fields (`kind = רכישה`):
+- `property_price` (number — the house price; appears as a payment/money-out)
+- `price_query` (text matched against the payment(s) to the seller; transfers included)
+- `tracks` (array of maps — the תמהיל / mortgage; its sum **is** the mortgage), each:
+  - `id`, `name`
   - `kind` (פריים | קבועה לא צמודה | קבועה צמודה | משתנה לא צמודה | משתנה צמודה)
-  - `principal` (number)
-  - `annual_rate` (number, % — ignored for prime tracks)
-  - `term_months` (int)
-  - `amortization` (שפיצר | קרן שווה)
-  - `cpi_linked` (bool)
-  - `prime_spread` (number — for prime: effective rate = prime + spread)
-  - `reset_months` (int — variable-rate reset period, 0 = none)
+  - `principal` (number) · `annual_rate` (number, % — ignored for prime)
+  - `term_months` (int) · `amortization` (שפיצר | קרן שווה)
+  - `cpi_linked` (bool) · `prime_spread` (number, prime: rate = prime + spread)
+  - `reset_months` (int — variable reset period, 0 = none)
+- `one_time_costs` / `monthly_costs` (arrays of maps), each: `name`, `amount`,
+  `query` (optional text → "paid in practice" from matched movements)
+- `funding_sources` (array of maps — the income side), each: `name`, `amount`,
+  `kind` (חשבון קיים | תנועות | עתידי), `query` (for תנועות),
+  `account_name` + `saving_name` (for חשבון קיים — a bank account or a specific
+  sub-saving). The mortgage covers the rest; the "בנק" account covers any
+  residual (`property_price + costs − mortgage − funding`), shown negative if short.
 
 

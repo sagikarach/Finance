@@ -82,6 +82,7 @@ def match_movements(
     excluded_ids: Iterable[str] = (),
     max_count: Optional[int] = None,
     include_transfers: bool = False,
+    match_income: bool = False,
 ) -> List[BankMovement]:
     """החזר את התנועות (הוצאות) התואמות לשאילתת הטקסט.
 
@@ -112,7 +113,11 @@ def match_movements(
                 continue
             if not include_transfers and bool(getattr(m, "is_transfer", False)):
                 continue
-            if float(getattr(m, "amount", 0.0) or 0.0) >= 0:
+            amt = float(getattr(m, "amount", 0.0) or 0.0)
+            if match_income:
+                if amt <= 0:  # רק תנועות נכנסות (הכנסה)
+                    continue
+            elif amt >= 0:  # ברירת מחדל: רק הוצאות
                 continue
             if str(getattr(m, "id", "") or "") in excluded:
                 continue

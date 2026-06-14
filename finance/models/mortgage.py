@@ -50,6 +50,28 @@ class CostItem:
     query: str = ""
 
 
+class FundingKind(StrEnum):
+    """מקור מימון לרכישה (צד ההכנסות)."""
+
+    ACCOUNT = "חשבון קיים"  # מתוך חשבון בנק/חיסכון קיים
+    MOVEMENTS = "תנועות"  # שיוך תנועות נכנסות (מתנה, תמורת מכירה)
+    FUTURE = "עתידי"  # כסף שצפוי להתקבל בעתיד
+
+
+@dataclass(frozen=True)
+class FundingSource:
+    """מקור מימון. ``amount`` = הסכום המוקצה/הצפוי. לפי ``kind``:
+    ACCOUNT → ``account_name`` (+``saving_name`` לחיסכון ספציפי בתוך חשבון
+    חיסכון, ברמת ההעברות); MOVEMENTS → ``query``; FUTURE → ``amount`` בלבד."""
+
+    name: str = ""
+    amount: float = 0.0
+    kind: FundingKind = FundingKind.FUTURE
+    query: str = ""
+    account_name: str = ""
+    saving_name: str = ""
+
+
 @dataclass(frozen=True)
 class MortgageTrack:
     """מסלול בודד בתוך תמהיל המשכנתא.
@@ -88,10 +110,10 @@ class Mortgage:
     archived: bool = False
     # תרחיש רכישת דירה (אופציונלי) — אפס/ריק כשלא מולא.
     property_price: float = 0.0  # מחיר הדירה
-    equity: float = 0.0  # הון עצמי (מתוכנן)
-    equity_query: str = ""  # טקסט לשיוך תנועות ההון העצמי (אופציונלי)
+    price_query: str = ""  # טקסט לשיוך תנועות התשלום למוכר (לחישוב ששולם בפועל)
     one_time_costs: list[CostItem] = field(default_factory=list)  # מס רכישה, עו"ד...
     monthly_costs: list[CostItem] = field(default_factory=list)  # ארנונה, ועד, ביטוח
+    funding_sources: list[FundingSource] = field(default_factory=list)  # צד ההכנסות
     kind: AssetKind = AssetKind.PURCHASE  # סוג הנכס
     current_value: float = 0.0  # שווי נוכחי — לנכס מסוג "אחר"
 

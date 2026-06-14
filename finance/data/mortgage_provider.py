@@ -9,6 +9,8 @@ from ..models.mortgage import (
     AmortizationType,
     AssetKind,
     CostItem,
+    FundingKind,
+    FundingSource,
     Mortgage,
     MortgageTrack,
     TrackKind,
@@ -130,6 +132,50 @@ def _deserialize_costs(raw: Any) -> List[CostItem]:
     return out
 
 
+def _parse_funding_kind(value: Any) -> FundingKind:
+    try:
+        return FundingKind(str(value))
+    except Exception:
+        return FundingKind.FUTURE
+
+
+def serialize_funding(item: FundingSource) -> Dict[str, Any]:
+    return {
+        "name": str(item.name or ""),
+        "amount": float(item.amount),
+        "kind": str(getattr(item.kind, "value", item.kind)),
+        "query": str(item.query or ""),
+        "account_name": str(item.account_name or ""),
+        "saving_name": str(item.saving_name or ""),
+    }
+
+
+def deserialize_funding(item: Any) -> Optional[FundingSource]:
+    if not isinstance(item, dict):
+        return None
+    try:
+        return FundingSource(
+            name=str(item.get("name", "") or ""),
+            amount=float(item.get("amount", 0.0) or 0.0),
+            kind=_parse_funding_kind(item.get("kind")),
+            query=str(item.get("query", "") or ""),
+            account_name=str(item.get("account_name", "") or ""),
+            saving_name=str(item.get("saving_name", "") or ""),
+        )
+    except Exception:
+        return None
+
+
+def _deserialize_funding(raw: Any) -> List[FundingSource]:
+    out: List[FundingSource] = []
+    if isinstance(raw, list):
+        for f in raw:
+            item = deserialize_funding(f)
+            if item is not None:
+                out.append(item)
+    return out
+
+
 def serialize_mortgage(mortgage: Mortgage) -> Dict[str, Any]:
     return {
         "id": str(mortgage.id),
@@ -143,10 +189,10 @@ def serialize_mortgage(mortgage: Mortgage) -> Dict[str, Any]:
         ),
         "archived": bool(getattr(mortgage, "archived", False)),
         "property_price": float(getattr(mortgage, "property_price", 0.0) or 0.0),
-        "equity": float(getattr(mortgage, "equity", 0.0) or 0.0),
-        "equity_query": str(getattr(mortgage, "equity_query", "") or ""),
+        "price_query": str(getattr(mortgage, "price_query", "") or ""),
         "one_time_costs": [serialize_cost(c) for c in mortgage.one_time_costs],
         "monthly_costs": [serialize_cost(c) for c in mortgage.monthly_costs],
+        "funding_sources": [serialize_funding(f) for f in mortgage.funding_sources],
         "kind": str(getattr(mortgage.kind, "value", mortgage.kind)),
         "current_value": float(getattr(mortgage, "current_value", 0.0) or 0.0),
     }
@@ -179,10 +225,10 @@ def deserialize_mortgage(item: Any) -> Optional[Mortgage]:
             excluded_movement_ids=excluded,
             archived=bool(item.get("archived", False)),
             property_price=float(item.get("property_price", 0.0) or 0.0),
-            equity=float(item.get("equity", 0.0) or 0.0),
-            equity_query=str(item.get("equity_query", "") or ""),
+            price_query=str(item.get("price_query", "") or ""),
             one_time_costs=_deserialize_costs(item.get("one_time_costs")),
             monthly_costs=_deserialize_costs(item.get("monthly_costs")),
+            funding_sources=_deserialize_funding(item.get("funding_sources")),
             kind=_parse_asset_kind(item.get("kind")),
             current_value=float(item.get("current_value", 0.0) or 0.0),
         )

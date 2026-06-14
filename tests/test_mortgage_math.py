@@ -15,22 +15,43 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from finance.models.mortgage import (  # noqa: E402
     AmortizationType,
     CostItem,
+    FundingKind,
+    FundingSource,
     Mortgage,
     MortgageTrack,
     TrackKind,
 )
+from finance.models.bank_movement import BankMovement, MovementType  # noqa: E402
+from finance.models.movement_matching import (  # noqa: E402
+    match_movements,
+    normalize_text,
+)
 from finance.models.mortgage_math import (  # noqa: E402
     MortgageAssumptions,
     annuity_payment,
+    cost_paid_amount,
     months_between,
     mortgage_initial_monthly,
     mortgage_outstanding,
     mortgage_total_interest,
     outstanding_projection,
     purchase_summary,
+    query_received_amount,
     track_schedule,
     track_total_interest,
 )
+
+
+def _mv(amount: float, desc: str, *, transfer: bool = False) -> BankMovement:
+    return BankMovement(
+        amount=amount,
+        date="2024-01-01",
+        account_name="עוש",
+        category="x",
+        type=MovementType.ONE_TIME,
+        description=desc,
+        is_transfer=transfer,
+    )
 
 TOL = 0.5  # סובלנות בש"ח לחישובי כסף
 
@@ -198,9 +219,13 @@ def test_total_interest_positive() -> None:
 
 
 def test_purchase_summary_basic() -> None:
+    # מחיר 2M + עלויות 72k = עלות רכישה 2,072,000. מימון עצמי 572k → משכנתא 1.5M.
     m = Mortgage(
         property_price=2_000_000,
-        equity=500_000,
+        funding_sources=[
+            FundingSource(name="חיסכון", amount=472_000, kind=FundingKind.ACCOUNT),
+            FundingSource(name="מתנה", amount=100_000, kind=FundingKind.FUTURE),
+        ],
         tracks=[
             MortgageTrack(
                 principal=1_500_000,
@@ -213,37 +238,44 @@ def test_purchase_summary_basic() -> None:
         monthly_costs=[CostItem("ארנונה", 600), CostItem("ביטוח", 150)],
     )
     s = purchase_summary(m)
+    assert _approx(s.acquisition_cost, 2_072_000, 1.0)  # מחיר + עלויות
+    assert _approx(s.funding_total, 572_000, 1.0)  # סך מקורות המימון
+    # המשכנתא = התמהיל שהמשתמש בנה (1.5M), לא יתרה מחושבת.
     assert _approx(s.required_mortgage, 1_500_000, 1.0)
-    assert _approx(s.ltv, 0.75, 1e-6)
+    assert _approx(s.tracks_total, 1_500_000, 1.0)
+    # יתרת חשבון הבנק = עלות − משכנתא − מימון = 2,072,000 − 1,500,000 − 572,000 = 0.
+    assert _approx(s.residual_from_bank, 0.0, 1.0)
+    assert _approx(s.ltv, 0.75, 1e-6)  # משכנתא / מחיר
     assert s.ltv_exceeds_75 is False
-    assert s.principal_mismatch is False  # tracks sum == required loan
     assert _approx(s.one_time_total, 72_000, 1.0)
-    assert _approx(s.upfront_cash, 572_000, 1.0)  # equity + one-time
+    assert _approx(s.upfront_cash, 572_000, 1.0)  # עלות − משכנתא
     assert _approx(s.monthly_costs_total, 750, 1.0)
     assert s.mortgage_monthly > 0
     assert _approx(s.monthly_total, s.mortgage_monthly + 750, 1.0)
-    assert _approx(s.total_cost, 2_000_000 + s.total_interest + 72_000, 1.0)
+    assert _approx(s.total_cost, 2_072_000 + s.total_interest, 1.0)
 
 
-def test_purchase_summary_flags() -> None:
+def test_purchase_summary_bank_residual() -> None:
+    # מחיר 1M, אין עלויות; תמהיל 800k; מימון 100k → הבנק צריך לכסות 100k.
     m = Mortgage(
         property_price=1_000_000,
-        equity=100_000,  # 90% LTV
-        tracks=[
-            MortgageTrack(principal=800_000, annual_rate=4.0, term_months=240)
-        ],  # tracks (800k) != required (900k)
+        funding_sources=[FundingSource(name="חיסכון", amount=100_000)],
+        tracks=[MortgageTrack(principal=800_000, annual_rate=4.0, term_months=240)],
     )
     s = purchase_summary(m)
+    assert _approx(s.required_mortgage, 800_000, 1.0)  # = התמהיל
+    assert _approx(s.residual_from_bank, 100_000, 1.0)  # 1M − 800k − 100k
+    assert _approx(s.ltv, 0.8, 1e-6)
     assert s.ltv_exceeds_75 is True
-    assert s.principal_mismatch is True
 
 
-def test_purchase_summary_empty_when_no_price() -> None:
-    m = Mortgage(tracks=[MortgageTrack(principal=500_000, annual_rate=4.0, term_months=120)])
+def test_purchase_summary_empty() -> None:
+    m = Mortgage()  # ללא מחיר, מסלולים או מימון
     s = purchase_summary(m)
     assert s.ltv == 0.0
-    assert s.principal_mismatch is False  # no price -> no cross-check
-    assert s.required_mortgage == 0.0
+    assert s.required_mortgage == 0.0  # אין תמהיל → משכנתא 0
+    assert s.acquisition_cost == 0.0
+    assert s.residual_from_bank == 0.0
 
 
 def test_initial_monthly_matches_first_payment() -> None:
@@ -255,6 +287,48 @@ def test_initial_monthly_matches_first_payment() -> None:
     )
     m = Mortgage(tracks=[track])
     assert _approx(mortgage_initial_monthly(m), track_schedule(track)[0].payment, 0.01)
+
+
+def test_matcher_substring_and_quote_variants() -> None:
+    # תת-מחרוזת: "עו\"ד" נמצא בתוך "מקדמה עו\"ד".
+    assert match_movements([_mv(-4000, 'מקדמה עו"ד')], vendor_query='עו"ד')
+    # גרשיים (״) מול מרכאות ASCII (") — אמורים להתאים.
+    assert match_movements([_mv(-4000, "מקדמה עו״ד")], vendor_query='עו"ד')
+    assert normalize_text("עו״ד") == normalize_text('עו"ד')
+    # אי-התאמה אמיתית.
+    assert not match_movements([_mv(-4000, "ביטוח רכב")], vendor_query='עו"ד')
+
+
+def test_matcher_income_and_transfers() -> None:
+    movs = [_mv(100_000, "מתנה", transfer=True), _mv(-50, "קפה")]
+    # הכנסה + העברות מותרות.
+    assert match_movements(
+        movs, vendor_query="מתנה", match_income=True, include_transfers=True
+    )
+    # match_income עם העברה שדולגה כברירת מחדל → אין התאמה.
+    assert not match_movements(movs, vendor_query="מתנה", match_income=True)
+    # ברירת מחדל (ללא match_income) = הוצאות בלבד; הכנסה לא נתפסת.
+    assert match_movements([_mv(100, "החזר")], vendor_query="החזר") == []
+    # הוצאה רגילה כן נתפסת.
+    assert match_movements([_mv(-100, "חניון")], vendor_query="חניון")
+
+
+def test_cost_paid_amount() -> None:
+    movs = [_mv(-4000, 'עו"ד שלב א'), _mv(-3000, 'עו"ד שלב ב')]
+    assert _approx(cost_paid_amount(CostItem(query='עו"ד'), movs), 7000, 1.0)
+    # ללא שאילתה — 0 (אין נפילה לסכום מתוכנן, בניגוד ל-effective).
+    assert cost_paid_amount(CostItem(name="x", amount=999, query=""), movs) == 0.0
+
+
+def test_query_received_amount() -> None:
+    movs = [_mv(120_000, "תמורת מכירה", transfer=True)]
+    assert _approx(
+        query_received_amount("תמורת מכירה", movs, include_transfers=True),
+        120_000,
+        1.0,
+    )
+    # ללא include_transfers — העברה לא נספרת.
+    assert query_received_amount("תמורת מכירה", movs) == 0.0
 
 
 def _run_all() -> int:

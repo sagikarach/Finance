@@ -222,19 +222,20 @@ class PurchaseSummary:
     """סיכום עלויות רכישת דירה — שלוש השכבות: מקדמה, חודשי, ועלות כוללת."""
 
     property_price: float
-    equity: float
-    required_mortgage: float  # מחיר − הון עצמי
-    tracks_total: float  # סכום הקרן של המסלולים בפועל
-    ltv: float  # יחס מימון (0..1)
-    one_time_total: float  # סך עלויות חד-פעמיות (ללא הון עצמי)
+    required_mortgage: float  # = סכום המשכנתא שהמשתמש בנה (תמהיל); לא מחושב כיתרה
+    tracks_total: float  # סכום הקרן של המסלולים בפועל (= המשכנתא)
+    ltv: float  # יחס מימון = משכנתא / מחיר
+    one_time_total: float  # סך עלויות חד-פעמיות
     monthly_costs_total: float  # סך עלויות חודשיות נלוות
     mortgage_monthly: float  # תשלום משכנתא חודשי (התחלתי)
-    upfront_cash: float  # מזומן נדרש לרכישה = הון עצמי + עלויות חד-פעמיות
+    upfront_cash: float  # כסף עצמי = עלות הרכישה − משכנתא
     monthly_total: float  # סך חודשי = משכנתא + עלויות נלוות
     total_interest: float  # סך ריבית לאורך חיי ההלוואה
-    total_cost: float  # מחיר + ריבית + עלויות חד-פעמיות
+    total_cost: float  # עלות רכישה + ריבית (לאורך חיי ההלוואה)
+    acquisition_cost: float  # עלות הרכישה = מחיר הדירה + עלויות חד-פעמיות (מה שיוצא)
+    funding_total: float  # סך מקורות המימון העצמיים (לא כולל משכנתא וחשבון הבנק)
+    residual_from_bank: float  # מה שחשבון "בנק" צריך לכסות = עלות − משכנתא − מימון
     ltv_exceeds_75: bool  # התראה: מעל 75% מימון
-    principal_mismatch: bool  # המסלולים אינם מסתכמים לסכום ההלוואה הדרוש
 
 
 def cost_effective_amount(cost: CostItem, movements: Optional[list] = None) -> float:
@@ -278,20 +279,42 @@ def query_paid_amount(
     )
 
 
+def query_received_amount(
+    query: str, movements: Optional[list] = None, *, include_transfers: bool = False
+) -> float:
+    """סכום התנועות הנכנסות (הכנסה) התואמות לטקסט החיפוש — למקורות מימון."""
+    q = str(query or "").strip()
+    if q and movements:
+        matched = match_movements(
+            movements,
+            vendor_query=q,
+            include_transfers=include_transfers,
+            match_income=True,
+        )
+        return float(sum(abs(float(m.amount)) for m in matched))
+    return 0.0
+
+
 def purchase_summary(
     mortgage: Mortgage,
     assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
     movements: Optional[list] = None,
 ) -> PurchaseSummary:
     price = float(mortgage.property_price or 0.0)
-    equity = float(mortgage.equity or 0.0)
-    required = max(0.0, price - equity)
+    # המשכנתא נקבעת ע"י המשתמש = סכום המסלולים (התמהיל), לא מחושבת כיתרה.
     tracks_total = float(mortgage.original_principal)
-    ltv = (required / price) if price > 0 else 0.0
+    mortgage_amount = tracks_total
     # עלויות חד-פעמיות — שווי בפועל לפי שיוך תנועות (עם נפילה לסכום המתוכנן).
     one_time_total = float(
         sum(cost_effective_amount(c, movements) for c in mortgage.one_time_costs)
     )
+    # עלות הרכישה = מחיר הדירה + העלויות החד-פעמיות (מה שיוצא בפועל).
+    acquisition_cost = price + one_time_total
+    # סך המימון העצמי = סכום מקורות המימון המוקצים (לא כולל משכנתא וחשבון הבנק).
+    funding_total = float(sum(float(f.amount) for f in mortgage.funding_sources))
+    # היתרה שחשבון "בנק" צריך לכסות (יכול להיות שלילי = עודף מימון).
+    residual_from_bank = acquisition_cost - mortgage_amount - funding_total
+    ltv = (mortgage_amount / price) if price > 0 else 0.0
     # עלויות חודשיות נשארות מתוכננות (סכום חודשי — לא מסכמים תנועות רבות).
     monthly_costs_total = float(
         sum(float(c.amount) for c in mortgage.monthly_costs)
@@ -300,19 +323,20 @@ def purchase_summary(
     total_interest = mortgage_total_interest(mortgage, assumptions)
     return PurchaseSummary(
         property_price=price,
-        equity=equity,
-        required_mortgage=required,
+        required_mortgage=mortgage_amount,
         tracks_total=tracks_total,
         ltv=ltv,
         one_time_total=one_time_total,
         monthly_costs_total=monthly_costs_total,
         mortgage_monthly=mortgage_monthly,
-        upfront_cash=equity + one_time_total,
+        upfront_cash=acquisition_cost - mortgage_amount,
         monthly_total=mortgage_monthly + monthly_costs_total,
         total_interest=total_interest,
-        total_cost=price + total_interest + one_time_total,
+        total_cost=acquisition_cost + total_interest,
+        acquisition_cost=acquisition_cost,
+        funding_total=funding_total,
+        residual_from_bank=residual_from_bank,
         ltv_exceeds_75=bool(ltv > 0.75),
-        principal_mismatch=bool(price > 0 and abs(tracks_total - required) > 1.0),
     )
 
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import List, Optional
 
 from ..qt import (
@@ -28,7 +29,6 @@ from ..ui.dialog_utils import setup_calendar_popup
 from ..models.mortgage import (
     AmortizationType,
     AssetKind,
-    CostItem,
     Mortgage,
     MortgageTrack,
     TrackKind,
@@ -36,7 +36,6 @@ from ..models.mortgage import (
 from ..models.mortgage_service import MortgageService
 from ..models.mortgage_math import (
     DEFAULT_ASSUMPTIONS,
-    cost_effective_amount,
     months_between,
     mortgage_outstanding,
     mortgage_total_interest,
@@ -437,10 +436,10 @@ class MortgageDialog(QDialog):
         archived = bool(prev.archived) if prev is not None else False
         # שמור את נתוני תרחיש הרכישה (אם קיימים) — נערכים בדיאלוג נפרד.
         property_price = float(prev.property_price) if prev is not None else 0.0
-        equity = float(prev.equity) if prev is not None else 0.0
-        equity_query = str(prev.equity_query) if prev is not None else ""
+        price_query = str(prev.price_query) if prev is not None else ""
         one_time_costs = list(prev.one_time_costs) if prev is not None else []
         monthly_costs = list(prev.monthly_costs) if prev is not None else []
+        funding_sources = list(prev.funding_sources) if prev is not None else []
         # נכס שנוצר/נערך במסך המשכנתא הוא תמיד מסוג רכישה.
         kind = prev.kind if prev is not None else AssetKind.PURCHASE
         current_value = float(prev.current_value) if prev is not None else 0.0
@@ -454,10 +453,10 @@ class MortgageDialog(QDialog):
             excluded_movement_ids=excluded,
             archived=archived,
             property_price=property_price,
-            equity=equity,
-            equity_query=equity_query,
+            price_query=price_query,
             one_time_costs=one_time_costs,
             monthly_costs=monthly_costs,
+            funding_sources=funding_sources,
             kind=kind,
             current_value=current_value,
         )
@@ -547,7 +546,7 @@ class MortgagePaymentsDialog(QDialog):
 
         self._table = QTableWidget(self)
         self._table.setColumnCount(4)
-        self._table.setHorizontalHeaderLabels(["תאריך", "סכום", "קטגוריה", "תיאור"])
+        self._table.setHorizontalHeaderLabels(["תאריך", "תיאור", "הוצאה", "הכנסה"])
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setAlternatingRowColors(True)
@@ -584,17 +583,26 @@ class MortgagePaymentsDialog(QDialog):
             self._table.setRowCount(0)
             self._summary.setText("")
             return
-        stats = self._service.compute_stats(m)
+        expenses = self._service.match_movements(m)
+        incomes = self._service.match_income(m)
+        total_paid = sum(abs(float(x.amount)) for x in expenses)
+        total_in = sum(abs(float(x.amount)) for x in incomes)
         self._summary.setText(
-            f"תשלומים שבוצעו: {stats.paid_count}   |   "
-            f"סך ששולם: {_fmt_money(stats.total_paid)} ₪"
+            f"הוצאות: {len(expenses)} ({_fmt_money(total_paid)} ₪)   |   "
+            f"הכנסות: {len(incomes)} ({_fmt_money(total_in)} ₪)"
         )
-        self._table.setRowCount(len(stats.matched_movements))
-        for row, mv in enumerate(stats.matched_movements):
+        # מיזוג ומיון לפי תאריך; הוצאות בעמודה אחת, הכנסות באחרת.
+        from ..models.accounts import parse_iso_date
+
+        rows = [(mv, False) for mv in expenses] + [(mv, True) for mv in incomes]
+        rows.sort(key=lambda r: parse_iso_date(str(getattr(r[0], "date", "") or "")))
+        self._table.setRowCount(len(rows))
+        for row, (mv, is_income) in enumerate(rows):
             self._table.setItem(row, 0, QTableWidgetItem(str(mv.date)))
-            self._table.setItem(row, 1, QTableWidgetItem(_fmt_money(abs(mv.amount))))
-            self._table.setItem(row, 2, QTableWidgetItem(str(mv.category)))
-            self._table.setItem(row, 3, QTableWidgetItem(str(mv.description or "")))
+            self._table.setItem(row, 1, QTableWidgetItem(str(mv.description or "")))
+            amt = _fmt_money(abs(float(mv.amount)))
+            self._table.setItem(row, 2, QTableWidgetItem("" if is_income else amt))
+            self._table.setItem(row, 3, QTableWidgetItem(amt if is_income else ""))
             try:
                 for col in range(4):
                     it = self._table.item(row, col)
@@ -660,45 +668,36 @@ class HousePurchaseDialog(QDialog):
         title.setObjectName("HeaderTitle")
         root.addWidget(title)
 
-        # מחיר + הון עצמי
+        # מחיר הדירה. ההון העצמי מנוהל כעת דרך "מקורות מימון" בעמוד הנכס,
+        # והמשכנתא = עלות הרכישה − סך מקורות המימון.
         pe_row = QHBoxLayout()
         pe_row.setSpacing(8)
         self._price = QLineEdit(self)
         self._price.setPlaceholderText("מחיר הדירה")
-        self._equity = QLineEdit(self)
-        self._equity.setPlaceholderText("הון עצמי")
         pe_row.addWidget(QLabel("מחיר דירה:", self))
         pe_row.addWidget(self._price, 1)
-        pe_row.addWidget(QLabel("הון עצמי:", self))
-        pe_row.addWidget(self._equity, 1)
         root.addLayout(pe_row)
 
-        # שיוך תנועות להון עצמי (המקדמה משולמת לרוב בכמה העברות).
-        eq_row = QHBoxLayout()
-        eq_row.setSpacing(8)
-        self._equity_query = QLineEdit(self)
-        self._equity_query.setPlaceholderText("חיפוש תנועות להון עצמי (אופציונלי)")
-        eq_row.addWidget(QLabel("חיפוש תנועות (הון עצמי):", self))
-        eq_row.addWidget(self._equity_query, 1)
-        root.addLayout(eq_row)
+        # שיוך תנועות לתשלום מחיר הדירה (התשלום למוכר — לרוב העברה).
+        pq_row = QHBoxLayout()
+        pq_row.setSpacing(8)
+        self._price_query = QLineEdit(self)
+        self._price_query.setPlaceholderText("חיפוש תנועות לתשלום הדירה (אופציונלי)")
+        pq_row.addWidget(QLabel("חיפוש תנועות (מחיר הדירה):", self))
+        pq_row.addWidget(self._price_query, 1)
+        root.addLayout(pq_row)
 
-        # עלויות חד-פעמיות — כולל חיפוש תנועות + שולם בפועל
-        self._one_time_table, one_time_box = self._build_cost_section(
-            "עלויות חד-פעמיות",
-            self._on_add_one_time,
-            self._on_remove_one_time,
-            with_query=True,
+        hint = QLabel(
+            "הון עצמי, מקורות מימון, הוצאות חד-פעמיות ועלויות חודשיות "
+            "מנוהלים בעמוד הנכס.",
+            self,
         )
-        root.addWidget(one_time_box, 1)
-
-        # עלויות חודשיות נלוות
-        self._monthly_table, monthly_box = self._build_cost_section(
-            "עלויות חודשיות נלוות",
-            self._on_add_monthly,
-            self._on_remove_monthly,
-            with_query=False,
-        )
-        root.addWidget(monthly_box, 1)
+        try:
+            hint.setWordWrap(True)
+        except Exception:
+            pass
+        root.addWidget(hint)
+        root.addStretch(1)
 
         # סיכום
         self._summary = QLabel("", self)
@@ -725,61 +724,7 @@ class HousePurchaseDialog(QDialog):
 
         # רענון חי של הסיכום.
         self._price.textChanged.connect(self._recompute)
-        self._equity.textChanged.connect(self._recompute)
-        self._equity_query.textChanged.connect(self._recompute)
-        self._one_time_table.cellChanged.connect(self._recompute)
-        self._monthly_table.cellChanged.connect(self._recompute)
-
-    def _build_cost_section(self, title_text, on_add, on_remove, with_query=False):
-        box = QWidget(self)
-        box_l = QVBoxLayout(box)
-        box_l.setContentsMargins(0, 0, 0, 0)
-        box_l.setSpacing(4)
-        header = QHBoxLayout()
-        header.addWidget(QLabel(title_text, box), 0)
-        header.addStretch(1)
-        add_btn = QToolButton(box)
-        add_btn.setText("➕")
-        add_btn.clicked.connect(on_add)
-        rm_btn = QToolButton(box)
-        rm_btn.setText("🗑")
-        rm_btn.clicked.connect(on_remove)
-        header.addWidget(add_btn)
-        header.addWidget(rm_btn)
-        box_l.addLayout(header)
-
-        table = QTableWidget(box)
-        if with_query:
-            table.setColumnCount(4)
-            table.setHorizontalHeaderLabels(
-                ["שם", "מתוכנן", "חיפוש תנועות", "שולם בפועל"]
-            )
-        else:
-            table.setColumnCount(2)
-            table.setHorizontalHeaderLabels(["שם", "סכום"])
-        table.setEditTriggers(
-            QTableWidget.EditTrigger.DoubleClicked
-            | QTableWidget.EditTrigger.SelectedClicked
-            | QTableWidget.EditTrigger.AnyKeyPressed
-        )
-        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        try:
-            table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-            hh = table.horizontalHeader()
-            if hh is not None:
-                hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        except Exception:
-            pass
-        box_l.addWidget(table, 1)
-        return table, box
-
-    @staticmethod
-    def _make_readonly(item: QTableWidgetItem) -> QTableWidgetItem:
-        try:
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-        except Exception:
-            pass
-        return item
+        self._price_query.textChanged.connect(self._recompute)
 
     def _current_mortgage(self) -> Optional[Mortgage]:
         for m in self._service.list_mortgages():
@@ -787,69 +732,22 @@ class HousePurchaseDialog(QDialog):
                 return m
         return None
 
-    def _fill_table(
-        self, table: QTableWidget, costs: List[CostItem], with_query: bool = False
-    ) -> None:
-        table.setRowCount(len(costs))
-        for row, c in enumerate(costs):
-            table.setItem(row, 0, QTableWidgetItem(str(c.name)))
-            table.setItem(row, 1, QTableWidgetItem(f"{float(c.amount):.0f}"))
-            if with_query:
-                table.setItem(row, 2, QTableWidgetItem(str(getattr(c, "query", ""))))
-                table.setItem(
-                    row, 3, self._make_readonly(QTableWidgetItem(""))
-                )
-
     def _load_initial(self, m: Optional[Mortgage]) -> None:
         if m is None:
             return
         if m.property_price:
             self._price.setText(f"{float(m.property_price):.0f}")
-        if m.equity:
-            self._equity.setText(f"{float(m.equity):.0f}")
-        self._equity_query.setText(str(getattr(m, "equity_query", "") or ""))
-        # ללא שורות ברירת מחדל — המשתמש מוסיף את כל העלויות בעצמו (➕).
-        self._fill_table(self._one_time_table, list(m.one_time_costs), with_query=True)
-        self._fill_table(self._monthly_table, list(m.monthly_costs))
-
-    def _read_costs(
-        self, table: QTableWidget, with_query: bool = False
-    ) -> List[CostItem]:
-        out: List[CostItem] = []
-        for row in range(table.rowCount()):
-            name_item = table.item(row, 0)
-            amt_item = table.item(row, 1)
-            name = str(name_item.text()).strip() if name_item is not None else ""
-            amount = _parse_float(amt_item.text() if amt_item is not None else "") or 0.0
-            query = ""
-            if with_query:
-                q_item = table.item(row, 2)
-                query = str(q_item.text()).strip() if q_item is not None else ""
-            if not name and amount == 0.0 and not query:
-                continue
-            out.append(CostItem(name=name, amount=float(amount), query=query))
-        return out
+        self._price_query.setText(str(getattr(m, "price_query", "") or ""))
 
     def _build_mortgage_from_inputs(self) -> Optional[Mortgage]:
+        # רק מחיר הדירה ושיוך התנועות שלו נערכים כאן; כל השאר בעמוד הנכס.
         base = self._current_mortgage()
         if base is None:
             return None
-        return Mortgage(
-            id=base.id,
-            name=base.name,
-            account_name=base.account_name,
-            vendor_query=base.vendor_query,
-            start_date=base.start_date,
-            tracks=list(base.tracks),
-            excluded_movement_ids=list(base.excluded_movement_ids),
-            archived=bool(base.archived),
+        return replace(
+            base,
             property_price=_parse_float(self._price.text()) or 0.0,
-            equity=_parse_float(self._equity.text()) or 0.0,
-            equity_query=str(self._equity_query.text() or "").strip(),
-            one_time_costs=self._read_costs(self._one_time_table, with_query=True),
-            monthly_costs=self._read_costs(self._monthly_table),
-            kind=base.kind,
-            current_value=float(base.current_value),
+            price_query=str(self._price_query.text() or "").strip(),
         )
 
     def _recompute(self) -> None:
@@ -860,90 +758,24 @@ class HousePurchaseDialog(QDialog):
             self._summary.setText("")
             return
 
-        # עדכן את עמודת "שולם בפועל" לכל שורת עלות חד-פעמית לפי שיוך התנועות.
-        try:
-            self._one_time_table.blockSignals(True)
-            for row in range(self._one_time_table.rowCount()):
-                q_item = self._one_time_table.item(row, 2)
-                query = str(q_item.text()).strip() if q_item is not None else ""
-                actual = (
-                    cost_effective_amount(CostItem(query=query), self._movements)
-                    if query
-                    else 0.0
-                )
-                txt = _fmt_money(actual) if (query and actual) else ""
-                act_item = self._one_time_table.item(row, 3)
-                if act_item is None:
-                    self._one_time_table.setItem(
-                        row, 3, self._make_readonly(QTableWidgetItem(txt))
-                    )
-                else:
-                    act_item.setText(txt)
-        finally:
-            self._one_time_table.blockSignals(False)
-
         s = purchase_summary(m, movements=self._movements)
         ltv_txt = f"{s.ltv * 100:.0f}%"
         if s.ltv_exceeds_75:
             ltv_txt = f'<span style="color:#dc2626">{ltv_txt} (מעל 75%!)</span>'
-        mismatch = ""
-        if s.tracks_total == 0 and s.required_mortgage > 0:
-            # עדיין לא נבנה תמהיל — הכוונה ידידותית, לא שגיאה.
-            mismatch = (
-                f'<br><span style="color:#2563eb">עדיין לא הוגדר תמהיל — '
-                f"בנה מסלולים בסך {_fmt_money(s.required_mortgage)} ₪ "
-                f"(כפתור ✎)</span>"
-            )
-        elif s.principal_mismatch:
-            mismatch = (
-                f'<br><span style="color:#dc2626">⚠ סכום המסלולים '
-                f"({_fmt_money(s.tracks_total)}) אינו תואם למשכנתא הדרושה "
-                f"({_fmt_money(s.required_mortgage)})</span>"
+        note = ""
+        if s.tracks_total == 0:
+            note = (
+                '<br><span style="color:#2563eb">עדיין לא נבנה תמהיל — '
+                "בנה מסלולים בכפתור ✎ במסך המשכנתא.</span>"
             )
         self._summary.setText(
-            f"<b>משכנתא דרושה:</b> {_fmt_money(s.required_mortgage)} ₪ "
-            f"(יחס מימון {ltv_txt}){mismatch}<br>"
-            f"<b>מזומן נדרש לרכישה:</b> {_fmt_money(s.upfront_cash)} ₪ "
-            f"(הון עצמי {_fmt_money(s.equity)} + עלויות {_fmt_money(s.one_time_total)})<br>"
+            f"<b>עלות רכישה:</b> {_fmt_money(s.acquisition_cost)} ₪ "
+            f"(מחיר {_fmt_money(s.property_price)} + עלויות {_fmt_money(s.one_time_total)})<br>"
+            f"<b>משכנתא (תמהיל):</b> {_fmt_money(s.tracks_total)} ₪ "
+            f"(יחס מימון {ltv_txt}){note}<br>"
             f"<b>תשלום חודשי כולל:</b> {_fmt_money(s.monthly_total)} ₪ "
-            f"(משכנתא {_fmt_money(s.mortgage_monthly)} + נלוות {_fmt_money(s.monthly_costs_total)})<br>"
-            f"<b>עלות כוללת:</b> {_fmt_money(s.total_cost)} ₪ "
-            f"(מחיר + ריבית {_fmt_money(s.total_interest)} + עלויות)"
+            f"(משכנתא {_fmt_money(s.mortgage_monthly)} + נלוות {_fmt_money(s.monthly_costs_total)})"
         )
-
-    def _add_cost_row(self, table: QTableWidget, with_query: bool = False) -> None:
-        """הוסף שורת עלות ריקה והתחל מיד עריכה של שם הפריט."""
-        row = table.rowCount()
-        table.insertRow(row)
-        name_item = QTableWidgetItem("")
-        table.setItem(row, 0, name_item)
-        table.setItem(row, 1, QTableWidgetItem(""))
-        if with_query:
-            table.setItem(row, 2, QTableWidgetItem(""))
-            table.setItem(row, 3, self._make_readonly(QTableWidgetItem("")))
-        try:
-            table.setCurrentCell(row, 0)
-            table.editItem(name_item)
-        except Exception:
-            pass
-
-    def _on_add_one_time(self) -> None:
-        self._add_cost_row(self._one_time_table, with_query=True)
-
-    def _on_remove_one_time(self) -> None:
-        row = self._one_time_table.currentRow()
-        if row >= 0:
-            self._one_time_table.removeRow(row)
-            self._recompute()
-
-    def _on_add_monthly(self) -> None:
-        self._add_cost_row(self._monthly_table)
-
-    def _on_remove_monthly(self) -> None:
-        row = self._monthly_table.currentRow()
-        if row >= 0:
-            self._monthly_table.removeRow(row)
-            self._recompute()
 
     def _on_save(self) -> None:
         m = self._build_mortgage_from_inputs()
