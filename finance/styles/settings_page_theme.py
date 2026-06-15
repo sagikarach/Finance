@@ -20,18 +20,18 @@ def load_settings_page_light_styles() -> str:
     }
 
     QPushButton#SaveButton {
-        background: #2563eb;
-        border: 1px solid #1d4ed8;
+        background: #3b82f6;
+        border: 1px solid #2563eb;
         font-weight: 600;
         min-width: 96px;
         color: #ffffff;
     }
     QPushButton#SaveButton:hover {
-        background: #1d4ed8;
-        border: 1px solid #1e40af;
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
     }
     QPushButton#SaveButton:pressed {
-        background: #1e40af;
+        background: #1d4ed8;
     }
 
     QPushButton#SecondaryButton {
@@ -115,18 +115,18 @@ def load_settings_page_dark_styles() -> str:
     }
 
     QPushButton#SaveButton {
-        background: #1d4ed8;
-        border: 1px solid #1e3a8a;
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
         font-weight: 600;
         min-width: 96px;
         color: #ffffff;
     }
     QPushButton#SaveButton:hover {
-        background: #2563eb;
-        border: 1px solid #1d4ed8;
+        background: #3b82f6;
+        border: 1px solid #2563eb;
     }
     QPushButton#SaveButton:pressed {
-        background: #1e40af;
+        background: #1d4ed8;
     }
 
     QPushButton#SecondaryButton {

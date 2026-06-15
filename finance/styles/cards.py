@@ -9,37 +9,56 @@ def load_cards_light_styles() -> str:
         border-radius: 12px;
     }
     QWidget#StatCardGreen {
-        background: #4ade80;
-        border: 1px solid #22c55e;
+        background: #dcfce7;
+        border: 1px solid #86efac;
         border-radius: 20px;
     }
     QWidget#StatCardRed {
-        background: #f87171;
-        border: 1px solid #ef4444;
+        background: #fee2e2;
+        border: 1px solid #fca5a5;
         border-radius: 20px;
     }
     QWidget#StatCardPurple {
-        background: #818cf8;
-        border: 1px solid #6366f1;
+        background: #e0e7ff;
+        border: 1px solid #a5b4fc;
         border-radius: 20px;
     }
     QWidget#StatCardYellow {
-        background: #fcd34d;
-        border: 1px solid #fbbf24;
+        background: #fef9c3;
+        border: 1px solid #fde047;
         border-radius: 20px;
     }
     QWidget#StatCardGreen *, QWidget#StatCardRed *,
     QWidget#StatCardPurple *, QWidget#StatCardYellow * {
         background: transparent;
     }
-    QWidget#StatCardGreen QLabel, QWidget#StatCardRed QLabel,
-    QWidget#StatCardPurple QLabel, QWidget#StatCardYellow QLabel {
-        color: #0f172a;
+    QWidget#StatCardGreen QLabel {
+        color: #166534;
         background: transparent;
     }
-    QWidget#StatCardGreen QLabel#Subtitle, QWidget#StatCardRed QLabel#Subtitle,
-    QWidget#StatCardPurple QLabel#Subtitle, QWidget#StatCardYellow QLabel#Subtitle {
-        color: rgba(15,23,42,0.65);
+    QWidget#StatCardRed QLabel {
+        color: #b91c1c;
+        background: transparent;
+    }
+    QWidget#StatCardPurple QLabel {
+        color: #4338ca;
+        background: transparent;
+    }
+    QWidget#StatCardYellow QLabel {
+        color: #854d0e;
+        background: transparent;
+    }
+    QWidget#StatCardGreen QLabel#Subtitle {
+        color: rgba(22,101,52,0.70);
+    }
+    QWidget#StatCardRed QLabel#Subtitle {
+        color: rgba(185,28,28,0.70);
+    }
+    QWidget#StatCardPurple QLabel#Subtitle {
+        color: rgba(67,56,202,0.70);
+    }
+    QWidget#StatCardYellow QLabel#Subtitle {
+        color: rgba(133,77,14,0.70);
     }
     QWidget#PageCard {
         background: transparent;

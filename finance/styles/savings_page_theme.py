@@ -55,59 +55,59 @@ def load_savings_page_light_styles() -> str:
     }
 
     QPushButton#AddButton {
-        background: #22c55e;
-        border: 1px solid #16a34a;
+        background: #34d399;
+        border: 1px solid #22c55e;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#AddButton:hover {
-        background: #16a34a;
-        border: 1px solid #15803d;
+        background: #22c55e;
+        border: 1px solid #16a34a;
     }
     QPushButton#AddButton:pressed {
-        background: #15803d;
+        background: #16a34a;
     }
 
     QPushButton#EditButton {
-        background: #2563eb;
-        border: 1px solid #1d4ed8;
+        background: #3b82f6;
+        border: 1px solid #2563eb;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#EditButton:hover {
-        background: #1d4ed8;
-        border: 1px solid #1e40af;
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
     }
     QPushButton#EditButton:pressed {
-        background: #1e40af;
+        background: #1d4ed8;
     }
 
     QPushButton#DeleteButton {
-        background: #ef4444;
-        border: 1px solid #dc2626;
+        background: #f87171;
+        border: 1px solid #ef4444;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#DeleteButton:hover {
-        background: #dc2626;
-        border: 1px solid #b91c1c;
+        background: #ef4444;
+        border: 1px solid #dc2626;
     }
     QPushButton#DeleteButton:pressed {
-        background: #b91c1c;
+        background: #dc2626;
     }
 
     QPushButton#MoveButton {
-        background: #8b5cf6;
-        border: 1px solid #7c3aed;
+        background: #a78bfa;
+        border: 1px solid #8b5cf6;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#MoveButton:hover {
-        background: #7c3aed;
-        border: 1px solid #6d28d9;
+        background: #8b5cf6;
+        border: 1px solid #7c3aed;
     }
     QPushButton#MoveButton:pressed {
-        background: #6d28d9;
+        background: #7c3aed;
     }
     """
 
@@ -166,58 +166,58 @@ def load_savings_page_dark_styles() -> str:
     }
 
     QPushButton#AddButton {
-        background: #16a34a;
-        border: 1px solid #15803d;
+        background: #22c55e;
+        border: 1px solid #16a34a;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#AddButton:hover {
-        background: #15803d;
-        border: 1px solid #166534;
+        background: #16a34a;
+        border: 1px solid #15803d;
     }
     QPushButton#AddButton:pressed {
-        background: #166534;
+        background: #15803d;
     }
 
     QPushButton#EditButton {
-        background: #1d4ed8;
-        border: 1px solid #1e3a8a;
+        background: #2563eb;
+        border: 1px solid #1d4ed8;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#EditButton:hover {
-        background: #2563eb;
-        border: 1px solid #1d4ed8;
+        background: #3b82f6;
+        border: 1px solid #2563eb;
     }
     QPushButton#EditButton:pressed {
-        background: #1e40af;
+        background: #1d4ed8;
     }
 
     QPushButton#DeleteButton {
-        background: #dc2626;
-        border: 1px solid #b91c1c;
+        background: #ef4444;
+        border: 1px solid #dc2626;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#DeleteButton:hover {
-        background: #b91c1c;
-        border: 1px solid #991b1b;
+        background: #dc2626;
+        border: 1px solid #b91c1c;
     }
     QPushButton#DeleteButton:pressed {
-        background: #991b1b;
+        background: #b91c1c;
     }
 
     QPushButton#MoveButton {
-        background: #7c3aed;
-        border: 1px solid #6d28d9;
+        background: #8b5cf6;
+        border: 1px solid #7c3aed;
         font-weight: 600;
         color: #ffffff;
     }
     QPushButton#MoveButton:hover {
-        background: #6d28d9;
-        border: 1px solid #5b21b6;
+        background: #7c3aed;
+        border: 1px solid #6d28d9;
     }
     QPushButton#MoveButton:pressed {
-        background: #5b21b6;
+        background: #6d28d9;
     }
     """

@@ -4,11 +4,11 @@ from __future__ import annotations
 def load_buttons_light_styles() -> str:
     return """
     QPushButton {
-        background: #2563eb;
+        background: #3b82f6;
         color: white;
         padding: 8px 14px;
         border-radius: 8px;
-        border: 1px solid #1d4ed8;
+        border: 1px solid #2563eb;
     }
     QPushButton#MonthEditButton {
         background: #d1e6ff;
@@ -26,10 +26,10 @@ def load_buttons_light_styles() -> str:
         border: 1px solid #5b9fcc;
     }
     QPushButton:hover {
-        background: #1d4ed8;
+        background: #2563eb;
     }
     QPushButton:pressed {
-        background: #1e40af;
+        background: #1d4ed8;
     }
     QPushButton:focus {
         outline: 2px solid #93c5fd;
@@ -174,11 +174,11 @@ def load_buttons_light_styles() -> str:
 def load_buttons_dark_styles() -> str:
     return """
     QPushButton {
-        background: #1d4ed8;
+        background: #2563eb;
         color: #e5e7eb;
         padding: 8px 14px;
         border-radius: 8px;
-        border: 1px solid #1e3a8a;
+        border: 1px solid #1d4ed8;
     }
     QPushButton#MonthEditButton {
         background: #111827;
@@ -196,10 +196,10 @@ def load_buttons_dark_styles() -> str:
         border: 1px solid #64748b;
     }
     QPushButton:hover {
-        background: #2563eb;
+        background: #3b82f6;
     }
     QPushButton:pressed {
-        background: #1e40af;
+        background: #1d4ed8;
     }
     QPushButton:focus {
         outline: 2px solid #3b82f6;
