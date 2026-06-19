@@ -143,6 +143,23 @@ def parse_iso_date(value: str) -> datetime:
     return datetime.min
 
 
+def to_iso_date(value: str) -> str:
+    """Normalize a date string to ISO ``YYYY-MM-DD``.
+
+    Reuses :func:`parse_iso_date` so every format the app already tolerates
+    (DD/MM/YYYY, DD.MM.YYYY, 2-digit years, ...) is accepted. Returns the
+    stripped original unchanged if it cannot be parsed, so an unexpected
+    input is never silently discarded.
+    """
+    s = str(value or "").strip()
+    if not s:
+        return ""
+    dt = parse_iso_date(s)
+    if dt == datetime.min:
+        return s
+    return dt.date().isoformat()
+
+
 def latest_amount_from_history(history: Iterable[MoneySnapshot]) -> Optional[float]:
     snapshots = list(history)
     if not snapshots:

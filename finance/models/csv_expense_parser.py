@@ -6,6 +6,7 @@ from typing import Dict, List
 import csv
 import re
 
+from .accounts import to_iso_date
 from .parsed_expense import ParsedExpense
 
 
@@ -105,6 +106,11 @@ class CsvExpenseParser:
             # Allow common formats: dd/mm/yyyy, dd.mm.yyyy, dd/mm/yy, ISO yyyy-mm-dd.
             if "/" not in date_str and "." not in date_str and "-" not in date_str:
                 continue
+
+            # Normalize to ISO yyyy-mm-dd so all stored movements share one
+            # format (mobile only understands ISO). Unparseable values are
+            # left as-is by to_iso_date.
+            date_str = to_iso_date(date_str)
 
             desc_idx = column_map.get("desc", 1)
             if desc_idx >= len(parts):
