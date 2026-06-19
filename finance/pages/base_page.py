@@ -78,7 +78,9 @@ class BasePage(QWidget):
         self._bank_movement_provider = JsonFileBankMovementProvider()
         self._history_provider = JsonFileActionHistoryProvider()
         self._accounts_service: AccountsService = AccountsService(
-            self._provider, history_provider=self._history_provider
+            self._provider,
+            history_provider=self._history_provider,
+            movements_provider=self._bank_movement_provider,
         )
         classifier = None
         try:

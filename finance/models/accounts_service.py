@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date as _date
 from typing import List, Optional
 
 from ..data.action_history_provider import ActionHistoryProvider
+from ..data.bank_movement_provider import BankMovementProvider
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from .accounts import (
     BankAccount,
@@ -27,6 +29,7 @@ from .action_history import (
     generate_action_id,
     get_current_timestamp,
 )
+from .bank_movement import BankMovement, MovementType
 from .bank_settings import BankSettingsRowInput, apply_bank_settings
 from .savings_dialogs import (
     SavingsAccountForm,
@@ -41,6 +44,7 @@ from .transfers import TransferRequest, TransferResult, apply_transfer
 class AccountsService:
     provider: AccountsProvider
     history_provider: Optional[ActionHistoryProvider] = None
+    movements_provider: Optional[BankMovementProvider] = None
 
     def load_accounts(self) -> List[MoneyAccount]:
         accounts = self.provider.list_accounts()
@@ -425,15 +429,20 @@ class AccountsService:
     ) -> TransferResult:
         result = apply_transfer(accounts, request)
 
-        if self.history_provider is not None and result.error is None:
-            try:
-                if (
-                    request.source.account_index < 0
-                    or request.source.account_index >= len(accounts)
-                    or request.target.account_index < 0
-                    or request.target.account_index >= len(accounts)
-                ):
-                    raise IndexError("account index out of range")
+        if result.error is not None:
+            return result
+
+        # Resolve human-readable endpoint names. Savings endpoints use the
+        # "account -- saving" form so a specific envelope can be matched (e.g.
+        # by the asset funding view) rather than the whole account.
+        src_name = dst_name = ""
+        src_type = dst_type = ""
+        names_ok = False
+        try:
+            if (
+                0 <= request.source.account_index < len(accounts)
+                and 0 <= request.target.account_index < len(accounts)
+            ):
                 src_acc = accounts[request.source.account_index]
                 dst_acc = accounts[request.target.account_index]
 
@@ -460,6 +469,12 @@ class AccountsService:
                     except Exception:
                         pass
 
+                names_ok = True
+        except Exception:
+            names_ok = False
+
+        if self.history_provider is not None and names_ok:
+            try:
                 action = TransferAction(
                     action_name="transfer",
                     amount=request.amount,
@@ -476,6 +491,44 @@ class AccountsService:
                 self.history_provider.add_action(history_entry)
             except Exception:
                 pass
+
+        # Record the outgoing side of the transfer as a movement so views that
+        # aggregate money moved out of an account/saving (e.g. an asset's
+        # funding contributions) can detect it. The balance change itself is
+        # already applied by ``apply_transfer`` — this is a ledger record only,
+        # and is flagged ``is_transfer`` so reports/charts keep ignoring it.
+        if self.movements_provider is not None and names_ok:
+            movement = BankMovement(
+                amount=-abs(float(request.amount)),
+                date=_date.today().isoformat(),
+                account_name=src_name,
+                category="העברה",
+                type=MovementType.ONE_TIME,
+                is_transfer=True,
+                description=f"העברה מ{src_name} ל{dst_name}",
+            )
+            persisted = False
+            try:
+                self.movements_provider.add_movement(movement)
+                persisted = True
+            except Exception:
+                persisted = False
+
+            # Push to Firebase only when the sync gate allows (same pattern as
+            # BankMovementService.apply_movement), so the transfer record reaches
+            # mobile/other devices.
+            if persisted:
+                try:
+                    from ..models.sync_gate import allow_firebase_push
+
+                    if allow_firebase_push():
+                        from ..models.firebase_workspace_writer import (
+                            FirebaseWorkspaceWriter,
+                        )
+
+                        FirebaseWorkspaceWriter().upsert_movement(movement)
+                except Exception:
+                    pass
 
         return result
 

@@ -56,7 +56,9 @@ class SavingsPage(BasePage):
         )
         self._history_provider = JsonFileActionHistoryProvider()
         self._accounts_service = AccountsService(
-            self._provider, history_provider=self._history_provider
+            self._provider,
+            history_provider=self._history_provider,
+            movements_provider=self._bank_movement_provider,
         )
 
     def on_route_activated(self) -> None:

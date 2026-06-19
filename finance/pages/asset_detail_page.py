@@ -112,19 +112,24 @@ def funding_available(
     return 0.0  # עתידי — טרם התקבל
 
 
-def account_transferred_out(movements: List, account_name: str) -> float:
-    """סך ההעברות היוצאות מחשבון נתון (העברות בלבד, סכום שלילי) — הכסף שהוזרם
-    מהחשבון אל חשבון הבנק לצורך הרכישה."""
+def account_transferred_out(
+    movements: List, account_name: str, saving_name: str = ""
+) -> float:
+    """סך ההעברות היוצאות מחשבון/חיסכון נתון (העברות בלבד, סכום שלילי) — הכסף
+    שהוזרם מהמקור אל חשבון הבנק לצורך הרכישה. אם ``saving_name`` ניתן, מתאים
+    לחיסכון הספציפי בלבד (לפי המפתח "חשבון -- חיסכון")."""
     name = str(account_name or "").strip()
     if not name:
         return 0.0
+    sv = str(saving_name or "").strip()
+    target = f"{name} -- {sv}" if sv else name
     total = 0.0
     for m in movements:
         try:
             if (
                 bool(getattr(m, "is_transfer", False))
                 and float(getattr(m, "amount", 0.0) or 0.0) < 0
-                and str(getattr(m, "account_name", "") or "").strip() == name
+                and str(getattr(m, "account_name", "") or "").strip() == target
             ):
                 total += abs(float(m.amount))
         except Exception:
@@ -136,7 +141,11 @@ def funding_spent(source: FundingSource, movements: List) -> Optional[float]:
     """כמה נוצל בפועל ממקור המימון. חשבון → העברות יוצאות ממנו אל הבנק;
     תנועות → ההכנסה שנתפסה; עתידי → None ('—'). חשבון הבנק עצמו מטופל בנפרד."""
     if source.kind == FundingKind.ACCOUNT:
-        return account_transferred_out(movements, source.account_name)
+        return account_transferred_out(
+            movements,
+            source.account_name,
+            getattr(source, "saving_name", ""),
+        )
     if source.kind == FundingKind.MOVEMENTS:
         return query_received_amount(source.query, movements, include_transfers=True)
     return None  # עתידי
