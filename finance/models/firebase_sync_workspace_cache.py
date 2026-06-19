@@ -137,11 +137,12 @@ def pull_installment_plans_to_local_cache(
 
 
 def pull_mortgages_to_local_cache(
-    *, fs: FirestoreClient, workspace_id: str, id_token: str
+    *, fs: FirestoreClient, workspace_id: str, id_token: str, skip_ids=None
 ) -> None:
     workspace_id = str(workspace_id or "").strip()
     if not workspace_id:
         return
+    skip = {str(x).strip() for x in (skip_ids or set()) if str(x).strip()}
     try:
         from ..data.mortgage_provider import (
             JsonFileMortgageProvider,
@@ -159,6 +160,10 @@ def pull_mortgages_to_local_cache(
                 doc_id, parsed = fs.parse_any_doc(d)
                 mid = str(parsed.get("id") or doc_id).strip()
                 if not mid:
+                    continue
+                # Never let the remote-wins pull clobber a mortgage that has an
+                # un-pushed local edit; the next Sync push will reconcile it.
+                if mid in skip:
                     continue
                 if bool(parsed.get("deleted", False)):
                     local_by_id.pop(mid, None)

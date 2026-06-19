@@ -208,7 +208,14 @@ class FirebaseMovementsSyncService:
         pull_installment_plans_to_local_cache(
             fs=fs, workspace_id=wid, id_token=id_token
         )
-        pull_mortgages_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
+        pull_mortgages_to_local_cache(
+            fs=fs,
+            workspace_id=wid,
+            id_token=id_token,
+            skip_ids=set(getattr(state, "pending_upsert_mortgage_ids", []) or [])
+            if state is not None
+            else None,
+        )
         pull_notifications_to_local_cache(fs=fs, workspace_id=wid, id_token=id_token)
         pull_notifications_meta_to_local_cache(
             fs=fs, workspace_id=wid, id_token=id_token
@@ -502,12 +509,23 @@ class FirebaseMovementsSyncService:
                 except Exception:
                     continue
 
+            pending_up_mg = set(
+                getattr(state, "pending_upsert_mortgage_ids", []) or []
+            )
+            pushed_up_mg: set[str] = set()
             for mg in list(JsonFileMortgageProvider().list_mortgages()):
                 try:
                     writer.upsert_mortgage(mg)
                     pushed += 1
+                    pushed_up_mg.add(str(mg.id))
                 except Exception:
                     continue
+            # Clear the dirty flag only for mortgages that actually reached the
+            # server; any that failed stay protected until the next push.
+            if pending_up_mg:
+                state.pending_upsert_mortgage_ids = [
+                    mid for mid in pending_up_mg if mid not in pushed_up_mg
+                ]
 
             prov = JsonFileNotificationsProvider()
             try:

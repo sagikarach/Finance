@@ -74,6 +74,23 @@ class MortgageService:
             old = None
 
         self._mortgages_provider.upsert_mortgage(mortgage)
+
+        # Flag this mortgage as a local edit not yet confirmed on the server, so
+        # a background (pull-only) sync's remote-wins pull cannot overwrite it
+        # before the next Sync pushes it. Cleared once successfully pushed.
+        try:
+            from ..models.firebase_session import (
+                current_firebase_uid,
+                current_firebase_workspace_id,
+            )
+            from ..models.firebase_sync_state import mark_pending_upsert_mortgage
+
+            key = current_firebase_workspace_id() or current_firebase_uid() or ""
+            if key:
+                mark_pending_upsert_mortgage(key=key, mortgage_id=mortgage.id)
+        except Exception:
+            pass
+
         try:
             from ..models.sync_gate import allow_firebase_push
 

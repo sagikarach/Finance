@@ -26,6 +26,10 @@ class SyncState:
     last_remote_updated_at_ms: int
     last_workspace_cache_pull_at_ms: int = 0
     pending_delete_mortgage_ids: List[str] = field(default_factory=list)
+    # Mortgages edited locally but not yet confirmed pushed to Firebase. The
+    # mortgage pull is remote-wins, so without this a background pull-only sync
+    # would overwrite a local edit with stale server data before it is pushed.
+    pending_upsert_mortgage_ids: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -43,6 +47,7 @@ class SyncState:
                 self.last_workspace_cache_pull_at_ms or 0
             ),
             "pending_delete_mortgage_ids": list(self.pending_delete_mortgage_ids),
+            "pending_upsert_mortgage_ids": list(self.pending_upsert_mortgage_ids),
         }
 
     @staticmethod
@@ -94,6 +99,11 @@ class SyncState:
             raw_del_mg = []
         del_mg = [str(x) for x in raw_del_mg if isinstance(x, str) and str(x).strip()]
 
+        raw_up_mg = d.get("pending_upsert_mortgage_ids", [])
+        if not isinstance(raw_up_mg, list):
+            raw_up_mg = []
+        up_mg = [str(x) for x in raw_up_mg if isinstance(x, str) and str(x).strip()]
+
         last_remote_updated_at = str(d.get("last_remote_updated_at", "") or "").strip()
         try:
             last_remote_updated_at_ms = int(d.get("last_remote_updated_at_ms", 0) or 0)
@@ -116,6 +126,7 @@ class SyncState:
             last_remote_updated_at_ms=last_remote_updated_at_ms,
             last_workspace_cache_pull_at_ms=last_workspace_cache_pull_at_ms,
             pending_delete_mortgage_ids=del_mg,
+            pending_upsert_mortgage_ids=up_mg,
         )
 
 
@@ -191,6 +202,23 @@ def add_pending_delete(*, key: str, kind: str, item_id: str) -> None:
                 list(getattr(state, "pending_delete_mortgage_ids", []) or [])
                 + [item_id]
             )
+        save_sync_state(key, state)
+    except Exception:
+        return
+
+
+def mark_pending_upsert_mortgage(*, key: str, mortgage_id: str) -> None:
+    """Flag a mortgage as locally edited and not yet pushed, so the remote-wins
+    mortgage pull does not overwrite it before the next Sync uploads it."""
+    key = str(key or "").strip()
+    mortgage_id = str(mortgage_id or "").strip()
+    if not key or not mortgage_id:
+        return
+    try:
+        state = load_sync_state(key)
+        state.pending_upsert_mortgage_ids = _uniq(
+            list(getattr(state, "pending_upsert_mortgage_ids", []) or []) + [mortgage_id]
+        )
         save_sync_state(key, state)
     except Exception:
         return
