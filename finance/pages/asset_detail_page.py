@@ -237,12 +237,24 @@ class FundingSourceDialog(QDialog):
             pass
         if s.amount:
             self._amount.setText(f"{float(s.amount):.0f}")
-        # בחר את הפריט התואם (חשבון + חיסכון).
+        # בחר את הפריט התואם (חשבון + חיסכון). הערך נשמר כ-tuple אך Qt מחזיר
+        # אותו כ-list, לכן משווים אחרי נירמול לזוג מחרוזות.
         target = (str(s.account_name or ""), str(s.saving_name or ""))
-        for i in range(self._account.count()):
-            if self._account.itemData(i) == target:
-                self._account.setCurrentIndex(i)
-                break
+        if target != ("", ""):
+            idx = -1
+            for i in range(self._account.count()):
+                d = self._account.itemData(i)
+                cur = (str(d[0]), str(d[1])) if d and len(d) >= 2 else ("", "")
+                if cur == target:
+                    idx = i
+                    break
+            if idx < 0:
+                # החשבון/חיסכון אינו מוצע יותר (למשל נמחק) — מוסיפים אותו כדי
+                # לא לאבד את השיוך בעת עריכה.
+                label = f"{target[0]} / {target[1]}" if target[1] else target[0]
+                self._account.addItem(label, (target[0], target[1]))
+                idx = self._account.count() - 1
+            self._account.setCurrentIndex(idx)
         self._query.setText(str(s.query or ""))
 
     def _on_kind_changed(self, text: str) -> None:
