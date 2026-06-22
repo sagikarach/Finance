@@ -180,3 +180,19 @@ def build_asset(record: Mortgage) -> Asset:
     if record.kind == AssetKind.OTHER:
         return HeldAsset(record)
     return HousePurchase(record)
+
+
+def new_asset_record(
+    kind: AssetKind,
+    *,
+    name: str,
+    current_value: float = 0.0,
+    account_name: str = "בנק",
+) -> Mortgage:
+    """Build a fresh stored record for a new asset of ``kind``. Centralises the
+    per-kind construction that the UI used to branch on."""
+    if kind == AssetKind.OTHER:
+        return Mortgage(
+            name=name, kind=AssetKind.OTHER, current_value=float(current_value or 0.0)
+        )
+    return Mortgage(name=name, kind=AssetKind.PURCHASE, account_name=account_name)

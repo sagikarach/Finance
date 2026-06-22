@@ -22,7 +22,7 @@ from ..qt import (
 )
 from ..models.mortgage import AssetKind, Mortgage
 from ..models.mortgage_service import MortgageService
-from ..models.asset import HousePurchase, build_asset
+from ..models.asset import HousePurchase, build_asset, new_asset_record
 from .base_page import BasePage
 
 
@@ -141,15 +141,12 @@ class AssetDialog(QDialog):
             self._asset = replace(
                 self._asset, name=name, current_value=float(value)
             )
-        elif kind == AssetKind.PURCHASE:
-            self._asset = Mortgage(
-                name=name,
-                kind=AssetKind.PURCHASE,
-                account_name=_MORTGAGE_ACCOUNT_NAME,
-            )
         else:
-            self._asset = Mortgage(
-                name=name, kind=AssetKind.OTHER, current_value=float(value)
+            self._asset = new_asset_record(
+                kind,
+                name=name,
+                current_value=value,
+                account_name=_MORTGAGE_ACCOUNT_NAME,
             )
         self.accept()
 

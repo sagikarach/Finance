@@ -140,6 +140,20 @@ def test_assets_page_value_and_sold_use_model() -> None:
     assert AssetsPage._is_sold(_purchase()) is False
 
 
+def test_new_asset_record_factory() -> None:
+    from finance.models.asset import HeldAsset, HousePurchase, build_asset, new_asset_record
+
+    held = new_asset_record(AssetKind.OTHER, name="רכב", current_value=80_000.0)
+    assert held.kind == AssetKind.OTHER
+    assert _approx(held.current_value, 80_000.0)
+    assert isinstance(build_asset(held), HeldAsset)
+
+    house = new_asset_record(AssetKind.PURCHASE, name="דירה", account_name="בנק")
+    assert house.kind == AssetKind.PURCHASE
+    assert house.account_name == "בנק"
+    assert isinstance(build_asset(house), HousePurchase)
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

@@ -27,7 +27,6 @@ from .mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     MortgageAssumptions,
     PurchaseSummary,
-    mortgage_outstanding,
     purchase_summary,
 )
 from .movement_matching import match_movements
