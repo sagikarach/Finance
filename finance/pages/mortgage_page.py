@@ -34,7 +34,7 @@ from ..models.mortgage import (
     TrackKind,
 )
 from ..models.mortgage_service import MortgageService
-from ..models.asset import HousePurchase, build_asset
+from ..models.asset import HousePurchase, MortgageLoan, build_asset
 from ..models.mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     months_between,
@@ -507,7 +507,7 @@ class MortgageScheduleDialog(QDialog):
         except Exception:
             pass
 
-        rows = _combined_schedule(mortgage)
+        rows = MortgageLoan(mortgage).combined_schedule()
         table.setRowCount(len(rows))
         for i, (period, payment, principal_part, interest, remaining) in enumerate(rows):
             table.setItem(i, 0, QTableWidgetItem(str(period)))
@@ -792,26 +792,6 @@ class HousePurchaseDialog(QDialog):
             return
         self._service.upsert_mortgage(m)
         self.accept()
-
-
-def _combined_schedule(
-    mortgage: Mortgage,
-) -> List[tuple[int, float, float, float, float]]:
-    """לוח סילוקין מאוחד: סכום כל המסלולים לפי חודש."""
-    schedules = [track_schedule(t, DEFAULT_ASSUMPTIONS) for t in mortgage.tracks]
-    max_len = max((len(s) for s in schedules), default=0)
-    out: List[tuple[int, float, float, float, float]] = []
-    for period in range(1, max_len + 1):
-        payment = principal_part = interest = remaining = 0.0
-        for sched in schedules:
-            if period - 1 < len(sched):
-                row = sched[period - 1]
-                payment += row.payment
-                principal_part += row.principal_part
-                interest += row.interest_part
-                remaining += row.remaining_balance
-        out.append((period, payment, principal_part, interest, remaining))
-    return out
 
 
 # ─────────────────────────── page ───────────────────────────

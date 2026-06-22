@@ -27,6 +27,7 @@ from .mortgage_math import (
     mortgage_initial_monthly,
     mortgage_outstanding,
     mortgage_total_interest,
+    track_schedule,
 )
 
 
@@ -62,6 +63,26 @@ class MortgageLoan:
         self, *, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
     ) -> float:
         return float(mortgage_total_interest(self.record, assumptions))
+
+    def combined_schedule(
+        self, *, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
+    ) -> List[tuple]:
+        """Merged amortization schedule across all tracks, summed per period:
+        rows of (period, payment, principal_part, interest, remaining_balance)."""
+        schedules = [track_schedule(t, assumptions) for t in self.record.tracks]
+        max_len = max((len(s) for s in schedules), default=0)
+        out: List[tuple] = []
+        for period in range(1, max_len + 1):
+            payment = principal_part = interest = remaining = 0.0
+            for sched in schedules:
+                if period - 1 < len(sched):
+                    row = sched[period - 1]
+                    payment += row.payment
+                    principal_part += row.principal_part
+                    interest += row.interest_part
+                    remaining += row.remaining_balance
+            out.append((period, payment, principal_part, interest, remaining))
+        return out
 
 
 @dataclass(frozen=True)

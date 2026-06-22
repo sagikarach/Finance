@@ -140,6 +140,19 @@ def test_assets_page_value_and_sold_use_model() -> None:
     assert AssetsPage._is_sold(_purchase()) is False
 
 
+def test_mortgage_loan_combined_schedule() -> None:
+    from finance.models.asset import MortgageLoan
+    from finance.models.mortgage_math import track_schedule
+
+    m = _purchase()  # one track, principal 1,000,000
+    rows = MortgageLoan(m).combined_schedule()
+    single = track_schedule(m.tracks[0], DEFAULT_ASSUMPTIONS)
+    assert len(rows) == len(single)
+    assert rows[0][0] == 1                                   # period
+    assert _approx(rows[0][1], single[0].payment)           # summed payment
+    assert _approx(rows[0][4], single[0].remaining_balance)  # summed remaining
+
+
 def test_new_asset_record_factory() -> None:
     from finance.models.asset import HeldAsset, HousePurchase, build_asset, new_asset_record
 
