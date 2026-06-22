@@ -498,37 +498,61 @@ class AccountsService:
         # already applied by ``apply_transfer`` — this is a ledger record only,
         # and is flagged ``is_transfer`` so reports/charts keep ignoring it.
         if self.movements_provider is not None and names_ok:
-            movement = BankMovement(
-                amount=-abs(float(request.amount)),
-                date=_date.today().isoformat(),
-                account_name=src_name,
-                category="העברה",
-                type=MovementType.ONE_TIME,
-                is_transfer=True,
-                description=f"העברה מ{src_name} ל{dst_name}",
-            )
-            persisted = False
-            try:
-                self.movements_provider.add_movement(movement)
-                persisted = True
-            except Exception:
+            today_str = _date.today().isoformat()
+            movements: List[BankMovement] = [
+                BankMovement(
+                    amount=-abs(float(request.amount)),
+                    date=today_str,
+                    account_name=src_name,
+                    category="העברה",
+                    type=MovementType.ONE_TIME,
+                    is_transfer=True,
+                    description=f"העברה מ{src_name} ל{dst_name}",
+                )
+            ]
+
+            # Bank balances are derived from movements by
+            # ``recalculate_account_balances`` (sum of movements + baseline), so
+            # an incoming transfer to a bank MUST be recorded as a movement under
+            # the target name — otherwise the balance reverts on the next recalc.
+            # Savings balances are persisted directly (not movement-derived), so
+            # an incoming-to-saving needs no record here.
+            if dst_type == "bank":
+                movements.append(
+                    BankMovement(
+                        amount=abs(float(request.amount)),
+                        date=today_str,
+                        account_name=dst_name,
+                        category="העברה",
+                        type=MovementType.ONE_TIME,
+                        is_transfer=True,
+                        description=f"העברה מ{src_name} ל{dst_name}",
+                    )
+                )
+
+            for movement in movements:
                 persisted = False
-
-            # Push to Firebase only when the sync gate allows (same pattern as
-            # BankMovementService.apply_movement), so the transfer record reaches
-            # mobile/other devices.
-            if persisted:
                 try:
-                    from ..models.sync_gate import allow_firebase_push
-
-                    if allow_firebase_push():
-                        from ..models.firebase_workspace_writer import (
-                            FirebaseWorkspaceWriter,
-                        )
-
-                        FirebaseWorkspaceWriter().upsert_movement(movement)
+                    self.movements_provider.add_movement(movement)
+                    persisted = True
                 except Exception:
-                    pass
+                    persisted = False
+
+                # Push to Firebase only when the sync gate allows (same pattern as
+                # BankMovementService.apply_movement), so the transfer record
+                # reaches mobile/other devices.
+                if persisted:
+                    try:
+                        from ..models.sync_gate import allow_firebase_push
+
+                        if allow_firebase_push():
+                            from ..models.firebase_workspace_writer import (
+                                FirebaseWorkspaceWriter,
+                            )
+
+                            FirebaseWorkspaceWriter().upsert_movement(movement)
+                    except Exception:
+                        pass
 
         return result
 
