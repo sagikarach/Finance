@@ -174,32 +174,37 @@ class NotificationsService:
         created: List[Notification] = []
         active_keys: set[str] = set()
 
+        # Each rule type maps to its evaluator (data-driven dispatch instead of
+        # an if/elif type switch — adding a rule type is a one-line registry
+        # entry). Each evaluator returns the notifications it produced.
+        def _eval_unexpected(rule):
+            notes = self._rule_unexpected_expense(rule, movements, existing_by_key)
+            active_keys.update(
+                n.key for n in notes if n.type == NotificationType.UNEXPECTED_EXPENSE
+            )
+            return notes
+
+        evaluators = {
+            RuleType.UNEXPECTED_EXPENSE: _eval_unexpected,
+            RuleType.MISSING_MONTHLY_UPLOAD: lambda rule: (
+                self._rule_missing_monthly_upload(
+                    rule, history, existing_by_key, active_keys
+                )
+            ),
+            RuleType.MISSING_SAVINGS_UPDATE: lambda rule: (
+                self._rule_missing_savings_update(
+                    rule, history, existing_by_key, active_keys
+                )
+            ),
+            RuleType.EVENT_OVER_BUDGET: lambda rule: (
+                self._rule_event_over_budget(rule, existing_by_key, active_keys)
+            ),
+        }
+
         for rule in rules:
-            if rule.type == RuleType.UNEXPECTED_EXPENSE:
-                created.extend(
-                    self._rule_unexpected_expense(rule, movements, existing_by_key)
-                )
-                active_keys.update(
-                    n.key
-                    for n in created
-                    if n.type == NotificationType.UNEXPECTED_EXPENSE
-                )
-            elif rule.type == RuleType.MISSING_MONTHLY_UPLOAD:
-                created.extend(
-                    self._rule_missing_monthly_upload(
-                        rule, history, existing_by_key, active_keys
-                    )
-                )
-            elif rule.type == RuleType.MISSING_SAVINGS_UPDATE:
-                created.extend(
-                    self._rule_missing_savings_update(
-                        rule, history, existing_by_key, active_keys
-                    )
-                )
-            elif rule.type == RuleType.EVENT_OVER_BUDGET:
-                created.extend(
-                    self._rule_event_over_budget(rule, existing_by_key, active_keys)
-                )
+            evaluator = evaluators.get(rule.type)
+            if evaluator is not None:
+                created.extend(evaluator(rule))
 
         for n in created:
             self._provider.upsert(n)
