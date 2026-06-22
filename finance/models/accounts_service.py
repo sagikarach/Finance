@@ -29,7 +29,6 @@ from .action_history import (
     generate_action_id,
     get_current_timestamp,
 )
-from .bank_movement import BankMovement, MovementType
 from .bank_settings import BankSettingsRowInput, apply_bank_settings
 from .savings_dialogs import (
     SavingsAccountForm,
@@ -37,7 +36,7 @@ from .savings_dialogs import (
     form_to_updated_savings_account,
     remove_savings_account,
 )
-from .transfers import TransferRequest, TransferResult, apply_transfer
+from .transfers import TransferRequest, TransferResult
 
 
 @dataclass
@@ -427,53 +426,17 @@ class AccountsService:
         accounts: List[MoneyAccount],
         request: TransferRequest,
     ) -> TransferResult:
-        result = apply_transfer(accounts, request)
+        result = request.apply(accounts)
 
         if result.error is not None:
             return result
 
-        # Resolve human-readable endpoint names. Savings endpoints use the
-        # "account -- saving" form so a specific envelope can be matched (e.g.
-        # by the asset funding view) rather than the whole account.
-        src_name = dst_name = ""
-        src_type = dst_type = ""
-        names_ok = False
-        try:
-            if (
-                0 <= request.source.account_index < len(accounts)
-                and 0 <= request.target.account_index < len(accounts)
-            ):
-                src_acc = accounts[request.source.account_index]
-                dst_acc = accounts[request.target.account_index]
+        names = request.endpoint_names(accounts)
+        if names is None:
+            return result
+        src_name, dst_name, src_type, dst_type = names
 
-                src_name = src_acc.name
-                dst_name = dst_acc.name
-                src_type = "bank" if request.source.kind == "bank" else "saving"
-                dst_type = "bank" if request.target.kind == "bank" else "saving"
-
-                if request.source.kind == "saving" and isinstance(
-                    src_acc, SavingsAccount
-                ):
-                    try:
-                        src_saving = src_acc.savings[request.source.savings_index]
-                        src_name = f"{src_acc.name} -- {src_saving.name}"
-                    except Exception:
-                        pass
-
-                if request.target.kind == "saving" and isinstance(
-                    dst_acc, SavingsAccount
-                ):
-                    try:
-                        dst_saving = dst_acc.savings[request.target.savings_index]
-                        dst_name = f"{dst_acc.name} -- {dst_saving.name}"
-                    except Exception:
-                        pass
-
-                names_ok = True
-        except Exception:
-            names_ok = False
-
-        if self.history_provider is not None and names_ok:
+        if self.history_provider is not None:
             try:
                 action = TransferAction(
                     action_name="transfer",
@@ -492,45 +455,13 @@ class AccountsService:
             except Exception:
                 pass
 
-        # Record the outgoing side of the transfer as a movement so views that
-        # aggregate money moved out of an account/saving (e.g. an asset's
-        # funding contributions) can detect it. The balance change itself is
-        # already applied by ``apply_transfer`` — this is a ledger record only,
-        # and is flagged ``is_transfer`` so reports/charts keep ignoring it.
-        if self.movements_provider is not None and names_ok:
+        # The transfer knows which ledger movements it implies (outgoing record,
+        # plus an incoming credit when the target is a bank). Persist them and
+        # push to the remote immediately so both sides of a transfer reach the
+        # remote together and other devices stay consistent.
+        if self.movements_provider is not None:
             today_str = _date.today().isoformat()
-            movements: List[BankMovement] = [
-                BankMovement(
-                    amount=-abs(float(request.amount)),
-                    date=today_str,
-                    account_name=src_name,
-                    category="העברה",
-                    type=MovementType.ONE_TIME,
-                    is_transfer=True,
-                    description=f"העברה מ{src_name} ל{dst_name}",
-                )
-            ]
-
-            # Bank balances are derived from movements by
-            # ``recalculate_account_balances`` (sum of movements + baseline), so
-            # an incoming transfer to a bank MUST be recorded as a movement under
-            # the target name — otherwise the balance reverts on the next recalc.
-            # Savings balances are persisted directly (not movement-derived), so
-            # an incoming-to-saving needs no record here.
-            if dst_type == "bank":
-                movements.append(
-                    BankMovement(
-                        amount=abs(float(request.amount)),
-                        date=today_str,
-                        account_name=dst_name,
-                        category="העברה",
-                        type=MovementType.ONE_TIME,
-                        is_transfer=True,
-                        description=f"העברה מ{src_name} ל{dst_name}",
-                    )
-                )
-
-            for movement in movements:
+            for movement in request.ledger_movements(accounts, today=today_str):
                 persisted = False
                 try:
                     self.movements_provider.add_movement(movement)
@@ -538,10 +469,6 @@ class AccountsService:
                 except Exception:
                     persisted = False
 
-                # Push the transfer's ledger record to the remote immediately
-                # (not only on an explicit Sync), so both sides of a transfer
-                # — the savings balance and this bank movement — reach the
-                # remote together and other devices stay consistent.
                 if persisted:
                     try:
                         from ..models.firebase_workspace_writer import (

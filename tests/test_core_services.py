@@ -15,7 +15,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from finance.models.accounts import (  # noqa: E402
     BankAccount,
     BudgetAccount,
-    MoneySnapshot,
     Savings,
     SavingsAccount,
 )
@@ -24,7 +23,6 @@ from finance.models.bank_movement_service import BankMovementService  # noqa: E4
 from finance.models.transfers import (  # noqa: E402
     TransferEndpoint,
     TransferRequest,
-    apply_transfer,
 )
 
 
@@ -60,7 +58,7 @@ def test_transfer_bank_to_saving() -> None:
         target=TransferEndpoint(kind="saving", account_index=1, savings_index=0),
         amount=300.0,
     )
-    res = apply_transfer(accounts, req)
+    res = req.apply(accounts)
     assert res.error is None
     assert _approx(res.accounts[0].total_amount, 700.0)
     assert _approx(res.accounts[1].total_amount, 800.0)
@@ -73,7 +71,7 @@ def test_transfer_saving_to_bank() -> None:
         target=TransferEndpoint(kind="bank", account_index=0),
         amount=200.0,
     )
-    res = apply_transfer(accounts, req)
+    res = req.apply(accounts)
     assert res.error is None
     assert _approx(res.accounts[0].total_amount, 1200.0)
     assert _approx(res.accounts[1].total_amount, 300.0)
@@ -86,7 +84,7 @@ def test_transfer_insufficient_saving_funds_errors() -> None:
         target=TransferEndpoint(kind="bank", account_index=0),
         amount=500.0,
     )
-    res = apply_transfer(accounts, req)
+    res = req.apply(accounts)
     assert res.error is not None
 
 
@@ -97,7 +95,7 @@ def test_transfer_nonpositive_amount_errors() -> None:
         target=TransferEndpoint(kind="saving", account_index=1, savings_index=0),
         amount=0.0,
     )
-    res = apply_transfer(accounts, req)
+    res = req.apply(accounts)
     assert res.error is not None
 
 
