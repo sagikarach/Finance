@@ -164,5 +164,12 @@ def latest_amount_from_history(history: Iterable[MoneySnapshot]) -> Optional[flo
     snapshots = list(history)
     if not snapshots:
         return None
-    snapshots.sort(key=lambda s: parse_iso_date(s.date))
-    return float(snapshots[-1].amount)
+    # The "current" balance is the most recent snapshot that is NOT in the
+    # future. Future-dated snapshots — projection points, or a date typo such as
+    # a wrong year — must never hijack the displayed balance. Fall back to the
+    # latest overall only if every snapshot is somehow future-dated.
+    now = datetime.now()
+    past = [s for s in snapshots if parse_iso_date(s.date) <= now]
+    pool = past if past else snapshots
+    pool.sort(key=lambda s: parse_iso_date(s.date))
+    return float(pool[-1].amount)
