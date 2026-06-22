@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import List, Optional
 
 from ..data.action_history_provider import (
@@ -22,17 +21,7 @@ from .action_history import (
     get_current_timestamp,
 )
 from .bank_movement import BankMovement
-from .installment_plan import InstallmentPlan
-from .movement_matching import match_movements
-
-
-@dataclass(frozen=True)
-class InstallmentPlanStats:
-    paid_count: int
-    payments_left: int
-    total_paid: float
-    overpaid: float
-    matched_movements: List[BankMovement]
+from .installment_plan import InstallmentPlan, InstallmentPlanStats
 
 
 class InstallmentsService:
@@ -233,39 +222,8 @@ class InstallmentsService:
         )
 
     def compute_stats(self, plan: InstallmentPlan) -> InstallmentPlanStats:
-        matched = self._match_movements(plan)
-        paid_count = len(matched)
-        payments_left = max(0, int(plan.payments_count) - paid_count)
-        total_paid = 0.0
-        for m in matched:
-            try:
-                if float(m.amount) < 0:
-                    total_paid += float(-m.amount)
-                else:
-                    total_paid += float(m.amount)
-            except Exception:
-                continue
-        overpaid = 0.0
-        try:
-            if float(plan.original_amount) > 0:
-                overpaid = max(0.0, float(total_paid) - float(plan.original_amount))
-        except Exception:
-            overpaid = 0.0
-        return InstallmentPlanStats(
-            paid_count=int(paid_count),
-            payments_left=int(payments_left),
-            total_paid=float(total_paid),
-            overpaid=float(overpaid),
-            matched_movements=matched,
-        )
+        # The plan owns the math; the service just supplies the movements.
+        return plan.stats(self._movements_provider.list_movements())
 
     def _match_movements(self, plan: InstallmentPlan) -> List[BankMovement]:
-        payments_count = int(getattr(plan, "payments_count", 0) or 0)
-        return match_movements(
-            self._movements_provider.list_movements(),
-            vendor_query=plan.vendor_query,
-            account_name=plan.account_name,
-            start_date=str(plan.start_date or ""),
-            excluded_ids=getattr(plan, "excluded_movement_ids", []) or [],
-            max_count=payments_count if payments_count > 0 else None,
-        )
+        return plan.matches(self._movements_provider.list_movements())
