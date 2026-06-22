@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from ..data.bank_movement_provider import (
     BankMovementProvider,
@@ -28,17 +27,7 @@ from .action_history import (
     generate_action_id,
     get_current_timestamp,
 )
-from .one_time_event import OneTimeEvent, OneTimeEventStatus
-
-
-@dataclass(frozen=True)
-class EventTotals:
-    expenses: float
-    income: float
-    net: float
-    remaining: float
-    percent_used: Optional[float]
-    by_category_expense: Dict[str, float]
+from .one_time_event import EventTotals, OneTimeEvent, OneTimeEventStatus
 
 
 class OneTimeEventsService:
@@ -308,41 +297,8 @@ class OneTimeEventsService:
                 pass
 
     def event_totals(self, event: OneTimeEvent) -> EventTotals:
-        movements = self.list_one_time_movements()
-        filtered = self._filter_by_event_and_range(event, movements)
-
-        expenses = 0.0
-        income = 0.0
-        by_cat: Dict[str, float] = {}
-
-        for m in filtered:
-            try:
-                amt = float(m.amount)
-            except Exception:
-                continue
-            if amt < 0:
-                a = abs(amt)
-                expenses += a
-                cat = (m.category or "אחר").strip() or "אחר"
-                by_cat[cat] = float(by_cat.get(cat, 0.0) + a)
-            elif amt > 0:
-                income += amt
-
-        net = income - expenses
-        remaining = float(event.budget) - expenses
-        percent_used: Optional[float] = None
-        if float(event.budget) > 0:
-            percent_used = expenses / float(event.budget)
-
-        by_cat_sorted = dict(sorted(by_cat.items(), key=lambda kv: kv[1], reverse=True))
-        return EventTotals(
-            expenses=float(expenses),
-            income=float(income),
-            net=float(net),
-            remaining=float(remaining),
-            percent_used=percent_used,
-            by_category_expense=by_cat_sorted,
-        )
+        # The event owns the aggregation; the service just supplies the movements.
+        return event.totals(self.list_one_time_movements())
 
     def movements_for_event(
         self, event: OneTimeEvent
@@ -360,36 +316,10 @@ class OneTimeEventsService:
         unassigned.sort(key=lambda m: parse_iso_date(m.date))
         return assigned, unassigned
 
-    def _filter_by_event_and_range(
-        self, event: OneTimeEvent, movements: List[BankMovement]
-    ) -> List[BankMovement]:
-        out: List[BankMovement] = []
-        for m in movements:
-            if getattr(m, "event_id", None) != event.id:
-                continue
-            if not self._in_range(event, m):
-                continue
-            out.append(m)
-        return out
-
     def _filter_by_range(
         self, event: OneTimeEvent, movements: List[BankMovement]
     ) -> List[BankMovement]:
-        if not event.start_date and not event.end_date:
-            return list(movements)
-        return [m for m in movements if self._in_range(event, m)]
-
-    def _in_range(self, event: OneTimeEvent, movement: BankMovement) -> bool:
-        if not event.start_date and not event.end_date:
-            return True
-        dt = parse_iso_date(movement.date)
-        if event.start_date:
-            if dt < parse_iso_date(event.start_date):
-                return False
-        if event.end_date:
-            if dt > parse_iso_date(event.end_date):
-                return False
-        return True
+        return [m for m in movements if event.in_range(m)]
 
     @staticmethod
     def default_event(name: str = "אירוע חדש") -> OneTimeEvent:
