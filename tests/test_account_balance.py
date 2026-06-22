@@ -74,6 +74,18 @@ def test_empty_history_returns_none() -> None:
     assert latest_amount_from_history([]) is None
 
 
+def test_same_date_ties_take_last_recorded() -> None:
+    # Several snapshots on the same (latest) date: the one recorded last wins,
+    # not the first. Regression: a same-day recalc must supersede earlier points.
+    d = "2026-06-22"
+    hist = [
+        MoneySnapshot(d, 14_409.57),
+        MoneySnapshot(d, 202_273.28),
+        MoneySnapshot(d, 232_555.92),
+    ]
+    assert _approx(latest_amount_from_history(hist), 232_555.92)
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

@@ -16,7 +16,6 @@ from ..models.accounts import (
     BankAccount,
     BudgetAccount,
     SavingsAccount,
-    MoneySnapshot,
 )
 
 
@@ -286,62 +285,16 @@ class FirebaseWorkspaceWriter:
         wid = self._ensure_workspace(s)
         fs = self._fs(s.project_id)
 
-        bank: List[Dict[str, Any]] = []
-        savings: List[Dict[str, Any]] = []
-        for acc in accounts:
-            if isinstance(acc, BankAccount):
-                bank.append(
-                    {
-                        "kind": "bank",
-                        "name": acc.name,
-                        "is_liquid": bool(acc.is_liquid),
-                        "active": bool(getattr(acc, "active", False)),
-                        "baseline_amount": float(
-                            getattr(acc, "baseline_amount", 0.0) or 0.0
-                        ),
-                    }
-                )
-            elif isinstance(acc, BudgetAccount):
-                hist: List[Dict[str, Any]] = []
-                try:
-                    for h in list(getattr(acc, "history", []) or []):
-                        if isinstance(h, MoneySnapshot):
-                            hist.append(
-                                {"date": str(h.date), "amount": float(h.amount)}
-                            )
-                        elif isinstance(h, dict):
-                            hist.append(
-                                {
-                                    "date": str(h.get("date", "") or ""),
-                                    "amount": float(h.get("amount", 0.0) or 0.0),
-                                }
-                            )
-                except Exception:
-                    hist = []
-                bank.append(
-                    {
-                        "kind": "budget",
-                        "name": acc.name,
-                        "is_liquid": False,
-                        "active": bool(getattr(acc, "active", False)),
-                        "monthly_budget": float(
-                            getattr(acc, "monthly_budget", 0.0) or 0.0
-                        ),
-                        "reset_day": int(getattr(acc, "reset_day", 1) or 1),
-                        "last_reset_period": str(
-                            getattr(acc, "last_reset_period", "") or ""
-                        ),
-                        "total_amount": float(getattr(acc, "total_amount", 0.0) or 0.0),
-                        "history": hist,
-                    }
-                )
-            elif isinstance(acc, SavingsAccount):
-                try:
-                    savings.append(
-                        asdict(acc) if is_dataclass(acc) else {"name": acc.name}
-                    )
-                except Exception:
-                    savings.append({"name": getattr(acc, "name", "")})
+        # Each account serializes itself to its remote shape (banks carry only
+        # structure; budgets/savings carry their values + history).
+        bank: List[Dict[str, Any]] = [
+            acc.to_remote_dict()
+            for acc in accounts
+            if isinstance(acc, (BankAccount, BudgetAccount))
+        ]
+        savings: List[Dict[str, Any]] = [
+            acc.to_remote_dict() for acc in accounts if isinstance(acc, SavingsAccount)
+        ]
 
         fs.upsert_document(
             document_path=f"workspaces/{wid}/meta/accounts",

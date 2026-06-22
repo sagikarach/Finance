@@ -20,6 +20,13 @@ class MoneySnapshot:
         snapshots are projections or date typos and must not count as current."""
         return self.when() > (now if now is not None else datetime.now())
 
+    def to_dict(self) -> dict:
+        return {"date": self.date, "amount": self.amount}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "MoneySnapshot":
+        return cls(date=str(d.get("date", "")), amount=float(d.get("amount", 0.0)))
+
 
 def _latest_non_future_snapshot(
     history: Iterable[MoneySnapshot], now: Optional[datetime] = None
@@ -30,8 +37,13 @@ def _latest_non_future_snapshot(
     if not snapshots:
         return None
     ref = now if now is not None else datetime.now()
-    pool = [s for s in snapshots if not s.is_future(ref)] or snapshots
-    return max(pool, key=lambda s: s.when())
+    pool = [s for s in snapshots if not s.is_future(ref)] or list(snapshots)
+    # Stable sort then take the last: when several snapshots share the latest
+    # date, the one recorded last (latest in input order) wins — matching how
+    # balances are appended within a day (e.g. a same-day recalc supersedes
+    # earlier same-day points).
+    pool = sorted(pool, key=lambda s: s.when())
+    return pool[-1]
 
 
 @dataclass(frozen=True)
@@ -49,6 +61,21 @@ class Savings:
         """When this envelope last changed (latest non-future snapshot date)."""
         latest = _latest_non_future_snapshot(self.history)
         return latest.when() if latest is not None else datetime.min
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "amount": self.amount,
+            "history": [s.to_dict() for s in self.history],
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Savings":
+        return cls(
+            name=str(d.get("name", "")).strip(),
+            amount=float(d.get("amount", 0.0) or 0.0),
+            history=_history_from_dicts(d.get("history", [])),
+        )
 
 
 @dataclass(frozen=True)
@@ -98,6 +125,38 @@ class BankAccount(MoneyAccount):
             baseline_amount=float(self.baseline_amount),
         )
 
+    def to_storage_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "is_liquid": self.is_liquid,
+            "total_amount": self.total_amount,
+            "active": bool(self.active),
+            "history": [s.to_dict() for s in self.history],
+            "baseline_amount": float(self.baseline_amount or 0.0),
+        }
+
+    def to_remote_dict(self) -> dict:
+        # Bank balances are rebuilt from movements on pull, so the remote
+        # snapshot carries only structure (no history/total).
+        return {
+            "kind": "bank",
+            "name": self.name,
+            "is_liquid": bool(self.is_liquid),
+            "active": bool(self.active),
+            "baseline_amount": float(self.baseline_amount or 0.0),
+        }
+
+    @classmethod
+    def from_storage_dict(cls, item: dict) -> "BankAccount":
+        return cls(
+            name=str(item.get("name", "")).strip(),
+            total_amount=float(item.get("total_amount", 0.0) or 0.0),
+            is_liquid=bool(item.get("is_liquid", False)),
+            history=_history_from_dicts(item.get("history", [])),
+            active=bool(item.get("active", False)),
+            baseline_amount=float(item.get("baseline_amount", 0.0) or 0.0),
+        )
+
 
 @dataclass(frozen=True)
 class BudgetAccount(MoneyAccount):
@@ -140,6 +199,45 @@ class BudgetAccount(MoneyAccount):
             last_reset_period=str(self.last_reset_period or ""),
         )
 
+    def to_storage_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "is_liquid": self.is_liquid,
+            "total_amount": self.total_amount,
+            "active": bool(self.active),
+            "history": [s.to_dict() for s in self.history],
+            "kind": "budget",
+            "monthly_budget": float(self.monthly_budget),
+            "reset_day": int(self.reset_day),
+            "last_reset_period": str(self.last_reset_period or ""),
+        }
+
+    def to_remote_dict(self) -> dict:
+        return {
+            "kind": "budget",
+            "name": self.name,
+            "is_liquid": False,
+            "active": bool(self.active),
+            "monthly_budget": float(self.monthly_budget or 0.0),
+            "reset_day": int(self.reset_day or 1),
+            "last_reset_period": str(self.last_reset_period or ""),
+            "total_amount": float(self.total_amount or 0.0),
+            "history": [s.to_dict() for s in self.history],
+        }
+
+    @classmethod
+    def from_storage_dict(cls, item: dict) -> "BudgetAccount":
+        return cls(
+            name=str(item.get("name", "")).strip(),
+            total_amount=float(item.get("total_amount", 0.0) or 0.0),
+            is_liquid=False,
+            history=_history_from_dicts(item.get("history", [])),
+            active=bool(item.get("active", False)),
+            monthly_budget=float(item.get("monthly_budget", 0.0) or 0.0),
+            reset_day=int(item.get("reset_day", 1) or 1),
+            last_reset_period=str(item.get("last_reset_period", "") or "").strip(),
+        )
+
 
 @dataclass(frozen=True)
 class SavingsAccount(MoneyAccount):
@@ -176,6 +274,42 @@ class SavingsAccount(MoneyAccount):
             total_amount=0.0,
             is_liquid=self.is_liquid,
             savings=merged,
+        )
+
+    def to_storage_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "is_liquid": self.is_liquid,
+            "total_amount": self.total_amount,
+            "savings": [s.to_dict() for s in self.savings],
+        }
+
+    def to_remote_dict(self) -> dict:
+        # Matches the previous asdict(SavingsAccount) shape used on the remote.
+        return {
+            "name": self.name,
+            "total_amount": self.total_amount,
+            "is_liquid": self.is_liquid,
+            "savings": [s.to_dict() for s in self.savings],
+        }
+
+    @classmethod
+    def from_storage_dict(cls, item: dict) -> "SavingsAccount":
+        savings: List[Savings] = []
+        raw = item.get("savings", [])
+        if isinstance(raw, list):
+            for sd in raw:
+                try:
+                    if not str(sd.get("name", "")).strip():
+                        continue
+                    savings.append(Savings.from_dict(sd))
+                except Exception:
+                    continue
+        return cls(
+            name=str(item.get("name", "")).strip(),
+            total_amount=float(item.get("total_amount", 0.0) or 0.0),
+            is_liquid=bool(item.get("is_liquid", False)),
+            savings=savings,
         )
 
 
@@ -216,6 +350,32 @@ def _with_today_snapshot(
     else:
         new_history.append(MoneySnapshot(date=today, amount=amount))
     return new_history
+
+
+def _history_from_dicts(raw) -> List[MoneySnapshot]:
+    """Tolerantly parse a list of {date, amount} dicts into snapshots, skipping
+    malformed rows (matches the providers' historical leniency)."""
+    out: List[MoneySnapshot] = []
+    if isinstance(raw, list):
+        for row in raw:
+            try:
+                out.append(MoneySnapshot.from_dict(row))
+            except Exception:
+                continue
+    return out
+
+
+def bank_entry_from_storage_dict(item: dict) -> Optional[MoneyAccount]:
+    """Build a bank-file account (BankAccount or BudgetAccount) from a stored
+    dict, dispatching on its ``kind``. Returns None when it has no name."""
+    if not isinstance(item, dict):
+        return None
+    if not str(item.get("name", "")).strip():
+        return None
+    kind = str(item.get("kind", "") or "").strip().lower()
+    if kind == "budget":
+        return BudgetAccount.from_storage_dict(item)
+    return BankAccount.from_storage_dict(item)
 
 
 def compute_total_amount(accounts: Iterable[MoneyAccount]) -> float:
