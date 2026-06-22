@@ -1,51 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import List, Optional
 
 from .firebase_client import FirestoreClient
 from ..data.provider import JsonFileAccountsProvider
 from ..models.accounts_service import AccountsService
-from ..models.accounts import BudgetAccount, MoneySnapshot, parse_iso_date
-
-
-def _latest_snapshot_dt(history) -> datetime:
-    """Date of the most recent non-future snapshot in ``history`` (a proxy for
-    "when was this last changed"). Falls back to the latest overall if every
-    snapshot is future-dated, and to ``datetime.min`` for empty history."""
-    now = datetime.now()
-    dts = [
-        parse_iso_date(str(getattr(s, "date", "") or ""))
-        for s in (history or [])
-        if getattr(s, "date", "")
-    ]
-    if not dts:
-        return datetime.min
-    past = [d for d in dts if d <= now]
-    return max(past) if past else max(dts)
-
-
-def _merge_savings_envelopes(remote_envs: list, local_envs: list) -> list:
-    """Merge remote and local savings envelopes, keeping — per envelope — the
-    side whose latest snapshot is more recent. A tie prefers the local copy,
-    so a just-made local change that has not yet reached the remote is never
-    clobbered by a stale remote pull (the bug where transferred-out money
-    reappeared). New envelopes on either side are preserved."""
-    local_by_name = {e.name: e for e in local_envs}
-    remote_by_name = {e.name: e for e in remote_envs}
-    merged = []
-    for r in remote_envs:
-        l = local_by_name.get(r.name)
-        if l is None:
-            merged.append(r)
-        elif _latest_snapshot_dt(l.history) >= _latest_snapshot_dt(r.history):
-            merged.append(l)  # local is as-new-or-newer -> keep local
-        else:
-            merged.append(r)  # remote genuinely newer (e.g. edited on another device)
-    for l in local_envs:
-        if l.name not in remote_by_name:
-            merged.append(l)
-    return merged
+from ..models.accounts import BudgetAccount, MoneySnapshot
 
 
 def pull_accounts_meta_to_local_cache(
@@ -236,22 +196,21 @@ def pull_accounts_meta_to_local_cache(
                             amt = 0.0
                         savings.append(Savings(name=sname, amount=amt, history=shist))
 
+                remote_acc = SavingsAccount(
+                    name=name,
+                    total_amount=0.0,
+                    is_liquid=is_liquid,
+                    savings=savings,
+                )
                 # Merge with the local copy so unsynced local changes (e.g. a
                 # transfer-out made on this device that has not yet reached the
                 # remote) are not overwritten by stale remote data. Banks above
                 # already keep local values; savings used to take remote wholesale.
                 local_acc = local_savings_by_name.get(name)
                 if isinstance(local_acc, SavingsAccount):
-                    savings = _merge_savings_envelopes(savings, list(local_acc.savings))
+                    remote_acc = remote_acc.merged_with_local(local_acc)
 
-                savings_accounts.append(
-                    SavingsAccount(
-                        name=name,
-                        total_amount=0.0,
-                        is_liquid=is_liquid,
-                        savings=savings,
-                    )
-                )
+                savings_accounts.append(remote_acc)
 
         # Preserve local-only bank/budget accounts not present in the remote snapshot.
         for a in local_accounts:

@@ -6,7 +6,13 @@ from typing import Dict, List, Optional, Union
 
 from ..data.action_history_provider import ActionHistoryProvider
 from ..data.bank_movement_provider import BankMovementProvider
-from .accounts import BankAccount, BudgetAccount, MoneyAccount, MoneySnapshot
+from .accounts import (
+    BankAccount,
+    BudgetAccount,
+    MoneyAccount,
+    MoneySnapshot,
+    MovementLedger,
+)
 from .action_history import (
     Action,
     ActionHistory,
@@ -319,141 +325,19 @@ class BankMovementService:
         except Exception:
             return accounts
 
-        balance_by_account: Dict[str, float] = {}
-        for movement in all_movements:
-            account_name = movement.account_name
-            if account_name not in balance_by_account:
-                balance_by_account[account_name] = 0.0
-            try:
-                balance_by_account[account_name] += float(movement.amount)
-            except Exception:
-                pass
+        # Each account type knows how to recompute its own balance from the
+        # ledger (polymorphism), so there is no type-switch here: bank accounts
+        # use baseline + movements, budget accounts use budget − period spend,
+        # and savings (movement-independent) return themselves unchanged.
+        ledger = MovementLedger(all_movements)
+        try:
+            from datetime import date as _date
 
-        updated_accounts: List[MoneyAccount] = []
-        for acc in accounts:
-            if isinstance(acc, BankAccount):
-                calculated_balance = balance_by_account.get(acc.name, 0.0)
-                try:
-                    calculated_balance += float(
-                        getattr(acc, "baseline_amount", 0.0) or 0.0
-                    )
-                except Exception:
-                    pass
+            today = _date.today().isoformat()
+        except Exception:
+            today = ""
 
-                new_history = list(acc.history)
-                try:
-                    from datetime import date as _date
-
-                    date_str = _date.today().isoformat()
-                except Exception:
-                    date_str = ""
-
-                if date_str:
-                    try:
-                        if new_history and str(new_history[-1].date) == str(date_str):
-                            new_history[-1] = MoneySnapshot(
-                                date=date_str, amount=calculated_balance
-                            )
-                        else:
-                            new_history.append(
-                                MoneySnapshot(date=date_str, amount=calculated_balance)
-                            )
-                    except Exception:
-                        new_history.append(
-                            MoneySnapshot(date=date_str, amount=calculated_balance)
-                        )
-
-                updated_acc = BankAccount(
-                    name=acc.name,
-                    total_amount=calculated_balance,
-                    is_liquid=acc.is_liquid,
-                    history=new_history,
-                    active=acc.active,
-                    baseline_amount=float(getattr(acc, "baseline_amount", 0.0) or 0.0),
-                )
-                updated_accounts.append(updated_acc)
-            elif isinstance(acc, BudgetAccount):
-                reset_day = int(getattr(acc, "reset_day", 1) or 1)
-                if reset_day < 1:
-                    reset_day = 1
-                if reset_day > 28:
-                    reset_day = 28
-
-                cur_key = current_budget_period_end_key(reset_day)
-                spent = 0.0
-                for m in all_movements:
-                    try:
-                        if (
-                            str(getattr(m, "account_name", "") or "").strip()
-                            != str(getattr(acc, "name", "") or "").strip()
-                        ):
-                            continue
-                        if bool(getattr(m, "is_transfer", False)):
-                            continue
-                        a = float(getattr(m, "amount", 0.0) or 0.0)
-                        if a >= 0:
-                            continue
-                        k = budget_period_end_key(
-                            str(getattr(m, "date", "") or ""), reset_day
-                        )
-                        if k is None or k != cur_key:
-                            continue
-                        spent += abs(a)
-                    except Exception:
-                        continue
-
-                try:
-                    budget = float(getattr(acc, "monthly_budget", 0.0) or 0.0)
-                except Exception:
-                    budget = 0.0
-                remaining = float(budget) - float(spent)
-                if remaining < 0:
-                    remaining = 0.0
-
-                new_history = list(getattr(acc, "history", []) or [])
-                try:
-                    from datetime import date as _date
-
-                    date_str = _date.today().isoformat()
-                except Exception:
-                    date_str = ""
-                if date_str:
-                    try:
-                        if new_history and str(
-                            getattr(new_history[-1], "date", "")
-                        ) == str(date_str):
-                            new_history[-1] = MoneySnapshot(
-                                date=date_str, amount=remaining
-                            )
-                        else:
-                            new_history.append(
-                                MoneySnapshot(date=date_str, amount=remaining)
-                            )
-                    except Exception:
-                        new_history.append(
-                            MoneySnapshot(date=date_str, amount=remaining)
-                        )
-
-                updated_accounts.append(
-                    BudgetAccount(
-                        name=acc.name,
-                        total_amount=float(remaining),
-                        is_liquid=False,
-                        history=new_history,
-                        active=bool(getattr(acc, "active", False)),
-                        monthly_budget=float(
-                            getattr(acc, "monthly_budget", 0.0) or 0.0
-                        ),
-                        reset_day=int(getattr(acc, "reset_day", 1) or 1),
-                        last_reset_period=str(
-                            getattr(acc, "last_reset_period", "") or ""
-                        ),
-                    )
-                )
-            else:
-                updated_accounts.append(acc)
-
-        return updated_accounts
+        return [acc.recalculated(ledger, today) for acc in accounts]
 
     def delete_movement(
         self,
