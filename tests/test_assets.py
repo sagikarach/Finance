@@ -128,6 +128,18 @@ def test_sold_asset_realized_value_and_inactive() -> None:
     assert _approx(a.realized_value(), 60_000.0)
 
 
+# ----- AssetsPage now routes value/sold through the model --------------------
+
+def test_assets_page_value_and_sold_use_model() -> None:
+    from finance.pages.assets_page import AssetsPage
+
+    assert _approx(AssetsPage._asset_value(_purchase()), 2_000_000.0)
+    assert _approx(AssetsPage._asset_value(_held(value=80_000.0)), 80_000.0)
+    assert AssetsPage._is_sold(_held(value=1.0, sold=True)) is True
+    assert AssetsPage._is_sold(_held(value=1.0, archived=True)) is True
+    assert AssetsPage._is_sold(_purchase()) is False
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

@@ -22,6 +22,7 @@ from ..qt import (
 )
 from ..models.mortgage import AssetKind, Mortgage
 from ..models.mortgage_service import MortgageService
+from ..models.asset import HousePurchase, build_asset
 from .base_page import BasePage
 
 
@@ -381,15 +382,12 @@ class AssetsPage(BasePage):
 
     @staticmethod
     def _asset_value(asset: Mortgage) -> float:
-        if asset.kind == AssetKind.PURCHASE:
-            return float(asset.property_price or 0.0)
-        return float(asset.current_value or 0.0)
+        # Each asset reports its own value (house → price, held → current value).
+        return float(build_asset(asset).current_value())
 
     @staticmethod
     def _is_sold(asset: Mortgage) -> bool:
-        return bool(getattr(asset, "sold", False)) or bool(
-            getattr(asset, "archived", False)
-        )
+        return not build_asset(asset).is_active
 
     def _update_summary(self) -> None:
         if not self._summary_labels:
@@ -462,7 +460,7 @@ class AssetsPage(BasePage):
         return self._assets[row]
 
     def _open_asset(self, asset: Mortgage) -> None:
-        if asset.kind == AssetKind.PURCHASE:
+        if isinstance(build_asset(asset), HousePurchase):
             # נווט לעמוד הנכס (סקירת תשלומי הרכישה) עם הנכס הנבחר.
             try:
                 if isinstance(self._app_context, dict):
@@ -496,7 +494,7 @@ class AssetsPage(BasePage):
         self._service.upsert_mortgage(asset)
         self._reload()
         # נכס רכישה — פתח מיד את מסך הפירוט כדי לבנות את התמהיל.
-        if asset.kind == AssetKind.PURCHASE:
+        if isinstance(build_asset(asset), HousePurchase):
             self._open_asset(asset)
 
     def _on_delete(self) -> None:

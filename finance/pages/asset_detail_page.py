@@ -22,13 +22,13 @@ from ..qt import (
 )
 from ..models.accounts import BankAccount, MoneyAccount, SavingsAccount
 from ..models.mortgage import (
-    AssetKind,
     CostItem,
     FundingKind,
     FundingSource,
     Mortgage,
 )
 from ..models.mortgage_service import MortgageService
+from ..models.asset import HousePurchase, build_asset
 from ..models.mortgage_math import (
     cost_paid_amount,
     query_paid_amount,
@@ -1052,7 +1052,7 @@ class AssetDetailPage(BasePage):
         m = self._selected_asset()
         if m is None:
             return
-        if m.kind != AssetKind.PURCHASE:
+        if not isinstance(build_asset(m), HousePurchase):
             return
         HousePurchaseDialog(
             service=self._service, mortgage_id=m.id, parent=self

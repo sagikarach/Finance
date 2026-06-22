@@ -34,6 +34,7 @@ from ..models.mortgage import (
     TrackKind,
 )
 from ..models.mortgage_service import MortgageService
+from ..models.asset import HousePurchase, build_asset
 from ..models.mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     months_between,
@@ -1046,7 +1047,7 @@ class MortgagePage(BasePage):
             self._mortgages = [
                 m
                 for m in self._service.list_mortgages()
-                if m.kind == AssetKind.PURCHASE
+                if isinstance(build_asset(m), HousePurchase)
             ]
         except Exception:
             self._mortgages = []
