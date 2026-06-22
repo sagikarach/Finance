@@ -26,3 +26,11 @@ class BankMovement:
     description: str | None = None
     event_id: str | None = None
     id: str = field(default_factory=generate_movement_id)
+
+    @property
+    def counts_as_transfer(self) -> bool:
+        """True if this movement is a transfer (flagged, or categorised
+        "העברה") and should be excluded from income/expense reports."""
+        if bool(self.is_transfer):
+            return True
+        return str(self.category or "").strip() == "העברה"

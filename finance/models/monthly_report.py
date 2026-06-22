@@ -18,17 +18,7 @@ def _is_in_month(date_str: str, year: int, month: int) -> bool:
 
 def _is_report_transfer(movement: BankMovement) -> bool:
     """Transfers are excluded from monthly reports (ledger plumbing, not spend)."""
-    try:
-        if bool(getattr(movement, "is_transfer", False)):
-            return True
-    except Exception:
-        pass
-    try:
-        if str(getattr(movement, "category", "") or "").strip() == "העברה":
-            return True
-    except Exception:
-        pass
-    return False
+    return movement.counts_as_transfer
 
 
 @dataclass(frozen=True)
