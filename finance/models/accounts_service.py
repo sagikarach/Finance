@@ -538,19 +538,17 @@ class AccountsService:
                 except Exception:
                     persisted = False
 
-                # Push to Firebase only when the sync gate allows (same pattern as
-                # BankMovementService.apply_movement), so the transfer record
-                # reaches mobile/other devices.
+                # Push the transfer's ledger record to the remote immediately
+                # (not only on an explicit Sync), so both sides of a transfer
+                # — the savings balance and this bank movement — reach the
+                # remote together and other devices stay consistent.
                 if persisted:
                     try:
-                        from ..models.sync_gate import allow_firebase_push
+                        from ..models.firebase_workspace_writer import (
+                            FirebaseWorkspaceWriter,
+                        )
 
-                        if allow_firebase_push():
-                            from ..models.firebase_workspace_writer import (
-                                FirebaseWorkspaceWriter,
-                            )
-
-                            FirebaseWorkspaceWriter().upsert_movement(movement)
+                        FirebaseWorkspaceWriter().upsert_movement(movement)
                     except Exception:
                         pass
 
@@ -674,7 +672,9 @@ class AccountsService:
 
         return merged
 
-    def save_all(self, accounts: List[MoneyAccount]) -> None:
+    def save_all(
+        self, accounts: List[MoneyAccount], *, force_remote: bool = False
+    ) -> None:
         if not isinstance(self.provider, JsonFileAccountsProvider):
             return
 
@@ -693,10 +693,14 @@ class AccountsService:
             pass
 
         try:
-            from ..models.sync_gate import allow_firebase_push
+            # ``force_remote`` pushes the snapshot immediately regardless of the
+            # explicit-Sync gate. Used for savings-account mutations so a change
+            # always reaches the remote and a later pull cannot revert it.
+            if not force_remote:
+                from ..models.sync_gate import allow_firebase_push
 
-            if not allow_firebase_push():
-                return
+                if not allow_firebase_push():
+                    return
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             FirebaseWorkspaceWriter().upsert_accounts_snapshot(accounts)

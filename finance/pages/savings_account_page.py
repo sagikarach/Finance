@@ -215,7 +215,9 @@ class SavingsAccountPage(BasePage):
             return
 
         try:
-            self._accounts_service.save_all(self._accounts)
+            # Savings changes push to the remote immediately (force_remote) so a
+            # later pull cannot revert a local edit that hasn't synced yet.
+            self._accounts_service.save_all(self._accounts, force_remote=True)
         except Exception:
             return
 
@@ -317,7 +319,7 @@ class SavingsAccountPage(BasePage):
                 updated_accounts = self._accounts_service.add_saving(
                     all_accounts, account, name, amount_val, date_str
                 )
-                self._accounts_service.save_all(updated_accounts)
+                self._accounts_service.save_all(updated_accounts, force_remote=True)
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
                 dlg.accept()
@@ -414,7 +416,7 @@ class SavingsAccountPage(BasePage):
                 updated_accounts = self._accounts_service.edit_saving(
                     all_accounts, account, target_saving.name, amount_val, date_str
                 )
-                self._accounts_service.save_all(updated_accounts)
+                self._accounts_service.save_all(updated_accounts, force_remote=True)
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
                 dlg.accept()
@@ -469,7 +471,7 @@ class SavingsAccountPage(BasePage):
                 updated_accounts = self._accounts_service.delete_saving(
                     all_accounts, account, saving_name
                 )
-                self._accounts_service.save_all(updated_accounts)
+                self._accounts_service.save_all(updated_accounts, force_remote=True)
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
                 dlg.accept()

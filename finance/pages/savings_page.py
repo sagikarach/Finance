@@ -274,7 +274,9 @@ class SavingsPage(BasePage):
         try:
             if self._accounts_service is None:
                 return
-            self._accounts_service.save_all(self._accounts)
+            # Savings changes always push to the remote immediately (not only on
+            # an explicit Sync), so the remote can never revert a local change.
+            self._accounts_service.save_all(self._accounts, force_remote=True)
         except Exception:
             pass
         try:
