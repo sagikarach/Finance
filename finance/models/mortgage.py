@@ -2,7 +2,53 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import List, Optional
 import uuid
+
+from .accounts import MoneyAccount, SavingsAccount
+
+
+def endpoint_balance(
+    accounts: List[MoneyAccount], account_name: str, saving_name: str = ""
+) -> float:
+    """Balance of a transfer endpoint: a specific saving inside a savings account
+    (when ``saving_name`` is given), otherwise the account's own balance."""
+    account_name = str(account_name or "").strip()
+    saving_name = str(saving_name or "").strip()
+    for a in accounts:
+        if str(getattr(a, "name", "") or "").strip() != account_name:
+            continue
+        if saving_name and isinstance(a, SavingsAccount):
+            for sv in a.savings:
+                if str(getattr(sv, "name", "") or "").strip() == saving_name:
+                    return float(getattr(sv, "amount", 0.0) or 0.0)
+            return 0.0
+        return float(getattr(a, "total_amount", 0.0) or 0.0)
+    return 0.0
+
+
+def account_transferred_out(
+    movements: list, account_name: str, saving_name: str = ""
+) -> float:
+    """Total outgoing transfers from a given account/saving (transfers only,
+    negative amounts) — money funneled from the source toward the purchase."""
+    name = str(account_name or "").strip()
+    if not name:
+        return 0.0
+    sv = str(saving_name or "").strip()
+    target = f"{name} -- {sv}" if sv else name
+    total = 0.0
+    for m in movements:
+        try:
+            if (
+                bool(getattr(m, "is_transfer", False))
+                and float(getattr(m, "amount", 0.0) or 0.0) < 0
+                and str(getattr(m, "account_name", "") or "").strip() == target
+            ):
+                total += abs(float(m.amount))
+        except Exception:
+            continue
+    return float(total)
 
 
 class AmortizationType(StrEnum):
@@ -70,6 +116,28 @@ class FundingSource:
     query: str = ""
     account_name: str = ""
     saving_name: str = ""
+
+    def available(self, *, movements: list, accounts: List[MoneyAccount]) -> float:
+        """How much of this source is currently available/received."""
+        if self.kind == FundingKind.ACCOUNT:
+            return endpoint_balance(accounts, self.account_name, self.saving_name)
+        if self.kind == FundingKind.MOVEMENTS:
+            from .mortgage_math import query_received_amount
+
+            return query_received_amount(self.query, movements, include_transfers=True)
+        return 0.0  # FUTURE — not yet received
+
+    def spent(self, movements: list) -> Optional[float]:
+        """How much of this source has actually been used (None for FUTURE)."""
+        if self.kind == FundingKind.ACCOUNT:
+            return account_transferred_out(
+                movements, self.account_name, self.saving_name
+            )
+        if self.kind == FundingKind.MOVEMENTS:
+            from .mortgage_math import query_received_amount
+
+            return query_received_amount(self.query, movements, include_transfers=True)
+        return None  # FUTURE
 
 
 @dataclass(frozen=True)

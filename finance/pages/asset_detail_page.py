@@ -26,13 +26,13 @@ from ..models.mortgage import (
     FundingKind,
     FundingSource,
     Mortgage,
+    endpoint_balance,
 )
 from ..models.mortgage_service import MortgageService
 from ..models.asset import HousePurchase, build_asset
 from ..models.mortgage_math import (
     cost_paid_amount,
     query_paid_amount,
-    query_received_amount,
 )
 from .mortgage_page import HousePurchaseDialog
 from .base_page import BasePage
@@ -57,25 +57,6 @@ def _parse_float(text: str) -> Optional[float]:
         return None
 
 
-def _endpoint_balance(
-    accounts: List[MoneyAccount], account_name: str, saving_name: str = ""
-) -> float:
-    """יתרת היעד: חיסכון ספציפי בתוך חשבון חיסכון (אם ``saving_name``), אחרת
-    יתרת החשבון עצמו — ברמת בחירת ההעברות."""
-    account_name = str(account_name or "").strip()
-    saving_name = str(saving_name or "").strip()
-    for a in accounts:
-        if str(getattr(a, "name", "") or "").strip() != account_name:
-            continue
-        if saving_name and isinstance(a, SavingsAccount):
-            for sv in a.savings:
-                if str(getattr(sv, "name", "") or "").strip() == saving_name:
-                    return float(getattr(sv, "amount", 0.0) or 0.0)
-            return 0.0
-        return float(getattr(a, "total_amount", 0.0) or 0.0)
-    return 0.0
-
-
 def funding_endpoints(
     accounts: List[MoneyAccount],
 ) -> List[tuple[str, str, str, float]]:
@@ -97,58 +78,6 @@ def funding_endpoints(
         elif isinstance(a, BankAccount) and bool(getattr(a, "active", False)):
             out.append((str(a.name), str(a.name), "", float(a.total_amount)))
     return out
-
-
-def funding_available(
-    source: FundingSource,
-    movements: List,
-    accounts: List[MoneyAccount],
-) -> float:
-    """כמה כסף ממקור המימון זמין/התקבל בפועל כעת."""
-    if source.kind == FundingKind.ACCOUNT:
-        return _endpoint_balance(accounts, source.account_name, source.saving_name)
-    if source.kind == FundingKind.MOVEMENTS:
-        return query_received_amount(source.query, movements, include_transfers=True)
-    return 0.0  # עתידי — טרם התקבל
-
-
-def account_transferred_out(
-    movements: List, account_name: str, saving_name: str = ""
-) -> float:
-    """סך ההעברות היוצאות מחשבון/חיסכון נתון (העברות בלבד, סכום שלילי) — הכסף
-    שהוזרם מהמקור אל חשבון הבנק לצורך הרכישה. אם ``saving_name`` ניתן, מתאים
-    לחיסכון הספציפי בלבד (לפי המפתח "חשבון -- חיסכון")."""
-    name = str(account_name or "").strip()
-    if not name:
-        return 0.0
-    sv = str(saving_name or "").strip()
-    target = f"{name} -- {sv}" if sv else name
-    total = 0.0
-    for m in movements:
-        try:
-            if (
-                bool(getattr(m, "is_transfer", False))
-                and float(getattr(m, "amount", 0.0) or 0.0) < 0
-                and str(getattr(m, "account_name", "") or "").strip() == target
-            ):
-                total += abs(float(m.amount))
-        except Exception:
-            continue
-    return float(total)
-
-
-def funding_spent(source: FundingSource, movements: List) -> Optional[float]:
-    """כמה נוצל בפועל ממקור המימון. חשבון → העברות יוצאות ממנו אל הבנק;
-    תנועות → ההכנסה שנתפסה; עתידי → None ('—'). חשבון הבנק עצמו מטופל בנפרד."""
-    if source.kind == FundingKind.ACCOUNT:
-        return account_transferred_out(
-            movements,
-            source.account_name,
-            getattr(source, "saving_name", ""),
-        )
-    if source.kind == FundingKind.MOVEMENTS:
-        return query_received_amount(source.query, movements, include_transfers=True)
-    return None  # עתידי
 
 
 class FundingSourceDialog(QDialog):
@@ -271,7 +200,7 @@ class FundingSourceDialog(QDialog):
         data = self._account.currentData() or ("", "")
         acc_name, sv_name = data
         if acc_name:
-            bal = _endpoint_balance(self._accounts, acc_name, sv_name)
+            bal = endpoint_balance(self._accounts, acc_name, sv_name)
             label = "יתרת החיסכון" if sv_name else "יתרת החשבון"
             self._balance_lbl.setText(f"{label}: {_fmt_money(bal)} ₪")
         else:
@@ -546,7 +475,7 @@ class AssetDetailPage(BasePage):
 
         # חשבון "בנק" מכסה את היתרה. הסכום שכבר שולם מהבנק מקוזז כדי לא לספור
         # פעמיים (הכסף כבר ירד מהיתרה).
-        bank_balance = _endpoint_balance(accounts, _BANK_ACCOUNT_NAME, "")
+        bank_balance = endpoint_balance(accounts, _BANK_ACCOUNT_NAME, "")
         residual = s.residual_from_bank
         remaining_need = max(0.0, residual - exp_paid)
         left_in_bank = bank_balance - remaining_need
@@ -694,8 +623,8 @@ class AssetDetailPage(BasePage):
         # מקורות מימון (0..n-1) · משכנתא · חשבון בנק (היתרה) · סה״כ
         income_table.setRowCount(len(self._funding_sources) + 3)
         for i, f in enumerate(self._funding_sources):
-            avail = funding_available(f, movements, accounts)
-            spent = funding_spent(f, movements)
+            avail = f.available(movements=movements, accounts=accounts)
+            spent = f.spent(movements)
             inc_total += float(f.amount)
             inc_avail += avail
             income_table.setItem(i, 0, QTableWidgetItem(str(f.name)))
