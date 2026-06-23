@@ -20,7 +20,6 @@ from .action_history import (
     generate_action_id,
     get_current_timestamp,
 )
-from .bank_movement import BankMovement
 from .installment_plan import InstallmentPlan, InstallmentPlanStats
 
 
@@ -224,6 +223,3 @@ class InstallmentsService:
     def compute_stats(self, plan: InstallmentPlan) -> InstallmentPlanStats:
         # The plan owns the math; the service just supplies the movements.
         return plan.stats(self._movements_provider.list_movements())
-
-    def _match_movements(self, plan: InstallmentPlan) -> List[BankMovement]:
-        return plan.matches(self._movements_provider.list_movements())
