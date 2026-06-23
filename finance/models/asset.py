@@ -196,6 +196,76 @@ class HousePurchase(Asset):
         return self.mortgage.outstanding(as_of_date=as_of_date, assumptions=assumptions)
 
 
+@dataclass(frozen=True)
+class FundingRow:
+    """One row of the purchase funding (income side) table — plain data, no UI.
+    ``spent`` is None when there is no actual-spent figure (rendered "—");
+    ``is_total`` marks the summary row (spent column rendered blank)."""
+
+    label: str
+    kind: str
+    amount: float
+    available: float
+    spent: Optional[float] = None
+    is_total: bool = False
+
+
+def funding_breakdown_rows(
+    funding_sources: List[FundingSource],
+    movements: list,
+    accounts: List[MoneyAccount],
+    *,
+    tracks_total: float,
+    residual: float,
+    remaining_need: float,
+    exp_paid: float,
+    bank_account_name: str = "בנק",
+) -> List[FundingRow]:
+    """The funding-table rows for a house purchase: one row per funding source,
+    then the mortgage (loan), then the bank account covering the residual, then
+    a totals row. Pure — the page only renders these."""
+    rows: List[FundingRow] = []
+    inc_total = 0.0
+    inc_avail = 0.0
+
+    for f in funding_sources:
+        avail = f.available(movements=movements, accounts=accounts)
+        spent = f.spent(movements)
+        inc_total += float(f.amount)
+        inc_avail += avail
+        rows.append(
+            FundingRow(
+                label=str(f.name),
+                kind=str(getattr(f.kind, "value", f.kind)),
+                amount=float(f.amount),
+                available=float(avail),
+                spent=spent,
+            )
+        )
+
+    loan = float(tracks_total)
+    inc_total += loan
+    inc_avail += loan
+    rows.append(FundingRow("משכנתא", "מימון", loan, loan, spent=None))
+
+    inc_total += float(residual)
+    inc_avail += float(remaining_need)
+    rows.append(
+        FundingRow(
+            label=f"חשבון {bank_account_name}",
+            kind="יתרה",
+            amount=float(residual),
+            available=float(remaining_need),
+            spent=float(exp_paid),
+        )
+    )
+
+    rows.append(
+        FundingRow("סה״כ", "", float(inc_total), float(inc_avail), is_total=True)
+    )
+    return rows
+
+
 def build_asset(record: Mortgage) -> Asset:
     """Build the right :class:`Asset` subtype from a stored record's kind."""
     if record.kind == AssetKind.OTHER:

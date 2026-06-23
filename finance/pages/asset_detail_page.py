@@ -29,7 +29,7 @@ from ..models.mortgage import (
     endpoint_balance,
 )
 from ..models.mortgage_service import MortgageService
-from ..models.asset import HousePurchase, build_asset
+from ..models.asset import HousePurchase, build_asset, funding_breakdown_rows
 from ..models.mortgage_math import (
     cost_paid_amount,
     query_paid_amount,
@@ -617,58 +617,29 @@ class AssetDetailPage(BasePage):
         self._funding_table = income_table
 
         # שורות מקורות המימון (קודם — מתאימות לאינדקסים לעריכה/מחיקה),
-        # ואז שורת המשכנתא האוטומטית, ואז סה״כ.
-        inc_total = 0.0
-        inc_avail = 0.0
-        # מקורות מימון (0..n-1) · משכנתא · חשבון בנק (היתרה) · סה״כ
-        income_table.setRowCount(len(self._funding_sources) + 3)
-        for i, f in enumerate(self._funding_sources):
-            avail = f.available(movements=movements, accounts=accounts)
-            spent = f.spent(movements)
-            inc_total += float(f.amount)
-            inc_avail += avail
-            income_table.setItem(i, 0, QTableWidgetItem(str(f.name)))
-            income_table.setItem(
-                i, 1, QTableWidgetItem(str(getattr(f.kind, "value", f.kind)))
-            )
-            income_table.setItem(i, 2, QTableWidgetItem(_fmt_money(f.amount)))
-            income_table.setItem(i, 3, QTableWidgetItem(_fmt_money(avail)))
-            income_table.setItem(
-                i, 4, QTableWidgetItem(_fmt_money(spent) if spent else "—")
-            )
-        # שורת המשכנתא (= התמהיל שנבנה); הכסף "יוצא" כתשלומי המשכנתא — לא נמדד כאן.
-        loan = float(s.tracks_total)
-        mrow = len(self._funding_sources)
-        inc_total += loan
-        inc_avail += loan
-        income_table.setItem(mrow, 0, QTableWidgetItem("משכנתא"))
-        income_table.setItem(mrow, 1, QTableWidgetItem("מימון"))
-        income_table.setItem(mrow, 2, QTableWidgetItem(_fmt_money(loan)))
-        income_table.setItem(mrow, 3, QTableWidgetItem(_fmt_money(loan)))
-        income_table.setItem(mrow, 4, QTableWidgetItem("—"))
-        # שורת חשבון הבנק — מכסה את היתרה:
-        #   סכום       = הסכום שצריך לשלם מהבנק (היתרה).
-        #   זמין בפועל = הסכום שצריך לשלם פחות מה שכבר שולם (מה שנותר לשלם).
-        #   הוצא בפועל = הסכום שכבר שולם בפועל.
-        brow = mrow + 1
-        inc_total += residual
-        inc_avail += remaining_need
-        income_table.setItem(brow, 0, QTableWidgetItem(f"חשבון {_BANK_ACCOUNT_NAME}"))
-        income_table.setItem(brow, 1, QTableWidgetItem("יתרה"))
-        income_table.setItem(brow, 2, QTableWidgetItem(_fmt_money(residual)))
-        income_table.setItem(brow, 3, QTableWidgetItem(_fmt_money(remaining_need)))
-        income_table.setItem(
-            brow,
-            4,
-            QTableWidgetItem(_fmt_money(exp_paid) if exp_paid else "—"),
+        # ואז שורת המשכנתא האוטומטית, שורת חשבון הבנק, ואז סה״כ. החישוב נעשה
+        # ב-funding_breakdown_rows (לוגיקה טהורה); כאן רק מציירים את השורות.
+        rows = funding_breakdown_rows(
+            self._funding_sources,
+            movements,
+            accounts,
+            tracks_total=float(s.tracks_total),
+            residual=residual,
+            remaining_need=remaining_need,
+            exp_paid=exp_paid,
+            bank_account_name=_BANK_ACCOUNT_NAME,
         )
-        # סה״כ
-        trow = brow + 1
-        income_table.setItem(trow, 0, QTableWidgetItem("סה״כ"))
-        income_table.setItem(trow, 1, QTableWidgetItem(""))
-        income_table.setItem(trow, 2, QTableWidgetItem(_fmt_money(inc_total)))
-        income_table.setItem(trow, 3, QTableWidgetItem(_fmt_money(inc_avail)))
-        income_table.setItem(trow, 4, QTableWidgetItem(""))
+        income_table.setRowCount(len(rows))
+        for i, row in enumerate(rows):
+            if row.is_total:
+                spent_text = ""
+            else:
+                spent_text = _fmt_money(row.spent) if row.spent else "—"
+            income_table.setItem(i, 0, QTableWidgetItem(row.label))
+            income_table.setItem(i, 1, QTableWidgetItem(row.kind))
+            income_table.setItem(i, 2, QTableWidgetItem(_fmt_money(row.amount)))
+            income_table.setItem(i, 3, QTableWidgetItem(_fmt_money(row.available)))
+            income_table.setItem(i, 4, QTableWidgetItem(spent_text))
         il.addWidget(income_table, 1)
 
         # ───────── עלויות חודשיות נלוות (מנוהל אינליין כמו השאר) ─────────

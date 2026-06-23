@@ -68,6 +68,44 @@ def test_funding_source_future_is_unrealized() -> None:
     assert src.spent([]) is None
 
 
+def test_funding_breakdown_rows_structure_and_totals() -> None:
+    from finance.models.asset import funding_breakdown_rows
+
+    accounts = [_bank("בנק", 1000.0)]
+    sources = [
+        FundingSource(name="מתנה", kind=FundingKind.FUTURE, amount=200_000.0),
+        FundingSource(name="מהבנק", kind=FundingKind.ACCOUNT, account_name="בנק"),
+    ]
+    rows = funding_breakdown_rows(
+        sources, [], accounts,
+        tracks_total=1_000_000.0, residual=50_000.0,
+        remaining_need=40_000.0, exp_paid=10_000.0, bank_account_name="בנק",
+    )
+    # funding sources first (edit indices), then mortgage, bank, total
+    assert [r.label for r in rows[:2]] == ["מתנה", "מהבנק"]
+    assert rows[2].label == "משכנתא" and _approx(rows[2].amount, 1_000_000.0)
+    assert rows[3].label == "חשבון בנק" and _approx(rows[3].available, 40_000.0)
+    total = rows[-1]
+    assert total.is_total is True
+    # 200000 (gift) + 1000 (bank balance avail) ... amount totals: 200000+0+1000000+50000
+    assert _approx(total.amount, 200_000.0 + 0.0 + 1_000_000.0 + 50_000.0)
+    assert _approx(total.available, 0.0 + 1000.0 + 1_000_000.0 + 40_000.0)
+
+
+def test_funding_breakdown_future_source_available_zero() -> None:
+    from finance.models.asset import funding_breakdown_rows
+
+    rows = funding_breakdown_rows(
+        [FundingSource(name="עתידי", kind=FundingKind.FUTURE, amount=5000.0)],
+        [], [],
+        tracks_total=0.0, residual=0.0, remaining_need=0.0, exp_paid=0.0,
+    )
+    future_row = rows[0]
+    assert _approx(future_row.amount, 5000.0)
+    assert _approx(future_row.available, 0.0)   # future -> not yet available
+    assert future_row.spent is None
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0
