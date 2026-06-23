@@ -244,11 +244,4 @@ def install_app_to_applications(app_path: pathlib.Path) -> Optional[str]:
         return str(exc)
 
 
-def check_for_updates_mac(repo: Optional[str] = None) -> Tuple[bool, str, Optional[pathlib.Path], Optional[str]]:
-    """Legacy one-shot helper kept for compatibility."""
-    is_newer_flag, version, zip_url_sig, err = check_version_only(repo)
-    if err or not is_newer_flag or not zip_url_sig:
-        return is_newer_flag, version, None, err
-    app_path, dl_err = download_and_install_update(zip_url_sig)
-    return bool(app_path), version, app_path, dl_err
 

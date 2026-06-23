@@ -195,16 +195,6 @@ def mortgage_total_interest(
     return float(sum(track_total_interest(t, assumptions) for t in mortgage.tracks))
 
 
-def mortgage_total_payment(
-    mortgage: Mortgage, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
-) -> float:
-    """סך כל התשלומים לאורך חיי המשכנתא (קרן + ריבית + הצמדה)."""
-    total = 0.0
-    for t in mortgage.tracks:
-        total += sum(row.payment for row in track_schedule(t, assumptions))
-    return float(total)
-
-
 def mortgage_initial_monthly(
     mortgage: Mortgage, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
 ) -> float:

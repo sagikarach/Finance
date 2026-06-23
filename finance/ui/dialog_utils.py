@@ -92,26 +92,6 @@ def setup_standard_rtl_dialog(
     return layout
 
 
-def set_layout_direction_rtl(widget: QWidget) -> None:
-    try:
-        widget.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-    except Exception:
-        try:
-            widget.setLayoutDirection(Qt.RightToLeft)
-        except Exception:
-            pass
-
-
-def set_layout_direction_ltr(widget: QWidget) -> None:
-    try:
-        widget.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-    except Exception:
-        try:
-            widget.setLayoutDirection(Qt.LeftToRight)
-        except Exception:
-            pass
-
-
 def create_standard_buttons_row(
     parent: QDialog,
     primary_text: str,

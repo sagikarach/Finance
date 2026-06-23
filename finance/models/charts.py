@@ -19,50 +19,6 @@ class MonthAxis:
         return {key: idx for idx, key in enumerate(self.keys)}
 
 
-def build_month_axis_from_histories(
-    histories: Iterable[Iterable[MoneySnapshot]],
-) -> MonthAxis:
-    keys: List[MonthKey] = []
-    seen: set[MonthKey] = set()
-    for history in histories:
-        for snap in history:
-            dt = parse_iso_date(str(snap.date))
-            # parse_iso_date returns datetime.min on invalid / missing dates.
-            if dt == datetime.min:
-                continue
-            key = (dt.year, dt.month)
-            if key not in seen:
-                seen.add(key)
-                keys.append(key)
-
-    if not keys:
-        # Avoid a confusing "month 1 without year" marker on charts.
-        now = datetime.now()
-        keys = [(int(now.year), int(now.month))]
-
-    keys.sort(key=lambda k: (k[0], k[1]))
-    return MonthAxis(keys=keys)
-
-
-def build_month_axis_from_history(history: Iterable[MoneySnapshot]) -> MonthAxis:
-    return build_month_axis_from_histories([history])
-
-
-def latest_snapshots_by_month(
-    history: Iterable[MoneySnapshot],
-) -> Dict[MonthKey, MoneySnapshot]:
-    latest: Dict[MonthKey, MoneySnapshot] = {}
-    for snap in history:
-        dt = parse_iso_date(str(snap.date))
-        if dt == datetime.min:
-            continue
-        key = (dt.year, dt.month)
-        existing = latest.get(key)
-        if existing is None or parse_iso_date(str(existing.date)) < dt:
-            latest[key] = snap
-    return latest
-
-
 def latest_snapshots_by_month_with_axis(
     history: Iterable[MoneySnapshot],
 ) -> tuple[MonthAxis, Dict[MonthKey, MoneySnapshot]]:
