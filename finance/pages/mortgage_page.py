@@ -36,12 +36,7 @@ from ..models.mortgage import (
 from ..models.mortgage_service import MortgageService
 from ..models.asset import HousePurchase, MortgageLoan, build_asset
 from ..models.mortgage_math import (
-    DEFAULT_ASSUMPTIONS,
-    months_between,
-    mortgage_outstanding,
-    mortgage_total_interest,
     purchase_summary,
-    track_schedule,
 )
 from ..widgets.mortgage_balance_chart import MortgageBalanceChart
 from .base_page import BasePage
@@ -1093,54 +1088,28 @@ class MortgagePage(BasePage):
             return
 
         assert m is not None
-        principal = m.original_principal
-        outstanding = mortgage_outstanding(m, None, DEFAULT_ASSUMPTIONS)
-        interest = mortgage_total_interest(m, DEFAULT_ASSUMPTIONS)
-
-        # תשלום חודשי נוכחי: סכום התשלום בחודש הנוכחי על פני המסלולים.
-        elapsed = months_between(m.start_date, None)
-        monthly_now = 0.0
-        per_track_rows: List[tuple[str, str, float, float, float, float]] = []
-        for t in m.tracks:
-            sched = track_schedule(t, DEFAULT_ASSUMPTIONS)
-            if not sched:
-                continue
-            idx = min(elapsed, len(sched) - 1)
-            payment_now = sched[idx].payment if elapsed < len(sched) else 0.0
-            monthly_now += payment_now
-            out_now = (
-                sched[elapsed - 1].remaining_balance
-                if 0 < elapsed <= len(sched)
-                else (float(t.principal) if elapsed <= 0 else 0.0)
-            )
-            per_track_rows.append(
-                (
-                    str(t.name),
-                    str(getattr(t.kind, "value", t.kind)),
-                    float(t.principal),
-                    float(t.annual_rate),
-                    float(sched[0].payment),
-                    float(out_now),
-                )
-            )
+        # MortgageLoan.status owns the per-track computation; here we only render.
+        st = MortgageLoan(m).status()
 
         if self._card_principal is not None:
-            self._card_principal.setText(_fmt_money(principal))
+            self._card_principal.setText(_fmt_money(st.principal))
         if self._card_outstanding is not None:
-            self._card_outstanding.setText(_fmt_money(outstanding))
+            self._card_outstanding.setText(_fmt_money(st.outstanding))
         if self._card_payment is not None:
-            self._card_payment.setText(_fmt_money(monthly_now))
+            self._card_payment.setText(_fmt_money(st.monthly_now))
         if self._card_interest is not None:
-            self._card_interest.setText(_fmt_money(interest))
+            self._card_interest.setText(_fmt_money(st.total_interest))
 
-        self._table.setRowCount(len(per_track_rows))
-        for row, (name, kind, prin, rate, pay, out_now) in enumerate(per_track_rows):
-            self._table.setItem(row, 0, QTableWidgetItem(name))
-            self._table.setItem(row, 1, QTableWidgetItem(kind))
-            self._table.setItem(row, 2, QTableWidgetItem(_fmt_money(prin)))
-            self._table.setItem(row, 3, QTableWidgetItem(_fmt_rate(rate)))
-            self._table.setItem(row, 4, QTableWidgetItem(_fmt_money(pay)))
-            self._table.setItem(row, 5, QTableWidgetItem(_fmt_money(out_now)))
+        self._table.setRowCount(len(st.tracks))
+        for row, tr in enumerate(st.tracks):
+            self._table.setItem(row, 0, QTableWidgetItem(tr.name))
+            self._table.setItem(row, 1, QTableWidgetItem(tr.kind))
+            self._table.setItem(row, 2, QTableWidgetItem(_fmt_money(tr.principal)))
+            self._table.setItem(row, 3, QTableWidgetItem(_fmt_rate(tr.annual_rate)))
+            self._table.setItem(row, 4, QTableWidgetItem(_fmt_money(tr.first_payment)))
+            self._table.setItem(
+                row, 5, QTableWidgetItem(_fmt_money(tr.outstanding_now))
+            )
 
         if self._chart is not None:
             self._chart.set_mortgage(m)

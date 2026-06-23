@@ -25,11 +25,35 @@ from .mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     MortgageAssumptions,
     cost_paid_amount,
+    months_between,
     mortgage_initial_monthly,
     mortgage_outstanding,
     mortgage_total_interest,
     track_schedule,
 )
+
+
+@dataclass(frozen=True)
+class TrackStatusRow:
+    """One track's current status row — plain data, no UI."""
+
+    name: str
+    kind: str
+    principal: float
+    annual_rate: float
+    first_payment: float
+    outstanding_now: float
+
+
+@dataclass(frozen=True)
+class LoanStatus:
+    """A loan's current snapshot: headline stats + per-track rows."""
+
+    principal: float
+    outstanding: float
+    monthly_now: float
+    total_interest: float
+    tracks: List["TrackStatusRow"]
 
 
 @dataclass(frozen=True)
@@ -64,6 +88,48 @@ class MortgageLoan:
         self, *, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
     ) -> float:
         return float(mortgage_total_interest(self.record, assumptions))
+
+    def status(
+        self,
+        *,
+        as_of_date: Optional[str] = None,
+        assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+    ) -> "LoanStatus":
+        """Current snapshot of the loan: headline stats plus a per-track row
+        (principal, rate, first payment, outstanding now). Pure — the page only
+        renders it."""
+        elapsed = months_between(self.record.start_date, as_of_date)
+        monthly_now = 0.0
+        tracks: List[TrackStatusRow] = []
+        for t in self.record.tracks:
+            sched = track_schedule(t, assumptions)
+            if not sched:
+                continue
+            idx = min(elapsed, len(sched) - 1)
+            payment_now = sched[idx].payment if elapsed < len(sched) else 0.0
+            monthly_now += payment_now
+            out_now = (
+                sched[elapsed - 1].remaining_balance
+                if 0 < elapsed <= len(sched)
+                else (float(t.principal) if elapsed <= 0 else 0.0)
+            )
+            tracks.append(
+                TrackStatusRow(
+                    name=str(t.name),
+                    kind=str(getattr(t.kind, "value", t.kind)),
+                    principal=float(t.principal),
+                    annual_rate=float(t.annual_rate),
+                    first_payment=float(sched[0].payment),
+                    outstanding_now=float(out_now),
+                )
+            )
+        return LoanStatus(
+            principal=float(self.record.original_principal),
+            outstanding=self.outstanding(as_of_date=as_of_date, assumptions=assumptions),
+            monthly_now=float(monthly_now),
+            total_interest=self.total_interest(assumptions=assumptions),
+            tracks=tracks,
+        )
 
     def combined_schedule(
         self, *, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS

@@ -153,6 +153,24 @@ def test_mortgage_loan_combined_schedule() -> None:
     assert _approx(rows[0][4], single[0].remaining_balance)  # summed remaining
 
 
+def test_mortgage_loan_status() -> None:
+    from finance.models.asset import MortgageLoan
+    from finance.models.mortgage_math import mortgage_outstanding, mortgage_total_interest
+
+    m = _purchase()  # one track, principal 1,000,000, starts 2025-01-01
+    st = MortgageLoan(m).status(as_of_date="2026-01-01")
+    assert _approx(st.principal, 1_000_000.0)
+    assert _approx(st.outstanding, mortgage_outstanding(m, "2026-01-01", DEFAULT_ASSUMPTIONS))
+    assert _approx(st.total_interest, mortgage_total_interest(m, DEFAULT_ASSUMPTIONS))
+    assert len(st.tracks) == 1
+    tr = st.tracks[0]
+    assert tr.name == "קבועה"
+    assert _approx(tr.principal, 1_000_000.0)
+    assert tr.first_payment > 0
+    # a year in, outstanding-now is below the original principal
+    assert 0 < tr.outstanding_now < 1_000_000.0
+
+
 def test_new_asset_record_factory() -> None:
     from finance.models.asset import HeldAsset, HousePurchase, build_asset, new_asset_record
 
