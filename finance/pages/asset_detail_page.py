@@ -29,7 +29,12 @@ from ..models.mortgage import (
     endpoint_balance,
 )
 from ..models.mortgage_service import MortgageService
-from ..models.asset import HousePurchase, build_asset, funding_breakdown_rows
+from ..models.asset import (
+    HousePurchase,
+    build_asset,
+    expense_breakdown_rows,
+    funding_breakdown_rows,
+)
 from ..models.mortgage_math import (
     cost_paid_amount,
     query_paid_amount,
@@ -539,29 +544,19 @@ class AssetDetailPage(BasePage):
         expenses_table.setHorizontalHeaderLabels(["רכיב", "סכום", "שולם בפועל"])
         expenses_table.doubleClicked.connect(self._on_edit_cost)
         # שורה 0 = מחיר הדירה; שורות 1..n = עלויות (אינדקס עלות = שורה − 1); ואז סה״כ.
-        # (price_paid / exp_paid חושבו למעלה.)
-        exp_total = float(m.property_price)
-        expenses_table.setRowCount(len(self._one_time_costs) + 2)
-        expenses_table.setItem(0, 0, QTableWidgetItem("מחיר הדירה"))
-        expenses_table.setItem(0, 1, QTableWidgetItem(_fmt_money(m.property_price)))
-        expenses_table.setItem(
-            0, 2, QTableWidgetItem(_fmt_money(price_paid) if price_paid else "—")
+        # החישוב נעשה ב-expense_breakdown_rows (לוגיקה טהורה); כאן רק מציירים.
+        expense_rows = expense_breakdown_rows(
+            float(m.property_price), price_paid, self._one_time_costs, movements
         )
-        for i, c in enumerate(self._one_time_costs):
-            planned = float(c.amount)
-            paid = cost_paid_amount(c, movements)
-            total = planned if planned > 0 else paid
-            exp_total += total
-            r = i + 1
-            expenses_table.setItem(r, 0, QTableWidgetItem(str(c.name)))
-            expenses_table.setItem(r, 1, QTableWidgetItem(_fmt_money(total)))
-            expenses_table.setItem(
-                r, 2, QTableWidgetItem(_fmt_money(paid) if paid else "—")
-            )
-        trow_e = len(self._one_time_costs) + 1
-        expenses_table.setItem(trow_e, 0, QTableWidgetItem("סה״כ"))
-        expenses_table.setItem(trow_e, 1, QTableWidgetItem(_fmt_money(exp_total)))
-        expenses_table.setItem(trow_e, 2, QTableWidgetItem(_fmt_money(exp_paid)))
+        expenses_table.setRowCount(len(expense_rows))
+        for r, row in enumerate(expense_rows):
+            if row.is_total:
+                paid_text = _fmt_money(row.paid)
+            else:
+                paid_text = _fmt_money(row.paid) if row.paid else "—"
+            expenses_table.setItem(r, 0, QTableWidgetItem(row.label))
+            expenses_table.setItem(r, 1, QTableWidgetItem(_fmt_money(row.amount)))
+            expenses_table.setItem(r, 2, QTableWidgetItem(paid_text))
 
         # ───────── צד ההכנסות / מקורות מימון (כניסה) ─────────
         income_card = QWidget(root)

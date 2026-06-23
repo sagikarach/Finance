@@ -106,6 +106,39 @@ def test_funding_breakdown_future_source_available_zero() -> None:
     assert future_row.spent is None
 
 
+def test_expense_breakdown_rows() -> None:
+    from finance.models.asset import expense_breakdown_rows
+    from finance.models.mortgage import CostItem
+
+    costs = [
+        CostItem(name="מס רכישה", amount=60_000.0),
+        CostItem(name="עו\"ד", amount=10_000.0),
+    ]
+    rows = expense_breakdown_rows(2_000_000.0, 500_000.0, costs, [])
+    assert rows[0].label == "מחיר הדירה" and _approx(rows[0].amount, 2_000_000.0)
+    assert _approx(rows[0].paid, 500_000.0)
+    assert [r.label for r in rows[1:3]] == ["מס רכישה", "עו\"ד"]
+    total = rows[-1]
+    assert total.is_total is True
+    assert _approx(total.amount, 2_000_000.0 + 60_000.0 + 10_000.0)
+    assert _approx(total.paid, 500_000.0)   # only the price was paid; costs have no movements
+
+
+def test_expense_breakdown_cost_with_no_plan_uses_paid() -> None:
+    from finance.models.asset import expense_breakdown_rows
+    from finance.models.bank_movement import BankMovement, MovementType
+    from finance.models.mortgage import CostItem
+
+    # a cost with no planned amount but a query that matches a paid movement
+    cost = CostItem(name="שיפוץ", amount=0.0, query="שיפוץ")
+    mv = BankMovement(-15_000.0, "2026-06-01", "בנק", "שיפוץ", MovementType.ONE_TIME,
+                      description="שיפוץ דירה")
+    rows = expense_breakdown_rows(0.0, 0.0, [cost], [mv])
+    cost_row = rows[1]
+    assert _approx(cost_row.amount, 15_000.0)   # no plan -> falls back to actual paid
+    assert _approx(cost_row.paid, 15_000.0)
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

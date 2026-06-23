@@ -20,10 +20,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional
 
-from .mortgage import AssetKind, Mortgage, MortgageTrack
+from .mortgage import AssetKind, CostItem, Mortgage, MortgageTrack
 from .mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     MortgageAssumptions,
+    cost_paid_amount,
     mortgage_initial_monthly,
     mortgage_outstanding,
     mortgage_total_interest,
@@ -263,6 +264,43 @@ def funding_breakdown_rows(
     rows.append(
         FundingRow("סה״כ", "", float(inc_total), float(inc_avail), is_total=True)
     )
+    return rows
+
+
+@dataclass(frozen=True)
+class ExpenseRow:
+    """One row of the purchase expense (outgoing) table — plain data, no UI.
+    ``is_total`` marks the summary row (its ``paid`` always renders as money,
+    while per-item rows render "—" when nothing was paid)."""
+
+    label: str
+    amount: float
+    paid: float
+    is_total: bool = False
+
+
+def expense_breakdown_rows(
+    property_price: float,
+    price_paid: float,
+    one_time_costs: List[CostItem],
+    movements: list,
+) -> List[ExpenseRow]:
+    """The expense-table rows for a house purchase: the property price, then one
+    row per one-time cost (planned amount, or actual-paid when no plan), then a
+    totals row. Cost rows keep order 1..n so the page's edit index = row - 1."""
+    rows: List[ExpenseRow] = [
+        ExpenseRow("מחיר הדירה", float(property_price), float(price_paid))
+    ]
+    exp_total = float(property_price)
+    exp_paid = float(price_paid)
+    for c in one_time_costs:
+        planned = float(c.amount)
+        paid = float(cost_paid_amount(c, movements))
+        total = planned if planned > 0 else paid
+        exp_total += total
+        exp_paid += paid
+        rows.append(ExpenseRow(str(c.name), total, paid))
+    rows.append(ExpenseRow("סה״כ", exp_total, exp_paid, is_total=True))
     return rows
 
 
