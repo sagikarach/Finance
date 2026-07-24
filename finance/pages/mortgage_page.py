@@ -20,11 +20,15 @@ from ..qt import (
     QTableWidgetItem,
     QHeaderView,
     QMessageBox,
+    QMenu,
+    QAction,
+    QProgressBar,
     QSizePolicy,
     Qt,
     QDate,
 )
 from ..models.accounts import MoneyAccount, parse_iso_date
+from ..models.bank_movement import BankMovement
 from ..ui.dialog_utils import setup_calendar_popup
 from ..models.mortgage import (
     AmortizationType,
@@ -36,9 +40,16 @@ from ..models.mortgage import (
 from ..models.mortgage_service import MortgageService
 from ..models.asset import HousePurchase, MortgageLoan, build_asset
 from ..models.mortgage_math import (
+    DEFAULT_ASSUMPTIONS,
+    DEFAULT_PRIME_RATE,
+    MortgageAssumptions,
+    assumptions_sensitivity,
+    early_payoff_savings,
+    months_after,
     purchase_summary,
 )
 from ..widgets.mortgage_balance_chart import MortgageBalanceChart
+from ..widgets.mortgage_payment_split_chart import MortgagePaymentSplitChart
 from .base_page import BasePage
 
 
@@ -443,6 +454,10 @@ class MortgageDialog(QDialog):
         sold = bool(prev.sold) if prev is not None else False
         sale_price = float(prev.sale_price) if prev is not None else 0.0
         sale_date = str(prev.sale_date) if prev is not None else ""
+        # קישורי פירעון חלקי נשמרים — עריכת המשכנתא אינה מוחקת אותם.
+        prepayment_ids = (
+            list(prev.prepayment_movement_ids) if prev is not None else []
+        )
         self._mortgage = Mortgage(
             **({"id": existing_id} if existing_id else {}),
             name=name,
@@ -462,6 +477,7 @@ class MortgageDialog(QDialog):
             sold=sold,
             sale_price=sale_price,
             sale_date=sale_date,
+            prepayment_movement_ids=prepayment_ids,
         )
         self.accept()
 
@@ -789,6 +805,90 @@ class HousePurchaseDialog(QDialog):
         self.accept()
 
 
+# ──────────────────── prepayment-link picker dialog ────────────────────
+
+
+class PrepaymentLinkDialog(QDialog):
+    """בחירת הוצאות חד-פעמיות אמיתיות שייזקפו כפירעון חלקי לקרן (קיצור תקופה)."""
+
+    def __init__(
+        self,
+        *,
+        movements: List[BankMovement],
+        linked_ids: List[str],
+        parent: Optional[QWidget] = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("קישור פירעון חלקי")
+        self.setModal(True)
+        try:
+            self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            self.resize(560, 560)
+        except Exception:
+            pass
+        linked = set(str(x) for x in (linked_ids or []))
+        # הוצאות בלבד (סכום שלילי), מהחדש לישן.
+        self._rows = [m for m in movements if float(getattr(m, "amount", 0) or 0) < 0]
+        self._rows.sort(key=lambda m: str(getattr(m, "date", "") or ""), reverse=True)
+
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(10)
+        lay.addWidget(
+            QLabel("סמן הוצאות שהן פירעון חלקי לקרן. הן יקטינו את היתרה ויקצרו "
+                   "את התקופה.", self),
+            0,
+        )
+        table = QTableWidget(self)
+        table.setObjectName("ActionHistoryTableWidget")
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["✓", "תאריך", "תיאור"])
+        table.setRowCount(len(self._rows))
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        try:
+            table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            table.verticalHeader().setVisible(False)
+            hh = table.horizontalHeader()
+            if hh is not None:
+                hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+                hh.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        except Exception:
+            pass
+        for r, mv in enumerate(self._rows):
+            chk = QTableWidgetItem()
+            chk.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+            checked = str(getattr(mv, "id", "")) in linked
+            chk.setCheckState(
+                Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+            )
+            table.setItem(r, 0, chk)
+            amt = abs(float(getattr(mv, "amount", 0) or 0))
+            desc = str(getattr(mv, "description", "") or "")
+            table.setItem(r, 1, QTableWidgetItem(str(getattr(mv, "date", "") or "")))
+            table.setItem(r, 2, QTableWidgetItem(f"{desc}  ·  {amt:,.0f} ₪"))
+        self._table = table
+        lay.addWidget(table, 1)
+
+        btns = QHBoxLayout()
+        btns.addStretch(1)
+        cancel = QPushButton("ביטול", self)
+        cancel.clicked.connect(self.reject)
+        ok = QPushButton("שמור", self)
+        ok.setObjectName("SecondaryButton")
+        ok.clicked.connect(self.accept)
+        btns.addWidget(cancel, 0)
+        btns.addWidget(ok, 0)
+        lay.addLayout(btns, 0)
+
+    def selected_ids(self) -> List[str]:
+        out: List[str] = []
+        for r, mv in enumerate(self._rows):
+            item = self._table.item(r, 0)
+            if item is not None and item.checkState() == Qt.CheckState.Checked:
+                out.append(str(getattr(mv, "id", "")))
+        return out
+
+
 # ─────────────────────────── page ───────────────────────────
 
 
@@ -818,14 +918,35 @@ class MortgagePage(BasePage):
 
         self._selector: Optional[QComboBox] = None
         self._edit_btn: Optional[QToolButton] = None
-        self._schedule_btn: Optional[QToolButton] = None
-        self._payments_btn: Optional[QToolButton] = None
+        self._more_btn: Optional[QToolButton] = None
+        self._schedule_action: Optional[QAction] = None
+        self._payments_action: Optional[QAction] = None
+        self._delete_action: Optional[QAction] = None
         self._table: Optional[QTableWidget] = None
         self._chart: Optional[MortgageBalanceChart] = None
-        self._card_principal: Optional[QLabel] = None
-        self._card_outstanding: Optional[QLabel] = None
-        self._card_payment: Optional[QLabel] = None
-        self._card_interest: Optional[QLabel] = None
+        self._split_chart: Optional[MortgagePaymentSplitChart] = None
+        self._mort_tab: str = "tracks"  # תצוגה פעילה
+        self._mort_tab_cards: dict = {}
+        self._mort_tab_buttons: dict = {}
+        self._crumb: Optional[QLabel] = None
+        self._hero_outstanding: Optional[QLabel] = None
+        self._hero_payment: Optional[QLabel] = None
+        self._hero_payment_sub: Optional[QLabel] = None
+        self._cap_principal: Optional[QLabel] = None
+        self._cap_total: Optional[QLabel] = None
+        self._cap_interest: Optional[QLabel] = None
+        self._cap_linked: Optional[QLabel] = None
+        self._progress_bar: Optional[QProgressBar] = None
+        self._progress_label: Optional[QLabel] = None
+        # הנחות חיצוניות (פריים / מדד) — ניתנות לעריכה במסך.
+        self._assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
+        self._prime_edit: Optional[QLineEdit] = None
+        self._cpi_edit: Optional[QLineEdit] = None
+        self._sens_label: Optional[QLabel] = None
+        # סימולציית פירעון מוקדם + פירעונות שבוצעו.
+        self._sim_extra_edit: Optional[QLineEdit] = None
+        self._sim_result: Optional[QLabel] = None
+        self._sim_applied: Optional[QLabel] = None
 
         super().__init__(*args, **kwargs)
 
@@ -862,6 +983,11 @@ class MortgagePage(BasePage):
         lay = QVBoxLayout(root)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(12)
+
+        # פירורי לחם — נכסים › נכס › משכנתא (מעודכן עם שם הנכס ב-_refresh_details).
+        self._crumb = QLabel("נכסים  ›  משכנתא", root)
+        self._crumb.setObjectName("AssetBreadcrumb")
+        lay.addWidget(self._crumb, 0)
 
         # Header card: selector + actions.
         header_card = QWidget(root)
@@ -901,84 +1027,178 @@ class MortgagePage(BasePage):
         self._edit_btn.clicked.connect(self._on_edit_clicked)
         header_row.addWidget(self._edit_btn)
 
-        delete_btn = QToolButton(header_card)
-        delete_btn.setObjectName("IconButton")
-        delete_btn.setText("🗑")
-        delete_btn.setToolTip("מחק משכנתא")
-        delete_btn.clicked.connect(self._on_delete_clicked)
-        header_row.addWidget(delete_btn)
-
-        self._schedule_btn = QToolButton(header_card)
-        self._schedule_btn.setObjectName("IconButton")
-        self._schedule_btn.setText("📋")
-        self._schedule_btn.setToolTip("לוח סילוקין")
-        self._schedule_btn.clicked.connect(self._on_show_schedule)
-        header_row.addWidget(self._schedule_btn)
-
-        self._payments_btn = QToolButton(header_card)
-        self._payments_btn.setObjectName("IconButton")
-        self._payments_btn.setText("💳")
-        self._payments_btn.setToolTip("תנועות משויכות")
-        self._payments_btn.clicked.connect(self._on_show_payments)
-        header_row.addWidget(self._payments_btn)
+        # פעולות פחות שכיחות מקופלות לתפריט גלישה (⋯) כדי לפנות את הכותרת.
+        self._more_btn = QToolButton(header_card)
+        self._more_btn.setObjectName("IconButton")
+        self._more_btn.setText("⋯")
+        self._more_btn.setToolTip("עוד פעולות")
+        try:
+            self._more_btn.setPopupMode(
+                QToolButton.ToolButtonPopupMode.InstantPopup
+            )
+        except Exception:
+            pass
+        more_menu = QMenu(self._more_btn)
+        self._schedule_action = more_menu.addAction("📋  לוח סילוקין")
+        if self._schedule_action is not None:
+            self._schedule_action.triggered.connect(self._on_show_schedule)
+        self._payments_action = more_menu.addAction("💳  תנועות משויכות")
+        if self._payments_action is not None:
+            self._payments_action.triggered.connect(self._on_show_payments)
+        more_menu.addSeparator()
+        self._delete_action = more_menu.addAction("🗑  מחק משכנתא")
+        if self._delete_action is not None:
+            self._delete_action.triggered.connect(self._on_delete_clicked)
+        self._more_btn.setMenu(more_menu)
+        header_row.addWidget(self._more_btn)
 
         lay.addWidget(header_card, 0)
 
-        # Stat cards row.
+        # ───────── שני כרטיסי ליבה: יתרה נוכחית (מודגש) + תשלום חודשי ─────────
         cards_row = QHBoxLayout()
         cards_row.setSpacing(12)
 
-        def build_card(title_text: str, style: str) -> QLabel:
+        def build_hero(
+            title_text: str, *, accent: bool = False
+        ) -> tuple[QLabel, QLabel]:
             card = QWidget(root)
-            card.setObjectName(style)
+            card.setObjectName("AssetHeroCardAccent" if accent else "AssetHeroCard")
             try:
                 card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
                 card.setAutoFillBackground(True)
             except Exception:
                 pass
             cl = QVBoxLayout(card)
-            cl.setContentsMargins(14, 12, 14, 12)
-            cl.setSpacing(6)
+            cl.setContentsMargins(16, 14, 16, 14)
+            cl.setSpacing(4)
             t = QLabel(title_text, card)
-            t.setObjectName("StatTitle")
+            t.setObjectName("AssetHeroTitle")
             v = QLabel("", card)
-            v.setObjectName("StatValueCard")
-            cl.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
-            cl.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+            v.setObjectName("AssetHeroValue")
+            if accent:
+                v.setProperty("tone", "accent")
+            sub = QLabel("", card)  # שורת משנה (פירוק ריבית/קרן) — מוסתרת כברירת מחדל
+            sub.setObjectName("AssetHeroSub")
+            sub.setVisible(False)
+            cl.addWidget(t, 0)
+            cl.addWidget(v, 0)
+            cl.addWidget(sub, 0)
             cards_row.addWidget(card, 1)
-            return v
+            return v, sub
 
-        self._card_principal = build_card("סך הקרן", "StatCardPurple")
-        self._card_outstanding = build_card("יתרה נוכחית", "StatCardYellow")
-        self._card_payment = build_card("תשלום חודשי", "StatCardGreen")
-        self._card_interest = build_card("סך ריבית צפויה", "StatCardRed")
+        self._hero_outstanding, _ = build_hero("יתרה נוכחית", accent=True)
+        self._hero_payment, self._hero_payment_sub = build_hero("תשלום חודשי")
         lay.addLayout(cards_row, 0)
 
-        # Bottom row: balance-decline chart (left) + tracks table (right).
-        bottom_row = QHBoxLayout()
-        bottom_row.setSpacing(12)
+        # ───────── רצועת התקדמות — כמה מהקרן שולם ומתי הסיום ─────────
+        prog_row = QVBoxLayout()
+        prog_row.setContentsMargins(4, 2, 4, 2)
+        prog_row.setSpacing(6)
+        self._progress_label = QLabel("", root)
+        self._progress_label.setObjectName("AssetCaption")
+        self._progress_bar = QProgressBar(root)
+        self._progress_bar.setObjectName("AssetProgress")
+        self._progress_bar.setRange(0, 100)
+        self._progress_bar.setTextVisible(False)
+        prog_row.addWidget(self._progress_label, 0)
+        prog_row.addWidget(self._progress_bar, 0)
+        lay.addLayout(prog_row, 0)
 
-        chart_card = QWidget(root)
-        chart_card.setObjectName("ContentPanel")
-        try:
-            chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            chart_card.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        # ───────── שורת caption — סך הקרן · סך הכל לתשלום · ריבית צפויה ─────────
+        cap_row = QHBoxLayout()
+        cap_row.setSpacing(10)
+        cap_row.setContentsMargins(4, 0, 4, 0)
+        self._cap_principal = QLabel("", root)
+        self._cap_principal.setObjectName("AssetCaption")
+        cap_sep1 = QLabel("·", root)
+        cap_sep1.setObjectName("AssetCaptionSep")
+        self._cap_total = QLabel("", root)
+        self._cap_total.setObjectName("AssetCaption")
+        cap_sep2 = QLabel("·", root)
+        cap_sep2.setObjectName("AssetCaptionSep")
+        self._cap_interest = QLabel("", root)
+        self._cap_interest.setObjectName("AssetCaption")
+        cap_sep3 = QLabel("·", root)
+        cap_sep3.setObjectName("AssetCaptionSep")
+        self._cap_linked = QLabel("", root)  # חשיפה למדד (#2) — מוסתר כשאין
+        self._cap_linked.setObjectName("AssetCaption")
+        cap_row.addWidget(self._cap_principal, 0)
+        cap_row.addWidget(cap_sep1, 0)
+        cap_row.addWidget(self._cap_total, 0)
+        cap_row.addWidget(cap_sep2, 0)
+        cap_row.addWidget(self._cap_interest, 0)
+        cap_row.addWidget(cap_sep3, 0)
+        cap_row.addWidget(self._cap_linked, 0)
+        cap_row.addStretch(1)
+        self._cap_linked_sep = cap_sep3
+        lay.addLayout(cap_row, 0)
+
+        # ───────── שורת הנחות (פריים / מדד) + רגישות (#5) ─────────
+        assum_row = QHBoxLayout()
+        assum_row.setSpacing(6)
+        assum_row.setContentsMargins(4, 0, 4, 0)
+        assum_lbl = QLabel("הנחות:", root)
+        assum_lbl.setObjectName("AssetCaption")
+        assum_row.addWidget(assum_lbl, 0)
+        prime_lbl = QLabel("פריים %", root)
+        prime_lbl.setObjectName("AssetCaption")
+        assum_row.addWidget(prime_lbl, 0)
+        self._prime_edit = QLineEdit(f"{DEFAULT_PRIME_RATE:g}", root)
+        self._prime_edit.setFixedWidth(56)
+        self._prime_edit.editingFinished.connect(self._on_apply_assumptions)
+        assum_row.addWidget(self._prime_edit, 0)
+        cpi_lbl = QLabel("מדד %", root)
+        cpi_lbl.setObjectName("AssetCaption")
+        assum_row.addWidget(cpi_lbl, 0)
+        self._cpi_edit = QLineEdit("0", root)
+        self._cpi_edit.setFixedWidth(56)
+        self._cpi_edit.editingFinished.connect(self._on_apply_assumptions)
+        assum_row.addWidget(self._cpi_edit, 0)
+        self._sens_label = QLabel("", root)
+        self._sens_label.setObjectName("AssetCaption")
+        assum_row.addSpacing(12)
+        assum_row.addWidget(self._sens_label, 0)
+        assum_row.addStretch(1)
+        lay.addLayout(assum_row, 0)
+
+        # בעבר הגרף והטבלה חלקו שורה אופקית (2:1) והטבלה נדחסה עד שהעמודות
+        # לא היו קריאות. עכשיו הן שתי תצוגות נפרדות (בורר טאבים), כל אחת ברוחב
+        # מלא — "מסלולים" (הטבלה המפורטת) או "גרף יתרה". מציגים אחת בכל פעם.
+        tabs_wrap = QWidget(root)
+        tabs_wrap_l = QVBoxLayout(tabs_wrap)
+        tabs_wrap_l.setContentsMargins(0, 0, 0, 0)
+        tabs_wrap_l.setSpacing(0)
+
+        tab_bar_w = QWidget(tabs_wrap)
+        tab_bar = QHBoxLayout(tab_bar_w)
+        tab_bar.setContentsMargins(0, 0, 0, 0)
+        tab_bar.setSpacing(4)
+        self._mort_tab_buttons = {}
+        for key, label in (
+            ("tracks", "מסלולים"),
+            ("chart", "גרף יתרה"),
+            ("split", "ריבית / קרן"),
+            ("sim", "סימולציה"),
+        ):
+            btn = QPushButton(label, tab_bar_w)
+            btn.setObjectName("AssetTabButton")
+            btn.setCheckable(True)
+            try:
+                btn.setMinimumHeight(34)
+                btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            except Exception:
+                pass
+            btn.clicked.connect(
+                lambda _checked=False, k=key: self._show_mortgage_tab(k)
             )
-        except Exception:
-            pass
-        chart_card_l = QVBoxLayout(chart_card)
-        chart_card_l.setContentsMargins(8, 8, 8, 8)
-        chart_card_l.setSpacing(0)
-        chart_title = QLabel("יתרת קרן לאורך זמן", chart_card)
-        chart_title.setObjectName("StatTitle")
-        chart_card_l.addWidget(chart_title, 0)
-        self._chart = MortgageBalanceChart(parent=chart_card)
-        chart_card_l.addWidget(self._chart, 1)
+            tab_bar.addWidget(btn)
+            self._mort_tab_buttons[key] = btn
+        tab_bar.addStretch(1)
+        tabs_wrap_l.addWidget(tab_bar_w, 0)
 
-        # Tracks summary table.
-        table_card = QWidget(root)
-        table_card.setObjectName("ContentPanel")
+        # ── תצוגת "מסלולים": טבלת התמהיל ברוחב מלא ──────────────────────
+        table_card = QWidget(tabs_wrap)
+        table_card.setObjectName("AssetTablePanel")
         try:
             table_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             table_card.setSizePolicy(
@@ -999,9 +1219,12 @@ class MortgagePage(BasePage):
         self._table.setRowCount(0)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self._table.setAlternatingRowColors(True)
+        self._table.setAlternatingRowColors(False)
         try:
             self._table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            vh = self._table.verticalHeader()
+            if vh is not None:
+                vh.setVisible(False)  # אין צורך במספרי שורות — פחות רעש
             hh = self._table.horizontalHeader()
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -1009,12 +1232,133 @@ class MortgagePage(BasePage):
         except Exception:
             pass
         table_card_l.addWidget(self._table, 1)
+        tabs_wrap_l.addWidget(table_card, 1)
 
-        bottom_row.addWidget(chart_card, 2)
-        bottom_row.addWidget(table_card, 1)
-        lay.addLayout(bottom_row, 1)
+        # ── תצוגת "גרף יתרה": ירידת יתרת הקרן לאורך זמן ─────────────────
+        chart_card = QWidget(tabs_wrap)
+        chart_card.setObjectName("AssetTablePanel")
+        try:
+            chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            chart_card.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            )
+        except Exception:
+            pass
+        chart_card_l = QVBoxLayout(chart_card)
+        chart_card_l.setContentsMargins(12, 12, 12, 12)
+        chart_card_l.setSpacing(0)
+        self._chart = MortgageBalanceChart(parent=chart_card)
+        chart_card_l.addWidget(self._chart, 1)
+        tabs_wrap_l.addWidget(chart_card, 1)
+
+        # ── תצוגת "ריבית / קרן": פירוק התשלום לאורך זמן (#3) ─────────────
+        split_card = QWidget(tabs_wrap)
+        split_card.setObjectName("AssetTablePanel")
+        try:
+            split_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            split_card.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            )
+        except Exception:
+            pass
+        split_card_l = QVBoxLayout(split_card)
+        split_card_l.setContentsMargins(12, 12, 12, 12)
+        split_card_l.setSpacing(0)
+        self._split_chart = MortgagePaymentSplitChart(parent=split_card)
+        split_card_l.addWidget(self._split_chart, 1)
+        tabs_wrap_l.addWidget(split_card, 1)
+
+        # ── תצוגת "סימולציה": פירעון מוקדם בתוספת חודשית (#7) ───────────
+        sim_card = QWidget(tabs_wrap)
+        sim_card.setObjectName("AssetTablePanel")
+        try:
+            sim_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            sim_card.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            )
+        except Exception:
+            pass
+        sim_card_l = QVBoxLayout(sim_card)
+        sim_card_l.setContentsMargins(20, 20, 20, 20)
+        sim_card_l.setSpacing(12)
+        sim_title = QLabel("פירעון חלקי — מה חוסך תשלום חד-פעמי לקרן?", sim_card)
+        sim_title.setObjectName("StatTitle")
+        sim_card_l.addWidget(sim_title, 0)
+        sim_input_row = QHBoxLayout()
+        sim_input_row.setSpacing(8)
+        sim_in_lbl = QLabel("תשלום חד-פעמי לקרן (₪):", sim_card)
+        sim_in_lbl.setObjectName("AssetCaption")
+        sim_input_row.addWidget(sim_in_lbl, 0)
+        self._sim_extra_edit = QLineEdit("50000", sim_card)
+        self._sim_extra_edit.setFixedWidth(120)
+        self._sim_extra_edit.editingFinished.connect(self._on_sim_calc)
+        sim_input_row.addWidget(self._sim_extra_edit, 0)
+        sim_btn = QPushButton("חשב", sim_card)
+        sim_btn.setObjectName("SecondaryButton")
+        sim_btn.clicked.connect(self._on_sim_calc)
+        sim_input_row.addWidget(sim_btn, 0)
+        sim_input_row.addStretch(1)
+        sim_card_l.addLayout(sim_input_row, 0)
+        self._sim_result = QLabel("", sim_card)
+        self._sim_result.setObjectName("AssetHeroSub")
+        try:
+            self._sim_result.setWordWrap(True)
+            self._sim_result.setTextFormat(Qt.TextFormat.RichText)
+        except Exception:
+            pass
+        sim_card_l.addWidget(self._sim_result, 0)
+
+        # ── פירעונות בפועל: קישור הוצאות חד-פעמיות אמיתיות לקרן ──────────
+        sim_sep = QLabel("פירעונות שבוצעו בפועל", sim_card)
+        sim_sep.setObjectName("StatTitle")
+        sim_card_l.addSpacing(8)
+        sim_card_l.addWidget(sim_sep, 0)
+        link_row = QHBoxLayout()
+        link_row.setSpacing(8)
+        link_btn = QPushButton("קשר הוצאה חד-פעמית…", sim_card)
+        link_btn.setObjectName("SecondaryButton")
+        link_btn.setToolTip("בחר הוצאות חד-פעמיות אמיתיות שהן פירעון חלקי לקרן")
+        link_btn.clicked.connect(self._on_link_prepayments)
+        link_row.addWidget(link_btn, 0)
+        link_row.addStretch(1)
+        sim_card_l.addLayout(link_row, 0)
+        self._sim_applied = QLabel("", sim_card)
+        self._sim_applied.setObjectName("AssetCaption")
+        try:
+            self._sim_applied.setWordWrap(True)
+        except Exception:
+            pass
+        sim_card_l.addWidget(self._sim_applied, 0)
+        sim_card_l.addStretch(1)
+        tabs_wrap_l.addWidget(sim_card, 1)
+
+        lay.addWidget(tabs_wrap, 1)
+
+        self._mort_tab_cards = {
+            "tracks": table_card,
+            "chart": chart_card,
+            "split": split_card,
+            "sim": sim_card,
+        }
+        if self._mort_tab not in self._mort_tab_cards:
+            self._mort_tab = "tracks"
+        self._show_mortgage_tab(self._mort_tab)
 
         self._reload()
+
+    def _show_mortgage_tab(self, key: str) -> None:
+        """הצג תצוגה אחת בלבד (מסלולים / גרף) והדגש את הטאב המתאים."""
+        self._mort_tab = key
+        for k, card in (self._mort_tab_cards or {}).items():
+            try:
+                card.setVisible(k == key)
+            except Exception:
+                pass
+        for k, btn in (self._mort_tab_buttons or {}).items():
+            try:
+                btn.setChecked(k == key)
+            except Exception:
+                pass
 
     def _reload(self) -> None:
         try:
@@ -1067,38 +1411,116 @@ class MortgagePage(BasePage):
         has_sel = m is not None
         if self._edit_btn is not None:
             self._edit_btn.setEnabled(has_sel)
-        if self._schedule_btn is not None:
-            self._schedule_btn.setEnabled(has_sel)
-        if self._payments_btn is not None:
-            self._payments_btn.setEnabled(has_sel)
+        for action in (
+            self._schedule_action,
+            self._payments_action,
+            self._delete_action,
+        ):
+            if action is not None:
+                action.setEnabled(has_sel)
+
+        # פירורי לחם — משקף את שם הנכס הנבחר.
+        if self._crumb is not None:
+            name = (m.name if m is not None else "") or "נכס"
+            self._crumb.setText(f"נכסים  ›  {name}  ›  משכנתא")
 
         if not has_sel or self._table is None:
             if self._table is not None:
                 self._table.setRowCount(0)
-            for card in (
-                self._card_principal,
-                self._card_outstanding,
-                self._card_payment,
-                self._card_interest,
+            for lbl in (
+                self._hero_outstanding,
+                self._hero_payment,
+                self._cap_principal,
+                self._cap_total,
+                self._cap_interest,
+                self._cap_linked,
+                self._progress_label,
+                self._sens_label,
+                self._sim_result,
+                self._sim_applied,
             ):
-                if card is not None:
-                    card.setText("")
+                if lbl is not None:
+                    lbl.setText("")
+            if self._hero_payment_sub is not None:
+                self._hero_payment_sub.setVisible(False)
+            if self._progress_bar is not None:
+                self._progress_bar.setValue(0)
             if self._chart is not None:
                 self._chart.set_mortgage(None)
+            if self._split_chart is not None:
+                self._split_chart.set_mortgage(None)
             return
 
         assert m is not None
         # MortgageLoan.status owns the per-track computation; here we only render.
-        st = MortgageLoan(m).status()
+        # פירעונות חלקיים = סכום התנועות שקושרו (הוצאות חד-פעמיות אמיתיות).
+        prepaid = self._service.prepaid_amount(m)
+        st = MortgageLoan(m).status(assumptions=self._assumptions, prepaid=prepaid)
 
-        if self._card_principal is not None:
-            self._card_principal.setText(_fmt_money(st.principal))
-        if self._card_outstanding is not None:
-            self._card_outstanding.setText(_fmt_money(st.outstanding))
-        if self._card_payment is not None:
-            self._card_payment.setText(_fmt_money(st.monthly_now))
-        if self._card_interest is not None:
-            self._card_interest.setText(_fmt_money(st.total_interest))
+        if self._hero_outstanding is not None:
+            self._hero_outstanding.setText(f"{_fmt_money(st.outstanding)} ₪")
+        if self._hero_payment is not None:
+            self._hero_payment.setText(f"{_fmt_money(st.monthly_now)} ₪")
+        # פירוק התשלום הנוכחי לריבית/קרן — כשיש תאריך התחלה ותשלום פעיל.
+        if self._hero_payment_sub is not None:
+            if st.dated and st.monthly_now > 0:
+                self._hero_payment_sub.setText(
+                    f"מזה ריבית {_fmt_money(st.interest_now)} ₪ · "
+                    f"קרן {_fmt_money(st.principal_now)} ₪"
+                )
+                self._hero_payment_sub.setVisible(True)
+            else:
+                self._hero_payment_sub.setVisible(False)
+
+        # רצועת ההתקדמות — כמה מהקרן שולם, כמה תשלומים נותרו ומתי הסיום.
+        if self._progress_bar is not None and self._progress_label is not None:
+            if st.dated:
+                pct = int(round(st.pct_paid * 100))
+                self._progress_bar.setValue(pct)
+                payoff = (
+                    f" · סיום {st.payoff_month:02d}/{st.payoff_year}"
+                    if st.payoff_year
+                    else ""
+                )
+                self._progress_label.setText(
+                    f"שולם {pct}% מהקרן · נותרו {st.remaining_payments} "
+                    f"תשלומים{payoff}"
+                )
+            else:
+                self._progress_bar.setValue(0)
+                self._progress_label.setText(
+                    "טרם הוגדר תאריך התחלה — לא ניתן לחשב התקדמות"
+                )
+
+        if self._cap_principal is not None:
+            self._cap_principal.setText(f"סך הקרן {_fmt_money(st.principal)} ₪")
+        if self._cap_total is not None:
+            self._cap_total.setText(f"סך הכל לתשלום {_fmt_money(st.total_cost)} ₪")
+        if self._cap_interest is not None:
+            self._cap_interest.setText(
+                f"ריבית צפויה {_fmt_money(st.total_interest)} ₪"
+            )
+        # #2 — חשיפה למדד: אחוז היתרה הצמוד. מוסתר (עם המפריד) כשאין הצמדה.
+        if self._cap_linked is not None:
+            show_linked = st.linked_fraction > 0.0
+            self._cap_linked.setText(
+                f"צמוד למדד {st.linked_fraction * 100:.0f}%" if show_linked else ""
+            )
+            self._cap_linked.setVisible(show_linked)
+            if getattr(self, "_cap_linked_sep", None) is not None:
+                self._cap_linked_sep.setVisible(show_linked)
+
+        # #5 — רגישות: כמה יעלה התשלום החודשי אם הפריים/המדד יעלו ב-1%.
+        if self._sens_label is not None:
+            sens = assumptions_sensitivity(m, self._assumptions)
+            parts = []
+            if abs(sens.prime_monthly_delta) >= 1:
+                parts.append(
+                    f"פריים +1% → {sens.prime_monthly_delta:+,.0f} ₪/חודש"
+                )
+            if abs(sens.cpi_monthly_delta) >= 1:
+                parts.append(f"מדד +1% → {sens.cpi_monthly_delta:+,.0f} ₪/חודש")
+            self._sens_label.setText("   ·   ".join(parts))
 
         self._table.setRowCount(len(st.tracks))
         for row, tr in enumerate(st.tracks):
@@ -1112,7 +1534,30 @@ class MortgagePage(BasePage):
             )
 
         if self._chart is not None:
+            self._chart.set_assumptions(self._assumptions)
             self._chart.set_mortgage(m)
+        if self._split_chart is not None:
+            self._split_chart.set_assumptions(self._assumptions)
+            self._split_chart.set_mortgage(m)
+        self._on_sim_calc()
+
+        # רשימת הפירעונות שבוצעו בפועל (הוצאות מקושרות) + סה"כ.
+        if self._sim_applied is not None:
+            linked = self._service.linked_prepayment_movements(m)
+            if linked:
+                total = sum(abs(float(x.amount)) for x in linked)
+                parts = [
+                    f"{abs(float(x.amount)):,.0f} ₪ ({x.date})" for x in linked[:8]
+                ]
+                self._sim_applied.setText(
+                    f"מקושרים ({_fmt_money(total)} ₪ · משתקף למעלה ביתרה "
+                    f"ובסיום): " + " · ".join(parts)
+                )
+            else:
+                self._sim_applied.setText(
+                    "לא קושרו הוצאות. לחץ «קשר הוצאה חד-פעמית» כדי לזקוף "
+                    "הוצאה אמיתית כפירעון לקרן."
+                )
 
     def _on_selection_changed(self, index: int) -> None:
         if self._selector is None:
@@ -1123,6 +1568,88 @@ class MortgagePage(BasePage):
         except Exception:
             self._selected_id = None
         self._refresh_details()
+
+    def _on_apply_assumptions(self) -> None:
+        """קרא פריים/מדד מהשדות, עדכן את ההנחות ורענן את כל המסך (#5)."""
+        prime = _parse_float(self._prime_edit.text()) if self._prime_edit else None
+        cpi = _parse_float(self._cpi_edit.text()) if self._cpi_edit else None
+        if prime is None:
+            prime = self._assumptions.prime_rate
+        if cpi is None:
+            cpi = self._assumptions.cpi_annual
+        new = MortgageAssumptions(cpi_annual=float(cpi), prime_rate=float(prime))
+        if (
+            new.prime_rate == self._assumptions.prime_rate
+            and new.cpi_annual == self._assumptions.cpi_annual
+        ):
+            return  # ללא שינוי — הימנע מריענון מיותר
+        self._assumptions = new
+        self._refresh_details()
+
+    def _on_sim_calc(self) -> None:
+        """חשב את חיסכון הפירעון המוקדם מהתוספת החודשית שהוזנה (#7)."""
+        if self._sim_result is None:
+            return
+        m = self._selected_mortgage()
+        if m is None:
+            self._sim_result.setText("")
+            return
+        lump = _parse_float(self._sim_extra_edit.text()) if self._sim_extra_edit else 0
+        lump = float(lump or 0.0)
+        if lump <= 0:
+            self._sim_result.setText("הזן סכום חד-פעמי כדי לראות את החיסכון.")
+            return
+        res = early_payoff_savings(m, lump, self._assumptions)
+        if res is None or (res.months_saved <= 0 and res.interest_saved < 1):
+            self._sim_result.setText("סכום זה כמעט ואינו משפיע.")
+            return
+        note = (
+            "<br><span style='opacity:.7'>התשלום מופנה למסלול הארוך ביותר "
+            "(קיצור תקופה); התשלום החודשי נשאר כשהיה.</span>"
+        )
+        if res.months_saved > 0:
+            years, months = divmod(res.months_saved, 12)
+            dur = []
+            if years:
+                dur.append(f"{years} שנים")
+            if months:
+                dur.append(f"{months} חודשים")
+            dur_txt = " ו-".join(dur) if dur else "0 חודשים"
+            payoff = months_after(m.start_date, res.new_months)
+            payoff_txt = (
+                f" · סיום חדש בסביבות {payoff[1]:02d}/{payoff[0]}" if payoff else ""
+            )
+            self._sim_result.setText(
+                f"תשלום חד-פעמי של {_fmt_money(lump)} ₪ יקצר את המשכנתא ב-"
+                f"<b>{dur_txt}</b> ויחסוך כ-<b>{_fmt_money(res.interest_saved)} ₪</b> "
+                f"בריבית{payoff_txt}.{note}"
+            )
+        else:
+            # חוסך ריבית אך מסלול אחר מסתיים מאוחר יותר, כך שמועד הסיום הכולל
+            # אינו זז.
+            self._sim_result.setText(
+                f"תשלום חד-פעמי של {_fmt_money(lump)} ₪ יחסוך כ-"
+                f"<b>{_fmt_money(res.interest_saved)} ₪</b> בריבית, אך לא יקדים "
+                f"את מועד הסיום הכולל (מסלול אחר מסתיים מאוחר יותר).{note}"
+            )
+
+    def _on_link_prepayments(self) -> None:
+        """בחר הוצאות חד-פעמיות אמיתיות שייזקפו כפירעון חלקי לקרן."""
+        m = self._selected_mortgage()
+        if m is None:
+            QMessageBox.information(self, "פירעון חלקי", "בחר משכנתא")
+            return
+        dlg = PrepaymentLinkDialog(
+            movements=self._service.list_movements(),
+            linked_ids=list(getattr(m, "prepayment_movement_ids", []) or []),
+            parent=self,
+        )
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        self._service.set_prepayment_movements(
+            mortgage_id=m.id, movement_ids=dlg.selected_ids()
+        )
+        self._reload()
 
     def _on_edit_clicked(self) -> None:
         m = self._selected_mortgage()

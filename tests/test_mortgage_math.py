@@ -31,7 +31,14 @@ from finance.models.mortgage_math import (  # noqa: E402
     annuity_payment,
     cost_paid_amount,
     cost_total_amount,
+    assumptions_sensitivity,
+    early_payoff_savings,
+    linked_principal_fraction,
+    months_after,
     months_between,
+    payment_split_projection,
+    track_end_milestones,
+    weighted_annual_rate,
     mortgage_initial_monthly,
     mortgage_outstanding,
     mortgage_total_interest,
@@ -355,6 +362,167 @@ def test_acquisition_cost_uses_planned_not_paid() -> None:
     )
     s = purchase_summary(m, movements=movs)
     assert _approx(s.acquisition_cost, 2_060_000, 1.0)  # מחיר + מתוכנן, לא ששולם
+
+
+def test_months_after() -> None:
+    assert months_after("2024-01-01", 0) == (2024, 1)
+    assert months_after("2024-01-01", 12) == (2025, 1)
+    assert months_after("2024-06-01", 8) == (2025, 2)
+    assert months_after("", 12) is None  # אין תאריך התחלה → לא ידוע
+
+
+def test_loan_status_progress_and_payment_split() -> None:
+    from finance.models.asset import MortgageLoan
+
+    m = Mortgage(
+        name="t",
+        start_date="2024-07-01",
+        tracks=[MortgageTrack(principal=500_000, annual_rate=4.0, term_months=240)],
+    )
+    st = MortgageLoan(m).status(as_of_date="2025-07-01")  # 12 תשלומים אחרי
+    assert st.dated is True
+    assert st.elapsed_months == 12
+    assert st.total_months == 240
+    assert st.remaining_payments == 228
+    assert (st.payoff_year, st.payoff_month) == (2044, 7)
+    # פירוק התשלום הנוכחי לריבית+קרן שווה לתשלום החודשי.
+    assert _approx(st.interest_now + st.principal_now, st.monthly_now, 1.0)
+    # עלות כוללת = קרן + סך ריבית.
+    assert _approx(st.total_cost, st.principal + st.total_interest, 1.0)
+    # אחוז ששולם — חיובי אך קטן (שנה מתוך 20).
+    assert 0.0 < st.pct_paid < 0.1
+
+
+def test_loan_status_undated_has_no_progress() -> None:
+    from finance.models.asset import MortgageLoan
+
+    m = Mortgage(
+        name="t",
+        tracks=[MortgageTrack(principal=500_000, annual_rate=4.0, term_months=240)],
+    )
+    st = MortgageLoan(m).status()
+    assert st.dated is False
+    assert st.pct_paid == 0.0
+    assert st.elapsed_months == 0
+    assert st.total_months == 240
+
+
+def test_payment_split_matches_schedule() -> None:
+    t = MortgageTrack(principal=500_000, annual_rate=4.0, term_months=240)
+    m = Mortgage(tracks=[t])
+    pts = payment_split_projection(m, months=240)
+    assert len(pts) == 240
+    # פירוק = לוח הסילוקין של המסלול היחיד.
+    sched = track_schedule(t)
+    assert _approx(pts[0].interest, sched[0].interest_part, 0.5)
+    assert _approx(pts[0].principal, sched[0].principal_part, 0.5)
+    # התחלה: רוב התשלום ריבית; סוף: רוב התשלום קרן.
+    assert pts[0].interest > pts[0].principal
+    assert pts[-1].principal > pts[-1].interest
+    # סכום הריבית לאורך הזמן = סך הריבית של המסלול.
+    assert _approx(sum(p.interest for p in pts), track_total_interest(t), 1.0)
+
+
+def test_linked_fraction_and_weighted_rate() -> None:
+    m = Mortgage(
+        tracks=[
+            MortgageTrack(principal=300_000, annual_rate=3.0, term_months=240,
+                          cpi_linked=True),
+            MortgageTrack(principal=700_000, annual_rate=5.0, term_months=240),
+        ]
+    )
+    assert _approx(linked_principal_fraction(m), 0.3, 0.001)
+    # ריבית ממוצעת משוקללת = (300k*3 + 700k*5)/1000k = 4.4%.
+    assert _approx(weighted_annual_rate(m), 4.4, 0.01)
+
+
+def test_sensitivity_prime_only_affects_prime_tracks() -> None:
+    m = Mortgage(
+        tracks=[
+            MortgageTrack(kind=TrackKind.PRIME, principal=500_000, term_months=240),
+            MortgageTrack(kind=TrackKind.FIXED_UNLINKED, principal=500_000,
+                          annual_rate=4.0, term_months=240),
+        ]
+    )
+    s = assumptions_sensitivity(m, prime_delta=1.0, cpi_delta=1.0)
+    # עליית פריים מייקרת את התשלום (יש מסלול פריים).
+    assert s.prime_monthly_delta > 0
+    assert s.prime_interest_delta > 0
+    # אין מסלול צמוד → עליית מדד לא משנה כלום.
+    assert _approx(s.cpi_monthly_delta, 0.0, 0.5)
+
+
+def test_track_end_milestones_sorted() -> None:
+    m = Mortgage(
+        tracks=[
+            MortgageTrack(name="ארוך", principal=500_000, annual_rate=4.0,
+                          term_months=300),
+            MortgageTrack(name="קצר", principal=200_000, annual_rate=4.0,
+                          term_months=120),
+        ]
+    )
+    ms = track_end_milestones(m)
+    assert [x.period for x in ms] == [120, 300]
+    assert ms[0].track_name == "קצר"
+    assert ms[0].payment_drop > 0
+
+
+def test_early_payoff_baseline_matches_real_schedule() -> None:
+    # ללא תשלום חד-פעמי — עקבי עם שאר המסך: תקופה = המסלול הארוך, ריבית = הסך.
+    m = Mortgage(
+        tracks=[
+            MortgageTrack(principal=620_000, annual_rate=4.5, term_months=240),
+            MortgageTrack(principal=700_000, annual_rate=6.0, term_months=300),
+        ]
+    )
+    base = early_payoff_savings(m, 0.0)
+    assert base is not None
+    assert base.baseline_months == 300  # המסלול הארוך
+    assert base.new_months == 300  # ללא תשלום — זהה
+    assert base.months_saved == 0
+    assert _approx(base.baseline_interest, mortgage_total_interest(m), 5.0)
+    assert _approx(base.interest_saved, 0.0, 5.0)
+
+
+def test_early_payoff_lump_is_modest_not_absurd() -> None:
+    # תשלום חד-פעמי קטן חוסך מעט — לא מקצר שנים על גבי שנים (רגרסיה לבאג
+    # שהתייחס לסכום כתוספת חודשית).
+    m = Mortgage(
+        tracks=[MortgageTrack(principal=750_000, annual_rate=4.3, term_months=192)]
+    )
+    res = early_payoff_savings(m, 10_000.0)  # ~1.3% מהקרן
+    assert res is not None
+    assert res.new_months < res.baseline_months
+    assert res.months_saved <= 6  # תשלום זעיר → חיסכון זמן זעיר
+
+
+def test_early_payoff_lump_saves_time_and_interest() -> None:
+    m = Mortgage(
+        tracks=[MortgageTrack(principal=500_000, annual_rate=4.0, term_months=240)]
+    )
+    res = early_payoff_savings(m, 100_000.0)  # תשלום חד-פעמי משמעותי
+    assert res is not None
+    assert res.months_saved > 0  # הקטנת הקרן מקצרת את התקופה
+    assert res.interest_saved > 0  # וחוסכת ריבית
+    assert res.new_months < res.baseline_months
+
+
+def test_early_payoff_targets_longest_track_to_shorten() -> None:
+    # התשלום מופנה למסלול הארוך ביותר (360) כדי לקצר בפועל את המשכנתא,
+    # גם כשמסלול אחר יקר יותר.
+    m = Mortgage(
+        tracks=[
+            MortgageTrack(name="קצר יקר", principal=300_000, annual_rate=6.0,
+                          term_months=120),
+            MortgageTrack(name="ארוך זול", principal=500_000, annual_rate=3.5,
+                          term_months=360),
+        ]
+    )
+    res = early_payoff_savings(m, 150_000.0)
+    assert res is not None
+    assert res.baseline_months == 360
+    assert 0 < res.new_months < 360  # המסלול הארוך התקצר → כל המשכנתא התקצרה
+    assert res.interest_saved > 0
 
 
 def _run_all() -> int:

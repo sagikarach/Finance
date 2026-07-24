@@ -407,7 +407,12 @@ class AssetDetailPage(BasePage):
 
         s = self._service.purchase_summary(m)
 
-        # כותרת + כפתורי פעולה (חזרה, משכנתא, עריכת רכישה) — כולם בשורת הכותרת.
+        # פירורי לחם — נכסים › שם הנכס (מבהיר את היררכיית הניווט התלת-שלבית).
+        crumb = QLabel(f"נכסים  ›  {m.name or '(ללא שם)'}", root)
+        crumb.setObjectName("AssetBreadcrumb")
+        lay.addWidget(crumb, 0)
+
+        # כותרת + כפתורי פעולה (חזרה, עריכת רכישה). כפתור המשכנתא ירד לשורה נפרדת.
         title_row = QHBoxLayout()
         back_btn = QToolButton(root)
         back_btn.setObjectName("IconButton")
@@ -426,29 +431,6 @@ class AssetDetailPage(BasePage):
         name_lbl.setObjectName("HeaderTitle")
         title_row.addWidget(name_lbl, 0)
         title_row.addStretch(1)
-
-        # כפתור המשכנתא — בשורת הכותרת לצד שאר הכפתורים, פותח את פרטי המשכנתא.
-        if s.tracks_total > 0:
-            mort_text = (
-                f"משכנתא: {_fmt_money(s.tracks_total)} ₪ · "
-                f"{_fmt_money(s.mortgage_monthly)} ₪/חודש   ›"
-            )
-        elif s.required_mortgage > 0:
-            mort_text = f"משכנתא: בנה תמהיל בסך {_fmt_money(s.required_mortgage)} ₪   ›"
-        else:
-            mort_text = "משכנתא — פתח פרטים   ›"
-        mort_btn = QPushButton(mort_text, root)
-        mort_btn.setObjectName("SecondaryButton")
-        mort_btn.setToolTip("פתח את פרטי המשכנתא (תמהיל, לוח סילוקין, תנועות)")
-        try:
-            mort_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            mort_btn.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
-            )
-        except Exception:
-            pass
-        mort_btn.clicked.connect(self._open_mortgage)
-        title_row.addWidget(mort_btn, 0)
 
         edit_btn = QToolButton(root)
         edit_btn.setObjectName("IconButton")
@@ -485,51 +467,90 @@ class AssetDetailPage(BasePage):
         remaining_need = max(0.0, residual - exp_paid)
         left_in_bank = bank_balance - remaining_need
 
-        # כרטיסי סיכום
+        # ───────── שני כרטיסי ליבה: עלות רכישה + מה יישאר בבנק ─────────
         cards_row = QHBoxLayout()
         cards_row.setSpacing(12)
 
-        def build_card(
-            title_text: str,
-            value_text: str,
-            style: str,
-            value_color: Optional[str] = None,
+        def build_hero(
+            title_text: str, value_text: str, *, accent: bool = False, tone: str = ""
         ) -> None:
             card = QWidget(root)
-            card.setObjectName(style)
+            card.setObjectName("AssetHeroCardAccent" if accent else "AssetHeroCard")
             try:
                 card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
                 card.setAutoFillBackground(True)
             except Exception:
                 pass
             cl = QVBoxLayout(card)
-            cl.setContentsMargins(14, 12, 14, 12)
+            cl.setContentsMargins(16, 14, 16, 14)
             cl.setSpacing(6)
             t = QLabel(title_text, card)
-            t.setObjectName("StatTitle")
+            t.setObjectName("AssetHeroTitle")
             v = QLabel(value_text, card)
-            v.setObjectName("StatValueCard")
-            if value_color:
-                try:
-                    v.setStyleSheet(f"color: {value_color};")
-                except Exception:
-                    pass
-            cl.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
-            cl.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+            v.setObjectName("AssetHeroValue")
+            if tone:
+                v.setProperty("tone", tone)
+            cl.addWidget(t, 0)
+            cl.addWidget(v, 0)
             cards_row.addWidget(card, 1)
 
-        build_card("עלות רכישה", _fmt_money(s.acquisition_cost), "StatCardRed")
-        build_card("כסף שנשתמש בו", _fmt_money(s.upfront_cash), "StatCardYellow")
-        build_card("תשלום חודשי כולל", _fmt_money(s.monthly_total), "StatCardPurple")
-        # אדום אם חשבון הבנק לא מספיק לכיסוי היתרה שנותרה (ערך שלילי).
-        build_card(
+        build_hero("עלות רכישה", f"{_fmt_money(s.acquisition_cost)} ₪")
+        # יישאר בבנק — הכרטיס המודגש; ירוק אם חיובי, אדום אם החשבון לא מספיק.
+        build_hero(
             "יישאר בבנק אחרי הרכישה",
-            _fmt_money(left_in_bank),
-            "StatCardGreen",
-            value_color="#dc2626" if left_in_bank < 0 else None,
+            f"{_fmt_money(left_in_bank)} ₪",
+            accent=True,
+            tone="neg" if left_in_bank < 0 else "pos",
         )
-        build_card("יחס מימון", f"{s.ltv * 100:.0f}%", "StatCardYellow")
         lay.addLayout(cards_row, 0)
+
+        # ───────── שורת caption — המדדים המשניים (חודשי / מימון / הון עצמי) ─────────
+        caption_row = QHBoxLayout()
+        caption_row.setSpacing(10)
+        caption_row.setContentsMargins(4, 0, 4, 0)
+
+        def add_caption(text: str, *, warn: bool = False) -> None:
+            lbl = QLabel(text, root)
+            lbl.setObjectName("AssetCaptionWarn" if warn else "AssetCaption")
+            caption_row.addWidget(lbl, 0)
+
+        def add_sep() -> None:
+            sep = QLabel("·", root)
+            sep.setObjectName("AssetCaptionSep")
+            caption_row.addWidget(sep, 0)
+
+        add_caption(f"חודשי {_fmt_money(s.monthly_total)} ₪")
+        add_sep()
+        # יחס מימון — מודגש באדום כשעובר 75% (התראה שכבר קיימת במודל).
+        ltv_txt = f"מימון {s.ltv * 100:.0f}%"
+        add_caption(f"{ltv_txt} ⚠" if s.ltv_exceeds_75 else ltv_txt, warn=s.ltv_exceeds_75)
+        add_sep()
+        add_caption(f"כסף שנשתמש בו {_fmt_money(s.upfront_cash)} ₪")
+        caption_row.addStretch(1)
+        lay.addLayout(caption_row, 0)
+
+        # ───────── שורת המשכנתא — כפתור לחיץ ברוחב מלא (ירד מהכותרת) ─────────
+        if s.tracks_total > 0:
+            mort_text = (
+                f"משכנתא:  {_fmt_money(s.tracks_total)} ₪ · "
+                f"{_fmt_money(s.mortgage_monthly)} ₪/חודש   ›"
+            )
+        elif s.required_mortgage > 0:
+            mort_text = f"משכנתא:  בנה תמהיל בסך {_fmt_money(s.required_mortgage)} ₪   ›"
+        else:
+            mort_text = "משכנתא —  פתח פרטים   ›"
+        mort_btn = QPushButton(mort_text, root)
+        mort_btn.setObjectName("AssetNavRow")
+        mort_btn.setToolTip("פתח את פרטי המשכנתא (תמהיל, לוח סילוקין, תנועות)")
+        try:
+            mort_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            mort_btn.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+        except Exception:
+            pass
+        mort_btn.clicked.connect(self._open_mortgage)
+        lay.addWidget(mort_btn, 0)
 
         # ───────── צד ההוצאות (יציאה) — מחיר הדירה + עלויות, בהוספה כמו ההכנסות ─
         self._one_time_costs = list(m.one_time_costs)
@@ -599,7 +620,7 @@ class AssetDetailPage(BasePage):
         )
         income_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         income_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        income_table.setAlternatingRowColors(True)
+        income_table.setAlternatingRowColors(False)
         try:
             income_table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             hh2 = income_table.horizontalHeader()
@@ -759,7 +780,7 @@ class AssetDetailPage(BasePage):
         table.setObjectName("ActionHistoryTableWidget")
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        table.setAlternatingRowColors(True)
+        table.setAlternatingRowColors(False)
         try:
             table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             hh = table.horizontalHeader()

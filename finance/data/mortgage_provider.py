@@ -198,6 +198,9 @@ def serialize_mortgage(mortgage: Mortgage) -> Dict[str, Any]:
         "sold": bool(getattr(mortgage, "sold", False)),
         "sale_price": float(getattr(mortgage, "sale_price", 0.0) or 0.0),
         "sale_date": str(getattr(mortgage, "sale_date", "") or ""),
+        "prepayment_movement_ids": list(
+            getattr(mortgage, "prepayment_movement_ids", []) or []
+        ),
     }
 
 
@@ -237,6 +240,11 @@ def deserialize_mortgage(item: Any) -> Optional[Mortgage]:
             sold=bool(item.get("sold", False)),
             sale_price=float(item.get("sale_price", 0.0) or 0.0),
             sale_date=str(item.get("sale_date", "") or ""),
+            prepayment_movement_ids=[
+                str(x)
+                for x in (item.get("prepayment_movement_ids") or [])
+                if str(x).strip()
+            ],
         )
     except Exception:
         return None

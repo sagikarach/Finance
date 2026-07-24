@@ -6,12 +6,9 @@ from typing import List, Optional, Tuple
 from ..qt import (
     QApplication,
     QColor,
-    QFont,
     QFrame,
     QLabel,
     QPainter,
-    QPen,
-    QPointF,
     Qt,
     QVBoxLayout,
     QWidget,
@@ -21,10 +18,8 @@ from ..models.mortgage import Mortgage
 from ..models.mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     MortgageAssumptions,
-    months_after,
     months_between,
-    outstanding_projection,
-    track_end_milestones,
+    payment_split_projection,
 )
 
 if charts_available:
@@ -37,92 +32,9 @@ if charts_available:
     )
 
 
-class _MilestoneChartView(QChartView if charts_available else object):  # type: ignore
-    """QChartView שמצייר בעצמו את אבני-הדרך: קו אנכי מקווקו בכל סיום מסלול,
-    ותווית מעוגנת בדיוק לאותו קו (QtCharts לא מספק אנוטציות, לכן מציירים ב-
-    ``drawForeground`` באמצעות ``mapToPosition`` — כמו ב-savings_history_chart)."""
-
-    def __init__(self, chart: "QChart", parent: Optional[QWidget] = None) -> None:
-        super().__init__(chart, parent)
-        self._milestones: List[Tuple[int, str]] = []  # (period, label)
-        self._series = None  # סדרת היתרה — לעיגון מיקום דרך mapToPosition
-
-    def set_milestones(self, milestones: List[Tuple[int, str]], series) -> None:
-        self._milestones = list(milestones)
-        self._series = series
-        try:
-            self.update()
-        except Exception:
-            pass
-
-    def drawForeground(self, painter: "QPainter", rect) -> None:  # noqa: N802
-        try:
-            super().drawForeground(painter, rect)
-        except Exception:
-            pass
-        chart = self.chart()
-        if chart is None or self._series is None or not self._milestones:
-            return
-        try:
-            plot = chart.plotArea()
-        except Exception:
-            return
-
-        is_dark = False
-        app = QApplication.instance()
-        if app is not None:
-            try:
-                is_dark = str(app.property("theme") or "light") == "dark"
-            except Exception:
-                is_dark = False
-        text_color = QColor("#e2e8f0" if is_dark else "#334155")
-        chip = QColor(17, 24, 39, 205) if is_dark else QColor(255, 255, 255, 215)
-        line_color = QColor(_MILESTONE_COLOR)
-
-        painter.save()
-        font = QFont(painter.font())
-        font.setPointSizeF(8.5)
-        painter.setFont(font)
-        fm = painter.fontMetrics()
-        line_h = fm.height()
-
-        ordered = sorted(self._milestones, key=lambda mp: mp[0])
-        for i, (period, text) in enumerate(ordered):
-            try:
-                x = chart.mapToPosition(
-                    QPointF(float(period), 0.0), self._series
-                ).x()
-            except Exception:
-                continue
-            if x < plot.left() - 1 or x > plot.right() + 1:
-                continue
-            # קו אנכי מקווקו לכל גובה אזור הגרף.
-            pen = QPen(line_color)
-            pen.setStyle(Qt.PenStyle.DotLine)
-            pen.setWidthF(1.0)
-            painter.setPen(pen)
-            painter.drawLine(
-                int(x), int(plot.top()), int(x), int(plot.bottom())
-            )
-            # תווית מעוגנת לקו, בשכבות מתחלפות כדי שלא תתנגש עם שכנתה.
-            tw = fm.horizontalAdvance(text)
-            ty = plot.top() + 3 + (i % 2) * (line_h + 3)
-            tx = x - 5 - tw  # RTL: הטקסט משמאל לקו
-            if tx < plot.left() + 2:
-                tx = x + 5  # אם גולש שמאלה — הפוך לימין הקו
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(chip)
-            painter.drawRoundedRect(
-                int(tx) - 3, int(ty) - 1, tw + 6, line_h + 2, 3, 3
-            )
-            painter.setPen(text_color)
-            painter.drawText(int(tx), int(ty) + fm.ascent(), text)
-        painter.restore()
-
-
-_LINE_COLOR = "#6366f1"  # אינדיגו — עקומת היתרה
+_INTEREST_COLOR = "#ef4444"  # אדום — מרכיב הריבית
+_PRINCIPAL_COLOR = "#16a34a"  # ירוק — מרכיב הקרן
 _TODAY_COLOR = "#f59e0b"  # ענבר — קו "היום"
-_MILESTONE_COLOR = "#94a3b8"  # אפור — סיום מסלול (התשלום יורד)
 
 
 def _label_color() -> QColor:
@@ -138,7 +50,6 @@ def _label_color() -> QColor:
 
 
 def _month_keys_from(start_date: str, count: int) -> List[Tuple[int, int]]:
-    """רשימת (שנה, חודש) החל מ-``start_date`` באורך ``count``."""
     from ..models.accounts import parse_iso_date
 
     dt = parse_iso_date(str(start_date or "").strip())
@@ -157,8 +68,11 @@ def _label_step_for(n: int) -> int:
     return max(1, (n + 6) // 7)
 
 
-class MortgageBalanceChart(QWidget):
-    """גרף ירידת יתרת הקרן לאורך חיי המשכנתא (תחזית דטרמיניסטית)."""
+class MortgagePaymentSplitChart(QWidget):
+    """גרף פירוק התשלום החודשי לריבית מול קרן לאורך חיי המשכנתא.
+
+    בתחילת הדרך רוב התשלום הוא ריבית, ובהמשך המשקל עובר לקרן — הצטלבות הקווים
+    ממחישה זאת."""
 
     def __init__(
         self,
@@ -194,7 +108,8 @@ class MortgageBalanceChart(QWidget):
         except Exception:
             pass
         try:
-            chart.legend().setVisible(False)
+            chart.legend().setVisible(True)
+            chart.legend().setAlignment(Qt.AlignmentFlag.AlignTop)
             chart.setBackgroundRoundness(0)
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
             chart.setPlotAreaBackgroundVisible(False)
@@ -202,7 +117,7 @@ class MortgageBalanceChart(QWidget):
             pass
         self._chart = chart
 
-        chart_view = _MilestoneChartView(chart, self)
+        chart_view = QChartView(chart, self)
         try:
             chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
             chart_view.setFrameShape(QFrame.Shape.NoFrame)
@@ -215,7 +130,6 @@ class MortgageBalanceChart(QWidget):
         self.set_mortgage(mortgage)
 
     def set_assumptions(self, assumptions: MortgageAssumptions) -> None:
-        """עדכן את ההנחות ורענן את הגרף (משמש בעת שינוי פריים/מדד)."""
         self._assumptions = assumptions
         self.set_mortgage(self._mortgage)
 
@@ -224,7 +138,6 @@ class MortgageBalanceChart(QWidget):
         if not charts_available or self._chart is None:
             return
 
-        # נקה סדרות וצירים קיימים.
         try:
             self._chart.removeAllSeries()
         except Exception:
@@ -246,31 +159,42 @@ class MortgageBalanceChart(QWidget):
         if total_months <= 0:
             return
 
-        points = outstanding_projection(
+        points = payment_split_projection(
             mortgage, months=total_months, step=1, assumptions=self._assumptions
         )
         if not points:
             return
 
-        values = [p.outstanding for p in points]
-        n = len(values)
-        max_val = max(values) if values else 0.0
+        n = len(points)
+        max_val = max((p.interest + 0.0) for p in points)
+        max_val = max(max_val, max((p.principal for p in points), default=0.0))
 
-        series = QLineSeries()
+        interest_series = QLineSeries()
+        principal_series = QLineSeries()
         try:
-            pen = series.pen()
-            pen.setColor(QColor(_LINE_COLOR))
-            pen.setWidthF(2.5)
-            pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-            series.setPen(pen)
+            interest_series.setName("ריבית")
+            principal_series.setName("קרן")
         except Exception:
             pass
-        for i, v in enumerate(values):
-            series.append(float(i), float(v))
-        self._chart.addSeries(series)
+        for series, color in (
+            (interest_series, _INTEREST_COLOR),
+            (principal_series, _PRINCIPAL_COLOR),
+        ):
+            try:
+                pen = series.pen()
+                pen.setColor(QColor(color))
+                pen.setWidthF(2.5)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                series.setPen(pen)
+            except Exception:
+                pass
+        for i, p in enumerate(points):
+            interest_series.append(float(i), float(p.interest))
+            principal_series.append(float(i), float(p.principal))
+        self._chart.addSeries(interest_series)
+        self._chart.addSeries(principal_series)
 
-        # ציר X — תוויות חודש/שנה בכל ~7 נקודות.
         month_keys = _month_keys_from(mortgage.start_date, n)
         axis_x = QCategoryAxis()
         step = _label_step_for(n)
@@ -308,16 +232,17 @@ class MortgageBalanceChart(QWidget):
         try:
             self._chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
             self._chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
-            series.attachAxis(axis_x)
-            series.attachAxis(axis_y)
+            for series in (interest_series, principal_series):
+                series.attachAxis(axis_x)
+                series.attachAxis(axis_y)
         except Exception:
             pass
 
-        # קו אנכי מקווקו במיקום "היום" (אם בתוך טווח הזמן).
         elapsed = months_between(mortgage.start_date, None)
         if 0 < elapsed < n:
             today_series = QLineSeries()
             try:
+                today_series.setName("היום")
                 pen = today_series.pen()
                 pen.setColor(QColor(_TODAY_COLOR))
                 pen.setWidthF(1.5)
@@ -334,24 +259,7 @@ class MortgageBalanceChart(QWidget):
             except Exception:
                 pass
 
-        # אבני-דרך: מסלולים שנגמרים מאוחדים לפי חודש; מציירים ידנית ב-
-        # drawForeground (קו + תווית מעוגנת) כי QtCharts לא מספק אנוטציות.
-        by_period: dict = {}
-        for ms in track_end_milestones(mortgage, self._assumptions):
-            if not (0 < ms.period <= n):
-                continue
-            by_period.setdefault(ms.period, []).append(ms.track_name)
-
-        milestones: List[Tuple[int, str]] = []
-        for period, names in by_period.items():
-            ym = months_after(mortgage.start_date, period)
-            when = f"{ym[1]:02d}/{ym[0] % 100:02d}" if ym else f"#{period}"
-            milestones.append((int(period), f"{when} · סיום {' + '.join(names)}"))
-        if isinstance(self._chart_view, _MilestoneChartView):
-            self._chart_view.set_milestones(milestones, series)
-
     def refresh_theme(self) -> None:
-        """החל מחדש את צבעי התוויות לאחר החלפת ערכת נושא."""
         if not charts_available or self._chart is None:
             return
         lc = _label_color()
@@ -360,3 +268,7 @@ class MortgageBalanceChart(QWidget):
                 ax.setLabelsColor(lc)
             except Exception:
                 pass
+        try:
+            self._chart.legend().setLabelColor(lc)
+        except Exception:
+            pass

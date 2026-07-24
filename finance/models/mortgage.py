@@ -187,6 +187,8 @@ class Mortgage:
     sold: bool = False  # האם הנכס נמכר
     sale_price: float = 0.0  # מחיר המכירה (השווי שמומש)
     sale_date: str = ""  # תאריך המכירה (YYYY-MM-DD)
+    # מזהי תנועות (הוצאות חד-פעמיות) שקושרו כפירעון חלקי לקרן (קיצור תקופה).
+    prepayment_movement_ids: list[str] = field(default_factory=list)
 
     @property
     def original_principal(self) -> float:

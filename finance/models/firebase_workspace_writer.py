@@ -263,6 +263,9 @@ class FirebaseWorkspaceWriter:
                 "sold": bool(getattr(mortgage, "sold", False)),
                 "sale_price": float(getattr(mortgage, "sale_price", 0.0) or 0.0),
                 "sale_date": str(getattr(mortgage, "sale_date", "") or ""),
+                "prepayment_movement_ids": list(
+                    getattr(mortgage, "prepayment_movement_ids", []) or []
+                ),
                 "deleted": False,
             },
         )

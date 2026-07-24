@@ -25,6 +25,8 @@ from .mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     MortgageAssumptions,
     cost_paid_amount,
+    early_payoff_savings,
+    months_after,
     months_between,
     mortgage_initial_monthly,
     mortgage_outstanding,
@@ -54,6 +56,19 @@ class LoanStatus:
     monthly_now: float
     total_interest: float
     tracks: List["TrackStatusRow"]
+    # ── תוספות תצוגה (התקדמות / פירוק התשלום / עלות כוללת) ──
+    interest_now: float = 0.0  # מרכיב הריבית בתשלום הנוכחי
+    principal_now: float = 0.0  # מרכיב הקרן בתשלום הנוכחי
+    total_cost: float = 0.0  # קרן + סך ריבית לאורך חיי ההלוואה
+    pct_paid: float = 0.0  # אחוז הקרן ששולם עד כה (0..1)
+    elapsed_months: int = 0  # מספר התשלומים ששולמו
+    total_months: int = 0  # אורך ההלוואה (המסלול הארוך ביותר)
+    remaining_payments: int = 0  # תשלומים שנותרו
+    payoff_year: int = 0  # שנת סיום (0 = לא ידוע)
+    payoff_month: int = 0  # חודש סיום (1..12; 0 = לא ידוע)
+    dated: bool = False  # קיים תאריך התחלה תקין
+    linked_fraction: float = 0.0  # חלק היתרה הצמוד למדד (0..1)
+    prepaid: float = 0.0  # סך הפירעונות החלקיים שבוצעו
 
 
 @dataclass(frozen=True)
@@ -94,12 +109,20 @@ class MortgageLoan:
         *,
         as_of_date: Optional[str] = None,
         assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+        prepaid: float = 0.0,
     ) -> "LoanStatus":
         """Current snapshot of the loan: headline stats plus a per-track row
-        (principal, rate, first payment, outstanding now). Pure — the page only
-        renders it."""
-        elapsed = months_between(self.record.start_date, as_of_date)
+        (principal, rate, first payment, outstanding now). ``prepaid`` is the
+        total of one-time partial payoffs the caller has linked (from real
+        movements) — it reduces the balance and shortens term/interest. Pure —
+        the page only renders it."""
+        start = str(self.record.start_date or "").strip()
+        dated = bool(months_after(start, 0) is not None)
+        elapsed = months_between(start, as_of_date) if dated else 0
         monthly_now = 0.0
+        interest_now = 0.0
+        principal_now = 0.0
+        linked_out = 0.0
         tracks: List[TrackStatusRow] = []
         for t in self.record.tracks:
             sched = track_schedule(t, assumptions)
@@ -108,11 +131,16 @@ class MortgageLoan:
             idx = min(elapsed, len(sched) - 1)
             payment_now = sched[idx].payment if elapsed < len(sched) else 0.0
             monthly_now += payment_now
+            if elapsed < len(sched):  # מסלול פעיל — צבור את פירוק התשלום הנוכחי
+                interest_now += float(sched[idx].interest_part)
+                principal_now += float(sched[idx].principal_part)
             out_now = (
                 sched[elapsed - 1].remaining_balance
                 if 0 < elapsed <= len(sched)
                 else (float(t.principal) if elapsed <= 0 else 0.0)
             )
+            if bool(t.cpi_linked):
+                linked_out += float(out_now)
             tracks.append(
                 TrackStatusRow(
                     name=str(t.name),
@@ -123,12 +151,45 @@ class MortgageLoan:
                     outstanding_now=float(out_now),
                 )
             )
+        principal = float(self.record.original_principal)
+        outstanding = self.outstanding(as_of_date=as_of_date, assumptions=assumptions)
+        total_interest = self.total_interest(assumptions=assumptions)
+        total_months = max((int(t.term_months) for t in self.record.tracks), default=0)
+
+        # פירעונות חלקיים שקושרו — מקטינים את היתרה ומקצרים את התקופה/הריבית.
+        prepaid = max(0.0, float(prepaid))
+        if prepaid > 0:
+            outstanding = max(0.0, outstanding - prepaid)
+            ep = early_payoff_savings(self.record, prepaid, assumptions)
+            if ep is not None:
+                total_months = int(ep.new_months)
+                total_interest = float(ep.new_interest)
+
+        pct_paid = (
+            max(0.0, min(1.0, (principal - outstanding) / principal))
+            if principal > 0 and dated
+            else 0.0
+        )
+        remaining = max(0, total_months - elapsed) if dated else total_months
+        payoff = months_after(start, total_months) if dated else None
         return LoanStatus(
-            principal=float(self.record.original_principal),
-            outstanding=self.outstanding(as_of_date=as_of_date, assumptions=assumptions),
+            principal=principal,
+            outstanding=outstanding,
             monthly_now=float(monthly_now),
-            total_interest=self.total_interest(assumptions=assumptions),
+            total_interest=total_interest,
             tracks=tracks,
+            interest_now=float(interest_now),
+            principal_now=float(principal_now),
+            total_cost=principal + total_interest,
+            pct_paid=float(pct_paid),
+            elapsed_months=int(elapsed),
+            total_months=int(total_months),
+            remaining_payments=int(remaining),
+            payoff_year=int(payoff[0]) if payoff else 0,
+            payoff_month=int(payoff[1]) if payoff else 0,
+            dated=dated,
+            linked_fraction=float(linked_out / outstanding) if outstanding > 0 else 0.0,
+            prepaid=prepaid,
         )
 
     def combined_schedule(

@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Dict, List, Optional
 
 from .accounts import parse_iso_date
@@ -175,6 +175,21 @@ def months_between(start_date: str, as_of_date: Optional[str]) -> int:
         as_of = parse_iso_date(str(as_of_date or "").strip())
     diff = (as_of.year - start.year) * 12 + (as_of.month - start.month)
     return max(0, int(diff))
+
+
+def months_after(start_date: str, months: int) -> Optional[tuple[int, int]]:
+    """תאריך (שנה, חודש) שהוא ``months`` חודשים לאחר ``start_date``.
+
+    מחזיר ``None`` כשאין תאריך התחלה תקין. משמש לחישוב חודש סיום ההלוואה.
+    """
+    s = str(start_date or "").strip()
+    if not s:
+        return None
+    d = parse_iso_date(s)
+    if d.year <= 1:  # parse_iso_date מחזיר datetime.min כשהקלט אינו תקין
+        return None
+    total = d.year * 12 + (d.month - 1) + int(months)
+    return (total // 12, total % 12 + 1)
 
 
 def mortgage_outstanding(
@@ -363,3 +378,265 @@ def outstanding_projection(
                 total += float(sched[m - 1].remaining_balance)
         points.append(OutstandingPoint(months_from_start=m, outstanding=total))
     return points
+
+
+# ─────────────────────── פירוק תשלום: ריבית מול קרן ───────────────────────
+
+
+@dataclass(frozen=True)
+class PaymentSplitPoint:
+    """פירוק התשלום בתקופה מסוימת: כמה ריבית וכמה קרן (סכום כל המסלולים)."""
+
+    period: int  # מספר התשלום (1-based)
+    interest: float
+    principal: float
+
+
+def payment_split_projection(
+    mortgage: Mortgage,
+    *,
+    months: int,
+    step: int = 1,
+    assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+) -> List[PaymentSplitPoint]:
+    """פירוק התשלום החודשי לריבית מול קרן, לאורך חיי ההלוואה (סכום מסלולים)."""
+    schedules: Dict[str, List[ScheduleRow]] = {
+        t.id: track_schedule(t, assumptions) for t in mortgage.tracks
+    }
+    points: List[PaymentSplitPoint] = []
+    step = max(1, int(step))
+    for period in range(1, int(months) + 1, step):
+        interest = principal = 0.0
+        for t in mortgage.tracks:
+            sched = schedules.get(t.id, [])
+            if period - 1 < len(sched):
+                interest += float(sched[period - 1].interest_part)
+                principal += float(sched[period - 1].principal_part)
+        points.append(
+            PaymentSplitPoint(period=period, interest=interest, principal=principal)
+        )
+    return points
+
+
+# ─────────────────────── חשיפה למדד / ריבית ממוצעת ───────────────────────
+
+
+def linked_principal_fraction(mortgage: Mortgage) -> float:
+    """חלק הקרן המקורית הצמוד למדד (0..1)."""
+    total = float(mortgage.original_principal)
+    if total <= 0:
+        return 0.0
+    linked = sum(float(t.principal) for t in mortgage.tracks if bool(t.cpi_linked))
+    return float(linked / total)
+
+
+def weighted_annual_rate(
+    mortgage: Mortgage, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
+) -> float:
+    """ריבית שנתית ממוצעת משוקללת לפי קרן המסלולים (באחוזים)."""
+    total = float(mortgage.original_principal)
+    if total <= 0:
+        return 0.0
+    acc = sum(
+        float(t.principal) * effective_annual_rate(t, assumptions)
+        for t in mortgage.tracks
+    )
+    return float(acc / total)
+
+
+# ─────────────────────── רגישות להנחות (פריים / מדד) ───────────────────────
+
+
+@dataclass(frozen=True)
+class SensitivityResult:
+    """השפעת שינוי בהנחות על התשלום החודשי ההתחלתי וסך הריבית."""
+
+    prime_delta: float  # שינוי הפריים שנבדק (נק' אחוז)
+    cpi_delta: float  # שינוי המדד שנבדק (נק' אחוז)
+    prime_monthly_delta: float  # שינוי בתשלום החודשי בעקבות עליית הפריים
+    prime_interest_delta: float  # שינוי בסך הריבית בעקבות עליית הפריים
+    cpi_monthly_delta: float
+    cpi_interest_delta: float
+
+
+def assumptions_sensitivity(
+    mortgage: Mortgage,
+    base: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+    *,
+    prime_delta: float = 1.0,
+    cpi_delta: float = 1.0,
+) -> SensitivityResult:
+    """כמה משתנים התשלום החודשי וסך הריבית אם הפריים/המדד יעלו ב-delta."""
+    base_monthly = mortgage_initial_monthly(mortgage, base)
+    base_interest = mortgage_total_interest(mortgage, base)
+    prime_up = replace(base, prime_rate=float(base.prime_rate) + float(prime_delta))
+    cpi_up = replace(base, cpi_annual=float(base.cpi_annual) + float(cpi_delta))
+    return SensitivityResult(
+        prime_delta=float(prime_delta),
+        cpi_delta=float(cpi_delta),
+        prime_monthly_delta=mortgage_initial_monthly(mortgage, prime_up) - base_monthly,
+        prime_interest_delta=mortgage_total_interest(mortgage, prime_up) - base_interest,
+        cpi_monthly_delta=mortgage_initial_monthly(mortgage, cpi_up) - base_monthly,
+        cpi_interest_delta=mortgage_total_interest(mortgage, cpi_up) - base_interest,
+    )
+
+
+# ─────────────────────── אבני-דרך: סיום מסלולים ───────────────────────
+
+
+@dataclass(frozen=True)
+class TrackMilestone:
+    """סיום מסלול — הנקודה שבה התשלום החודשי יורד (המסלול נגמר)."""
+
+    period: int  # מספר החודש שבו המסלול מסתיים
+    track_name: str
+    payment_drop: float  # התשלום הראשוני של המסלול (~גובה הירידה בתשלום)
+
+
+def track_end_milestones(
+    mortgage: Mortgage, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
+) -> List[TrackMilestone]:
+    """אבני-דרך: מתי כל מסלול מסתיים ובכמה יירד התשלום החודשי בקירוב."""
+    out: List[TrackMilestone] = []
+    for t in mortgage.tracks:
+        sched = track_schedule(t, assumptions)
+        if not sched:
+            continue
+        out.append(
+            TrackMilestone(
+                period=len(sched),
+                track_name=str(t.name),
+                payment_drop=float(sched[0].payment),
+            )
+        )
+    out.sort(key=lambda m: m.period)
+    return out
+
+
+# ─────────────────────── סימולציית פירעון מוקדם ───────────────────────
+
+
+@dataclass(frozen=True)
+class EarlyPayoffResult:
+    """תוצאת תרחיש פירעון חלקי חד-פעמי, מחושבת על לוח הסילוקין האמיתי.
+
+    תשלום חד-פעמי מופנה למסלול היקר ביותר (avalanche, מתגלגל הלאה). התשלום
+    החודשי נשאר כשהיה — הקטנת הקרן מקצרת את התקופה. הבסיס עקבי עם שאר המסך."""
+
+    lump_sum: float
+    baseline_months: int
+    new_months: int
+    months_saved: int
+    baseline_interest: float
+    new_interest: float
+    interest_saved: float
+
+
+@dataclass
+class _TrackSim:
+    """מצב מסלול בסימולציית הפירעון המוקדם (מבנה פנימי בלבד)."""
+
+    balance: float
+    r: float  # ריבית חודשית
+    linkage: float  # מקדם הצמדה חודשי
+    sched: List[ScheduleRow]
+    rate: float  # ריבית שנתית אפקטיבית (לבחירת מסלול לתשלום)
+    idx: int = 0
+
+
+def _simulate_with_lump(
+    mortgage: Mortgage,
+    assumptions: MortgageAssumptions,
+    lump_sum: float,
+) -> tuple[int, float]:
+    """סימולציית סילוקין לאחר תשלום חד-פעמי אחד לקרן.
+
+    ה-``lump_sum`` מופחת פעם אחת מהקרן (מהמסלול היקר ביותר, מתגלגל הלאה),
+    ואז כל מסלול ממשיך לשלם את התשלום שבלוח הסילוקין שלו — כך שהתקופה
+    מתקצרת. מחזיר (מספר חודשים עד סילוק מלא, סך ריבית). ב-``lump_sum == 0``
+    התוצאה זהה ללוח המקורי.
+    """
+    states: List[_TrackSim] = []
+    for t in mortgage.tracks:
+        sched = track_schedule(t, assumptions)
+        if not sched:
+            continue
+        states.append(
+            _TrackSim(
+                balance=float(t.principal),
+                r=_monthly_rate(effective_annual_rate(t, assumptions)),
+                linkage=_monthly_linkage_factor(t, assumptions),
+                sched=sched,
+                rate=effective_annual_rate(t, assumptions),
+            )
+        )
+    if not states:
+        return 0, 0.0
+
+    # תשלום חד-פעמי — פעם אחת, למסלול שמסתיים אחרון (הכי ארוך) כדי לקצר את
+    # תקופת המשכנתא בפועל; שוויון-אורך מוכרע לפי הריבית הגבוהה (חיסכון ריבית).
+    remaining = float(lump_sum)
+    for s in sorted(states, key=lambda x: (len(x.sched), x.rate), reverse=True):
+        if remaining <= 0.0:
+            break
+        pay = min(remaining, s.balance)
+        s.balance -= pay
+        remaining -= pay
+
+    total_interest = 0.0
+    month = 0
+    cap = max(len(s.sched) for s in states) + 12  # backstop against loops
+    while month < cap and any(s.balance > 0.5 for s in states):
+        month += 1
+        for s in states:
+            if s.balance <= 0.5:
+                continue
+            if s.linkage != 1.0:
+                s.balance *= s.linkage
+            interest = s.balance * s.r
+            # התשלום מלוח הסילוקין; אחרי הסוף — כסה את מה שנשאר.
+            payment = (
+                s.sched[s.idx].payment
+                if s.idx < len(s.sched)
+                else interest + s.balance
+            )
+            principal_part = payment - interest
+            if principal_part < 0.0:
+                principal_part = 0.0
+            if principal_part > s.balance:
+                principal_part = s.balance
+            s.balance -= principal_part
+            total_interest += interest
+            s.idx += 1
+        for s in states:
+            if s.balance < 0.5:
+                s.balance = 0.0
+    return month, total_interest
+
+
+def early_payoff_savings(
+    mortgage: Mortgage,
+    lump_sum: float,
+    assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+) -> Optional[EarlyPayoffResult]:
+    """חיסכון מתשלום חד-פעמי לקרן, מול לוח הסילוקין האמיתי.
+
+    הבסיס = התקופה (המסלול הארוך) וסך הריבית האמיתי — עקבי עם שאר המסך.
+    מחזיר ``None`` כשאין קרן/מסלולים.
+    """
+    baseline_months = max((int(t.term_months) for t in mortgage.tracks), default=0)
+    if baseline_months <= 0 or float(mortgage.original_principal) <= 0:
+        return None
+    baseline_interest = float(mortgage_total_interest(mortgage, assumptions))
+    new_months, new_interest = _simulate_with_lump(
+        mortgage, assumptions, float(lump_sum)
+    )
+    return EarlyPayoffResult(
+        lump_sum=float(lump_sum),
+        baseline_months=int(baseline_months),
+        new_months=int(new_months),
+        months_saved=int(baseline_months - new_months),
+        baseline_interest=float(baseline_interest),
+        new_interest=float(new_interest),
+        interest_saved=float(baseline_interest - new_interest),
+    )

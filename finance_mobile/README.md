@@ -82,6 +82,9 @@ Top-level fields:
 - `vendor_query` (text matched against movement `description` for loan payments)
 - `start_date` (YYYY-MM-DD)
 - `excluded_movement_ids` (array of movement ids excluded from matching)
+- `prepayment_movement_ids` (array of movement ids — one-time expenses linked as
+  partial principal payoffs / קיצור תקופה; their sum reduces the balance and
+  shortens the term)
 - `archived` (bool) · `deleted` (bool)
 
 Purchase fields (`kind = רכישה`):

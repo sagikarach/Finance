@@ -312,3 +312,37 @@ class MortgageService:
         excluded.append(movement_id)
         # replace() נושא את כל השדות — עמיד להוספת שדות חדשים בעתיד.
         self.upsert_mortgage(replace(target, excluded_movement_ids=excluded))
+
+    def set_prepayment_movements(
+        self, *, mortgage_id: str, movement_ids: List[str]
+    ) -> None:
+        """קבע את רשימת התנועות (הוצאות חד-פעמיות) המקושרות כפירעון חלקי לקרן."""
+        mortgage_id = str(mortgage_id or "").strip()
+        if not mortgage_id:
+            return
+        clean = [str(x) for x in movement_ids if str(x).strip()]
+        for m in self._mortgages_provider.list_mortgages():
+            if m.id == mortgage_id:
+                self.upsert_mortgage(replace(m, prepayment_movement_ids=clean))
+                return
+
+    def prepaid_amount(self, mortgage: Mortgage) -> float:
+        """סך הפירעונות החלקיים בפועל = סכום התנועות המקושרות (ערך מוחלט)."""
+        ids = set(getattr(mortgage, "prepayment_movement_ids", []) or [])
+        if not ids:
+            return 0.0
+        total = 0.0
+        for mv in self.list_movements():
+            if str(getattr(mv, "id", "")) in ids:
+                try:
+                    total += abs(float(mv.amount))
+                except Exception:
+                    continue
+        return float(total)
+
+    def linked_prepayment_movements(self, mortgage: Mortgage) -> List[BankMovement]:
+        """התנועות המקושרות כפירעון חלקי."""
+        ids = set(getattr(mortgage, "prepayment_movement_ids", []) or [])
+        if not ids:
+            return []
+        return [mv for mv in self.list_movements() if str(getattr(mv, "id", "")) in ids]
