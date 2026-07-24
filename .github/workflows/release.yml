@@ -1,10 +1,10 @@
-name: Release
+name: Release Desktop
 
-# Triggers when you push a tag like v1.2.3
+# Triggers when you push a desktop tag like desktop-v1.2.3
 on:
   push:
     tags:
-      - "v*"
+      - "desktop-v*"
 
 jobs:
   build-and-release:
@@ -34,10 +34,19 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          TAG="${GITHUB_REF_NAME}"          # e.g. v1.2.3
-          VERSION="${TAG#v}"                 # e.g. 1.2.3
+          TAG="${GITHUB_REF_NAME}"          # e.g. desktop-v1.2.3
+          VERSION="${TAG#desktop-v}"         # e.g. 1.2.3
           echo "tag=$TAG"       >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      # ── 4b. Stamp version into the app (single source of truth = the tag) ───
+      # Without this the built app keeps the committed __version__ and would
+      # report the wrong version to the auto-updater ("always an update").
+      - name: Stamp version
+        run: |
+          echo "__version__ = \"${{ steps.version.outputs.version }}\"" \
+            > finance/__version__.py
+          cat finance/__version__.py
 
       # ── 5. Build Finance.app ───────────────────────────────────────────────
       - name: Build macOS app

@@ -1,0 +1,78 @@
+name: Release Mobile
+
+# Triggers when you push a mobile tag like mobile-v0.2.0
+on:
+  push:
+    tags:
+      - "mobile-v*"
+
+permissions:
+  contents: write # to create GitHub releases and upload assets
+
+jobs:
+  build-and-release:
+    # Android APK + web build need no Apple signing, so ubuntu is enough.
+    # (iOS/TestFlight would require a macOS runner + App Store Connect secrets —
+    #  see the note at the bottom of this file.)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance_mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java (for Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Extract version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. mobile-v0.2.0
+          VERSION="${TAG#mobile-v}"          # e.g. 0.2.0
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp pubspec version
+        # version: <ver>+<run_number> — the build number must climb for stores.
+        run: |
+          sed -i -E "s/^version:.*/version: ${{ steps.version.outputs.version }}+${GITHUB_RUN_NUMBER}/" pubspec.yaml
+          grep '^version:' pubspec.yaml
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Build web
+        run: |
+          flutter build web --release
+          (cd build/web && zip -r ../../finance_mobile_web.zip .)
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Finance Mobile ${{ steps.version.outputs.version }}"
+          body: "מובייל ${{ steps.version.outputs.version }}"
+          files: |
+            finance_mobile/build/app/outputs/flutter-apk/app-release.apk
+            finance_mobile/finance_mobile_web.zip
+
+# ── iOS / TestFlight (follow-up, needs secrets) ────────────────────────────
+# Add a second job on `runs-on: macos-latest` that:
+#   1. sets up Flutter + Ruby/fastlane,
+#   2. imports the App Store Connect API key + distribution cert from secrets
+#      (APP_STORE_CONNECT_KEY_ID / ISSUER_ID / KEY_P8, DIST_CERT_P12 + password),
+#   3. runs `flutter build ipa --release --export-method app-store`,
+#   4. uploads via `xcrun altool`/`fastlane pilot` to TestFlight.
+# It does NOT create a GitHub Release (iOS ships through the App Store).

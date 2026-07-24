@@ -81,16 +81,49 @@ class _NoReleaseFound(Exception):
     """Raised when the repo exists but has no published releases."""
 
 
+def _tag_to_version(tag: str) -> str:
+    """Strip a release-tag prefix to a bare version. Handles the per-app tag
+    namespaces (``desktop-v1.2.3`` / ``mobile-v0.2.0``) plus the legacy ``v*``."""
+    t = str(tag or "").strip()
+    for prefix in ("desktop-v", "mobile-v", "v"):
+        if t.startswith(prefix):
+            return t[len(prefix):]
+    return t
+
+
+def _is_desktop_release(rel: dict) -> bool:
+    """A desktop release: tagged ``desktop-v*`` (or a legacy ``v*`` carrying an
+    ``appcast.json`` asset). Mobile releases (``mobile-v*``) are excluded so they
+    can share this repo without shadowing the desktop auto-updater."""
+    tag = str(rel.get("tag_name", ""))
+    if tag.startswith("mobile-"):
+        return False
+    if tag.startswith("desktop-v"):
+        return True
+    return _find_asset(rel, "appcast.json") is not None
+
+
 def _github_latest_release(repo: str) -> dict:
-    url = f"https://api.github.com/repos/{repo}/releases/latest"
+    """The newest *desktop* release. We can't use ``/releases/latest`` because a
+    mobile release could be the repo-wide latest — so we list releases (newest
+    first) and pick the first desktop one that isn't a draft/prerelease."""
+    url = f"https://api.github.com/repos/{repo}/releases?per_page=30"
     try:
         data = _http_get(url)
-        return json.loads(data)
+        releases = json.loads(data)
     except Exception as exc:
         msg = str(exc)
         if "404" in msg or "Not Found" in msg or "curl error 22" in msg:
             raise _NoReleaseFound("אין גרסאות פורסמו עדיין.") from exc
         raise
+    if not isinstance(releases, list) or not releases:
+        raise _NoReleaseFound("אין גרסאות פורסמו עדיין.")
+    for rel in releases:
+        if rel.get("draft") or rel.get("prerelease"):
+            continue
+        if _is_desktop_release(rel):
+            return rel
+    raise _NoReleaseFound("אין גרסאות דסקטופ פורסמו עדיין.")
 
 
 def _find_asset(release: dict, name: str) -> Optional[dict]:
@@ -156,7 +189,7 @@ def check_version_only(repo: Optional[str] = None) -> Tuple[bool, str, Optional[
     repo = repo or os.environ.get("FINANCE_UPDATE_REPO", "sagikarach/Finance")
     try:
         release = _github_latest_release(repo)
-        latest_tag = str(release.get("tag_name", "")).lstrip("v")
+        latest_tag = _tag_to_version(release.get("tag_name", ""))
 
         appcast_asset = _find_asset(release, "appcast.json")
         if not appcast_asset:

@@ -18,9 +18,13 @@ remaining fields onto these objects.)
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from .mortgage import AssetKind, CostItem, Mortgage, MortgageTrack
+
+if TYPE_CHECKING:  # annotations only — avoids any runtime import cost/cycle
+    from .accounts import MoneyAccount
+    from .mortgage import FundingSource
 from .mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     MortgageAssumptions,
