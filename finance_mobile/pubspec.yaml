@@ -19,6 +19,12 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   local_auth: ^2.2.0
   crypto: ^3.0.3
+  # In-app updater (Android): query GitHub releases, download the APK, install.
+  http: ^1.2.0
+  package_info_plus: ^8.0.0
+  path_provider: ^2.1.0
+  open_filex: ^4.5.0
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:

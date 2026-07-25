@@ -16,6 +16,7 @@ import 'new_movement_screen.dart';
 import 'savings_screen.dart';
 import '../widgets/notifications_sheet.dart';
 import '../widgets/header_actions_row.dart';
+import '../widgets/update_prompt.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String workspaceId;
@@ -67,6 +68,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _pullFromServer(showToast: false);
+      // Silent check for a newer mobile release (prompts only if one exists).
+      checkAndPromptUpdate(context, silent: true);
     });
 
     _launchSub = LaunchTargetService.instance.targets.listen((t) {
@@ -555,6 +558,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               tooltip: 'סנכרן עכשיו',
               onPressed:
                   _syncing ? null : () => _pullFromServer(showToast: true),
+            ),
+            HeaderAction(
+              icon: Icons.system_update,
+              tooltip: 'בדוק עדכונים',
+              onPressed: () => checkAndPromptUpdate(context, silent: false),
             ),
             HeaderAction(
               icon: Icons.logout,
