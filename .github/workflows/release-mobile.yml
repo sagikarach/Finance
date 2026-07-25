@@ -51,6 +51,26 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Configure Android release signing
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_B64" ]; then
+            echo "::warning::No ANDROID_KEYSTORE_B64 secret — building DEBUG-signed. The in-app updater cannot install over an existing install until a release keystore is set up."
+            exit 0
+          fi
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > android/app/release.keystore
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=release.keystore
+          EOF
+          echo "Release signing configured."
+
       - name: Build Android APK
         run: flutter build apk --release
 
