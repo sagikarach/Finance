@@ -192,9 +192,13 @@ class YearlyReportService:
         return keys
 
     def get_window_nets(
-        self, months: int
+        self, months: int, *, include_one_time: bool = True
     ) -> List[Tuple[str, float]]:
-        """Return [(label, net_amount)] for each month in the window."""
+        """Return [(label, net_amount)] for each month in the window.
+
+        When *include_one_time* is False, movements typed as one-time
+        (חד פעמי) are excluded so the chart reflects only recurring cash-flow.
+        """
         from datetime import datetime as _dt
 
         window = self._build_window_keys(months)
@@ -210,6 +214,8 @@ class YearlyReportService:
             try:
                 if self._is_transfer(mv):
                     continue
+                if not include_one_time and mv.type == MovementType.ONE_TIME:
+                    continue
                 dt = parse_iso_date(mv.date)
                 if dt == _dt.min:
                     continue
@@ -224,9 +230,13 @@ class YearlyReportService:
         return result
 
     def get_window_totals(
-        self, months: int
+        self, months: int, *, include_one_time: bool = True
     ) -> Tuple[float, float, float]:
-        """Return (total_income, total_expense, net) for the window."""
+        """Return (total_income, total_expense, net) for the window.
+
+        When *include_one_time* is False, movements typed as one-time
+        (חד פעמי) are excluded from the totals.
+        """
         from datetime import datetime as _dt
 
         window_set = set(self._build_window_keys(months))
@@ -242,6 +252,8 @@ class YearlyReportService:
         for mv in all_mvs:
             try:
                 if self._is_transfer(mv):
+                    continue
+                if not include_one_time and mv.type == MovementType.ONE_TIME:
                     continue
                 dt = parse_iso_date(mv.date)
                 if dt == _dt.min:

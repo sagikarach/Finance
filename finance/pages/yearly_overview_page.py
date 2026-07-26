@@ -7,6 +7,7 @@ from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..data.provider import AccountsProvider
 from ..models.yearly_report_service import YearlyReportService, forecast_net
 from ..qt import (
+    QCheckBox,
     QLabel,
     QHBoxLayout,
     QSizePolicy,
@@ -130,8 +131,10 @@ class YearlyOverviewPage(BasePage):
         self._movement_provider = movement_provider or JsonFileBankMovementProvider()
         self._yearly_service = YearlyReportService(self._movement_provider)
         self._current_months: int = 12
+        self._include_one_time: bool = False
 
         self._range_bar: Optional[TimeRangeBar] = None
+        self._one_time_checkbox: Optional[QCheckBox] = None
         self._income_value: Optional[QLabel] = None
         self._expense_value: Optional[QLabel] = None
         self._net_value: Optional[QLabel] = None
@@ -212,9 +215,22 @@ class YearlyOverviewPage(BasePage):
         chart_layout.setContentsMargins(16, 16, 16, 16)
         chart_layout.setSpacing(8)
 
-        self._range_bar = TimeRangeBar(chart_card, default_months=self._current_months)
+        controls_row = QWidget(chart_card)
+        controls_layout = QHBoxLayout(controls_row)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(8)
+
+        self._range_bar = TimeRangeBar(controls_row, default_months=self._current_months)
         self._range_bar.range_changed.connect(self._on_range_changed)
-        chart_layout.addWidget(self._range_bar)
+        controls_layout.addWidget(self._range_bar)
+        controls_layout.addStretch(1)
+
+        self._one_time_checkbox = QCheckBox("כלול תנועות חד-פעמיות", controls_row)
+        self._one_time_checkbox.setChecked(self._include_one_time)
+        self._one_time_checkbox.toggled.connect(self._on_one_time_toggled)
+        controls_layout.addWidget(self._one_time_checkbox)
+
+        chart_layout.addWidget(controls_row)
 
         self._balance_chart = YearlyBalanceChart(chart_card)
         chart_layout.addWidget(self._balance_chart, 1)
@@ -229,17 +245,29 @@ class YearlyOverviewPage(BasePage):
 
     def _on_range_changed(self, months: int) -> None:
         self._current_months = months
-        self._proj_nets = None
-        if months == -1:
-            history = self._yearly_service.get_window_nets(12)
-            self._proj_nets = forecast_net(history, horizon=6)
+        self._recompute_forecast()
         self._refresh()
+
+    def _on_one_time_toggled(self, checked: bool) -> None:
+        self._include_one_time = bool(checked)
+        self._recompute_forecast()
+        self._refresh()
+
+    def _recompute_forecast(self) -> None:
+        self._proj_nets = None
+        if self._current_months == -1:
+            history = self._yearly_service.get_window_nets(
+                12, include_one_time=self._include_one_time
+            )
+            self._proj_nets = forecast_net(history, horizon=6)
 
     def _refresh(self) -> None:
         forecast = self._current_months == -1
         actual_months = 3 if forecast else self._current_months
 
-        income, expense, net = self._yearly_service.get_window_totals(actual_months)
+        income, expense, net = self._yearly_service.get_window_totals(
+            actual_months, include_one_time=self._include_one_time
+        )
         if self._income_value is not None:
             self._income_value.setText(format_currency(income))
         if self._expense_value is not None:
@@ -247,7 +275,9 @@ class YearlyOverviewPage(BasePage):
         if self._net_value is not None:
             self._net_value.setText(format_currency(net))
 
-        window_data = self._yearly_service.get_window_nets(actual_months)
+        window_data = self._yearly_service.get_window_nets(
+            actual_months, include_one_time=self._include_one_time
+        )
         labels = [lbl for lbl, _ in window_data]
         nets = [n for _, n in window_data]
 
