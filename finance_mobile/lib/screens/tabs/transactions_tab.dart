@@ -132,8 +132,6 @@ class _TransactionsTabState extends State<TransactionsTab> {
               workspaceId: widget.workspaceId,
               syncing: _syncing,
               onSync: () => _pull(showToast: true),
-              extraIcon: Icons.add_rounded,
-              onExtra: widget.onAdd,
             ),
             Expanded(
               child: _loading

@@ -108,6 +108,21 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       backgroundColor: AppColors.screen,
       body: IndexedStack(index: _index, children: tabs),
+      // + button in the bottom-left corner (RTL end side).
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: FloatingActionButton(
+          onPressed: openAdd,
+          backgroundColor: AppColors.ink,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: const Icon(Icons.add_rounded, size: 28),
+        ),
+      ),
       bottomNavigationBar: AppBottomNav(
         items: _navItems,
         index: _index,
