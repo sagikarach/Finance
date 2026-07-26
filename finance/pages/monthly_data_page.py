@@ -105,7 +105,7 @@ class MonthlyDataPage(BasePage):
         month_row.setContentsMargins(0, 0, 0, 0)
         month_row.setSpacing(10)
         edit_btn = QPushButton(month_row_container)
-        edit_btn.setObjectName("MonthEditButton")
+        edit_btn.setObjectName("SecondaryButton")
         edit_btn.setText("✎ עריכת תנועות חודשיות")
         edit_btn.setToolTip("עריכת הכנסות/הוצאות לחודש")
         edit_btn.clicked.connect(self._on_edit_month_clicked)
