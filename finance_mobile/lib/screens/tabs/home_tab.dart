@@ -45,7 +45,7 @@ class _HomeTabState extends State<HomeTab> {
   String? _error;
   DashboardMeta? _dash;
   AnalyticsSummary _sum = AnalyticsSummary.empty;
-  String _name = UserProfileService.displayNameFromEmailFallback();
+  String _name = '';
 
   @override
   void initState() {
@@ -55,6 +55,11 @@ class _HomeTabState extends State<HomeTab> {
     _analytics = AnalyticsService(workspaceId: widget.workspaceId);
     _profile = UserProfileService(workspaceId: widget.workspaceId);
     widget.refresh.addListener(_onRefresh);
+    // Instant name from the local cache (avoids a wrong-name flash), then the
+    // fresh value arrives with the sync.
+    _profile.loadCachedName().then((n) {
+      if (n.isNotEmpty && mounted) setState(() => _name = n);
+    });
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _pull(showToast: false));
   }

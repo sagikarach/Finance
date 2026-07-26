@@ -39,8 +39,6 @@ class MoreTab extends StatelessWidget {
                   FutureBuilder<String>(
                     future: UserProfileService(workspaceId: workspaceId)
                         .fetchDisplayName(user?.uid ?? ''),
-                    initialData:
-                        UserProfileService.displayNameFromEmailFallback(),
                     builder: (context, snap) =>
                         _profileCard((snap.data ?? '').trim(), email),
                   ),
