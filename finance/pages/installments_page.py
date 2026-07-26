@@ -482,10 +482,6 @@ class InstallmentsPage(BasePage):
                         it.setData(Qt.ItemDataRole.UserRole, str(m.id))
             except Exception:
                 pass
-        try:
-            self._table.resizeColumnsToContents()
-        except Exception:
-            pass
 
     def _on_plan_selected(self, plan_id: str) -> None:
         self._selected_plan_id = str(plan_id or "").strip() or None
