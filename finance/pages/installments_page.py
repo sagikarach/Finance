@@ -480,6 +480,7 @@ class InstallmentsPage(BasePage):
                     it = self._table.item(row, col)
                     if it is not None:
                         it.setData(Qt.ItemDataRole.UserRole, str(m.id))
+                        it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             except Exception:
                 pass
 
