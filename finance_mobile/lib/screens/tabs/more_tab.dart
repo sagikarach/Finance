@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/session_service.dart';
+import '../../services/user_profile_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/ui/cards.dart';
 import '../../widgets/ui/tab_top_bar.dart';
@@ -18,7 +19,6 @@ class MoreTab extends StatelessWidget {
   Widget build(BuildContext context) {
     const session = SessionService();
     final user = FirebaseAuth.instance.currentUser;
-    final name = (user?.displayName ?? '').trim();
     final email = (user?.email ?? '').trim();
 
     return Scaffold(
@@ -36,7 +36,14 @@ class MoreTab extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
                 children: [
-                  _profileCard(name, email),
+                  FutureBuilder<String>(
+                    future: UserProfileService(workspaceId: workspaceId)
+                        .fetchDisplayName(user?.uid ?? ''),
+                    initialData:
+                        UserProfileService.displayNameFromEmailFallback(),
+                    builder: (context, snap) =>
+                        _profileCard((snap.data ?? '').trim(), email),
+                  ),
                   const SizedBox(height: 16),
                   AppCard(
                     padding: const EdgeInsets.symmetric(vertical: 6),

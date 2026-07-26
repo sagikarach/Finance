@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/analytics_service.dart';
 import '../../services/bootstrap_service.dart';
 import '../../services/dashboard_meta_service.dart';
 import '../../services/session_service.dart';
+import '../../services/user_profile_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/money.dart';
 import '../../widgets/charts/bars_chart.dart';
@@ -38,12 +38,14 @@ class _HomeTabState extends State<HomeTab> {
   late final BootstrapService _bootstrap;
   late final DashboardMetaService _meta;
   late final AnalyticsService _analytics;
+  late final UserProfileService _profile;
 
   bool _loading = true;
   bool _syncing = false;
   String? _error;
   DashboardMeta? _dash;
   AnalyticsSummary _sum = AnalyticsSummary.empty;
+  String _name = UserProfileService.displayNameFromEmailFallback();
 
   @override
   void initState() {
@@ -51,6 +53,7 @@ class _HomeTabState extends State<HomeTab> {
     _bootstrap = BootstrapService(workspaceId: widget.workspaceId);
     _meta = DashboardMetaService(workspaceId: widget.workspaceId);
     _analytics = AnalyticsService(workspaceId: widget.workspaceId);
+    _profile = UserProfileService(workspaceId: widget.workspaceId);
     widget.refresh.addListener(_onRefresh);
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _pull(showToast: false));
@@ -75,10 +78,12 @@ class _HomeTabState extends State<HomeTab> {
       await _bootstrap.ensureWorkspaceMeta();
       final dash = await _meta.fetch(source: Source.server);
       final sum = await _analytics.compute(source: Source.server);
+      final name = await _profile.fetchDisplayName(_session.uid ?? '');
       if (!mounted) return;
       setState(() {
         _dash = dash;
         _sum = sum;
+        if (name.isNotEmpty) _name = name;
         _loading = false;
       });
       if (showToast && mounted) {
@@ -95,12 +100,6 @@ class _HomeTabState extends State<HomeTab> {
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
-  }
-
-  String get _firstName {
-    final n = FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
-    if (n.isEmpty) return '';
-    return n.split(' ').first;
   }
 
   @override
@@ -129,7 +128,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _header() {
-    final name = _firstName;
+    final name = _name.split(' ').first;
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 6, 18, 8),
       child: Row(
