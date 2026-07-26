@@ -124,8 +124,11 @@ class _AssetsTabState extends State<AssetsTab> {
         const SizedBox(height: 16),
         SectionHeader(
             title: 'מסלולי משכנתא', actionLabel: '${a.tracks.length}'),
-        const SizedBox(height: 8),
-        for (final t in a.tracks) _trackTile(t),
+        const SizedBox(height: 12),
+        for (final t in a.tracks) ...[
+          _trackTile(t),
+          const SizedBox(height: 12),
+        ],
       ]);
     }
     widgets.add(const SizedBox(height: 22));
