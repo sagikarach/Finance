@@ -228,6 +228,17 @@ class YearlyOverviewPage(BasePage):
         self._one_time_checkbox = QCheckBox("כלול תנועות חד-פעמיות", controls_row)
         self._one_time_checkbox.setChecked(self._include_one_time)
         self._one_time_checkbox.toggled.connect(self._on_one_time_toggled)
+        # Keep the full label from being squeezed (clipped) when the range bar
+        # crowds the row; never shrink below the text's natural width.
+        try:
+            self._one_time_checkbox.setSizePolicy(
+                QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
+            )
+            self._one_time_checkbox.setMinimumWidth(
+                self._one_time_checkbox.sizeHint().width()
+            )
+        except Exception:
+            pass
         controls_layout.addWidget(self._one_time_checkbox)
 
         chart_layout.addWidget(controls_row)
