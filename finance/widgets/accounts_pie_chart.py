@@ -130,9 +130,6 @@ class AccountsPieChart(QWidget):
             slice_ = series.append("אין נתונים", 1.0)
             try:
                 slice_.setLabelVisible(True)
-                slice_.setBrush(empty_color)
-                slice_.setBorderColor(gap_color)
-                slice_.setBorderWidth(2)
             except Exception:
                 pass
         else:
@@ -142,19 +139,10 @@ class AccountsPieChart(QWidget):
                 if max(acc.total_amount, 0.0) > 0.0
             ]
             valid_accounts.sort(key=lambda item: item[1], reverse=True)
-            count = len(valid_accounts)
-            for idx, (account, value) in enumerate(valid_accounts):
+            for account, value in valid_accounts:
                 s = series.append(account.name, value)
                 try:
                     s.setProperty("baseLabel", account.name)
-                except Exception:
-                    pass
-                try:
-                    t = float(idx) / float(max(count - 1, 1))
-                    color = _interpolate_qcolor(pal_from, pal_to, t)
-                    s.setBrush(color)
-                    s.setBorderColor(gap_color)  # רווח דק בצבע הרקע
-                    s.setBorderWidth(2)
                 except Exception:
                     pass
                 try:
@@ -168,6 +156,23 @@ class AccountsPieChart(QWidget):
 
         chart = QChart()
         chart.addSeries(series)
+
+        # צובעים את הפרוסות *אחרי* addSeries — אחרת ערכת ברירת המחדל של QtCharts
+        # דורסת את הצבעים ברינדור חוזר (מעבר בין עמודים) והפרוסות הופכות בהירות.
+        slices = series.slices()
+        n_slices = len(slices)
+        for idx, s in enumerate(slices):
+            try:
+                if total <= 0:
+                    s.setBrush(empty_color)
+                else:
+                    t = float(idx) / float(max(n_slices - 1, 1))
+                    s.setBrush(_interpolate_qcolor(pal_from, pal_to, t))
+                s.setBorderColor(gap_color)  # רווח דק בצבע הפאנל
+                s.setBorderWidth(2)
+            except Exception:
+                pass
+
         chart.legend().setVisible(False)
         try:
             chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
