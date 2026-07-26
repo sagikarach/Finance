@@ -126,7 +126,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return '${now.year}-$mm';
   }
 
-  String _fmtMoney(double v) => '${v.toStringAsFixed(2)} ₪';
+  String _fmtMoney(double v) {
+    // Group thousands so large balances stay readable (e.g. 1,234,567.50 ₪).
+    final neg = v < 0;
+    final fixed = v.abs().toStringAsFixed(2);
+    final dot = fixed.indexOf('.');
+    final intPart = fixed.substring(0, dot);
+    final frac = fixed.substring(dot); // includes the '.'
+    final buf = StringBuffer();
+    for (var i = 0; i < intPart.length; i++) {
+      if (i > 0 && (intPart.length - i) % 3 == 0) buf.write(',');
+      buf.write(intPart[i]);
+    }
+    return '${neg ? '-' : ''}$buf$frac ₪';
+  }
 
   (Color, Color) _stripeGradientForAction(WorkspaceAction a, Brightness b) {
     // Palette inspired by desktop action history.
