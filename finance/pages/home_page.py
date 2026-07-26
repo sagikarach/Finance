@@ -60,19 +60,6 @@ class HomePage(BasePage):
         total_all = overview.total_all
         total_liquid = overview.total_liquid
 
-        # שווי נקי = סה״כ כסף + נכסים אחרים − יתרת המשכנתאות (התחייבות).
-        mortgage_outstanding = 0.0
-        other_assets_value = 0.0
-        try:
-            from ..models.mortgage_service import MortgageService
-
-            _svc = MortgageService()
-            mortgage_outstanding = float(_svc.total_outstanding())
-            other_assets_value = float(_svc.total_other_assets_value())
-        except Exception:
-            mortgage_outstanding = 0.0
-            other_assets_value = 0.0
-
         parent_widget = main_col.parentWidget()
         if parent_widget is None:
             parent_widget = self
@@ -137,43 +124,6 @@ class HomePage(BasePage):
         cards_row.setSpacing(16)
         cards_row.addWidget(total_all_card, 1)
         cards_row.addWidget(total_liquid_card, 1)
-
-        # כרטיס שווי נקי — מוצג כשיש משכנתא או נכסים אחרים (אחרת זהה לסה״כ כסף).
-        if mortgage_outstanding > 0 or other_assets_value > 0:
-            net_worth = total_all + other_assets_value - mortgage_outstanding
-            net_worth_card = QWidget(parent_widget)
-            net_worth_card.setObjectName("StatCardYellow")
-            try:
-                net_worth_card.setAttribute(
-                    Qt.WidgetAttribute.WA_StyledBackground, True
-                )
-            except Exception:
-                pass
-            net_worth_card_layout = QVBoxLayout(net_worth_card)
-            net_worth_card_layout.setContentsMargins(14, 14, 14, 14)
-            net_worth_card_layout.setSpacing(6)
-            try:
-                net_worth_card.setSizePolicy(
-                    QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-                )
-            except Exception:
-                pass
-            net_worth_title = QLabel("שווי נקי", net_worth_card)
-            net_worth_title.setObjectName("StatTitle")
-            net_worth_title.setToolTip(
-                "סה״כ כסף + נכסים אחרים בניכוי יתרת המשכנתאות"
-            )
-            net_worth_label = QLabel(format_currency(net_worth), net_worth_card)
-            net_worth_label.setObjectName("StatValueLarge")
-            net_worth_card_layout.addStretch(1)
-            net_worth_card_layout.addWidget(
-                net_worth_title, 0, Qt.AlignmentFlag.AlignHCenter
-            )
-            net_worth_card_layout.addWidget(
-                net_worth_label, 0, Qt.AlignmentFlag.AlignHCenter
-            )
-            net_worth_card_layout.addStretch(1)
-            cards_row.addWidget(net_worth_card, 1)
 
         main_col.addLayout(cards_row, 0)
 
