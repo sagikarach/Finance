@@ -99,7 +99,7 @@ class _HomeShellState extends State<HomeShell> {
         onAdd: openAdd,
         onSeeTransactions: () => setState(() => _index = 1),
       ),
-      TransactionsTab(workspaceId: wid, refresh: _refresh, onAdd: openAdd),
+      TransactionsTab(workspaceId: wid, refresh: _refresh),
       SavingsTab(workspaceId: wid, refresh: _refresh),
       AssetsTab(workspaceId: wid, refresh: _refresh),
       MoreTab(workspaceId: wid, refresh: _refresh),

@@ -11,13 +11,11 @@ import '../../widgets/ui/tx_tile.dart';
 class TransactionsTab extends StatefulWidget {
   final String workspaceId;
   final Listenable refresh;
-  final VoidCallback onAdd;
 
   const TransactionsTab({
     super.key,
     required this.workspaceId,
     required this.refresh,
-    required this.onAdd,
   });
 
   @override

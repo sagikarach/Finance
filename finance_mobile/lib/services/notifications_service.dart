@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/movement.dart';
-import 'movements_service.dart';
 
 class AppNotification {
   final String id;
@@ -48,11 +47,8 @@ class AppNotification {
 
 class NotificationsService {
   final String workspaceId;
-  final MovementsService _movements;
 
-  NotificationsService({
-    required this.workspaceId,
-  }) : _movements = MovementsService(workspaceId: workspaceId);
+  NotificationsService({required this.workspaceId});
 
   CollectionReference<Map<String, dynamic>> _ref() {
     return FirebaseFirestore.instance
