@@ -202,17 +202,9 @@ def load_home_page_dark_styles() -> str:
         padding: 0px;
         background: transparent;
     }
-    QWidget#StatCardGreen {
-        background: #16a34a;
-        border-radius: 20px;
-    }
-    QWidget#StatCardPurple {
-        background: #4f46e5;
-        border-radius: 20px;
-    }
-    QWidget#StatCardGreen QLabel, QWidget#StatCardPurple QLabel {
-        color: #e5e7eb;
-    }
+    /* StatCard colors intentionally NOT redefined here — the unified neutral
+       "hero" styling lives in styles/cards.py (this file loads after it and
+       previously overrode the dark cards back to the old solid look). */
     QListWidget#ActionHistoryListWidget {
         background: transparent;
         border: none;
