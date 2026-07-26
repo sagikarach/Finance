@@ -602,7 +602,7 @@ class _ActionHistoryRow(QWidget):
         super().__init__(parent)
         self.setObjectName("ActionHistoryRow")
         self._stripe_color = str(stripe_color or "").strip()
-        self._stripe_px = 24
+        self._stripe_px = 6  # accent דק בצבע הקטגוריה (במקום פס רחב)
         # Avoid strict Qt type annotations here; our `qt` shim types are dynamic.
         self._outer: Optional[Any] = None
         self._content_layout: Optional[Any] = None
@@ -699,9 +699,9 @@ class _ActionHistoryRow(QWidget):
             except Exception:
                 is_dark = False
 
-            base_bg = "#020617" if is_dark else "#dbeafe"
-            border = "#1f2937" if is_dark else "#bfdbfe"
-            stripe_color = self._stripe_color or "#9fc6f7"
+            base_bg = "#273449" if is_dark else "#ffffff"
+            border = "#334155" if is_dark else "#e2e8f0"
+            stripe_color = self._stripe_color or "#93c5fd"
 
             w = max(int(outer.width() or 0), 1)
             stop = float(self._stripe_px) / float(w)
@@ -713,7 +713,7 @@ class _ActionHistoryRow(QWidget):
             outer.setStyleSheet(
                 f"""
                 QFrame#ActionHistoryCard {{
-                    border-radius: 18px;
+                    border-radius: 14px;
                     border: 1px solid {border};
                     background: qlineargradient(
                         x1: 0, y1: 0, x2: 1, y2: 0,
