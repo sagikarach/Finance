@@ -93,6 +93,9 @@ class _SavingsTabState extends State<SavingsTab> {
   @override
   Widget build(BuildContext context) {
     final total = _accounts.fold<double>(0, (s, a) => s + _accTotal(a));
+    // Hide empty (zero-balance) savings accounts.
+    final visible =
+        _accounts.where((a) => _accTotal(a).abs() > 0.005).toList();
     return Scaffold(
       backgroundColor: AppColors.screen,
       body: SafeArea(
@@ -122,14 +125,14 @@ class _SavingsTabState extends State<SavingsTab> {
                           children: [
                             _hero(total),
                             const SizedBox(height: 16),
-                            if (_accounts.isEmpty)
+                            if (visible.isEmpty)
                               const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 24),
                                 child: Center(
                                     child: Text('אין חשבונות חיסכון עדיין')),
                               )
                             else
-                              for (final a in _accounts) ...[
+                              for (final a in visible) ...[
                                 _accountCard(a),
                                 const SizedBox(height: 12),
                               ],
