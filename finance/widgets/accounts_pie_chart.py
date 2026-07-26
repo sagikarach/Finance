@@ -5,6 +5,7 @@ from typing import List, Optional, Sequence
 from ..models.accounts import MoneyAccount
 from ..utils.formatting import format_currency as format_currency_compact
 from ..qt import (
+    QApplication,
     QLabel,
     QVBoxLayout,
     QWidget,
@@ -184,8 +185,17 @@ class AccountsPieChart(QWidget):
         except Exception:
             pass
         try:
-            chart.setTitleBrush(QColor("#0b1220"))
-            chart.legend().setLabelColor(QColor("#0b1220"))
+            # תוויות/מקרא צבועים לפי ערכת הנושא (לבן־בהיר בכהה, כהה בבהיר).
+            is_dark = False
+            _app = QApplication.instance()
+            if _app is not None:
+                try:
+                    is_dark = str(_app.property("theme") or "light") == "dark"
+                except Exception:
+                    is_dark = False
+            text_color = QColor("#e2e8f0" if is_dark else "#0f172a")
+            chart.setTitleBrush(text_color)
+            chart.legend().setLabelColor(text_color)
             chart.setBackgroundVisible(False)
             chart.setPlotAreaBackgroundVisible(False)
             try:
@@ -196,7 +206,7 @@ class AccountsPieChart(QWidget):
                 except Exception:
                     pass
             try:
-                series.setLabelsColor(QColor("#111827"))
+                series.setLabelsColor(text_color)
             except Exception:
                 pass
         except Exception:

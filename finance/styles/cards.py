@@ -47,21 +47,21 @@ def load_cards_light_styles() -> str:
         background: transparent;
     }
     QWidget#ContentPanel {
-        background: #e8f3fd;
-        border: 1px solid #c7dffe;
-        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
     }
     QWidget#ContentPanel * {
         background: transparent;
     }
     QWidget#AssetTablePanel {
-        background: #e8f3fd;
-        border: 1px solid #c7dffe;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-top: none;
         border-top-left-radius: 0px;
         border-top-right-radius: 0px;
-        border-bottom-left-radius: 12px;
-        border-bottom-right-radius: 12px;
+        border-bottom-left-radius: 14px;
+        border-bottom-right-radius: 14px;
     }
     QWidget#AssetTablePanel * {
         background: transparent;
@@ -179,21 +179,21 @@ def load_cards_dark_styles() -> str:
         color: #64748b;
     }
     QWidget#ContentPanel {
-        background: #111827;
-        border: 1px solid #1e293b;
-        border-radius: 12px;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 14px;
     }
     QWidget#ContentPanel * {
         background: transparent;
     }
     QWidget#AssetTablePanel {
-        background: #111827;
-        border: 1px solid #1e293b;
+        background: #1e293b;
+        border: 1px solid #334155;
         border-top: none;
         border-top-left-radius: 0px;
         border-top-right-radius: 0px;
-        border-bottom-left-radius: 12px;
-        border-bottom-right-radius: 12px;
+        border-bottom-left-radius: 14px;
+        border-bottom-right-radius: 14px;
     }
     QWidget#AssetTablePanel * {
         background: transparent;
