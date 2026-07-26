@@ -1087,7 +1087,9 @@ class MortgagePage(BasePage):
             return v, sub
 
         self._hero_outstanding, _ = build_hero("יתרה נוכחית", accent=True)
-        self._hero_payment, self._hero_payment_sub = build_hero("תשלום חודשי")
+        self._hero_payment, self._hero_payment_sub = build_hero(
+            "תשלום חודשי", accent=True
+        )
         lay.addLayout(cards_row, 0)
 
         # ───────── רצועת התקדמות — כמה מהקרן שולם ומתי הסיום ─────────
