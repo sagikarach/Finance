@@ -96,6 +96,15 @@ class AccountsPieChart(QWidget):
         if charts_available:
             self._render_chart()
 
+    def _is_dark_theme(self) -> bool:
+        app = QApplication.instance()
+        if app is not None:
+            try:
+                return str(app.property("theme") or "light") == "dark"
+            except Exception:
+                return False
+        return False
+
     def _render_chart(self) -> None:
         series = QPieSeries()
         try:
@@ -103,16 +112,27 @@ class AccountsPieChart(QWidget):
         except Exception:
             pass
         try:
-            series.setHoleSize(0.38)
+            series.setHoleSize(0.42)
             series.setPieSize(0.92)
         except Exception:
             pass
+
+        # פלטת "hero": משפחת הכחול של האקסנט (עמוק→בהיר), עם רווח דק בצבע
+        # הרקע בין הפרוסות — נקי ורגוע, תואם לכרטיסים.
+        is_dark = self._is_dark_theme()
+        pal_from = QColor("#bfdbfe" if is_dark else "#1e40af")  # התחלת המדרג
+        pal_to = QColor("#3b82f6" if is_dark else "#93c5fd")  # סוף המדרג
+        gap_color = QColor("#1e293b" if is_dark else "#f8fafc")  # = רקע הכרטיס
+        empty_color = QColor("#475569" if is_dark else "#cbd5e1")
 
         total = sum(max(a.total_amount, 0.0) for a in self._accounts)
         if total <= 0:
             slice_ = series.append("אין נתונים", 1.0)
             try:
                 slice_.setLabelVisible(True)
+                slice_.setBrush(empty_color)
+                slice_.setBorderColor(gap_color)
+                slice_.setBorderWidth(2)
             except Exception:
                 pass
         else:
@@ -131,8 +151,10 @@ class AccountsPieChart(QWidget):
                     pass
                 try:
                     t = float(idx) / float(max(count - 1, 1))
-                    color = _interpolate_qcolor(QColor("#2563eb"), QColor("#22c55e"), t)
+                    color = _interpolate_qcolor(pal_from, pal_to, t)
                     s.setBrush(color)
+                    s.setBorderColor(gap_color)  # רווח דק בצבע הרקע
+                    s.setBorderWidth(2)
                 except Exception:
                     pass
                 try:
