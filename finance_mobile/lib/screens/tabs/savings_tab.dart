@@ -184,11 +184,10 @@ class _SavingsTabState extends State<SavingsTab> {
   Widget _accountCard(Map<String, dynamic> a) {
     final name = (a['name'] as String?)?.trim() ?? '';
     final total = _accTotal(a);
-    final savings = _savingsOf(a);
-    final sum = savings.fold<double>(
-        0,
-        (s, m) =>
-            s + ((m['amount'] is num) ? (m['amount'] as num).toDouble() : 0.0));
+    // Show only savings with a non-zero balance.
+    final savings =
+        _savingsOf(a).where((m) => _amt(m).abs() > 0.005).toList();
+    final sum = savings.fold<double>(0, (s, m) => s + _amt(m));
     return AppCard(
       radius: 22,
       padding: const EdgeInsets.all(16),
