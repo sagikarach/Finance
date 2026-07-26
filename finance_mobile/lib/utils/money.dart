@@ -20,9 +20,9 @@ String fmtMoney(num v, {bool decimals = true}) {
 }
 
 /// Signed with an explicit +/- prefix (income vs expense).
-String fmtSigned(num v) {
+String fmtSigned(num v, {bool decimals = true}) {
   final neg = v < 0;
-  return '${neg ? '−' : '+'}${fmtMoney(v.abs())}';
+  return '${neg ? '−' : '+'}${fmtMoney(v.abs(), decimals: decimals)}';
 }
 
 /// Compact hero form: ₪1.85M / ₪86.4K / ₪612.

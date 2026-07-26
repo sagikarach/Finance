@@ -65,6 +65,17 @@ class AnalyticsService {
   AnalyticsService({required this.workspaceId})
       : _movements = MovementsService(workspaceId: workspaceId);
 
+  /// One-time (חד פעמי / ONE_TIME) and monthly-recurring (חודשי / MONTHLY)
+  /// movements are excluded from the home cash-flow and breakdown charts.
+  static bool _excludedFromFlow(String type) {
+    final t = type.trim();
+    return t == 'ONE_TIME' ||
+        t == 'MONTHLY' ||
+        t == 'חד פעמי' ||
+        t == 'חד־פעמי' ||
+        t == 'חודשי';
+  }
+
   DateTime? _parse(String s) {
     final t = s.trim();
     if (t.length < 7) return null;
@@ -96,6 +107,9 @@ class AnalyticsService {
     double monthIncome = 0, monthExpense = 0;
 
     for (final m in all) {
+      // The cash-flow / breakdown charts show only irregular real spending —
+      // recurring monthly and one-time template movements are excluded.
+      if (_excludedFromFlow(m.type)) continue;
       final dt = _parse(m.date);
       if (dt == null) continue;
       final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';

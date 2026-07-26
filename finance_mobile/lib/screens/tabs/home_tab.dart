@@ -179,9 +179,12 @@ class _HomeTabState extends State<HomeTab> {
     final totalAll = _dash?.totalAll ?? 0;
     final liquid = _dash?.totalLiquid ?? 0;
     final monthNet = _sum.monthIncome - _sum.monthExpense;
-    final savingsPct = _sum.monthIncome > 0
+    final rawPct = _sum.monthIncome > 0
         ? (monthNet / _sum.monthIncome * 100).round()
         : null;
+    // Only show the savings-rate badge when it's a sane figure (0–100%).
+    final savingsPct =
+        (rawPct != null && rawPct >= 0 && rawPct <= 100) ? rawPct : null;
 
     return [
       _balanceHero(totalAll, monthNet, savingsPct),
@@ -312,7 +315,8 @@ class _HomeTabState extends State<HomeTab> {
                         fontSize: 12,
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 5),
-                Text(fmtSigned(monthNet),
+                Text(fmtSigned(monthNet, decimals: false),
+                    textDirection: TextDirection.ltr,
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -338,7 +342,8 @@ class _HomeTabState extends State<HomeTab> {
           label: months[i].label,
           value: months[i].net.abs(),
           highlight: i == maxIdx,
-          tooltip: i == maxIdx ? fmtSigned(months[i].net) : null,
+          positive: months[i].net >= 0,
+          tooltip: i == maxIdx ? fmtSigned(months[i].net, decimals: false) : null,
         ),
     ];
     return AppCard(

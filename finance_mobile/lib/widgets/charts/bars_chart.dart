@@ -6,11 +6,13 @@ class BarDatum {
   final String label;
   final double value;
   final bool highlight;
+  final bool positive;
   final String? tooltip;
   const BarDatum({
     required this.label,
     required this.value,
     this.highlight = false,
+    this.positive = true,
     this.tooltip,
   });
 }
@@ -56,8 +58,11 @@ class BarsChart extends StatelessWidget {
                               width: 16,
                               height: fillH,
                               decoration: BoxDecoration(
-                                color:
-                                    d.highlight ? AppColors.lav : AppColors.ink,
+                                color: d.highlight
+                                    ? AppColors.lav
+                                    : (d.positive
+                                        ? AppColors.ink
+                                        : AppColors.claySoft),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
@@ -103,6 +108,7 @@ class _Tooltip extends StatelessWidget {
       ),
       child: Text(
         text,
+        textDirection: TextDirection.ltr,
         style: const TextStyle(
           color: Colors.white,
           fontSize: 11,
