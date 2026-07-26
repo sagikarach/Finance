@@ -120,8 +120,10 @@ class AccountsPieChart(QWidget):
         # פלטת "hero": משפחת הכחול של האקסנט (עמוק→בהיר), עם רווח דק בצבע
         # הרקע בין הפרוסות — נקי ורגוע, תואם לכרטיסים.
         is_dark = self._is_dark_theme()
-        pal_from = QColor("#bfdbfe" if is_dark else "#1e40af")  # התחלת המדרג
-        pal_to = QColor("#3b82f6" if is_dark else "#93c5fd")  # סוף המדרג
+        # מסלול הגדול (idx 0) מקבל את הצבע הכהה/הרווי, והקטנים בהירים יותר —
+        # אותו כיוון בשני המצבים (בהיר: #1e40af→#93c5fd, כהה: #3b82f6→#bfdbfe).
+        pal_from = QColor("#3b82f6" if is_dark else "#1e40af")  # הגדול — כהה
+        pal_to = QColor("#bfdbfe" if is_dark else "#93c5fd")  # הקטן — בהיר
         gap_color = QColor("#111827" if is_dark else "#f8fafc")  # = רקע הפאנל
         empty_color = QColor("#475569" if is_dark else "#cbd5e1")
 
