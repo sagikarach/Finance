@@ -11,6 +11,7 @@ import '../services/movements_service.dart';
 import '../services/session_service.dart';
 import '../services/launch_target_service.dart';
 import 'account_switch_screen.dart';
+import 'assets_screen.dart';
 import 'movements_screen.dart';
 import 'new_movement_screen.dart';
 import 'savings_screen.dart';
@@ -563,6 +564,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 MaterialPageRoute(
                   builder: (_) =>
                       MovementsScreen(workspaceId: widget.workspaceId),
+                ),
+              ),
+            ),
+            HeaderAction(
+              icon: Icons.home_work,
+              tooltip: 'נכסים',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      AssetsScreen(workspaceId: widget.workspaceId),
                 ),
               ),
             ),
