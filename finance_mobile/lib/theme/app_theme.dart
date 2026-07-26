@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
+
 class AppTheme {
-  static const _bgLight = Color(0xFFDBEAFE); // desktop-like light blue
-  static const _cardLight = Colors.white;
-  static const _textPrimary = Color(0xFF0F172A); // slate-900-ish
+  static const _bgLight = AppColors.screen; // warm off-white ground
+  static const _cardLight = AppColors.card;
+  static const _textPrimary = AppColors.ink;
 
   static ThemeData light() {
     final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF4F46E5), // indigo-ish
+      seedColor: AppColors.lav,
       brightness: Brightness.light,
+    ).copyWith(
+      surface: AppColors.screen,
+      primary: AppColors.ink,
     );
 
     return ThemeData(
@@ -16,14 +21,14 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: _bgLight,
       appBarTheme: const AppBarTheme(
-        centerTitle: true,
+        centerTitle: false,
         backgroundColor: _bgLight,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleTextStyle: TextStyle(
           color: _textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
+          fontSize: 19,
+          fontWeight: FontWeight.w800,
         ),
         iconTheme: IconThemeData(color: _textPrimary),
       ),
@@ -32,8 +37,7 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.black.withValues(alpha: 0.06)),
+          borderRadius: BorderRadius.circular(24),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -47,12 +51,14 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           minimumSize: const Size.fromHeight(48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
@@ -64,5 +70,3 @@ class AppTheme {
     );
   }
 }
-
-

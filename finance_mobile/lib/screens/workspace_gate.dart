@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/workspace_facade.dart';
 import '../services/launch_target_service.dart';
-import 'dashboard_screen.dart';
+import 'home_shell.dart';
 
 class WorkspaceGate extends StatefulWidget {
   const WorkspaceGate({super.key});
@@ -101,7 +101,7 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
 
     if (_workspaceId != null && _workspaceId!.trim().isNotEmpty) {
       final t = LaunchTargetService.instance.consumePending();
-      return DashboardScreen(
+      return HomeShell(
         workspaceId: _workspaceId!,
         openAddMovementOnStart: t == 'add_movement',
       );

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../services/account_profiles_store.dart';
 import '../services/app_lock_store.dart';
 import '../services/workspace_facade.dart';
-import 'dashboard_screen.dart';
+import 'home_shell.dart';
 
 class AccountSwitchScreen extends StatefulWidget {
   const AccountSwitchScreen({super.key});
@@ -365,7 +365,7 @@ class _AccountSwitchScreenState extends State<AccountSwitchScreen> {
 
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => DashboardScreen(workspaceId: wid)),
+        MaterialPageRoute(builder: (_) => HomeShell(workspaceId: wid)),
         (r) => false,
       );
     } on FirebaseAuthException catch (e) {
@@ -485,7 +485,7 @@ class _AccountSwitchScreenState extends State<AccountSwitchScreen> {
       }
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => DashboardScreen(workspaceId: wid)),
+        MaterialPageRoute(builder: (_) => HomeShell(workspaceId: wid)),
         (r) => false,
       );
     } on FirebaseAuthException catch (e) {
