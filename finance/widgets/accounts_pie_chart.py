@@ -122,7 +122,7 @@ class AccountsPieChart(QWidget):
         is_dark = self._is_dark_theme()
         pal_from = QColor("#bfdbfe" if is_dark else "#1e40af")  # התחלת המדרג
         pal_to = QColor("#3b82f6" if is_dark else "#93c5fd")  # סוף המדרג
-        gap_color = QColor("#1e293b" if is_dark else "#f8fafc")  # = רקע הכרטיס
+        gap_color = QColor("#111827" if is_dark else "#f8fafc")  # = רקע הפאנל
         empty_color = QColor("#475569" if is_dark else "#cbd5e1")
 
         total = sum(max(a.total_amount, 0.0) for a in self._accounts)

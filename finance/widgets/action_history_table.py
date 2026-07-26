@@ -699,10 +699,10 @@ class _ActionHistoryRow(QWidget):
             except Exception:
                 is_dark = False
 
-            # הכרטיס מקונן בתוך פאנל כהה (#1e293b) — לכן מעט בהיר ממנו, עם מסגרת
-            # בהירה יותר, כדי שייקרא כרטיס מובחן (בבהיר: לבן על רקע שמנת).
-            base_bg = "#2c3a52" if is_dark else "#ffffff"
-            border = "#3e4c66" if is_dark else "#e2e8f0"
+            # הכרטיס בעיצוב ה-hero (#1e293b/#334155), והפאנל שמסביבו כהה יותר
+            # (#111827) כדי שהכרטיסים ייקראו. בבהיר: כרטיס לבן על פאנל שמנת.
+            base_bg = "#1e293b" if is_dark else "#ffffff"
+            border = "#334155" if is_dark else "#e2e8f0"
             stripe_color = self._stripe_color or "#93c5fd"
 
             w = max(int(outer.width() or 0), 1)

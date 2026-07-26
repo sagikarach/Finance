@@ -179,16 +179,16 @@ def load_cards_dark_styles() -> str:
         color: #64748b;
     }
     QWidget#ContentPanel {
-        background: #1e293b;
-        border: 1px solid #334155;
+        background: #111827;
+        border: 1px solid #1e293b;
         border-radius: 14px;
     }
     QWidget#ContentPanel * {
         background: transparent;
     }
     QWidget#AssetTablePanel {
-        background: #1e293b;
-        border: 1px solid #334155;
+        background: #111827;
+        border: 1px solid #1e293b;
         border-top: none;
         border-top-left-radius: 0px;
         border-top-right-radius: 0px;
