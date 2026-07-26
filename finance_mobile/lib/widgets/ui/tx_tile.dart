@@ -99,7 +99,7 @@ class TxTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            fmtSigned(m.amount, decimals: false),
+            fmtSigned(m.amount, decimals: false, symbolLeft: true),
             textDirection: TextDirection.ltr,
             style: TextStyle(
               color: income ? AppColors.green : AppColors.clay,

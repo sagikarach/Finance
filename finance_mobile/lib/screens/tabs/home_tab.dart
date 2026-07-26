@@ -315,7 +315,7 @@ class _HomeTabState extends State<HomeTab> {
                         fontSize: 12,
                         fontWeight: FontWeight.w600)),
                 const SizedBox(height: 5),
-                Text(fmtSigned(monthNet, decimals: false),
+                Text(fmtSigned(monthNet, decimals: false, symbolLeft: true),
                     textDirection: TextDirection.ltr,
                     style: TextStyle(
                         fontSize: 18,
@@ -331,19 +331,16 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _cashflowCard() {
-    final months = _sum.months;
-    var maxIdx = 0;
-    for (var i = 0; i < months.length; i++) {
-      if (months[i].net > months[maxIdx].net) maxIdx = i;
-    }
+    // Newest month first so that, in the RTL row, the most recent month sits on
+    // the right. Tapping a bar reveals its value.
+    final ordered = _sum.months.reversed.toList();
     final bars = [
-      for (var i = 0; i < months.length; i++)
+      for (final b in ordered)
         BarDatum(
-          label: months[i].label,
-          value: months[i].net.abs(),
-          highlight: i == maxIdx,
-          positive: months[i].net >= 0,
-          tooltip: i == maxIdx ? fmtSigned(months[i].net, decimals: false) : null,
+          label: b.label,
+          value: b.net.abs(),
+          positive: b.net >= 0,
+          tooltip: fmtSigned(b.net, decimals: false, symbolLeft: true),
         ),
     ];
     return AppCard(
@@ -351,7 +348,7 @@ class _HomeTabState extends State<HomeTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SectionHeader(title: 'תזרים חודשי', actionLabel: '6 חודשים'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 30), // headroom for the highlighted-bar tooltip
           BarsChart(data: bars),
         ],
       ),

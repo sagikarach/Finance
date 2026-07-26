@@ -10,19 +10,24 @@ String _group(String intPart) {
 }
 
 /// e.g. 1,234,567.50 ₪ — grouped thousands, two decimals, ₪ suffix.
-String fmtMoney(num v, {bool decimals = true}) {
+/// With [symbolLeft], the ₪ is a prefix (₪1,234) so that in an LTR-rendered
+/// widget the symbol still sits to the left of the number.
+String fmtMoney(num v, {bool decimals = true, bool symbolLeft = false}) {
   final neg = v < 0;
   final fixed = v.abs().toStringAsFixed(decimals ? 2 : 0);
   final dot = fixed.indexOf('.');
   final intPart = dot >= 0 ? fixed.substring(0, dot) : fixed;
   final frac = dot >= 0 ? fixed.substring(dot) : '';
-  return '${neg ? '-' : ''}${_group(intPart)}$frac ₪';
+  final number = '${_group(intPart)}$frac';
+  final sign = neg ? '-' : '';
+  return symbolLeft ? '$sign₪$number' : '$sign$number ₪';
 }
 
 /// Signed with an explicit +/- prefix (income vs expense).
-String fmtSigned(num v, {bool decimals = true}) {
+String fmtSigned(num v, {bool decimals = true, bool symbolLeft = false}) {
   final neg = v < 0;
-  return '${neg ? '−' : '+'}${fmtMoney(v.abs(), decimals: decimals)}';
+  final sign = neg ? '−' : '+';
+  return '$sign${fmtMoney(v.abs(), decimals: decimals, symbolLeft: symbolLeft)}';
 }
 
 /// Compact hero form: ₪1.85M / ₪86.4K / ₪612.

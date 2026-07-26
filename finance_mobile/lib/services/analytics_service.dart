@@ -132,19 +132,11 @@ class AnalyticsService {
         months.where((b) => b.income > 0 || b.expense > 0).length;
     final div = monthsWithData < 1 ? 1 : monthsWithData;
 
-    final cats = catSum.entries
+    // Show every category (no artificial "אחר" bucket), largest first.
+    final slices = catSum.entries
         .map((e) => CategorySlice(e.key, e.value / div))
         .toList()
       ..sort((a, b) => b.amount.compareTo(a.amount));
-    // Collapse a long tail into "אחר".
-    List<CategorySlice> slices;
-    if (cats.length > 5) {
-      final top = cats.take(4).toList();
-      final rest = cats.skip(4).fold<double>(0, (s, c) => s + c.amount);
-      slices = [...top, CategorySlice('אחר', rest)];
-    } else {
-      slices = cats;
-    }
 
     final recent = [...all]..sort((a, b) {
         final c = b.date.compareTo(a.date);

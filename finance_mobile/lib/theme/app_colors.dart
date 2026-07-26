@@ -27,9 +27,14 @@ class AppColors {
     sage,
     yellow,
     claySoft,
-    Color(0xFF9BB4E6),
-    Color(0xFFD9DCE0),
+    Color(0xFF9BB4E6), // periwinkle
     greenSoft,
+    Color(0xFFE0B0D8), // mauve
     yellowSoft,
+    Color(0xFF7FB3B3), // teal
+    Color(0xFFE8A87C), // apricot
+    Color(0xFFA9A6D6), // muted violet
+    Color(0xFFBFCF9E), // olive
+    Color(0xFFD9DCE0), // grey
   ];
 }
