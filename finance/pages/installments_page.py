@@ -17,6 +17,7 @@ from ..qt import (
     QCheckBox,
     QTableWidget,
     QTableWidgetItem,
+    QHeaderView,
     QMessageBox,
     QSizePolicy,
     Qt,
@@ -376,7 +377,7 @@ class InstallmentsPage(BasePage):
         self._table.setRowCount(0)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self._table.setAlternatingRowColors(True)
+        self._table.setAlternatingRowColors(False)
         try:
             self._table.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
@@ -391,6 +392,10 @@ class InstallmentsPage(BasePage):
             header = self._table.horizontalHeader()
             if header is not None:
                 header.setObjectName("ActionHistoryHeader")
+                header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            vheader = self._table.verticalHeader()
+            if vheader is not None:
+                vheader.setVisible(False)
         except Exception:
             pass
         table_card_l.addWidget(self._table, 1)
