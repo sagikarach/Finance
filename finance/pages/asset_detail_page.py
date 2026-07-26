@@ -494,8 +494,8 @@ class AssetDetailPage(BasePage):
             cl.addWidget(v, 0)
             cards_row.addWidget(card, 1)
 
-        build_hero("עלות רכישה", f"{_fmt_money(s.acquisition_cost)} ₪")
-        # יישאר בבנק — הכרטיס המודגש; ירוק אם חיובי, אדום אם החשבון לא מספיק.
+        build_hero("עלות רכישה", f"{_fmt_money(s.acquisition_cost)} ₪", accent=True)
+        # יישאר בבנק — כרטיס מודגש; ירוק אם חיובי, אדום אם החשבון לא מספיק.
         build_hero(
             "יישאר בבנק אחרי הרכישה",
             f"{_fmt_money(left_in_bank)} ₪",
