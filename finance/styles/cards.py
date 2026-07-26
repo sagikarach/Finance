@@ -8,57 +8,35 @@ def load_cards_light_styles() -> str:
         border: 1px solid #c7dffe;
         border-radius: 12px;
     }
-    QWidget#StatCardGreen {
-        background: #dcfce7;
-        border: 1px solid #86efac;
-        border-radius: 20px;
-    }
-    QWidget#StatCardRed {
-        background: #fee2e2;
-        border: 1px solid #fca5a5;
-        border-radius: 20px;
-    }
-    QWidget#StatCardPurple {
-        background: #e0e7ff;
-        border: 1px solid #a5b4fc;
-        border-radius: 20px;
-    }
-    QWidget#StatCardYellow {
-        background: #fef9c3;
-        border: 1px solid #fde047;
-        border-radius: 20px;
+    /* כרטיסי סטטיסטיקה — עיצוב אחיד בסגנון "hero": כרטיס ניטרלי, כותרת
+       קטנה ומעומעמת, וערך גדול הצבוע לפי המשמעות (ירוק=כסף, אדום=חוב וכו'). */
+    QWidget#StatCardGreen, QWidget#StatCardRed,
+    QWidget#StatCardPurple, QWidget#StatCardYellow {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
     }
     QWidget#StatCardGreen *, QWidget#StatCardRed *,
     QWidget#StatCardPurple *, QWidget#StatCardYellow * {
         background: transparent;
     }
-    QWidget#StatCardGreen QLabel {
-        color: #166534;
-        background: transparent;
+    QWidget#StatCardGreen QLabel#StatTitle, QWidget#StatCardRed QLabel#StatTitle,
+    QWidget#StatCardPurple QLabel#StatTitle, QWidget#StatCardYellow QLabel#StatTitle {
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
     }
-    QWidget#StatCardRed QLabel {
-        color: #b91c1c;
-        background: transparent;
-    }
-    QWidget#StatCardPurple QLabel {
-        color: #4338ca;
-        background: transparent;
-    }
-    QWidget#StatCardYellow QLabel {
-        color: #854d0e;
-        background: transparent;
-    }
-    QWidget#StatCardGreen QLabel#Subtitle {
-        color: rgba(22,101,52,0.70);
-    }
-    QWidget#StatCardRed QLabel#Subtitle {
-        color: rgba(185,28,28,0.70);
-    }
-    QWidget#StatCardPurple QLabel#Subtitle {
-        color: rgba(67,56,202,0.70);
-    }
-    QWidget#StatCardYellow QLabel#Subtitle {
-        color: rgba(133,77,14,0.70);
+    QWidget#StatCardGreen QLabel#StatValueCard,
+    QWidget#StatCardGreen QLabel#StatValueLarge { color: #15803d; }
+    QWidget#StatCardRed QLabel#StatValueCard,
+    QWidget#StatCardRed QLabel#StatValueLarge { color: #b91c1c; }
+    QWidget#StatCardPurple QLabel#StatValueCard,
+    QWidget#StatCardPurple QLabel#StatValueLarge { color: #6d28d9; }
+    QWidget#StatCardYellow QLabel#StatValueCard,
+    QWidget#StatCardYellow QLabel#StatValueLarge { color: #b45309; }
+    QWidget#StatCardGreen QLabel#Subtitle, QWidget#StatCardRed QLabel#Subtitle,
+    QWidget#StatCardPurple QLabel#Subtitle, QWidget#StatCardYellow QLabel#Subtitle {
+        color: #94a3b8;
     }
     QWidget#PageCard {
         background: transparent;
@@ -172,38 +150,33 @@ def load_cards_light_styles() -> str:
 
 def load_cards_dark_styles() -> str:
     return """
-    QWidget#StatCardGreen {
-        background: #16a34a;
-        border: 1px solid #15803d;
-        border-radius: 20px;
-    }
-    QWidget#StatCardRed {
-        background: #dc2626;
-        border: 1px solid #b91c1c;
-        border-radius: 20px;
-    }
-    QWidget#StatCardPurple {
-        background: #4f46e5;
-        border: 1px solid #4338ca;
-        border-radius: 20px;
-    }
-    QWidget#StatCardYellow {
-        background: #d97706;
-        border: 1px solid #b45309;
-        border-radius: 20px;
+    QWidget#StatCardGreen, QWidget#StatCardRed,
+    QWidget#StatCardPurple, QWidget#StatCardYellow {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 14px;
     }
     QWidget#StatCardGreen *, QWidget#StatCardRed *,
     QWidget#StatCardPurple *, QWidget#StatCardYellow * {
         background: transparent;
     }
-    QWidget#StatCardGreen QLabel, QWidget#StatCardRed QLabel,
-    QWidget#StatCardPurple QLabel, QWidget#StatCardYellow QLabel {
-        color: #ffffff;
-        background: transparent;
+    QWidget#StatCardGreen QLabel#StatTitle, QWidget#StatCardRed QLabel#StatTitle,
+    QWidget#StatCardPurple QLabel#StatTitle, QWidget#StatCardYellow QLabel#StatTitle {
+        font-size: 13px;
+        font-weight: 600;
+        color: #94a3b8;
     }
+    QWidget#StatCardGreen QLabel#StatValueCard,
+    QWidget#StatCardGreen QLabel#StatValueLarge { color: #4ade80; }
+    QWidget#StatCardRed QLabel#StatValueCard,
+    QWidget#StatCardRed QLabel#StatValueLarge { color: #f87171; }
+    QWidget#StatCardPurple QLabel#StatValueCard,
+    QWidget#StatCardPurple QLabel#StatValueLarge { color: #a78bfa; }
+    QWidget#StatCardYellow QLabel#StatValueCard,
+    QWidget#StatCardYellow QLabel#StatValueLarge { color: #fbbf24; }
     QWidget#StatCardGreen QLabel#Subtitle, QWidget#StatCardRed QLabel#Subtitle,
     QWidget#StatCardPurple QLabel#Subtitle, QWidget#StatCardYellow QLabel#Subtitle {
-        color: rgba(255,255,255,0.75);
+        color: #64748b;
     }
     QWidget#ContentPanel {
         background: #111827;
