@@ -538,16 +538,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             HeaderAction(
-              icon: Icons.group,
-              tooltip: 'חשבונות',
-              onPressed: () async {
-                await Navigator.of(context).push<void>(
-                  MaterialPageRoute(
-                      builder: (_) => const AccountSwitchScreen()),
-                );
-              },
-            ),
-            HeaderAction(
               icon: Icons.savings,
               tooltip: 'חסכונות',
               onPressed: () => Navigator.of(context).push(
@@ -582,6 +572,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               tooltip: 'סנכרן עכשיו',
               onPressed:
                   _syncing ? null : () => _pullFromServer(showToast: true),
+            ),
+          ],
+          overflow: [
+            HeaderAction(
+              icon: Icons.group,
+              tooltip: 'החלף חשבון',
+              onPressed: () async {
+                await Navigator.of(context).push<void>(
+                  MaterialPageRoute(
+                      builder: (_) => const AccountSwitchScreen()),
+                );
+              },
             ),
             HeaderAction(
               icon: Icons.system_update,

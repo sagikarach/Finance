@@ -16,10 +16,15 @@ class HeaderActionsRow extends StatelessWidget {
   final String? title;
   final List<HeaderAction> actions;
 
+  /// Secondary actions collapsed into a single trailing "⋮" menu, so the row
+  /// doesn't overflow the AppBar when there are many actions.
+  final List<HeaderAction> overflow;
+
   const HeaderActionsRow({
     super.key,
     required this.actions,
     this.title,
+    this.overflow = const <HeaderAction>[],
   });
 
   @override
@@ -46,6 +51,32 @@ class HeaderActionsRow extends StatelessWidget {
           iconSize: 22,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+        ),
+      );
+    }
+
+    if (overflow.isNotEmpty) {
+      items.add(
+        PopupMenuButton<int>(
+          tooltip: 'עוד',
+          icon: const Icon(Icons.more_vert),
+          iconSize: 22,
+          padding: EdgeInsets.zero,
+          onSelected: (i) => overflow[i].onPressed?.call(),
+          itemBuilder: (context) => [
+            for (var i = 0; i < overflow.length; i++)
+              PopupMenuItem<int>(
+                value: i,
+                enabled: overflow[i].onPressed != null,
+                child: Row(
+                  children: [
+                    Icon(overflow[i].icon, size: 20),
+                    const SizedBox(width: 12),
+                    Text(overflow[i].tooltip),
+                  ],
+                ),
+              ),
+          ],
         ),
       );
     }
