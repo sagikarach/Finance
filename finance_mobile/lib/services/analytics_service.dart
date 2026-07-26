@@ -35,25 +35,27 @@ class CategorySlice {
 }
 
 class AnalyticsSummary {
-  final List<MonthBucket> months; // last 6, oldest -> newest
-  final List<CategorySlice> expenseByCategory; // current month, desc
-  final double monthIncome;
-  final double monthExpense;
-  final List<Movement> recent; // newest first
+  final List<MonthBucket> months; // last 6, oldest -> newest (monthly-type net)
+  final List<CategorySlice> avgByCategory; // avg monthly expense per category
+  final double avgMonthlyIncome;
+  final double avgMonthlyExpense;
+  final List<Movement> recent; // newest first (all movements)
 
   const AnalyticsSummary({
     required this.months,
-    required this.expenseByCategory,
-    required this.monthIncome,
-    required this.monthExpense,
+    required this.avgByCategory,
+    required this.avgMonthlyIncome,
+    required this.avgMonthlyExpense,
     required this.recent,
   });
 
+  double get avgMonthlyNet => avgMonthlyIncome - avgMonthlyExpense;
+
   static const empty = AnalyticsSummary(
     months: [],
-    expenseByCategory: [],
-    monthIncome: 0,
-    monthExpense: 0,
+    avgByCategory: [],
+    avgMonthlyIncome: 0,
+    avgMonthlyExpense: 0,
     recent: [],
   );
 }
@@ -65,15 +67,11 @@ class AnalyticsService {
   AnalyticsService({required this.workspaceId})
       : _movements = MovementsService(workspaceId: workspaceId);
 
-  /// One-time (חד פעמי / ONE_TIME) and monthly-recurring (חודשי / MONTHLY)
-  /// movements are excluded from the home cash-flow and breakdown charts.
-  static bool _excludedFromFlow(String type) {
+  /// The home charts show only the regular *monthly* recurring flow —
+  /// one-time (חד פעמי) and yearly (שנתי) movements are excluded.
+  static bool _isMonthly(String type) {
     final t = type.trim();
-    return t == 'ONE_TIME' ||
-        t == 'MONTHLY' ||
-        t == 'חד פעמי' ||
-        t == 'חד־פעמי' ||
-        t == 'חודשי';
+    return t == 'MONTHLY' || t == 'חודשי';
   }
 
   DateTime? _parse(String s) {
@@ -102,40 +100,40 @@ class AnalyticsService {
       order.add(key);
     }
 
-    final curKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
-    final catMap = <String, double>{};
-    double monthIncome = 0, monthExpense = 0;
+    // Sum monthly-type movements over the window; the donut/chip then show the
+    // per-month AVERAGE (not the noisy current month).
+    final catSum = <String, double>{};
+    double incomeWindow = 0, expenseWindow = 0;
 
     for (final m in all) {
-      // The cash-flow / breakdown charts show only irregular real spending —
-      // recurring monthly and one-time template movements are excluded.
-      if (_excludedFromFlow(m.type)) continue;
+      if (!_isMonthly(m.type)) continue; // exclude one-time & yearly
       final dt = _parse(m.date);
       if (dt == null) continue;
       final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
       final b = buckets[key];
-      if (b != null) {
-        if (m.amount >= 0) {
-          b.income += m.amount;
-        } else {
-          b.expense += m.amount.abs();
-        }
-      }
-      if (key == curKey) {
-        if (m.amount >= 0) {
-          monthIncome += m.amount;
-        } else {
-          monthExpense += m.amount.abs();
-          final cat = m.category.trim().isEmpty ? 'אחר' : m.category.trim();
-          catMap[cat] = (catMap[cat] ?? 0) + m.amount.abs();
-        }
+      if (b == null) continue; // only within the 6-month window
+      if (m.amount >= 0) {
+        b.income += m.amount;
+        incomeWindow += m.amount;
+      } else {
+        final a = m.amount.abs();
+        b.expense += a;
+        expenseWindow += a;
+        final cat = m.category.trim().isEmpty ? 'אחר' : m.category.trim();
+        catSum[cat] = (catSum[cat] ?? 0) + a;
       }
     }
 
     final months = order.map((k) => buckets[k]!).toList();
 
-    final cats = catMap.entries
-        .map((e) => CategorySlice(e.key, e.value))
+    // Average over the months that actually have activity (avoids understating
+    // for new workspaces with < 6 months of history).
+    final monthsWithData =
+        months.where((b) => b.income > 0 || b.expense > 0).length;
+    final div = monthsWithData < 1 ? 1 : monthsWithData;
+
+    final cats = catSum.entries
+        .map((e) => CategorySlice(e.key, e.value / div))
         .toList()
       ..sort((a, b) => b.amount.compareTo(a.amount));
     // Collapse a long tail into "אחר".
@@ -156,9 +154,9 @@ class AnalyticsService {
 
     return AnalyticsSummary(
       months: months,
-      expenseByCategory: slices,
-      monthIncome: monthIncome,
-      monthExpense: monthExpense,
+      avgByCategory: slices,
+      avgMonthlyIncome: incomeWindow / div,
+      avgMonthlyExpense: expenseWindow / div,
       recent: recent,
     );
   }

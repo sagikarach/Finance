@@ -178,9 +178,9 @@ class _HomeTabState extends State<HomeTab> {
   List<Widget> _content() {
     final totalAll = _dash?.totalAll ?? 0;
     final liquid = _dash?.totalLiquid ?? 0;
-    final monthNet = _sum.monthIncome - _sum.monthExpense;
-    final rawPct = _sum.monthIncome > 0
-        ? (monthNet / _sum.monthIncome * 100).round()
+    final monthNet = _sum.avgMonthlyNet;
+    final rawPct = _sum.avgMonthlyIncome > 0
+        ? (monthNet / _sum.avgMonthlyIncome * 100).round()
         : null;
     // Only show the savings-rate badge when it's a sane figure (0–100%).
     final savingsPct =
@@ -195,7 +195,7 @@ class _HomeTabState extends State<HomeTab> {
         _cashflowCard(),
         const SizedBox(height: 16),
       ],
-      if (_sum.expenseByCategory.isNotEmpty) ...[
+      if (_sum.avgByCategory.isNotEmpty) ...[
         _expenseCard(),
         const SizedBox(height: 16),
       ],
@@ -309,7 +309,7 @@ class _HomeTabState extends State<HomeTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('תזרים החודש',
+                const Text('תזרים חודשי ממוצע',
                     style: TextStyle(
                         color: AppColors.muted,
                         fontSize: 12,
@@ -359,7 +359,7 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _expenseCard() {
-    final slices = _sum.expenseByCategory;
+    final slices = _sum.avgByCategory;
     final total = slices.fold<double>(0, (s, c) => s + c.amount);
     final segs = [
       for (var i = 0; i < slices.length; i++)
@@ -370,7 +370,7 @@ class _HomeTabState extends State<HomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('פילוח הוצאות · החודש',
+          const Text('פילוח הוצאות · ממוצע חודשי',
               style: TextStyle(
                   color: AppColors.muted,
                   fontSize: 12.5,
@@ -384,7 +384,7 @@ class _HomeTabState extends State<HomeTab> {
               center: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('סה״כ',
+                  const Text('לחודש',
                       style: TextStyle(
                           color: AppColors.muted,
                           fontSize: 12,
