@@ -43,9 +43,15 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Stamp pubspec version
-        # version: <ver>+<run_number> — the build number must climb for stores.
+        # Derive versionCode from the semver so it always climbs with the
+        # version (major*1e6 + minor*1e4 + patch*100 + run_number). The old
+        # run-number-only scheme produced tiny codes (e.g. 6) that could be lower
+        # than a sideloaded build, which Android rejects as "package invalid".
         run: |
-          sed -i -E "s/^version:.*/version: ${{ steps.version.outputs.version }}+${GITHUB_RUN_NUMBER}/" pubspec.yaml
+          VERSION="${{ steps.version.outputs.version }}"
+          IFS='.' read -r MA MI PA <<< "$VERSION"
+          CODE=$(( ${MA:-0} * 1000000 + ${MI:-0} * 10000 + ${PA:-0} * 100 + GITHUB_RUN_NUMBER ))
+          sed -i -E "s/^version:.*/version: ${VERSION}+${CODE}/" pubspec.yaml
           grep '^version:' pubspec.yaml
 
       - name: Pub get
