@@ -52,8 +52,13 @@ class _AppLockGateState extends State<AppLockGate> with WidgetsBindingObserver {
     // biometrics will loop forever.
     if (_showingLockScreen) return;
 
-    // When app leaves foreground, require unlock again next time.
-    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+    // Record the "left the foreground" time only on `paused` — it is the one
+    // state that fires exclusively when backgrounding. `inactive` (and `hidden`)
+    // also fire on the way back up while resuming, and stamping them here would
+    // reset the timer to "now" so the inactivity check always sees ~0s and never
+    // re-locks.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       _lastSeenMs = DateTime.now().millisecondsSinceEpoch;
       return;
     }
