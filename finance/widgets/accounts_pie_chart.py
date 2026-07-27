@@ -117,15 +117,23 @@ class AccountsPieChart(QWidget):
         except Exception:
             pass
 
-        # פלטת "hero": משפחת הכחול של האקסנט (עמוק→בהיר), עם רווח דק בצבע
-        # הרקע בין הפרוסות — נקי ורגוע, תואם לכרטיסים.
+        # פלטת פסטל קטגורית (תואמת לעיצוב המובייל) — צבע נבדל לכל חשבון,
+        # עם רווח דק בצבע רקע הפאנל בין הפרוסות.
         is_dark = self._is_dark_theme()
-        # מסלול הגדול (idx 0) מקבל את הצבע הכהה/הרווי, והקטנים בהירים יותר —
-        # אותו כיוון בשני המצבים (בהיר: #1e40af→#93c5fd, כהה: #3b82f6→#bfdbfe).
-        pal_from = QColor("#3b82f6" if is_dark else "#1e40af")  # הגדול — כהה
-        pal_to = QColor("#bfdbfe" if is_dark else "#93c5fd")  # הקטן — בהיר
-        gap_color = QColor("#111827" if is_dark else "#f8fafc")  # = רקע הפאנל
-        empty_color = QColor("#475569" if is_dark else "#cbd5e1")
+        pastel = [
+            QColor("#B9B6F0"),  # lavender
+            QColor("#C6D3B4"),  # sage
+            QColor("#F2D06B"),  # yellow
+            QColor("#E9A491"),  # clay
+            QColor("#9BB4E6"),  # periwinkle
+            QColor("#8FBF9F"),  # green
+            QColor("#E0B0D8"),  # mauve
+            QColor("#F7E2A6"),  # soft yellow
+            QColor("#7FB3B3"),  # teal
+            QColor("#E8A87C"),  # apricot
+        ]
+        gap_color = QColor("#111827" if is_dark else "#ffffff")  # = רקע הפאנל
+        empty_color = QColor("#475569" if is_dark else "#d9dce0")
 
         total = sum(max(a.total_amount, 0.0) for a in self._accounts)
         if total <= 0:
@@ -162,14 +170,12 @@ class AccountsPieChart(QWidget):
         # צובעים את הפרוסות *אחרי* addSeries — אחרת ערכת ברירת המחדל של QtCharts
         # דורסת את הצבעים ברינדור חוזר (מעבר בין עמודים) והפרוסות הופכות בהירות.
         slices = series.slices()
-        n_slices = len(slices)
         for idx, s in enumerate(slices):
             try:
                 if total <= 0:
                     s.setBrush(empty_color)
                 else:
-                    t = float(idx) / float(max(n_slices - 1, 1))
-                    s.setBrush(_interpolate_qcolor(pal_from, pal_to, t))
+                    s.setBrush(pastel[idx % len(pastel)])
                 s.setBorderColor(gap_color)  # רווח דק בצבע הפאנל
                 s.setBorderWidth(2)
             except Exception:

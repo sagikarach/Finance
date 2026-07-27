@@ -38,6 +38,27 @@ def load_cards_light_styles() -> str:
     QWidget#StatCardPurple QLabel#Subtitle, QWidget#StatCardYellow QLabel#Subtitle {
         color: #94a3b8;
     }
+    /* ── Pastel dashboard cards (mobile-theme redesign) ── */
+    QWidget#DashHeroYellow {
+        background: #f2d06b;
+        border: none;
+        border-radius: 22px;
+    }
+    QWidget#DashHeroYellow * { background: transparent; }
+    QWidget#DashHeroYellow QLabel#StatTitle {
+        font-size: 14px; font-weight: 700; color: #7a6420;
+    }
+    QWidget#DashHeroYellow QLabel#StatValueLarge { color: #2c2612; }
+    QWidget#DashCard {
+        background: #ffffff;
+        border: 1px solid #ecece2;
+        border-radius: 22px;
+    }
+    QWidget#DashCard * { background: transparent; }
+    QWidget#DashCard QLabel#StatTitle {
+        font-size: 14px; font-weight: 700; color: #8b8e86;
+    }
+    QWidget#DashCard QLabel#StatValueLarge { color: #4b4980; }
     QWidget#PageCard {
         background: transparent;
         border: none;
@@ -47,9 +68,9 @@ def load_cards_light_styles() -> str:
         background: transparent;
     }
     QWidget#ContentPanel {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
+        background: #ffffff;
+        border: 1px solid #ecece2;
+        border-radius: 22px;
     }
     QWidget#ContentPanel * {
         background: transparent;

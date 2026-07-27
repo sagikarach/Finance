@@ -4,7 +4,7 @@ from __future__ import annotations
 def load_sidebar_light_styles() -> str:
     return """
     QWidget#Sidebar {
-        background: #bfdbfe;
+        background: #ffffff;
         border-radius: 12px;
     }
     QWidget#Sidebar * {
@@ -26,21 +26,21 @@ def load_sidebar_light_styles() -> str:
         margin-top: 4px;
     }
     QToolButton#FirebaseAccountMenuButton:hover {
-        background: rgba(201, 225, 254, 0.35);
+        background: rgba(185, 182, 240, 0.35);
         border-radius: 6px;
     }
     QLabel#AvatarCircle {
         width: 72px;
         height: 72px;
         border-radius: 36px;
-        background: #bfdbfe;
-        border: 2px solid #93c5fd;
+        background: #ffffff;
+        border: 2px solid #b9b6f0;
         color: #0f172a;
         font-size: 26px;
         font-weight: 800;
     }
     QPushButton#SidebarNavButton {
-        background: #bfdbfe;
+        background: #ffffff;
         color: #0f172a;
         padding: 10px 16px;
         border-radius: 0px;
@@ -53,41 +53,41 @@ def load_sidebar_light_styles() -> str:
         text-align: center;
     }
     QPushButton#SidebarNavButton:hover {
-        background: #c9e1fe;
+        background: #f1efe7;
     }
     QPushButton#SidebarNavButton:checked,
     QPushButton#SidebarNavButton:pressed {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-top: 1px solid #bfdbfe;
-        border-bottom: 1px solid #bfdbfe;
+        background: #deddf8;
+        color: #4b4980;
+        border-top: 1px solid #ffffff;
+        border-bottom: 1px solid #ffffff;
         border-right: none;
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid #b9b6f0;
         padding: 10px 16px 10px 12px;
         font-weight: 700;
     }
     QPushButton#SidebarNavButton[collapsibleExpanded="true"] {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-top: 1px solid #bfdbfe;
+        background: #deddf8;
+        color: #4b4980;
+        border-top: 1px solid #ffffff;
         border-bottom: none;
         border-right: none;
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid #b9b6f0;
         padding: 10px 16px 10px 12px;
         font-weight: 700;
     }
     QPushButton#SidebarNavButton:disabled {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-top: 1px solid #bfdbfe;
-        border-bottom: 1px solid #bfdbfe;
+        background: #deddf8;
+        color: #4b4980;
+        border-top: 1px solid #ffffff;
+        border-bottom: 1px solid #ffffff;
         border-right: none;
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid #b9b6f0;
         padding: 10px 16px 10px 12px;
         font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings {
-        background: #bfdbfe;
+        background: #ffffff;
         color: #0f172a;
         padding: 10px 16px;
         border-radius: 0px;
@@ -100,46 +100,46 @@ def load_sidebar_light_styles() -> str:
         text-align: center;
     }
     QPushButton#SidebarNavButtonSavings:hover {
-        background: #c9e1fe;
+        background: #f1efe7;
     }
     QPushButton#SidebarNavButtonSavings:checked,
     QPushButton#SidebarNavButtonSavings:pressed {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-top: 1px solid #bfdbfe;
-        border-bottom: 1px solid #bfdbfe;
+        background: #deddf8;
+        color: #4b4980;
+        border-top: 1px solid #ffffff;
+        border-bottom: 1px solid #ffffff;
         border-right: none;
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid #b9b6f0;
         padding: 10px 16px 10px 12px;
         font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings[collapsibleExpanded="true"] {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-top: 1px solid #bfdbfe;
+        background: #deddf8;
+        color: #4b4980;
+        border-top: 1px solid #ffffff;
         border-bottom: none;
         border-right: none;
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid #b9b6f0;
         padding: 10px 16px 10px 12px;
         font-weight: 700;
     }
     QPushButton#SidebarNavButtonSavings:disabled {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-top: 1px solid #bfdbfe;
-        border-bottom: 1px solid #bfdbfe;
+        background: #deddf8;
+        color: #4b4980;
+        border-top: 1px solid #ffffff;
+        border-bottom: 1px solid #ffffff;
         border-right: none;
-        border-left: 4px solid #2563eb;
+        border-left: 4px solid #b9b6f0;
         padding: 10px 16px 10px 12px;
         font-weight: 700;
     }
     QPushButton#SidebarNavToggle {
-        background: #dcecff;
+        background: #f1efe7;
         color: #0f172a;
         padding: 10px 8px;
         border-radius: 0px;
-        border-top: 2px solid #a0bce2;
-        border-bottom: 2px solid #a0bce2;
+        border-top: 2px solid #e6e3f5;
+        border-bottom: 2px solid #e6e3f5;
         border-left: none;
         border-right: none;
         font-size: 14px;
@@ -147,10 +147,10 @@ def load_sidebar_light_styles() -> str:
         text-align: center;
     }
     QPushButton#SidebarNavToggle:hover {
-        background: #c9e1fe;
+        background: #f1efe7;
     }
     QPushButton#SidebarNavToggle:checked {
-        background: #dcecff;
+        background: #f1efe7;
         border-bottom: none;
     }
     QPushButton#SidebarNavSubButton {
@@ -164,10 +164,10 @@ def load_sidebar_light_styles() -> str:
         text-align: center;
     }
     QPushButton#SidebarNavSubButton:hover {
-        background: rgba(201, 225, 254, 0.5);
+        background: rgba(185, 182, 240, 0.5);
     }
     QWidget#SidebarActions {
-        background: #bfdbfe;
+        background: #ffffff;
         border-radius: 12px;
         min-height: 130px;
         padding: 8px 8px 0px 8px;
@@ -185,11 +185,35 @@ def load_sidebar_light_styles() -> str:
         text-align: center;
     }
     QWidget#SidebarActions QPushButton:hover {
-        background: rgba(201, 225, 254, 0.35);
+        background: rgba(185, 182, 240, 0.35);
     }
     QWidget#SidebarActions QPushButton:pressed {
-        background: #dbeafe;
+        background: #deddf8;
     }
+    /* Income = green, Outcome = clay (pastel accents). Scoped under the parent
+       id so they outrank the generic "#SidebarActions QPushButton" rule. */
+    QWidget#SidebarActions QPushButton#SidebarIncomeButton {
+        background: #2f9e68;
+        color: #ffffff;
+        font-weight: 800;
+        border: none;
+        border-radius: 14px;
+        padding: 12px 14px;
+        min-height: 40px;
+    }
+    QWidget#SidebarActions QPushButton#SidebarIncomeButton:hover { background: #278a59; }
+    QWidget#SidebarActions QPushButton#SidebarIncomeButton:pressed { background: #226f49; }
+    QWidget#SidebarActions QPushButton#SidebarOutcomeButton {
+        background: #d66a4e;
+        color: #ffffff;
+        font-weight: 800;
+        border: none;
+        border-radius: 14px;
+        padding: 12px 14px;
+        min-height: 40px;
+    }
+    QWidget#SidebarActions QPushButton#SidebarOutcomeButton:hover { background: #c25a40; }
+    QWidget#SidebarActions QPushButton#SidebarOutcomeButton:pressed { background: #a94c34; }
     """
 
 

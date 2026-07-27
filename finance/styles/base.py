@@ -4,18 +4,18 @@ from __future__ import annotations
 def load_base_light_styles() -> str:
     return """
     QWidget {
-        background: #f5f8ff;
+        background: #f4f2ec;
         color: #0f172a;
         font-size: 14px;
         font-family: "Varela Round", "Arial Hebrew", "Helvetica Neue", Arial;
     }
     QMainWindow {
-        background: #f5f8ff;
+        background: #f4f2ec;
     }
 
     /* ── Dialogs ── */
     QDialog {
-        background: #f5f8ff;
+        background: #f4f2ec;
     }
 
     /* ── Text inputs ── */
@@ -168,7 +168,7 @@ def load_base_light_styles() -> str:
     /* ── Tables ── */
     QTableWidget, QTableView {
         background: #ffffff;
-        alternate-background-color: #f5f8ff;
+        alternate-background-color: #f4f2ec;
         border: 1px solid #bfdbfe;
         border-radius: 10px;
         gridline-color: #e8f0fe;
@@ -188,7 +188,7 @@ def load_base_light_styles() -> str:
         color: #1d4ed8;
     }
     QHeaderView {
-        background: #f5f8ff;
+        background: #f4f2ec;
         border: none;
     }
     QHeaderView::section {

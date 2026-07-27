@@ -65,7 +65,7 @@ class HomePage(BasePage):
             parent_widget = self
 
         total_all_card = QWidget(parent_widget)
-        total_all_card.setObjectName("StatCardGreen")
+        total_all_card.setObjectName("DashHeroYellow")
         try:
             total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
@@ -93,7 +93,7 @@ class HomePage(BasePage):
         total_all_card_layout.addStretch(1)
 
         total_liquid_card = QWidget(parent_widget)
-        total_liquid_card.setObjectName("StatCardPurple")
+        total_liquid_card.setObjectName("DashCard")
         try:
             total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
