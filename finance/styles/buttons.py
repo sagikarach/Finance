@@ -4,21 +4,31 @@ from __future__ import annotations
 def load_buttons_light_styles() -> str:
     return """
     QPushButton {
-        background: #3b82f6;
-        color: white;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid #2563eb;
+        background: #1e1e22;
+        color: #ffffff;
+        padding: 9px 16px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 700;
     }
     QPushButton:hover {
-        background: #2563eb;
+        background: #333138;
     }
     QPushButton:pressed {
-        background: #1d4ed8;
+        background: #0f0f12;
     }
     QPushButton:focus {
-        outline: 2px solid #93c5fd;
+        outline: 2px solid #b9b6f0;
         outline-offset: 2px;
+    }
+    QPushButton#PrimaryButton {
+        background: #2f9e68;
+    }
+    QPushButton#PrimaryButton:hover {
+        background: #278a59;
+    }
+    QPushButton#PrimaryButton:pressed {
+        background: #226f49;
     }
     QToolButton#IconButton {
         background: transparent;
