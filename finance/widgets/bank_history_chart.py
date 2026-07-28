@@ -102,7 +102,7 @@ class BankHistoryChartCard(QWidget):
         # budget / history: parallel month_keys + base_values
         self._month_keys: List[tuple[int, int]] = []
         self._base_values: List[float] = []
-        self._series_color = QColor("#3b82f6")
+        self._series_color = QColor("#2f9e68")
         self._series_name: str = ""
         # bank movements: month_keys + full balance series (incl. start/today)
         self._bv_bank: List[float] = []         # [start, m1..mN, today]

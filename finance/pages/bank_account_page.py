@@ -103,20 +103,30 @@ class BankAccountPage(BasePage):
             return
 
         top_card = QWidget(self)
-        top_card.setObjectName("ContentPanel")
+        top_card.setObjectName("DashHeroYellow")
         try:
             top_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
         top_layout = QHBoxLayout(top_card)
-        top_layout.setContentsMargins(16, 16, 16, 16)
+        top_layout.setContentsMargins(22, 20, 22, 20)
         top_layout.setSpacing(16)
+
+        # Dark pill buttons that read on the yellow hero.
+        pill_style = (
+            "QPushButton{background:rgba(44,38,18,0.16);color:#3f3616;border:none;"
+            "border-radius:12px;padding:9px 16px;font-weight:700;font-size:13px;}"
+            "QPushButton:hover{background:rgba(44,38,18,0.26);}"
+            "QPushButton:disabled{color:rgba(63,54,22,0.4);}"
+        )
 
         summary_col = QVBoxLayout()
         summary_col.setSpacing(4)
 
         name_label = QLabel(target.name, top_card)
-        name_label.setObjectName("HeaderTitle")
+        name_label.setStyleSheet(
+            "font-size:18px;font-weight:800;color:#5c4d15;background:transparent;"
+        )
         main_value = float(getattr(target, "total_amount", 0.0) or 0.0)
         total_label = QLabel(format_currency(main_value), top_card)
         total_label.setObjectName("StatValueLarge")
@@ -139,7 +149,9 @@ class BankAccountPage(BasePage):
                 f"תקציב חודשי: {format_currency(budget)}  |  נוצל: {format_currency(used)}  |  איפוס: יום {reset_day}",
                 top_card,
             )
-            meta_label.setObjectName("Subtitle")
+            meta_label.setStyleSheet(
+                "font-size:12px;font-weight:600;color:#7a6420;background:transparent;"
+            )
             meta_label.setAlignment(Qt.AlignmentFlag.AlignRight)
             summary_col.addWidget(meta_label, 0, Qt.AlignmentFlag.AlignRight)
 
@@ -149,6 +161,7 @@ class BankAccountPage(BasePage):
         if isinstance(target, BudgetAccount):
             manage_btn = QPushButton("ניהול הוצאות", top_card)
             manage_btn.setObjectName("AddButton")
+            manage_btn.setStyleSheet(pill_style)
             try:
                 manage_btn.setSizePolicy(
                     QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
@@ -165,6 +178,7 @@ class BankAccountPage(BasePage):
         elif isinstance(target, BankAccount):
             manage_btn = QPushButton("ניהול תנועות", top_card)
             manage_btn.setObjectName("AddButton")
+            manage_btn.setStyleSheet(pill_style)
             try:
                 manage_btn.setSizePolicy(
                     QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
@@ -182,6 +196,7 @@ class BankAccountPage(BasePage):
         if isinstance(target, BankAccount) and target.name == "בנק":
             import_btn = QPushButton("ייבוא קובץ הוצאות", top_card)
             import_btn.setObjectName("AddButton")
+            import_btn.setStyleSheet(pill_style)
             try:
                 if not bool(getattr(target, "active", False)):
                     import_btn.setEnabled(False)
@@ -213,8 +228,22 @@ class BankAccountPage(BasePage):
         top_layout.addStretch(1)
         top_layout.addLayout(summary_col, 1)
 
-        main_col.addWidget(top_card, 1)
-        chart_container = QWidget(self)
+        main_col.addWidget(top_card, 0)
+
+        chart_panel = QWidget(self)
+        chart_panel.setObjectName("ContentPanel")
+        try:
+            chart_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        chart_panel_layout = QVBoxLayout(chart_panel)
+        chart_panel_layout.setContentsMargins(18, 14, 18, 14)
+        chart_panel_layout.setSpacing(8)
+        chart_panel_title = QLabel("היסטוריית יתרה", chart_panel)
+        chart_panel_title.setObjectName("PanelTitle")
+        chart_panel_layout.addWidget(chart_panel_title)
+
+        chart_container = QWidget(chart_panel)
         chart_container_layout = QVBoxLayout(chart_container)
         chart_container_layout.setContentsMargins(0, 0, 0, 0)
         chart_container_layout.setSpacing(0)
@@ -244,7 +273,8 @@ class BankAccountPage(BasePage):
 
         chart_container_layout.addWidget(initial_chart, 1)
 
-        main_col.addWidget(chart_container, 2)
+        chart_panel_layout.addWidget(chart_container, 1)
+        main_col.addWidget(chart_panel, 1)
 
         build_token = object()
         try:

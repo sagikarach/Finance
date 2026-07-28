@@ -139,9 +139,9 @@ def load_buttons_light_styles() -> str:
         border-color: #9ca3af;
     }
     QPushButton#RangeBtn:checked {
-        background: #2563eb;
+        background: #1e1e22;
         color: #ffffff;
-        border-color: #2563eb;
+        border-color: #1e1e22;
         font-weight: 600;
     }
     QLabel#NotificationsBadge {
