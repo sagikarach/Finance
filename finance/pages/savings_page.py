@@ -214,50 +214,42 @@ class SavingsPage(BasePage):
         except Exception:
             pass
         chart_side_layout = QVBoxLayout(chart_side_card)
-        chart_side_layout.setContentsMargins(12, 12, 12, 12)
-        chart_side_layout.setSpacing(0)
+        chart_side_layout.setContentsMargins(18, 14, 18, 14)
+        chart_side_layout.setSpacing(10)
+
+        actions_title = QLabel("פעולות", chart_side_card)
+        actions_title.setObjectName("PanelTitle")
+        chart_side_layout.addWidget(actions_title)
+        chart_side_layout.addSpacing(2)
 
         add_button = QPushButton("הוסף סוג חסכון", chart_side_card)
         add_button.setObjectName("AddButton")
-        try:
-            add_button.setMinimumHeight(add_button.sizeHint().height() * 2)
-        except Exception:
-            pass
-
         edit_button = QPushButton("ערוך סוג חסכון", chart_side_card)
         edit_button.setObjectName("EditButton")
-        try:
-            edit_button.setMinimumHeight(edit_button.sizeHint().height() * 2)
-        except Exception:
-            pass
-
         delete_button = QPushButton("מחק סוג חסכון", chart_side_card)
         delete_button.setObjectName("DeleteButton")
-        try:
-            delete_button.setMinimumHeight(delete_button.sizeHint().height() * 2)
-        except Exception:
-            pass
-
         move_button = QPushButton("העבר כסף בין חסכונות", chart_side_card)
         move_button.setObjectName("MoveButton")
-        try:
-            move_button.setMinimumHeight(move_button.sizeHint().height() * 2)
-        except Exception:
-            pass
+        for b in (add_button, edit_button, delete_button, move_button):
+            try:
+                b.setMinimumHeight(46)
+                b.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+                )
+            except Exception:
+                pass
 
         add_button.clicked.connect(lambda: self._handle_add_account())
         edit_button.clicked.connect(lambda: self._handle_edit_account())
         delete_button.clicked.connect(lambda: self._handle_delete_account())
         move_button.clicked.connect(lambda: self._handle_move_between_accounts())
 
-        chart_side_layout.addStretch(1)
-        chart_side_layout.addWidget(move_button, 0)
-        chart_side_layout.addStretch(1)
-        chart_side_layout.addWidget(add_button, 0)
-        chart_side_layout.addStretch(1)
-        chart_side_layout.addWidget(edit_button, 0)
-        chart_side_layout.addStretch(1)
-        chart_side_layout.addWidget(delete_button, 0)
+        # Manage saving-types together, then the transfer action set apart.
+        chart_side_layout.addWidget(add_button)
+        chart_side_layout.addWidget(edit_button)
+        chart_side_layout.addWidget(delete_button)
+        chart_side_layout.addSpacing(10)
+        chart_side_layout.addWidget(move_button)
         chart_side_layout.addStretch(1)
 
         chart_row = QHBoxLayout()
