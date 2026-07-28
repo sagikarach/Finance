@@ -16,7 +16,7 @@ from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
 from ..models.yearly_report_service import YearlyReportService
 from ..widgets.accounts_pie_chart import AccountsPieChart
-from ..widgets.yearly_balance_chart import YearlyBalanceChart
+from ..widgets.monthly_cashflow_chart import MonthlyCashflowChart
 from ..widgets.action_history_table import ActionHistoryTable
 from ..utils.formatting import format_currency
 from .base_page import BasePage
@@ -150,9 +150,9 @@ class HomePage(BasePage):
         main_col.addLayout(cards_row, 0)
 
         # ── middle row: cash-flow bars + accounts donut ──
-        bars = YearlyBalanceChart(parent_widget)
+        bars = MonthlyCashflowChart(parent_widget)
         try:
-            bars.set_monthly_net(nets, labels)
+            bars.set_data(nets, labels)
         except Exception:
             pass
         bars_panel = self._chart_panel(
