@@ -141,14 +141,19 @@ class CategoryPieChart(QWidget):
             sorted_breakdowns = sorted(
                 filtered_breakdowns, key=lambda b: b.total_amount, reverse=True
             )
-            count = len(sorted_breakdowns)
 
+            # Pastel categorical palette (matches the accounts donut). Income
+            # leans green; expenses use the full mix.
             if self._is_income:
-                start_color = QColor("#2563eb")
-                end_color = QColor("#22c55e")
+                palette = [
+                    "#8FBF9F", "#C6D3B4", "#B9B6F0", "#DCE7CC",
+                    "#9BB4E6", "#F7E2A6", "#7FB3B3", "#E0B0D8",
+                ]
             else:
-                start_color = QColor("#2563eb")
-                end_color = QColor("#ef4444")
+                palette = [
+                    "#B9B6F0", "#C6D3B4", "#F2D06B", "#E9A491",
+                    "#9BB4E6", "#8FBF9F", "#E0B0D8", "#F7E2A6",
+                ]
 
             for idx, breakdown in enumerate(sorted_breakdowns):
                 s = series.append(breakdown.category, breakdown.total_amount)
@@ -157,9 +162,7 @@ class CategoryPieChart(QWidget):
                 except Exception:
                     pass
                 try:
-                    t = float(idx) / float(max(count - 1, 1))
-                    color = _interpolate_qcolor(start_color, end_color, t)
-                    s.setBrush(color)
+                    s.setBrush(QColor(palette[idx % len(palette)]))
                 except Exception:
                     pass
                 try:

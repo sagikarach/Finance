@@ -47,6 +47,7 @@ class MonthlyDataPage(BasePage):
         self._expense_chart: Optional[CategoryPieChart] = None
         self._income_card: Optional[QWidget] = None
         self._outcome_card: Optional[QWidget] = None
+        self._net_card: Optional[QWidget] = None
         self._yearly_table: Optional[MovementsTableCard] = None
         self._one_time_table: Optional[MovementsTableCard] = None
 
@@ -74,111 +75,101 @@ class MonthlyDataPage(BasePage):
         buttons.append(settings_btn)
         return buttons
 
+    def _chart_panel(self, title: str, chart: QWidget) -> QWidget:
+        panel = QWidget(self)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(18, 14, 18, 14)
+        lay.setSpacing(8)
+        ttl = QLabel(title, panel)
+        ttl.setObjectName("PanelTitle")
+        lay.addWidget(ttl)
+        lay.addWidget(chart, 1)
+        return panel
+
     def _build_content(self, main_col: QVBoxLayout) -> None:
         self._clear_content_layout(main_col)
 
-        main_row_container = QWidget(self)
-        main_row = QHBoxLayout(main_row_container)
-        main_row.setContentsMargins(0, 0, 0, 0)
-        main_row.setSpacing(16)
-
-        right_container = QWidget(main_row_container)
-        right_layout = QVBoxLayout(right_container)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(16)
-
-        left_container = QWidget(main_row_container)
-        left_layout = QVBoxLayout(left_container)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(16)
-
+        # ── month bar: picker (right) + edit (left) ──
         self._month_picker = MonthPickerWidget(
-            left_container,
-            on_changed=self._on_month_changed,
+            self, on_changed=self._on_month_changed
         )
-        month_row_container = QWidget(left_container)
+        month_bar = QWidget(self)
         try:
-            month_row_container.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
+            month_bar.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except Exception:
             pass
-        month_row = QHBoxLayout(month_row_container)
+        month_row = QHBoxLayout(month_bar)
         month_row.setContentsMargins(0, 0, 0, 0)
         month_row.setSpacing(10)
-        edit_btn = QPushButton(month_row_container)
-        edit_btn.setObjectName("SecondaryButton")
+        edit_btn = QPushButton(month_bar)
+        edit_btn.setObjectName("MoveButton")
         edit_btn.setText("✎ עריכת תנועות חודשיות")
         edit_btn.setToolTip("עריכת הכנסות/הוצאות לחודש")
         edit_btn.clicked.connect(self._on_edit_month_clicked)
         try:
-            edit_btn.setMinimumHeight(32)
+            edit_btn.setMinimumHeight(36)
             edit_btn.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
             )
         except Exception:
             pass
         month_row.addWidget(edit_btn, 0, Qt.AlignmentFlag.AlignLeft)
         month_row.addStretch(1)
         month_row.addWidget(self._month_picker, 0, Qt.AlignmentFlag.AlignRight)
-        left_layout.addWidget(month_row_container, 0)
+        main_col.addWidget(month_bar, 0)
 
+        # ── three cards: income / expense / net ──
+        self._income_card = self._create_summary_card(
+            "הכנסות", "₪0", "MonthIncomeCard"
+        )
+        self._outcome_card = self._create_summary_card(
+            "הוצאות", "₪0", "MonthExpenseCard"
+        )
+        self._net_card = self._create_summary_card(
+            "יתרה חודשית", "₪0", "MonthNetCard"
+        )
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
-        cards_row.addStretch(1)
-        self._income_card = self._create_summary_card("הכנסות", "₪0", "StatCardGreen")
-        self._outcome_card = self._create_summary_card("הוצאות", "₪0", "StatCardPurple")
-        cards_row.addWidget(self._income_card, 0)
-        cards_row.addWidget(self._outcome_card, 0)
-        cards_row.addStretch(1)
-        left_layout.addLayout(cards_row, 0)
+        cards_row.addWidget(self._income_card, 1)
+        cards_row.addWidget(self._outcome_card, 1)
+        cards_row.addWidget(self._net_card, 1)
+        main_col.addLayout(cards_row, 0)
 
-        self._yearly_table = MovementsTableCard("תנועות שנתיות", left_container)
-        self._one_time_table = MovementsTableCard("תנועות חד פעמיות", left_container)
-        left_layout.addWidget(self._yearly_table, 1)
-        left_layout.addWidget(self._one_time_table, 1)
-
-        chart_card_income = QWidget(right_container)
-        chart_card_income.setObjectName("ContentPanel")
-        try:
-            chart_card_income.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        chart_income_layout = QVBoxLayout(chart_card_income)
-        chart_income_layout.setContentsMargins(16, 16, 16, 16)
-        chart_income_layout.setSpacing(12)
-        self._income_chart = CategoryPieChart(parent=chart_card_income, is_income=True)
-        chart_income_layout.addWidget(self._income_chart, 1)
-
-        chart_card_expense = QWidget(right_container)
-        chart_card_expense.setObjectName("ContentPanel")
-        try:
-            chart_card_expense.setAttribute(
-                Qt.WidgetAttribute.WA_StyledBackground, True
-            )
-        except Exception:
-            pass
-        chart_expense_layout = QVBoxLayout(chart_card_expense)
-        chart_expense_layout.setContentsMargins(16, 16, 16, 16)
-        chart_expense_layout.setSpacing(12)
-        self._expense_chart = CategoryPieChart(
-            parent=chart_card_expense, is_income=False
+        # ── two category donuts ──
+        self._income_chart = CategoryPieChart(parent=self, is_income=True)
+        self._expense_chart = CategoryPieChart(parent=self, is_income=False)
+        donuts_row = QHBoxLayout()
+        donuts_row.setSpacing(16)
+        donuts_row.addWidget(
+            self._chart_panel("פילוח הכנסות", self._income_chart), 1
         )
-        chart_expense_layout.addWidget(self._expense_chart, 1)
+        donuts_row.addWidget(
+            self._chart_panel("פילוח הוצאות", self._expense_chart), 1
+        )
+        main_col.addLayout(donuts_row, 3)
 
-        right_layout.addWidget(chart_card_income, 1)
-        right_layout.addWidget(chart_card_expense, 1)
-
-        main_row.addWidget(right_container, 4)
-        main_row.addWidget(left_container, 3)
-        main_col.addWidget(main_row_container, 1)
+        # ── special movements: yearly + one-time ──
+        self._yearly_table = MovementsTableCard("תנועות שנתיות", self)
+        self._one_time_table = MovementsTableCard("תנועות חד פעמיות", self)
+        special_row = QHBoxLayout()
+        special_row.setSpacing(16)
+        special_row.addWidget(self._yearly_table, 1)
+        special_row.addWidget(self._one_time_table, 1)
+        main_col.addLayout(special_row, 2)
 
         available_months = self._monthly_service.get_available_months()
         self._available_months = list(available_months)
 
         if not self._available_months:
-            placeholder = QLabel("אין נתונים חודשיים להצגה", left_container)
+            placeholder = QLabel("אין נתונים חודשיים להצגה", self)
             placeholder.setObjectName("Title")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            left_layout.addWidget(placeholder, 1)
+            main_col.addWidget(placeholder, 1)
             return
 
         if (
@@ -268,34 +259,36 @@ class MonthlyDataPage(BasePage):
             self._income_chart.set_breakdowns([], is_income=True)
             self._expense_chart.set_breakdowns([], is_income=False)
             try:
-                income_val = self._income_card.findChild(QLabel, "StatValueCard")
-                if income_val is not None:
-                    income_val.setText(format_currency(0.0, use_compact=True))
-                outcome_val = self._outcome_card.findChild(QLabel, "StatValueCard")
-                if outcome_val is not None:
-                    outcome_val.setText(format_currency(0.0, use_compact=True))
+                for card in (self._income_card, self._outcome_card, self._net_card):
+                    if card is None:
+                        continue
+                    val = card.findChild(QLabel, "StatValueCard")
+                    if val is not None:
+                        val.setText(format_currency(0.0))
             except Exception:
                 pass
             return
 
+        inc = float(self._current_report.summary.total_income)
+        out = float(self._current_report.summary.total_outcome)
+        net = inc - out
         try:
             income_val = self._income_card.findChild(QLabel, "StatValueCard")
             if income_val is not None:
-                income_val.setText(
-                    format_currency(
-                        self._current_report.summary.total_income, use_compact=True
-                    )
-                )
+                income_val.setText(format_currency(inc))
         except Exception:
             pass
         try:
             outcome_val = self._outcome_card.findChild(QLabel, "StatValueCard")
             if outcome_val is not None:
-                outcome_val.setText(
-                    format_currency(
-                        self._current_report.summary.total_outcome, use_compact=True
-                    )
-                )
+                outcome_val.setText(format_currency(out))
+        except Exception:
+            pass
+        try:
+            net_val = self._net_card.findChild(QLabel, "StatValueCard")
+            if net_val is not None:
+                sign = "+" if net >= 0 else "−"
+                net_val.setText(f"{sign}{format_currency(abs(net))}")
         except Exception:
             pass
 
@@ -321,20 +314,15 @@ class MonthlyDataPage(BasePage):
         except Exception:
             pass
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setContentsMargins(20, 14, 20, 14)
         layout.setSpacing(6)
         try:
-            card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+            card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         except Exception:
             pass
         try:
-            card.setMinimumHeight(64)
-            card.setMaximumHeight(98)
-        except Exception:
-            pass
-        try:
-            card.setMinimumWidth(210)
-            card.setMaximumWidth(320)
+            card.setMinimumHeight(84)
+            card.setMaximumHeight(112)
         except Exception:
             pass
 

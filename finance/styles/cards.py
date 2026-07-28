@@ -72,6 +72,19 @@ def load_cards_light_styles() -> str:
     QLabel#PanelTitle {
         color: #1e1e22; font-size: 15px; font-weight: 800; background: transparent;
     }
+    /* Monthly-summary cards (income / expense / net) */
+    QWidget#MonthIncomeCard { background: #eaf5ef; border: none; border-radius: 20px; }
+    QWidget#MonthIncomeCard * { background: transparent; }
+    QWidget#MonthIncomeCard QLabel#StatTitle { font-size: 13px; font-weight: 700; color: #5b7a68; }
+    QWidget#MonthIncomeCard QLabel#StatValueCard { font-size: 26px; font-weight: 900; color: #2f9e68; }
+    QWidget#MonthExpenseCard { background: #fbeae4; border: none; border-radius: 20px; }
+    QWidget#MonthExpenseCard * { background: transparent; }
+    QWidget#MonthExpenseCard QLabel#StatTitle { font-size: 13px; font-weight: 700; color: #9a6a58; }
+    QWidget#MonthExpenseCard QLabel#StatValueCard { font-size: 26px; font-weight: 900; color: #d66a4e; }
+    QWidget#MonthNetCard { background: #f2d06b; border: none; border-radius: 20px; }
+    QWidget#MonthNetCard * { background: transparent; }
+    QWidget#MonthNetCard QLabel#StatTitle { font-size: 13px; font-weight: 700; color: #7a6420; }
+    QWidget#MonthNetCard QLabel#StatValueCard { font-size: 26px; font-weight: 900; color: #2c2612; }
     QWidget#PageCard {
         background: transparent;
         border: none;
