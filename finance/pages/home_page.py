@@ -14,7 +14,9 @@ from ..qt import (
 from ..data.provider import AccountsProvider
 from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
+from ..models.yearly_report_service import YearlyReportService
 from ..widgets.accounts_pie_chart import AccountsPieChart
+from ..widgets.yearly_balance_chart import YearlyBalanceChart
 from ..widgets.action_history_table import ActionHistoryTable
 from ..utils.formatting import format_currency
 from .base_page import BasePage
@@ -55,106 +57,134 @@ class HomePage(BasePage):
         buttons.append(settings_btn)
         return buttons
 
+    def _stat_card(
+        self, parent: QWidget, object_name: str, title: str, value: str,
+    ) -> QWidget:
+        card = QWidget(parent)
+        card.setObjectName(object_name)
+        try:
+            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            card.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+            )
+            card.setMinimumHeight(118)
+            card.setMaximumHeight(150)
+        except Exception:
+            pass
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(20, 16, 20, 16)
+        lay.setSpacing(6)
+        t = QLabel(title, card)
+        t.setObjectName("StatTitle")
+        v = QLabel(value, card)
+        v.setObjectName("StatValueLarge")
+        lay.addStretch(1)
+        lay.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addStretch(1)
+        return card
+
+    def _chart_panel(
+        self, parent: QWidget, subtitle: str, title: str, chart: QWidget,
+    ) -> QWidget:
+        panel = QWidget(parent)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(18, 14, 18, 14)
+        lay.setSpacing(6)
+        sub = QLabel(subtitle, panel)
+        sub.setObjectName("PanelSubtitle")
+        ttl = QLabel(title, panel)
+        ttl.setObjectName("PanelTitle")
+        lay.addWidget(sub)
+        lay.addWidget(ttl)
+        lay.addWidget(chart, 1)
+        return panel
+
     def _build_content(self, main_col: QVBoxLayout) -> None:
         overview = AccountsOverview.for_home(self._accounts)
-        total_all = overview.total_all
-        total_liquid = overview.total_liquid
 
         parent_widget = main_col.parentWidget()
         if parent_widget is None:
             parent_widget = self
 
-        total_all_card = QWidget(parent_widget)
-        total_all_card.setObjectName("DashHeroYellow")
+        # ── monthly cash-flow (last 6 months, one-time excluded) ──
+        window = []
         try:
-            total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            yr = YearlyReportService(self._bank_movement_provider)
+            window = yr.get_window_nets(6, include_one_time=False)
         except Exception:
-            pass
-        total_all_card_layout = QVBoxLayout(total_all_card)
-        total_all_card_layout.setContentsMargins(14, 14, 14, 14)
-        total_all_card_layout.setSpacing(6)
-        try:
-            total_all_card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-        except Exception:
-            pass
-        total_all_title = QLabel("סה״כ כסף", total_all_card)
-        total_all_title.setObjectName("StatTitle")
-        total_all_label = QLabel(format_currency(total_all), total_all_card)
-        total_all_label.setObjectName("StatValueLarge")
-        total_all_card_layout.addStretch(1)
-        total_all_card_layout.addWidget(
-            total_all_title, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_all_card_layout.addWidget(
-            total_all_label, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_all_card_layout.addStretch(1)
+            window = []
+        labels = [lbl for lbl, _ in window]
+        nets = [n for _, n in window]
+        avg_net = (sum(nets) / len(nets)) if nets else 0.0
 
-        total_liquid_card = QWidget(parent_widget)
-        total_liquid_card.setObjectName("DashCard")
-        try:
-            total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        total_liquid_card_layout = QVBoxLayout(total_liquid_card)
-        total_liquid_card_layout.setContentsMargins(14, 14, 14, 14)
-        total_liquid_card_layout.setSpacing(6)
-        try:
-            total_liquid_card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-        except Exception:
-            pass
-        total_liquid_title = QLabel("סכום נזיל", total_liquid_card)
-        total_liquid_title.setObjectName("StatTitle")
-        total_liquid_label = QLabel(format_currency(total_liquid), total_liquid_card)
-        total_liquid_label.setObjectName("StatValueLarge")
-        total_liquid_card_layout.addStretch(1)
-        total_liquid_card_layout.addWidget(
-            total_liquid_title, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_liquid_card_layout.addWidget(
-            total_liquid_label, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_liquid_card_layout.addStretch(1)
-
+        # ── top row: three stat cards ──
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
-        cards_row.addWidget(total_all_card, 1)
-        cards_row.addWidget(total_liquid_card, 1)
-
+        cards_row.addWidget(
+            self._stat_card(
+                parent_widget, "DashHeroYellow", "סה״כ כסף",
+                format_currency(overview.total_all),
+            ),
+            3,
+        )
+        cards_row.addWidget(
+            self._stat_card(
+                parent_widget, "DashCard", "סכום נזיל",
+                format_currency(overview.total_liquid),
+            ),
+            2,
+        )
+        cards_row.addWidget(
+            self._stat_card(
+                parent_widget, "DashCardGreen", "תזרים חודשי ממוצע",
+                format_currency(avg_net),
+            ),
+            2,
+        )
         main_col.addLayout(cards_row, 0)
 
-        chart = AccountsPieChart(accounts=overview.accounts, parent=parent_widget)
-
-        chart_card = QWidget(parent_widget)
-        chart_card.setObjectName("ContentPanel")
+        # ── middle row: cash-flow bars + accounts donut ──
+        bars = YearlyBalanceChart(parent_widget)
         try:
-            chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            bars.set_monthly_net(nets, labels)
         except Exception:
             pass
-        chart_card_layout = QVBoxLayout(chart_card)
-        chart_card_layout.setContentsMargins(4, 4, 4, 4)
-        chart_card_layout.setSpacing(0)
-        chart_card_layout.addWidget(chart, 1)
+        bars_panel = self._chart_panel(
+            parent_widget, "6 חודשים אחרונים", "תזרים חודשי", bars
+        )
 
-        chart_side_card = QWidget(parent_widget)
-        chart_side_card.setObjectName("ContentPanel")
+        donut = AccountsPieChart(accounts=overview.accounts, parent=parent_widget)
+        donut_panel = self._chart_panel(
+            parent_widget, "היכן הכסף", "פילוח חשבונות", donut
+        )
+
+        charts_row = QHBoxLayout()
+        charts_row.setSpacing(16)
+        charts_row.addWidget(bars_panel, 3)
+        charts_row.addWidget(donut_panel, 2)
+        main_col.addLayout(charts_row, 3)
+
+        # ── bottom row: recent activity (full width) ──
+        activity_panel = QWidget(parent_widget)
+        activity_panel.setObjectName("ContentPanel")
         try:
-            chart_side_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            activity_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
-        chart_side_layout = QVBoxLayout(chart_side_card)
-        chart_side_layout.setContentsMargins(0, 0, 0, 8)
-        chart_side_layout.setSpacing(0)
+        activity_layout = QVBoxLayout(activity_panel)
+        activity_layout.setContentsMargins(6, 6, 6, 8)
+        activity_layout.setSpacing(0)
 
         try:
             history = self._history_provider.list_history()
         except Exception:
             history = []
-
         categories = []
         try:
             categories = self._bank_movement_service.list_categories(is_income=False)
@@ -175,21 +205,15 @@ class HomePage(BasePage):
 
         history_table = ActionHistoryTable(
             history=history,
-            max_rows=10,
-            parent=chart_side_card,
+            max_rows=6,
+            parent=activity_panel,
             categories=categories,
             movement_service=self._bank_movement_service,
             on_saved=on_saved,
             history_provider=self._history_provider,
         )
-        chart_side_layout.addWidget(history_table, 1)
-
-        chart_row = QHBoxLayout()
-        chart_row.setSpacing(16)
-        chart_row.addWidget(chart_card, 2)
-        chart_row.addWidget(chart_side_card, 1)
-
-        main_col.addLayout(chart_row, 1)
+        activity_layout.addWidget(history_table, 1)
+        main_col.addWidget(activity_panel, 2)
 
     def on_route_activated(self) -> None:
         super().on_route_activated()

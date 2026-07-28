@@ -48,17 +48,30 @@ def load_cards_light_styles() -> str:
     QWidget#DashHeroYellow QLabel#StatTitle {
         font-size: 14px; font-weight: 700; color: #7a6420;
     }
-    QWidget#DashHeroYellow QLabel#StatValueLarge { color: #2c2612; }
-    QWidget#DashCard {
+    QWidget#DashHeroYellow QLabel#StatValueLarge {
+        color: #2c2612; font-size: 40px; font-weight: 900;
+    }
+    QWidget#DashCard, QWidget#DashCardGreen {
         background: #ffffff;
         border: 1px solid #ecece2;
         border-radius: 22px;
     }
-    QWidget#DashCard * { background: transparent; }
-    QWidget#DashCard QLabel#StatTitle {
+    QWidget#DashCard *, QWidget#DashCardGreen * { background: transparent; }
+    QWidget#DashCard QLabel#StatTitle, QWidget#DashCardGreen QLabel#StatTitle {
         font-size: 14px; font-weight: 700; color: #8b8e86;
     }
-    QWidget#DashCard QLabel#StatValueLarge { color: #4b4980; }
+    QWidget#DashCard QLabel#StatValueLarge {
+        color: #4b4980; font-size: 28px; font-weight: 900;
+    }
+    QWidget#DashCardGreen QLabel#StatValueLarge {
+        color: #2f9e68; font-size: 28px; font-weight: 900;
+    }
+    QLabel#PanelSubtitle {
+        color: #8b8e86; font-size: 12px; font-weight: 600; background: transparent;
+    }
+    QLabel#PanelTitle {
+        color: #1e1e22; font-size: 15px; font-weight: 800; background: transparent;
+    }
     QWidget#PageCard {
         background: transparent;
         border: none;
