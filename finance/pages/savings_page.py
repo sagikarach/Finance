@@ -8,8 +8,6 @@ from ..qt import (
     QHBoxLayout,
     QWidget,
     Qt,
-    QColor,
-    QGraphicsDropShadowEffect,
     QSizePolicy,
     QApplication,
     QToolButton,
@@ -97,167 +95,259 @@ class SavingsPage(BasePage):
         buttons.append(settings_btn)
         return buttons
 
+    _PASTEL = [
+        "#B9B6F0", "#C6D3B4", "#F2D06B", "#E9A491", "#9BB4E6",
+        "#8FBF9F", "#E0B0D8", "#F7E2A6",
+    ]
+
+    def _stat_card(self, object_name: str, title: str, value: str) -> QWidget:
+        card = QWidget(self)
+        card.setObjectName(object_name)
+        try:
+            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            card.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+            )
+            card.setMinimumHeight(112)
+            card.setMaximumHeight(150)
+        except Exception:
+            pass
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(20, 16, 20, 16)
+        lay.setSpacing(6)
+        t = QLabel(title, card)
+        t.setObjectName("StatTitle")
+        v = QLabel(value, card)
+        v.setObjectName("StatValueLarge")
+        lay.addStretch(1)
+        lay.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addStretch(1)
+        return card
+
+    def _icon_button(self, glyph: str, *, danger: bool = False) -> QPushButton:
+        b = QPushButton(glyph, self)
+        try:
+            b.setFixedSize(34, 34)
+        except Exception:
+            pass
+        color = "#d66a4e" if danger else "#6b6f66"
+        border = "#f0d9d2" if danger else "#ecece2"
+        b.setStyleSheet(
+            "QPushButton{background:#ffffff;border:1px solid %s;border-radius:10px;"
+            "font-size:14px;font-weight:400;color:%s;padding:0;}"
+            "QPushButton:hover{background:#f7f5ef;}" % (border, color)
+        )
+        return b
+
+    def _account_row(self, acc: SavingsAccount, idx: int) -> QWidget:
+        row = QWidget(self)
+        if idx > 0:
+            row.setObjectName("SavRow")
+            try:
+                row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            except Exception:
+                pass
+            row.setStyleSheet("QWidget#SavRow{border-top:1px solid #ecece2;}")
+        rl = QHBoxLayout(row)
+        rl.setContentsMargins(2, 10, 2, 10)
+        rl.setSpacing(10)
+
+        dot = QLabel(row)
+        try:
+            dot.setFixedSize(12, 12)
+        except Exception:
+            pass
+        dot.setStyleSheet(
+            f"background:{self._PASTEL[idx % len(self._PASTEL)]};border-radius:4px;"
+        )
+
+        info = QVBoxLayout()
+        info.setSpacing(1)
+        name = QLabel(str(acc.name), row)
+        name.setStyleSheet(
+            "font-size:14.5px;font-weight:700;color:#26251f;background:transparent;"
+        )
+        status = QLabel(
+            "נזיל" if bool(getattr(acc, "is_liquid", False)) else "לא נזיל", row
+        )
+        status.setStyleSheet(
+            "font-size:11.5px;color:#8b8e86;background:transparent;"
+        )
+        info.addWidget(name)
+        info.addWidget(status)
+
+        amt = QLabel(
+            format_currency(float(getattr(acc, "total_amount", 0.0) or 0.0)), row
+        )
+        amt.setStyleSheet(
+            "font-size:15px;font-weight:800;color:#2f9e68;background:transparent;"
+        )
+
+        edit_btn = self._icon_button("✎")
+        del_btn = self._icon_button("🗑", danger=True)
+        edit_btn.clicked.connect(
+            lambda _=None, a=acc: self._edit_specific_account(a)
+        )
+        del_btn.clicked.connect(
+            lambda _=None, a=acc: self._delete_specific_account(a)
+        )
+
+        rl.addWidget(dot)
+        rl.addLayout(info, 1)
+        rl.addStretch(1)
+        rl.addWidget(amt)
+        rl.addWidget(edit_btn)
+        rl.addWidget(del_btn)
+        return row
+
     def _build_content(self, main_col: QVBoxLayout) -> None:
         total_all = compute_savings_account_total_amount(self._accounts)
         total_liquid = compute_savings_account_liquid_amount(self._accounts)
-
-        total_all_card = QWidget(self)
-        total_all_card.setObjectName("DashHeroYellow")
-        try:
-            total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            total_all_card.setAutoFillBackground(True)
-        except Exception:
-            pass
-        total_all_card_layout = QVBoxLayout(total_all_card)
-        total_all_card_layout.setContentsMargins(14, 14, 14, 14)
-        total_all_card_layout.setSpacing(6)
-        try:
-            total_all_card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-        except Exception:
-            pass
-        total_all_title = QLabel("סה״כ כסף", total_all_card)
-        total_all_title.setObjectName("StatTitle")
-        total_all_label = QLabel(format_currency(total_all), total_all_card)
-        total_all_label.setObjectName("StatValueLarge")
-        total_all_card_layout.addStretch(1)
-        total_all_card_layout.addWidget(
-            total_all_title, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_all_card_layout.addWidget(
-            total_all_label, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_all_card_layout.addStretch(1)
-
-        total_liquid_card = QWidget(self)
-        total_liquid_card.setObjectName("DashCard")
-        try:
-            total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            total_liquid_card.setAutoFillBackground(True)
-        except Exception:
-            pass
-        total_liquid_card_layout = QVBoxLayout(total_liquid_card)
-        total_liquid_card_layout.setContentsMargins(14, 14, 14, 14)
-        total_liquid_card_layout.setSpacing(6)
-        try:
-            total_liquid_card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-        except Exception:
-            pass
-        total_liquid_title = QLabel("סכום נזיל", total_liquid_card)
-        total_liquid_title.setObjectName("StatTitle")
-        total_liquid_label = QLabel(format_currency(total_liquid), total_liquid_card)
-        total_liquid_label.setObjectName("StatValueLarge")
-        total_liquid_card_layout.addStretch(1)
-        total_liquid_card_layout.addWidget(
-            total_liquid_title, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_liquid_card_layout.addWidget(
-            total_liquid_label, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_liquid_card_layout.addStretch(1)
-
-        try:
-            for card in (total_all_card, total_liquid_card):
-                shadow = QGraphicsDropShadowEffect(card)
-                shadow.setBlurRadius(36)
-                app = QApplication.instance()
-                is_dark = False
-                if app is not None:
-                    try:
-                        current_theme = str(app.property("theme") or "light")
-                        is_dark = current_theme == "dark"
-                    except Exception:
-                        pass
-                if is_dark:
-                    shadow.setColor(QColor(0, 0, 0, 120))
-                else:
-                    shadow.setColor(QColor(0, 0, 0, 60))
-                shadow.setOffset(0, 10)
-                card.setGraphicsEffect(shadow)
-        except Exception:
-            pass
-
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(16)
-        cards_row.addWidget(total_all_card, 1)
-        cards_row.addWidget(total_liquid_card, 1)
-        main_col.addLayout(cards_row, 0)
-
-        from ..models.accounts import MoneyAccount
-
-        savings_accounts: List[MoneyAccount] = [
+        savings_accounts: List[SavingsAccount] = [
             acc for acc in self._accounts if isinstance(acc, SavingsAccount)
         ]
+        savings_accounts.sort(
+            key=lambda a: float(getattr(a, "total_amount", 0.0) or 0.0),
+            reverse=True,
+        )
+
+        # ── top row: total hero + liquid + count ──
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(16)
+        cards_row.addWidget(
+            self._stat_card(
+                "DashHeroYellow", "סה״כ חסכונות", format_currency(total_all)
+            ),
+            3,
+        )
+        cards_row.addWidget(
+            self._stat_card("DashCard", "נזיל", format_currency(total_liquid)), 2
+        )
+        cards_row.addWidget(
+            self._stat_card(
+                "DashCardGreen", "סוגי חיסכון", str(len(savings_accounts))
+            ),
+            2,
+        )
+        main_col.addLayout(cards_row, 0)
+
+        # ── donut panel ──
         chart = AccountsPieChart(accounts=savings_accounts, parent=self)
-
-        chart_card = QWidget(self)
-        chart_card.setObjectName("ContentPanel")
+        donut_panel = QWidget(self)
+        donut_panel.setObjectName("ContentPanel")
         try:
-            chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            donut_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
-        chart_card_layout = QVBoxLayout(chart_card)
-        chart_card_layout.setContentsMargins(18, 14, 18, 14)
-        chart_card_layout.setSpacing(8)
-        chart_title = QLabel("פילוח חסכונות", chart_card)
-        chart_title.setObjectName("PanelTitle")
-        chart_card_layout.addWidget(chart_title)
-        chart_card_layout.addWidget(chart, 1)
+        dp_lay = QVBoxLayout(donut_panel)
+        dp_lay.setContentsMargins(18, 14, 18, 14)
+        dp_lay.setSpacing(8)
+        dp_title = QLabel("פילוח חסכונות", donut_panel)
+        dp_title.setObjectName("PanelTitle")
+        dp_lay.addWidget(dp_title)
+        dp_lay.addWidget(chart, 1)
 
-        chart_side_card = QWidget(self)
-        chart_side_card.setObjectName("ContentPanel")
+        # ── accounts list panel: header actions + per-row edit/delete ──
+        list_panel = QWidget(self)
+        list_panel.setObjectName("ContentPanel")
         try:
-            chart_side_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            list_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
-        chart_side_layout = QVBoxLayout(chart_side_card)
-        chart_side_layout.setContentsMargins(18, 14, 18, 14)
-        chart_side_layout.setSpacing(10)
+        lp_lay = QVBoxLayout(list_panel)
+        lp_lay.setContentsMargins(18, 14, 18, 14)
+        lp_lay.setSpacing(6)
 
-        actions_title = QLabel("פעולות", chart_side_card)
-        actions_title.setObjectName("PanelTitle")
-        chart_side_layout.addWidget(actions_title)
-        chart_side_layout.addSpacing(2)
-
-        add_button = QPushButton("הוסף סוג חסכון", chart_side_card)
-        add_button.setObjectName("AddButton")
-        edit_button = QPushButton("ערוך סוג חסכון", chart_side_card)
-        edit_button.setObjectName("EditButton")
-        delete_button = QPushButton("מחק סוג חסכון", chart_side_card)
-        delete_button.setObjectName("DeleteButton")
-        move_button = QPushButton("העבר כסף בין חסכונות", chart_side_card)
-        move_button.setObjectName("MoveButton")
-        for b in (add_button, edit_button, delete_button, move_button):
+        header = QHBoxLayout()
+        header.setSpacing(8)
+        lp_title = QLabel("החסכונות שלי", list_panel)
+        lp_title.setObjectName("PanelTitle")
+        add_btn = QPushButton("＋ הוסף חיסכון", list_panel)
+        add_btn.setObjectName("AddButton")
+        move_btn = QPushButton("⇄ העבר כסף", list_panel)
+        move_btn.setObjectName("MoveButton")
+        for b in (add_btn, move_btn):
             try:
-                b.setMinimumHeight(46)
-                b.setSizePolicy(
-                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-                )
+                b.setMinimumHeight(38)
+                b.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             except Exception:
                 pass
+        add_btn.clicked.connect(lambda: self._handle_add_account())
+        move_btn.clicked.connect(lambda: self._handle_move_between_accounts())
+        header.addWidget(lp_title)
+        header.addStretch(1)
+        header.addWidget(move_btn)
+        header.addWidget(add_btn)
+        lp_lay.addLayout(header)
+        lp_lay.addSpacing(4)
 
-        add_button.clicked.connect(lambda: self._handle_add_account())
-        edit_button.clicked.connect(lambda: self._handle_edit_account())
-        delete_button.clicked.connect(lambda: self._handle_delete_account())
-        move_button.clicked.connect(lambda: self._handle_move_between_accounts())
+        if savings_accounts:
+            rows_container = QWidget(list_panel)
+            rows_lay = QVBoxLayout(rows_container)
+            rows_lay.setContentsMargins(0, 0, 0, 0)
+            rows_lay.setSpacing(0)
+            for idx, acc in enumerate(savings_accounts):
+                rows_lay.addWidget(self._account_row(acc, idx))
+            rows_lay.addStretch(1)
+            lp_lay.addWidget(rows_container, 1)
+        else:
+            empty = QLabel("אין חסכונות עדיין", list_panel)
+            empty.setObjectName("Subtitle")
+            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lp_lay.addWidget(empty, 1)
 
-        # Manage saving-types together, then the transfer action set apart.
-        chart_side_layout.addWidget(add_button)
-        chart_side_layout.addWidget(edit_button)
-        chart_side_layout.addWidget(delete_button)
-        chart_side_layout.addSpacing(10)
-        chart_side_layout.addWidget(move_button)
-        chart_side_layout.addStretch(1)
+        content_row = QHBoxLayout()
+        content_row.setSpacing(16)
+        content_row.addWidget(donut_panel, 2)
+        content_row.addWidget(list_panel, 3)
+        main_col.addLayout(content_row, 1)
 
-        chart_row = QHBoxLayout()
-        chart_row.setSpacing(16)
-        chart_row.addWidget(chart_card, 2)
-        chart_row.addWidget(chart_side_card, 1)
+    def _edit_specific_account(self, acc: SavingsAccount) -> None:
+        savings_accounts = self._get_savings_accounts()
+        existing_names = [a.name for a in savings_accounts]
+        dialog = SavingsAccountDialog(
+            account=acc, existing_names=existing_names, parent=self
+        )
+        if not dialog.exec():
+            return
+        form = SavingsAccountForm(
+            name=dialog.get_name(), is_liquid=dialog.get_is_liquid()
+        )
+        if not form.name.strip() or self._accounts_service is None:
+            return
+        target = None
+        for a in self._accounts:
+            if a is acc or (
+                isinstance(a, SavingsAccount) and a.name == acc.name
+            ):
+                target = a
+                break
+        if target is None:
+            return
+        self._accounts = self._accounts_service.edit_savings_account(
+            self._accounts, target, form
+        )
+        self._save_and_refresh()
 
-        main_col.addLayout(chart_row, 1)
+    def _delete_specific_account(self, acc: SavingsAccount) -> None:
+        from ..qt import QMessageBox
+
+        answer = QMessageBox.question(
+            self,
+            "מחיקת חסכון",
+            f"למחוק את '{acc.name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        if self._accounts_service is None:
+            return
+        self._accounts = self._accounts_service.delete_savings_account(
+            self._accounts, acc
+        )
+        self._save_and_refresh()
 
     def _get_savings_accounts(self) -> List[SavingsAccount]:
         return [acc for acc in self._accounts if isinstance(acc, SavingsAccount)]
