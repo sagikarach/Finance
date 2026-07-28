@@ -102,7 +102,7 @@ class SavingsPage(BasePage):
         total_liquid = compute_savings_account_liquid_amount(self._accounts)
 
         total_all_card = QWidget(self)
-        total_all_card.setObjectName("StatCardGreen")
+        total_all_card.setObjectName("DashHeroYellow")
         try:
             total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             total_all_card.setAutoFillBackground(True)
@@ -131,7 +131,7 @@ class SavingsPage(BasePage):
         total_all_card_layout.addStretch(1)
 
         total_liquid_card = QWidget(self)
-        total_liquid_card.setObjectName("StatCardPurple")
+        total_liquid_card.setObjectName("DashCard")
         try:
             total_liquid_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             total_liquid_card.setAutoFillBackground(True)
@@ -200,8 +200,11 @@ class SavingsPage(BasePage):
         except Exception:
             pass
         chart_card_layout = QVBoxLayout(chart_card)
-        chart_card_layout.setContentsMargins(4, 4, 4, 4)
-        chart_card_layout.setSpacing(0)
+        chart_card_layout.setContentsMargins(18, 14, 18, 14)
+        chart_card_layout.setSpacing(8)
+        chart_title = QLabel("פילוח חסכונות", chart_card)
+        chart_title.setObjectName("PanelTitle")
+        chart_card_layout.addWidget(chart_title)
         chart_card_layout.addWidget(chart, 1)
 
         chart_side_card = QWidget(self)
