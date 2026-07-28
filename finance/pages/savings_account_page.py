@@ -92,25 +92,36 @@ class SavingsAccountPage(BasePage):
             return
 
         top_card = QWidget(self)
-        top_card.setObjectName("ContentPanel")
+        top_card.setObjectName("DashHeroYellow")
         try:
             top_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
         top_layout = QHBoxLayout(top_card)
-        top_layout.setContentsMargins(16, 16, 16, 16)
+        top_layout.setContentsMargins(22, 20, 22, 20)
         top_layout.setSpacing(16)
+
+        pill_style = (
+            "QPushButton{background:rgba(44,38,18,0.16);color:#3f3616;border:none;"
+            "border-radius:12px;padding:9px 16px;font-weight:700;font-size:13px;}"
+            "QPushButton:hover{background:rgba(44,38,18,0.26);}"
+        )
 
         summary_col = QVBoxLayout()
         summary_col.setSpacing(4)
 
         name_label = QLabel(target.name, top_card)
-        name_label.setObjectName("HeaderTitle")
+        name_label.setStyleSheet(
+            "font-size:18px;font-weight:800;color:#5c4d15;background:transparent;"
+        )
         total_label = QLabel(format_currency(target.total_amount), top_card)
         total_label.setObjectName("StatValueLarge")
         liquid_text = "נזיל" if target.is_liquid else "לא נזיל"
         liquid_label = QLabel(liquid_text, top_card)
-        liquid_label.setObjectName("StatTitle")
+        liquid_label.setStyleSheet(
+            "font-size:12px;font-weight:700;color:#7a6420;background:rgba(44,38,18,0.12);"
+            "border-radius:9px;padding:3px 10px;"
+        )
 
         name_liquid_row = QHBoxLayout()
         name_liquid_row.setSpacing(8)
@@ -124,14 +135,12 @@ class SavingsAccountPage(BasePage):
         buttons_row = QHBoxLayout()
         buttons_row.setSpacing(8)
 
-        add_saving_btn = QPushButton("הוסף חסכון", top_card)
-        add_saving_btn.setObjectName("AddButton")
-        update_saving_btn = QPushButton("עדכן חסכון", top_card)
-        update_saving_btn.setObjectName("EditButton")
-        delete_saving_btn = QPushButton("מחק חסכון", top_card)
-        delete_saving_btn.setObjectName("DeleteButton")
+        add_saving_btn = QPushButton("＋ הוסף חסכון", top_card)
+        update_saving_btn = QPushButton("✎ עדכן", top_card)
+        delete_saving_btn = QPushButton("🗑 מחק", top_card)
 
         for b in (delete_saving_btn, update_saving_btn, add_saving_btn):
+            b.setStyleSheet(pill_style)
             try:
                 b.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             except Exception:
@@ -153,8 +162,22 @@ class SavingsAccountPage(BasePage):
 
         chart_card = create_savings_history_chart_card(self, target, format_currency)
 
-        main_col.addWidget(top_card, 1)
-        main_col.addWidget(chart_card, 2)
+        chart_panel = QWidget(self)
+        chart_panel.setObjectName("ContentPanel")
+        try:
+            chart_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        chart_panel_layout = QVBoxLayout(chart_panel)
+        chart_panel_layout.setContentsMargins(18, 14, 18, 14)
+        chart_panel_layout.setSpacing(8)
+        chart_panel_title = QLabel("היסטוריית חיסכון", chart_panel)
+        chart_panel_title.setObjectName("PanelTitle")
+        chart_panel_layout.addWidget(chart_panel_title)
+        chart_panel_layout.addWidget(chart_card, 1)
+
+        main_col.addWidget(top_card, 0)
+        main_col.addWidget(chart_panel, 1)
 
         if isinstance(chart_card, SavingsHistoryChartCard):
             self._inject_math_projection(target, chart_card)

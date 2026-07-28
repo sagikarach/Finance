@@ -556,7 +556,7 @@ class SavingsHistoryChartCard(QWidget):
                 hue = int((360.0 * idx) / float(total_savings))
                 color = QColor.fromHsl(hue, 180, 140)
             except Exception:
-                color = QColor("#f97316")
+                color = QColor("#2f9e68")
             self._all_series_data.append((str(s.name), list(base_values), color))
 
         # ── create chart + view (initially empty) ────────────────────────
