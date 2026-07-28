@@ -77,65 +77,130 @@ class BankAccountsPage(BasePage):
         buttons.append(settings_btn)
         return buttons
 
+    _PASTEL = [
+        "#B9B6F0", "#C6D3B4", "#F2D06B", "#E9A491", "#9BB4E6",
+        "#8FBF9F", "#E0B0D8", "#F7E2A6", "#7FB3B3", "#E8A87C",
+    ]
+
+    def _stat_card(self, object_name: str, title: str, value: str) -> QWidget:
+        card = QWidget(self)
+        card.setObjectName(object_name)
+        try:
+            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            card.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+            )
+            card.setMinimumHeight(118)
+            card.setMaximumHeight(150)
+        except Exception:
+            pass
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(20, 16, 20, 16)
+        lay.setSpacing(6)
+        t = QLabel(title, card)
+        t.setObjectName("StatTitle")
+        v = QLabel(value, card)
+        v.setObjectName("StatValueLarge")
+        lay.addStretch(1)
+        lay.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addStretch(1)
+        return card
+
+    def _panel(self, title: str, inner: QWidget) -> QWidget:
+        panel = QWidget(self)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(18, 14, 18, 14)
+        lay.setSpacing(8)
+        ttl = QLabel(title, panel)
+        ttl.setObjectName("PanelTitle")
+        lay.addWidget(ttl)
+        lay.addWidget(inner, 1)
+        return panel
+
+    def _accounts_list(self, accounts: List[BankAccount]) -> QWidget:
+        wrap = QWidget(self)
+        lay = QVBoxLayout(wrap)
+        lay.setContentsMargins(0, 4, 0, 0)
+        lay.setSpacing(0)
+        for idx, acc in enumerate(accounts):
+            row = QWidget(wrap)
+            rl = QHBoxLayout(row)
+            rl.setContentsMargins(2, 11, 2, 11)
+            rl.setSpacing(10)
+            dot = QLabel(row)
+            dot.setFixedSize(12, 12)
+            color = self._PASTEL[idx % len(self._PASTEL)]
+            dot.setStyleSheet(
+                f"background:{color}; border-radius:4px;"
+            )
+            name = QLabel(str(acc.name), row)
+            name.setStyleSheet(
+                "font-size:14px; font-weight:600; color:#40433c; background:transparent;"
+            )
+            val = QLabel(format_currency(acc.total_amount), row)
+            val.setStyleSheet(
+                "font-size:14px; font-weight:800; color:#2f9e68; background:transparent;"
+            )
+            rl.addWidget(dot)
+            rl.addWidget(name)
+            rl.addStretch(1)
+            rl.addWidget(val)
+            if idx > 0:
+                row.setStyleSheet("border-top:1px solid #ecece2;")
+                try:
+                    row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+                except Exception:
+                    pass
+            lay.addWidget(row)
+        lay.addStretch(1)
+        return wrap
+
     def _build_content(self, main_col: QVBoxLayout) -> None:
         overview = AccountsOverview.for_bank_accounts(self._accounts)
         bank_accounts: List[BankAccount] = [
             acc for acc in overview.accounts if isinstance(acc, BankAccount)
         ]
+        bank_accounts.sort(key=lambda a: float(a.total_amount), reverse=True)
 
-        total_all = overview.total_all
-
-        total_all_card = QWidget(self)
-        total_all_card.setObjectName("StatCardGreen")
-        try:
-            total_all_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            total_all_card.setAutoFillBackground(True)
-        except Exception:
-            pass
-        total_all_card_layout = QVBoxLayout(total_all_card)
-        total_all_card_layout.setContentsMargins(14, 14, 14, 14)
-        total_all_card_layout.setSpacing(6)
-        try:
-            total_all_card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-        except Exception:
-            pass
-        total_all_title = QLabel("סה״כ בחשבונות", total_all_card)
-        total_all_title.setObjectName("StatTitle")
-        total_all_label = QLabel(format_currency(total_all), total_all_card)
-        total_all_label.setObjectName("StatValueLarge")
-        total_all_card_layout.addStretch(1)
-        total_all_card_layout.addWidget(
-            total_all_title, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_all_card_layout.addWidget(
-            total_all_label, 0, Qt.AlignmentFlag.AlignHCenter
-        )
-        total_all_card_layout.addStretch(1)
-
+        # ── top row: total + liquid cards ──
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
-        cards_row.addWidget(total_all_card, 1)
+        cards_row.addWidget(
+            self._stat_card(
+                "DashHeroYellow", "סה״כ בחשבונות",
+                format_currency(overview.total_all),
+            ),
+            3,
+        )
+        cards_row.addWidget(
+            self._stat_card(
+                "DashCardGreen", "נזיל",
+                format_currency(overview.total_liquid),
+            ),
+            2,
+        )
         main_col.addLayout(cards_row, 0)
 
-        if bank_accounts:
-            chart = AccountsPieChart(accounts=bank_accounts, parent=self)
-
-            chart_card = QWidget(self)
-            chart_card.setObjectName("ContentPanel")
-            try:
-                chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            except Exception:
-                pass
-            chart_card_layout = QVBoxLayout(chart_card)
-            chart_card_layout.setContentsMargins(4, 4, 4, 4)
-            chart_card_layout.setSpacing(0)
-            chart_card_layout.addWidget(chart, 1)
-
-            main_col.addWidget(chart_card, 1)
-        else:
+        if not bank_accounts:
             placeholder = QLabel("אין חשבונות בנק להצגה", self)
             placeholder.setObjectName("Subtitle")
             placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             main_col.addWidget(placeholder, 1)
+            return
+
+        # ── content row: donut + colour-coded account list ──
+        donut = AccountsPieChart(accounts=bank_accounts, parent=self)
+        donut_panel = self._panel("פילוח חשבונות", donut)
+        list_panel = self._panel("חשבונות", self._accounts_list(bank_accounts))
+
+        content_row = QHBoxLayout()
+        content_row.setSpacing(16)
+        content_row.addWidget(donut_panel, 2)
+        content_row.addWidget(list_panel, 3)
+        main_col.addLayout(content_row, 1)
