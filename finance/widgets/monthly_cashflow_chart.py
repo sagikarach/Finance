@@ -15,16 +15,43 @@ class MonthlyCashflowChart(QWidget):
         super().__init__(parent)
         self._values: List[float] = []
         self._labels: List[str] = []
+        self._hover: int = -1  # bar under the mouse (-1 = none)
         try:
             self.setMinimumHeight(150)
             self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            self.setMouseTracking(True)
         except Exception:
             pass
 
     def set_data(self, values: List[float], labels: List[str]) -> None:
         self._values = [float(v) for v in values]
         self._labels = [str(x) for x in labels]
+        self._hover = -1
         self.update()
+
+    def _bar_at(self, x: float) -> int:
+        n = len(self._values)
+        if n == 0 or self.width() <= 0:
+            return -1
+        idx = int(x / (self.width() / float(n)))
+        return idx if 0 <= idx < n else -1
+
+    def mouseMoveEvent(self, event) -> None:
+        try:
+            x = event.position().x()
+        except Exception:
+            x = event.x()
+        idx = self._bar_at(x)
+        if idx != self._hover:
+            self._hover = idx
+            self.update()
+        super().mouseMoveEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        if self._hover != -1:
+            self._hover = -1
+            self.update()
+        super().leaveEvent(event)
 
     def _is_dark(self) -> bool:
         app = QApplication.instance()
@@ -66,7 +93,7 @@ class MonthlyCashflowChart(QWidget):
         radius = 10
         slot = w / float(n)
         maxv = max((abs(v) for v in self._values), default=1.0) or 1.0
-        peak = n - 1  # highlight the most recent month
+        hover = self._hover  # highlight only the bar the mouse is over
 
         lab_font = QFont(self.font())
         lab_font.setPixelSize(11)
@@ -84,7 +111,7 @@ class MonthlyCashflowChart(QWidget):
             frac = 0.04 if frac < 0.04 else (1.0 if frac > 1.0 else frac)
             fill_h = int(chart_h * frac)
             fill_y = chart_bottom - fill_h
-            if i == peak:
+            if i == hover:
                 p.setBrush(hi_c)
             elif v >= 0:
                 p.setBrush(pos_c)
@@ -101,7 +128,7 @@ class MonthlyCashflowChart(QWidget):
                 lab,
             )
 
-            if i == peak:
+            if i == hover:
                 sign = "+" if v >= 0 else "-"
                 txt = f"{sign}{format_currency(abs(v), use_compact=True)}"
                 tip_font = QFont(self.font())

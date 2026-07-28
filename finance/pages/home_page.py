@@ -85,7 +85,7 @@ class HomePage(BasePage):
         return card
 
     def _chart_panel(
-        self, parent: QWidget, subtitle: str, title: str, chart: QWidget,
+        self, parent: QWidget, title: str, chart: QWidget,
     ) -> QWidget:
         panel = QWidget(parent)
         panel.setObjectName("ContentPanel")
@@ -95,12 +95,9 @@ class HomePage(BasePage):
             pass
         lay = QVBoxLayout(panel)
         lay.setContentsMargins(18, 14, 18, 14)
-        lay.setSpacing(6)
-        sub = QLabel(subtitle, panel)
-        sub.setObjectName("PanelSubtitle")
+        lay.setSpacing(8)
         ttl = QLabel(title, panel)
         ttl.setObjectName("PanelTitle")
-        lay.addWidget(sub)
         lay.addWidget(ttl)
         lay.addWidget(chart, 1)
         return panel
@@ -155,14 +152,10 @@ class HomePage(BasePage):
             bars.set_data(nets, labels)
         except Exception:
             pass
-        bars_panel = self._chart_panel(
-            parent_widget, "6 חודשים אחרונים", "תזרים חודשי", bars
-        )
+        bars_panel = self._chart_panel(parent_widget, "תזרים חודשי", bars)
 
         donut = AccountsPieChart(accounts=overview.accounts, parent=parent_widget)
-        donut_panel = self._chart_panel(
-            parent_widget, "היכן הכסף", "פילוח חשבונות", donut
-        )
+        donut_panel = self._chart_panel(parent_widget, "פילוח חשבונות", donut)
 
         charts_row = QHBoxLayout()
         charts_row.setSpacing(16)
