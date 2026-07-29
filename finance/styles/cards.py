@@ -204,6 +204,24 @@ def load_cards_light_styles() -> str:
         background: #f4f2ec;
         border: 1px solid #e0dcc8;
     }
+
+    /* ───── events page: hero, budget bar, legend ───── */
+    QLabel#EventName { font-size: 23px; font-weight: 800; color: #1e1e22; }
+    QLabel#EventBadge { font-size: 12px; font-weight: 800; padding: 4px 12px;
+                        border-radius: 999px; background: #eef1ea; color: #5b5f57; }
+    QLabel#MetaDot { color: #cfcdc2; font-size: 13px; }
+    QLabel#BudgetRemain { font-size: 14px; font-weight: 800; color: #2f9e68; }
+    QLabel#TickLabel { font-size: 12px; color: #a8aca1; }
+    QProgressBar#BudgetBar { background: #eef1ea; border: none; border-radius: 7px;
+                             min-height: 14px; max-height: 14px; }
+    QProgressBar#BudgetBar::chunk { border-radius: 7px; background: #2f9e68; }
+    QLabel#LegendName { font-size: 14px; font-weight: 700; color: #1e1e22; }
+    QLabel#LegendVal { font-size: 13px; font-weight: 700; color: #6b6f66; }
+    QToolButton#HeroAddButton {
+        background: #2f9e68; border: none; border-radius: 12px;
+        min-width: 38px; min-height: 38px; color: #ffffff;
+    }
+    QToolButton#HeroAddButton:hover { background: #2a8f5e; }
     """
 
 

@@ -9,28 +9,18 @@ class OneTimeEventStatCards(QWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
-        root = QVBoxLayout(self)
+        root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(12)
+        root.setSpacing(16)
 
-        row1 = QHBoxLayout()
-        row1.setSpacing(12)
         c1, self._budget = self._build_stat_card(self, "תקציב", "MonthNetCard")
-        c2, self._remaining = self._build_stat_card(
-            self, "נותר מהתקציב", "MonthNetCard"
-        )
-        row1.addWidget(c1, 1)
-        row1.addWidget(c2, 1)
-
-        row2 = QHBoxLayout()
-        row2.setSpacing(12)
         c3, self._expenses = self._build_stat_card(self, "הוצאות", "MonthExpenseCard")
         c4, self._income = self._build_stat_card(self, "הכנסות", "MonthIncomeCard")
-        row2.addWidget(c3, 1)
-        row2.addWidget(c4, 1)
-
-        root.addLayout(row1)
-        root.addLayout(row2)
+        c2, self._remaining = self._build_stat_card(
+            self, "נותר מהתקציב", "MonthInfoCard"
+        )
+        for c in (c1, c3, c4, c2):
+            root.addWidget(c, 1)
 
     def clear(self) -> None:
         for lbl in (self._budget, self._remaining, self._expenses, self._income):
