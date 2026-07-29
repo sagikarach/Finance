@@ -547,7 +547,7 @@ class OneTimeEventsPage(BasePage):
         bg, fg = palette.get(status_text, ("#eef1ea", "#5b5f57"))
         return (
             f"QLabel#EventBadge{{background:{bg};color:{fg};font-size:12px;"
-            "font-weight:800;padding:4px 12px;border-radius:999px;}}"
+            "font-weight:800;padding:4px 12px;border-radius:999px;}"
         )
 
     @staticmethod
