@@ -101,23 +101,23 @@ def load_buttons_light_styles() -> str:
     }
     QPushButton#AssetTabButton {
         background: transparent;
-        color: #1e3a5f;
+        color: #6b6f66;
         border: 1px solid transparent;
-        border-top-left-radius: 10px;
-        border-top-right-radius: 10px;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
         border-bottom-left-radius: 0px;
         border-bottom-right-radius: 0px;
         padding: 7px 18px;
         font-weight: 600;
     }
     QPushButton#AssetTabButton:hover {
-        background: #d7ebfd;
+        background: #f4f2ec;
     }
     QPushButton#AssetTabButton:checked {
-        background: #e8f3fd;
-        border: 1px solid #c7dffe;
+        background: #ffffff;
+        border: 1px solid #ecece2;
         border-bottom: none;
-        color: #0f2c4d;
+        color: #1e1e22;
     }
     QPushButton#DangerButton {
         background: #fee2e2;

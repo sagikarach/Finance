@@ -114,26 +114,26 @@ def load_cards_light_styles() -> str:
         background: transparent;
     }
     QWidget#AssetTablePanel {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        border: 1px solid #ecece2;
         border-top: none;
         border-top-left-radius: 0px;
         border-top-right-radius: 0px;
-        border-bottom-left-radius: 14px;
-        border-bottom-right-radius: 14px;
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
     }
     QWidget#AssetTablePanel * {
         background: transparent;
     }
     /* ───── כרטיסים רגועים (hero) + שורת caption + פירורי לחם + שורת ניווט ───── */
     QWidget#AssetHeroCard, QWidget#AssetHeroCardAccent {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
+        background: #ffffff;
+        border: 1px solid #ecece2;
+        border-radius: 18px;
     }
     QWidget#AssetHeroCardAccent {
-        background: #eff6ff;
-        border: 1px solid #93c5fd;
+        background: #faf6ea;
+        border: 1px solid #ecdca8;
     }
     QWidget#AssetHeroCard *, QWidget#AssetHeroCardAccent * {
         background: transparent;
@@ -150,16 +150,16 @@ def load_cards_light_styles() -> str:
         color: #0f172a;
         background: transparent;
     }
-    QLabel#AssetHeroValue[tone="accent"] { color: #1d4ed8; }
-    QLabel#AssetHeroValue[tone="pos"] { color: #15803d; }
-    QLabel#AssetHeroValue[tone="neg"] { color: #b91c1c; }
+    QLabel#AssetHeroValue[tone="accent"] { color: #2f9e68; }
+    QLabel#AssetHeroValue[tone="pos"] { color: #2f9e68; }
+    QLabel#AssetHeroValue[tone="neg"] { color: #d66a4e; }
     QLabel#AssetHeroSub {
         font-size: 12px;
         color: #64748b;
         background: transparent;
     }
     QProgressBar#AssetProgress {
-        background: #eef2f7;
+        background: #eef1ea;
         border: none;
         border-radius: 5px;
         min-height: 8px;
@@ -167,7 +167,7 @@ def load_cards_light_styles() -> str:
         text-align: center;
     }
     QProgressBar#AssetProgress::chunk {
-        background: #1d4ed8;
+        background: #2f9e68;
         border-radius: 5px;
     }
     QLabel#AssetCaption {
@@ -192,17 +192,17 @@ def load_cards_light_styles() -> str:
     }
     QPushButton#AssetNavRow {
         text-align: right;
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
+        background: #ffffff;
+        border: 1px solid #ecece2;
+        border-radius: 14px;
         padding: 12px 16px;
         font-size: 13px;
         font-weight: 600;
-        color: #0f172a;
+        color: #1e1e22;
     }
     QPushButton#AssetNavRow:hover {
-        background: #eff6ff;
-        border: 1px solid #93c5fd;
+        background: #f4f2ec;
+        border: 1px solid #e0dcc8;
     }
     """
 
