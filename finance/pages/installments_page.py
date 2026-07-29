@@ -337,7 +337,7 @@ class InstallmentsPage(BasePage):
             except Exception:
                 pass
             cl = QVBoxLayout(card)
-            cl.setContentsMargins(14, 12, 14, 12)
+            cl.setContentsMargins(16, 16, 16, 16)
             cl.setSpacing(6)
             title = QLabel(title_text, card)
             title.setObjectName("StatTitle")
@@ -348,10 +348,10 @@ class InstallmentsPage(BasePage):
             cards_col_l.addWidget(card, 0)
             return value
 
-        self._card_ratio = build_card("תשלומים (סה״כ/נמצאו)", "StatCardYellow")
-        self._card_original = build_card("סכום מקורי", "StatCardPurple")
-        self._card_paid = build_card("שולם עד כה", "StatCardGreen")
-        self._card_overpaid = build_card("חריגה", "StatCardRed")
+        self._card_ratio = build_card("תשלומים (סה״כ/נמצאו)", "MonthNetCard")
+        self._card_original = build_card("סכום מקורי", "MonthInfoCard")
+        self._card_paid = build_card("שולם עד כה", "MonthIncomeCard")
+        self._card_overpaid = build_card("חריגה", "MonthExpenseCard")
         cards_col_l.addStretch(1)
 
         table_card = QWidget(row1)
