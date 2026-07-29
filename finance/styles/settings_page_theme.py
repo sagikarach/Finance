@@ -12,7 +12,7 @@ def load_settings_page_light_styles() -> str:
         min-height: 18px;
     }
     QLineEdit#SettingsInput:focus {
-        border: 1px solid rgba(59,130,246,0.65);
+        border: 1px solid rgba(47,158,104,0.60);
     }
     QCheckBox#NotificationRuleToggle {
         /* Indent child notification toggles (RTL: margin-right pushes left) */
@@ -20,18 +20,18 @@ def load_settings_page_light_styles() -> str:
     }
 
     QPushButton#SaveButton {
-        background: #3b82f6;
-        border: 1px solid #2563eb;
+        background: #2f9e68;
+        border: 1px solid #2a8f5e;
         font-weight: 600;
         min-width: 96px;
         color: #ffffff;
     }
     QPushButton#SaveButton:hover {
-        background: #2563eb;
-        border: 1px solid #1d4ed8;
+        background: #2a8f5e;
+        border: 1px solid #247e52;
     }
     QPushButton#SaveButton:pressed {
-        background: #1d4ed8;
+        background: #247e52;
     }
 
     QPushButton#SecondaryButton {
@@ -69,27 +69,27 @@ def load_settings_page_light_styles() -> str:
 
     /* Settings internal sidebar menu (matches app sidebar light theme) */
     QListWidget#SettingsMenu {
-        background: #bfdbfe;
-        border: 0;
+        background: #ffffff;
+        border: 1px solid #ecece2;
         outline: 0;
         padding: 8px;
-        border-radius: 12px;
+        border-radius: 16px;
     }
     QListWidget#SettingsMenu::item {
         background: transparent;
-        color: #0f172a;
+        color: #4a4d45;
         padding: 10px 12px;
-        border-radius: 10px;
+        border-radius: 12px;
         margin: 4px 0px;
         font-weight: 600;
     }
     QListWidget#SettingsMenu::item:hover {
-        background: #c9e1fe;
+        background: #f4f2ec;
     }
     QListWidget#SettingsMenu::item:selected {
-        background: #dbeafe;
-        color: #1d4ed8;
-        border-left: 4px solid #2563eb;
+        background: #ecebfb;
+        color: #4a3f9e;
+        border-left: 4px solid #b9b6f0;
         padding-left: 8px;
         font-weight: 700;
     }
