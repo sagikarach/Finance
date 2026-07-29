@@ -2,7 +2,17 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional, Tuple
 
-from ..qt import QHBoxLayout, QLabel, QPushButton, QWidget, Qt
+from ..qt import (
+    QColor,
+    QHBoxLayout,
+    QLabel,
+    QPainter,
+    QPen,
+    QPointF,
+    QPushButton,
+    QWidget,
+    Qt,
+)
 
 
 MonthKey = Tuple[int, int]
@@ -13,11 +23,50 @@ _MONTH_NAMES = [
 ]
 
 _ARROW_STYLE = (
-    "QPushButton{background:#f4f2ec;border:none;border-radius:9px;color:#6b6f66;"
-    "font-size:17px;font-weight:800;}"
-    "QPushButton:hover{background:#e9e6db;}"
-    "QPushButton:disabled{color:#cdcbc1;background:#f7f5ef;}"
+    "QPushButton{background:#eceadf;border:none;border-radius:10px;}"
+    "QPushButton:hover{background:#ddd9c9;}"
+    "QPushButton:disabled{background:#f5f3ec;}"
 )
+
+
+class _ArrowButton(QPushButton):
+    """A pill button that paints a chevron (‹ or ›) itself, so it never
+    depends on a font having the glyph."""
+
+    def __init__(self, direction: int, parent: Optional[QWidget] = None) -> None:
+        super().__init__("", parent)
+        self._dir = -1 if direction < 0 else 1  # -1 = points left, +1 = right
+        self.setStyleSheet(_ARROW_STYLE)
+        try:
+            self.setFixedSize(30, 30)
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        except Exception:
+            pass
+
+    def paintEvent(self, event) -> None:  # noqa: N802
+        super().paintEvent(event)  # background from the stylesheet
+        try:
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            color = QColor("#2c2f28") if self.isEnabled() else QColor("#c4c2b6")
+            pen = QPen(color)
+            pen.setWidthF(2.2)
+            try:
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            except Exception:
+                pass
+            p.setPen(pen)
+            cx, cy = self.width() / 2.0, self.height() / 2.0
+            arm = 4.0
+            # Tip points toward the button's direction (-1 left ‹, +1 right ›).
+            tip_x = cx + self._dir * (arm / 2.0)
+            base_x = cx - self._dir * (arm / 2.0)
+            p.drawLine(QPointF(base_x, cy - arm), QPointF(tip_x, cy))
+            p.drawLine(QPointF(tip_x, cy), QPointF(base_x, cy + arm))
+            p.end()
+        except Exception:
+            pass
 
 
 class MonthPickerWidget(QWidget):
@@ -52,15 +101,8 @@ class MonthPickerWidget(QWidget):
 
         # Newer months are to the left (‹), older to the right (›) — natural
         # for a list sorted newest-first.
-        self._newer_btn = QPushButton("‹", self)
-        self._older_btn = QPushButton("›", self)
-        for b in (self._newer_btn, self._older_btn):
-            b.setStyleSheet(_ARROW_STYLE)
-            try:
-                b.setFixedSize(28, 28)
-                b.setCursor(Qt.CursorShape.PointingHandCursor)
-            except Exception:
-                pass
+        self._newer_btn = _ArrowButton(-1, self)
+        self._older_btn = _ArrowButton(+1, self)
         self._newer_btn.clicked.connect(lambda: self._step(-1))
         self._older_btn.clicked.connect(lambda: self._step(+1))
 
