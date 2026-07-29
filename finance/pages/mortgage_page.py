@@ -932,6 +932,8 @@ class MortgagePage(BasePage):
         self._hero_outstanding: Optional[QLabel] = None
         self._hero_payment: Optional[QLabel] = None
         self._hero_payment_sub: Optional[QLabel] = None
+        self._payoff_strip: Optional[QWidget] = None
+        self._payoff_label: Optional[QLabel] = None
         self._cap_principal: Optional[QLabel] = None
         self._cap_total: Optional[QLabel] = None
         self._cap_interest: Optional[QLabel] = None
@@ -1091,6 +1093,26 @@ class MortgagePage(BasePage):
             "תשלום חודשי", accent=True
         )
         lay.addLayout(cards_row, 0)
+
+        # ───────── רצועת פירעון חלקי — מוצגת רק כשקושר פירעון ─────────
+        self._payoff_strip = QWidget(root)
+        self._payoff_strip.setObjectName("PayoffStrip")
+        try:
+            self._payoff_strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        payoff_l = QHBoxLayout(self._payoff_strip)
+        payoff_l.setContentsMargins(14, 11, 16, 11)
+        payoff_l.setSpacing(12)
+        payoff_ico = QLabel("💰", self._payoff_strip)
+        payoff_ico.setObjectName("PayoffIcon")
+        self._payoff_label = QLabel("", self._payoff_strip)
+        self._payoff_label.setObjectName("PayoffText")
+        self._payoff_label.setWordWrap(True)
+        payoff_l.addWidget(payoff_ico, 0, Qt.AlignmentFlag.AlignVCenter)
+        payoff_l.addWidget(self._payoff_label, 1)
+        self._payoff_strip.setVisible(False)
+        lay.addWidget(self._payoff_strip, 0)
 
         # ───────── רצועת התקדמות — כמה מהקרן שולם ומתי הסיום ─────────
         prog_row = QVBoxLayout()
@@ -1445,6 +1467,8 @@ class MortgagePage(BasePage):
                     lbl.setText("")
             if self._hero_payment_sub is not None:
                 self._hero_payment_sub.setVisible(False)
+            if self._payoff_strip is not None:
+                self._payoff_strip.setVisible(False)
             if self._progress_bar is not None:
                 self._progress_bar.setValue(0)
             if self._chart is not None:
@@ -1473,6 +1497,33 @@ class MortgagePage(BasePage):
                 self._hero_payment_sub.setVisible(True)
             else:
                 self._hero_payment_sub.setVisible(False)
+
+        # רצועת פירעון חלקי — מסכמת את מה שקושר ומה שנחסך בזכותו.
+        if self._payoff_strip is not None and self._payoff_label is not None:
+            if prepaid > 0:
+                original = st.outstanding + prepaid
+                parts = [f"פירעון חלקי <b>{_fmt_money(prepaid)} ₪</b>"]
+                res = early_payoff_savings(m, prepaid, self._assumptions)
+                if res is not None and res.months_saved > 0:
+                    years, months = divmod(int(res.months_saved), 12)
+                    dur = []
+                    if years:
+                        dur.append("שנה" if years == 1 else f"{years} שנים")
+                    if months:
+                        dur.append("חודש" if months == 1 else f"{months} חודשים")
+                    dur_txt = " ו-".join(dur) if dur else ""
+                    if dur_txt:
+                        parts.append(f"קיצר את המשכנתא ב-<b>{dur_txt}</b>")
+                if res is not None and res.interest_saved >= 1:
+                    parts.append(f"חוסך <b>{_fmt_money(res.interest_saved)} ₪</b> בריבית")
+                parts.append(
+                    f"יתרה מקורית <span style='color:#9aa39c;"
+                    f"text-decoration:line-through;'>{_fmt_money(original)} ₪</span>"
+                )
+                self._payoff_label.setText("  ·  ".join(parts))
+                self._payoff_strip.setVisible(True)
+            else:
+                self._payoff_strip.setVisible(False)
 
         # רצועת ההתקדמות — כמה מהקרן שולם, כמה תשלומים נותרו ומתי הסיום.
         if self._progress_bar is not None and self._progress_label is not None:

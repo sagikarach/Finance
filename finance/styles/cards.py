@@ -212,6 +212,12 @@ def load_cards_light_styles() -> str:
     QLabel#PlanBadge { font-size: 12px; font-weight: 800; padding: 4px 12px;
                        border-radius: 999px; background: #ecebfb; color: #4a3f9e; }
     QLabel#MetaDot { color: #cfcdc2; font-size: 13px; }
+    QWidget#PayoffStrip { background: #eaf5ef; border: 1px solid #cfe6da;
+                          border-radius: 16px; }
+    QWidget#PayoffStrip * { background: transparent; }
+    QLabel#PayoffIcon { font-size: 17px; }
+    QLabel#PayoffText { font-size: 14px; color: #245a41; }
+    QLabel#PayoffText b { color: #173f2d; }
     QLabel#BudgetRemain { font-size: 14px; font-weight: 800; color: #2f9e68; }
     QLabel#TickLabel { font-size: 12px; color: #a8aca1; }
     QProgressBar#BudgetBar { background: #eef1ea; border: none; border-radius: 7px;
