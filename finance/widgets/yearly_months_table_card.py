@@ -36,7 +36,7 @@ class SeparatorItemDelegate(QStyledItemDelegate):
                 is_dark = False
                 if app is not None:
                     is_dark = str(app.property("theme") or "light") == "dark"
-                separator_color = "#334155" if is_dark else "#e1ecfb"
+                separator_color = "#334155" if is_dark else "#ece7db"
 
                 color = QColor(separator_color)
                 pen = QPen(color, 3)
@@ -395,9 +395,9 @@ class YearlyMonthsTableCard(QWidget):
             if app is not None:
                 is_dark = str(app.property("theme") or "light") == "dark"
 
-            handle = "#1e3a5f" if is_dark else "#93c5fd"
-            handle_hover = "#2d5a8e" if is_dark else "#60a5fa"
-            header_line = "#e1ecfb" if not is_dark else "#334155"
+            handle = "#1e3a5f" if is_dark else "#d8d4c4"
+            handle_hover = "#2d5a8e" if is_dark else "#c4bfa8"
+            header_line = "#ecece2" if not is_dark else "#334155"
 
             qss = f"""
                 QTableWidget#YearlyMonthsTable {{ border: none; gridline-color: transparent; }}
