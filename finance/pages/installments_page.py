@@ -15,6 +15,7 @@ from ..qt import (
     QDateEdit,
     QSpinBox,
     QCheckBox,
+    QProgressBar,
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
@@ -22,8 +23,10 @@ from ..qt import (
     QSizePolicy,
     Qt,
     QDate,
+    QColor,
 )
 from ..models.accounts import BankAccount, BudgetAccount, MoneyAccount, parse_iso_date
+from ..utils.formatting import format_currency
 from ..ui.dialog_utils import setup_calendar_popup
 from ..models.installment_plan import InstallmentPlan
 from ..models.installments_service import InstallmentsService
@@ -249,10 +252,22 @@ class InstallmentsPage(BasePage):
         self._edit_btn: Optional[QToolButton] = None
         self._table: Optional[QTableWidget] = None
         self._exclude_btn: Optional[QToolButton] = None
-        self._card_ratio: Optional[QLabel] = None
         self._card_original: Optional[QLabel] = None
         self._card_paid: Optional[QLabel] = None
+        self._card_left: Optional[QLabel] = None
         self._card_overpaid: Optional[QLabel] = None
+        # hero + progress
+        self._name_lbl: Optional[QLabel] = None
+        self._acct_badge: Optional[QLabel] = None
+        self._start_lbl: Optional[QLabel] = None
+        self._start_sep: Optional[QLabel] = None
+        self._left_lbl: Optional[QLabel] = None
+        self._left_sep: Optional[QLabel] = None
+        self._prog_wrap: Optional[QWidget] = None
+        self._prog_lead: Optional[QLabel] = None
+        self._prog_left: Optional[QLabel] = None
+        self._prog_bar: Optional[QProgressBar] = None
+        self._tick_last: Optional[QLabel] = None
 
         super().__init__(*args, **kwargs)
 
@@ -273,38 +288,77 @@ class InstallmentsPage(BasePage):
 
         lay = QVBoxLayout(root)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(12)
+        lay.setSpacing(16)
 
-        header_card = QWidget(root)
-        header_card.setObjectName("Sidebar")
+        lay.addWidget(self._build_hero(root), 0)
+        lay.addWidget(self._build_tiles(root), 0)
+        lay.addWidget(self._build_table_panel(root), 1)
+
+        self._reload()
+
+    # ------------------------------------------------------------------ hero
+    def _build_hero(self, parent: QWidget) -> QWidget:
+        hero = QWidget(parent)
+        hero.setObjectName("ContentPanel")
         try:
-            header_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            hero.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
-        header_card_l = QVBoxLayout(header_card)
-        header_card_l.setContentsMargins(16, 14, 16, 14)
-        header_card_l.setSpacing(0)
+        hero_l = QVBoxLayout(hero)
+        hero_l.setContentsMargins(24, 22, 24, 22)
+        hero_l.setSpacing(18)
 
-        header_row = QHBoxLayout()
-        header_row.setSpacing(8)
+        top = QHBoxLayout()
+        top.setSpacing(16)
 
+        id_col = QVBoxLayout()
+        id_col.setSpacing(8)
+        self._name_lbl = QLabel("", hero)
+        self._name_lbl.setObjectName("EventName")
+        id_col.addWidget(self._name_lbl)
+
+        meta = QHBoxLayout()
+        meta.setSpacing(10)
+        self._acct_badge = QLabel("", hero)
+        self._acct_badge.setObjectName("PlanBadge")
+        self._start_lbl = QLabel("", hero)
+        self._start_lbl.setObjectName("Subtitle")
+        self._start_sep = self._make_dot(hero)
+        self._left_lbl = QLabel("", hero)
+        self._left_lbl.setObjectName("Subtitle")
+        self._left_sep = self._make_dot(hero)
+        meta.addWidget(self._acct_badge, 0)
+        meta.addWidget(self._start_sep, 0)
+        meta.addWidget(self._start_lbl, 0)
+        meta.addWidget(self._left_sep, 0)
+        meta.addWidget(self._left_lbl, 0)
+        meta.addStretch(1)
+        id_col.addLayout(meta)
+
+        id_wrap = QWidget(hero)
+        id_wrap.setLayout(id_col)
+        top.addWidget(id_wrap, 1)
+
+        actions = QWidget(hero)
+        actions_l = QHBoxLayout(actions)
+        actions_l.setContentsMargins(0, 0, 0, 0)
+        actions_l.setSpacing(8)
         self._selector = InstallmentsSelector(
-            header_card,
+            actions,
             on_selected=self._on_plan_selected,
             on_add_plan=self._on_add_clicked,
             on_delete_plan=self._on_delete_clicked,
         )
-        header_row.addWidget(self._selector, 0)
-        header_row.addStretch(1)
+        actions_l.addWidget(self._selector, 0)
 
-        self._exclude_btn = QToolButton(header_card)
+        self._exclude_btn = QToolButton(actions)
         self._exclude_btn.setObjectName("IconButton")
         self._exclude_btn.setText("🚫")
         self._exclude_btn.setToolTip("החרג תנועה מהרשימה")
         self._exclude_btn.clicked.connect(self._on_exclude_selected_row)
-        header_row.addWidget(self._exclude_btn)
+        actions_l.addWidget(self._exclude_btn)
 
-        self._edit_btn = QToolButton(header_card)
+        self._edit_btn = QToolButton(actions)
         self._edit_btn.setObjectName("IconButton")
         try:
             from ..utils.icons import apply_icon
@@ -313,23 +367,72 @@ class InstallmentsPage(BasePage):
             self._edit_btn.setText("✎")
         self._edit_btn.setToolTip("עריכת תכנית")
         self._edit_btn.clicked.connect(self._on_edit_clicked)
-        header_row.addWidget(self._edit_btn)
+        actions_l.addWidget(self._edit_btn)
+        top.addWidget(actions, 0, Qt.AlignmentFlag.AlignTop)
 
-        header_card_l.addLayout(header_row)
-        lay.addWidget(header_card, 0)
+        hero_l.addLayout(top)
 
-        row1 = QWidget(root)
-        row1_l = QHBoxLayout(row1)
-        row1_l.setContentsMargins(0, 0, 0, 0)
-        row1_l.setSpacing(12)
+        # payment-progress bar
+        self._prog_wrap = QWidget(hero)
+        pwl = QVBoxLayout(self._prog_wrap)
+        pwl.setContentsMargins(0, 0, 0, 0)
+        pwl.setSpacing(9)
 
-        cards_col = QWidget(row1)
-        cards_col_l = QVBoxLayout(cards_col)
-        cards_col_l.setContentsMargins(0, 0, 0, 0)
-        cards_col_l.setSpacing(12)
+        prow = QHBoxLayout()
+        prow.setSpacing(12)
+        self._prog_lead = QLabel("", self._prog_wrap)
+        self._prog_lead.setObjectName("Subtitle")
+        self._prog_left = QLabel("", self._prog_wrap)
+        self._prog_left.setObjectName("BudgetRemain")
+        prow.addWidget(self._prog_lead, 0)
+        prow.addStretch(1)
+        prow.addWidget(self._prog_left, 0)
+        pwl.addLayout(prow)
+
+        self._prog_bar = QProgressBar(self._prog_wrap)
+        self._prog_bar.setObjectName("BudgetBar")
+        self._prog_bar.setRange(0, 100)
+        self._prog_bar.setTextVisible(False)
+        try:
+            self._prog_bar.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            self._prog_bar.setFixedHeight(14)
+            self._prog_bar.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+        except Exception:
+            pass
+        pwl.addWidget(self._prog_bar)
+
+        ticks = QHBoxLayout()
+        ticks.setSpacing(8)
+        tick_first = QLabel("תשלום 1", self._prog_wrap)
+        tick_first.setObjectName("TickLabel")
+        self._tick_last = QLabel("", self._prog_wrap)
+        self._tick_last.setObjectName("TickLabel")
+        # RTL: "תשלום 1" at the right (fill origin), last payment at left.
+        ticks.addWidget(tick_first, 0)
+        ticks.addStretch(1)
+        ticks.addWidget(self._tick_last, 0)
+        pwl.addLayout(ticks)
+
+        hero_l.addWidget(self._prog_wrap)
+        return hero
+
+    @staticmethod
+    def _make_dot(parent: QWidget) -> QLabel:
+        dot = QLabel("•", parent)
+        dot.setObjectName("MetaDot")
+        return dot
+
+    # ----------------------------------------------------------------- tiles
+    def _build_tiles(self, parent: QWidget) -> QWidget:
+        tiles = QWidget(parent)
+        tiles_l = QHBoxLayout(tiles)
+        tiles_l.setContentsMargins(0, 0, 0, 0)
+        tiles_l.setSpacing(16)
 
         def build_card(title_text: str, style: str) -> QLabel:
-            card = QWidget(cards_col)
+            card = QWidget(tiles)
             card.setObjectName(style)
             try:
                 card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -345,30 +448,33 @@ class InstallmentsPage(BasePage):
             value.setObjectName("StatValueCard")
             cl.addWidget(title, 0, Qt.AlignmentFlag.AlignHCenter)
             cl.addWidget(value, 0, Qt.AlignmentFlag.AlignHCenter)
-            cards_col_l.addWidget(card, 0)
+            tiles_l.addWidget(card, 1)
             return value
 
-        self._card_ratio = build_card("תשלומים (סה״כ/נמצאו)", "MonthNetCard")
-        self._card_original = build_card("סכום מקורי", "MonthInfoCard")
+        self._card_original = build_card("סכום מקורי", "MonthNetCard")
         self._card_paid = build_card("שולם עד כה", "MonthIncomeCard")
+        self._card_left = build_card("נותר לתשלום", "MonthInfoCard")
         self._card_overpaid = build_card("חריגה", "MonthExpenseCard")
-        cards_col_l.addStretch(1)
+        return tiles
 
-        table_card = QWidget(row1)
+    # ----------------------------------------------------------------- table
+    def _build_table_panel(self, parent: QWidget) -> QWidget:
+        table_card = QWidget(parent)
         table_card.setObjectName("ContentPanel")
         try:
             table_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        try:
             table_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
         except Exception:
             pass
         table_card_l = QVBoxLayout(table_card)
-        table_card_l.setContentsMargins(16, 16, 16, 16)
-        table_card_l.setSpacing(8)
+        table_card_l.setContentsMargins(20, 18, 20, 18)
+        table_card_l.setSpacing(10)
+
+        title = QLabel("התשלומים שנמצאו", table_card)
+        title.setObjectName("PanelTitle")
+        table_card_l.addWidget(title)
 
         self._table = QTableWidget(table_card)
         self._table.setObjectName("ActionHistoryTableWidget")
@@ -382,9 +488,6 @@ class InstallmentsPage(BasePage):
             self._table.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
-            pass
-        try:
             self._table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except Exception:
             pass
@@ -399,12 +502,7 @@ class InstallmentsPage(BasePage):
         except Exception:
             pass
         table_card_l.addWidget(self._table, 1)
-
-        row1_l.addWidget(cards_col, 1)
-        row1_l.addWidget(table_card, 2)
-        lay.addWidget(row1, 1)
-
-        self._reload()
+        return table_card
 
     def _reload(self) -> None:
         try:
@@ -438,14 +536,25 @@ class InstallmentsPage(BasePage):
             return
         if plan is None:
             self._table.setRowCount(0)
-            if self._card_ratio is not None:
-                self._card_ratio.setText("")
-            if self._card_original is not None:
-                self._card_original.setText("")
-            if self._card_paid is not None:
-                self._card_paid.setText("")
-            if self._card_overpaid is not None:
-                self._card_overpaid.setText("")
+            if self._name_lbl is not None:
+                self._name_lbl.setText("אין תכניות תשלומים")
+            for lbl in (self._acct_badge, self._start_lbl, self._left_lbl):
+                if lbl is not None:
+                    lbl.setText("")
+                    lbl.setVisible(False)
+            for sep in (self._start_sep, self._left_sep):
+                if sep is not None:
+                    sep.setVisible(False)
+            if self._prog_wrap is not None:
+                self._prog_wrap.setVisible(False)
+            for card in (
+                self._card_original,
+                self._card_paid,
+                self._card_left,
+                self._card_overpaid,
+            ):
+                if card is not None:
+                    card.setText("—")
             if self._edit_btn is not None:
                 self._edit_btn.setEnabled(False)
             if self._exclude_btn is not None:
@@ -458,31 +567,146 @@ class InstallmentsPage(BasePage):
             self._exclude_btn.setEnabled(True)
 
         stats = self._service.compute_stats(plan)
-        if self._card_ratio is not None:
-            self._card_ratio.setText(
-                f"{int(plan.payments_count)}/{int(stats.paid_count)}"
-            )
-        if self._card_original is not None:
-            self._card_original.setText(_fmt_money(float(plan.original_amount)))
-        if self._card_paid is not None:
-            self._card_paid.setText(_fmt_money(float(stats.total_paid)))
-        if self._card_overpaid is not None:
-            self._card_overpaid.setText(_fmt_money(float(stats.overpaid)))
 
-        self._table.setRowCount(len(stats.matched_movements))
-        for row, m in enumerate(stats.matched_movements):
-            self._table.setItem(row, 0, QTableWidgetItem(str(m.date)))
-            self._table.setItem(row, 1, QTableWidgetItem(str(m.amount)))
-            self._table.setItem(row, 2, QTableWidgetItem(str(m.category)))
-            self._table.setItem(row, 3, QTableWidgetItem(str(m.description or "")))
+        # ── hero identity ──
+        if self._name_lbl is not None:
+            self._name_lbl.setText((plan.name or "ללא שם").strip() or "ללא שם")
+        acct = str(plan.account_name or "").strip()
+        if self._acct_badge is not None:
+            self._acct_badge.setText(acct)
+            self._acct_badge.setVisible(bool(acct))
+        start_txt = self._format_date_he(plan.start_date)
+        if self._start_lbl is not None:
+            self._start_lbl.setText(f"החל {start_txt}" if start_txt else "")
+            self._start_lbl.setVisible(bool(start_txt))
+        if self._start_sep is not None:
+            self._start_sep.setVisible(bool(acct) and bool(start_txt))
+        left_n = int(getattr(stats, "payments_left", 0) or 0)
+        left_txt = f"נותרו {left_n} תשלומים" if left_n > 0 else "כל התשלומים בוצעו"
+        if self._left_lbl is not None:
+            self._left_lbl.setText(left_txt)
+            self._left_lbl.setVisible(True)
+        if self._left_sep is not None:
+            self._left_sep.setVisible(bool(start_txt) or bool(acct))
+
+        # ── payment-progress bar ──
+        self._fill_progress(plan, stats)
+
+        # ── tiles ──
+        original = float(plan.original_amount)
+        paid = float(stats.total_paid)
+        remaining = max(0.0, original - paid)
+        if self._card_original is not None:
+            self._card_original.setText(format_currency(original, use_compact=True))
+        if self._card_paid is not None:
+            self._card_paid.setText(format_currency(paid, use_compact=True))
+        if self._card_left is not None:
+            self._card_left.setText(format_currency(remaining, use_compact=True))
+        if self._card_overpaid is not None:
+            self._card_overpaid.setText(
+                format_currency(float(stats.overpaid), use_compact=True)
+            )
+
+        # ── table ──
+        self._fill_table(stats.matched_movements)
+
+    # -------------------------------------------------------- refresh helpers
+    def _fill_progress(self, plan: InstallmentPlan, stats) -> None:
+        total_n = int(plan.payments_count or 0)
+        paid_n = int(stats.paid_count or 0)
+        if self._prog_wrap is not None:
+            self._prog_wrap.setVisible(total_n > 0)
+        if total_n <= 0:
+            return
+
+        pct = max(0.0, min(1.0, paid_n / total_n))
+        original = float(plan.original_amount)
+        paid = float(stats.total_paid)
+        over = float(stats.overpaid) > 0.0
+
+        lead = (
+            f"שולמו <b>{paid_n}</b> מתוך <b>{total_n}</b> תשלומים · "
+            f"<b>{int(round(pct * 100))}%</b>"
+        )
+        if original > 0:
+            lead += (
+                f" · <b>{format_currency(paid, use_compact=True)}</b> "
+                f"מתוך {format_currency(original, use_compact=True)}"
+            )
+        if self._prog_lead is not None:
+            self._prog_lead.setText(lead)
+
+        remaining = max(0.0, original - paid)
+        if self._prog_left is not None:
+            if over:
+                self._prog_left.setText(
+                    f"חריגה {format_currency(float(stats.overpaid), use_compact=True)}"
+                )
+                self._prog_left.setStyleSheet("color:#d66a4e;font-weight:800;")
+            elif original > 0:
+                self._prog_left.setText(
+                    f"נותרו {format_currency(remaining, use_compact=True)}"
+                )
+                self._prog_left.setStyleSheet("color:#2f9e68;font-weight:800;")
+            else:
+                self._prog_left.setText("")
+        if self._tick_last is not None:
+            self._tick_last.setText(f"תשלום {total_n}")
+        if self._prog_bar is not None:
+            self._prog_bar.setValue(int(round(pct * 100)))
+            chunk = (
+                "qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+                "stop:0 #e9a491,stop:1 #d66a4e)"
+                if over
+                else "qlineargradient(x1:0,y1:0,x2:1,y2:0,"
+                "stop:0 #8FBF9F,stop:1 #2f9e68)"
+            )
+            self._prog_bar.setStyleSheet(
+                "QProgressBar#BudgetBar{background:#eef1ea;border:none;"
+                "border-radius:7px;}"
+                "QProgressBar#BudgetBar::chunk{border-radius:7px;background:"
+                f"{chunk};}}"
+            )
+
+    def _fill_table(self, movements) -> None:
+        if self._table is None:
+            return
+        self._table.setRowCount(len(movements))
+        for row, m in enumerate(movements):
+            date_item = QTableWidgetItem(self._format_date_he(str(m.date)) or str(m.date))
             try:
-                for col in range(4):
-                    it = self._table.item(row, col)
-                    if it is not None:
-                        it.setData(Qt.ItemDataRole.UserRole, str(m.id))
-                        it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                amt = float(getattr(m, "amount", 0.0))
+            except Exception:
+                amt = 0.0
+            amt_item = QTableWidgetItem(format_currency(amt, use_compact=True))
+            try:
+                amt_item.setForeground(QColor("#d66a4e" if amt < 0 else "#2f9e68"))
             except Exception:
                 pass
+            cat_item = QTableWidgetItem(str(m.category or ""))
+            desc_item = QTableWidgetItem(str(m.description or ""))
+            for col, it in enumerate((date_item, amt_item, cat_item, desc_item)):
+                try:
+                    it.setData(Qt.ItemDataRole.UserRole, str(m.id))
+                    it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                except Exception:
+                    pass
+                self._table.setItem(row, col, it)
+
+    @staticmethod
+    def _format_date_he(raw: Optional[str]) -> str:
+        if not raw:
+            return ""
+        try:
+            from datetime import datetime
+            d = datetime.strptime(str(raw)[:10], "%Y-%m-%d")
+            months = [
+                "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+                "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
+            ]
+            return f"{d.day} ב{months[d.month - 1]} {d.year}"
+        except Exception:
+            return str(raw)
 
     def _on_plan_selected(self, plan_id: str) -> None:
         self._selected_plan_id = str(plan_id or "").strip() or None

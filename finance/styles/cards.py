@@ -209,6 +209,8 @@ def load_cards_light_styles() -> str:
     QLabel#EventName { font-size: 23px; font-weight: 800; color: #1e1e22; }
     QLabel#EventBadge { font-size: 12px; font-weight: 800; padding: 4px 12px;
                         border-radius: 999px; background: #eef1ea; color: #5b5f57; }
+    QLabel#PlanBadge { font-size: 12px; font-weight: 800; padding: 4px 12px;
+                       border-radius: 999px; background: #ecebfb; color: #4a3f9e; }
     QLabel#MetaDot { color: #cfcdc2; font-size: 13px; }
     QLabel#BudgetRemain { font-size: 14px; font-weight: 800; color: #2f9e68; }
     QLabel#TickLabel { font-size: 12px; color: #a8aca1; }
