@@ -186,9 +186,9 @@ class YearlyOverviewPage(BasePage):
         income_card = AutoStatCard("הכנסות", container)
         expense_card = AutoStatCard("הוצאות", container)
         net_card = AutoStatCard("יתרה", container)
-        income_card.setObjectName("StatCardGreen")
-        expense_card.setObjectName("StatCardRed")
-        net_card.setObjectName("StatCardPurple")
+        income_card.setObjectName("MonthIncomeCard")
+        expense_card.setObjectName("MonthExpenseCard")
+        net_card.setObjectName("MonthNetCard")
         try:
             income_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             expense_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -212,8 +212,12 @@ class YearlyOverviewPage(BasePage):
         except Exception:
             pass
         chart_layout = QVBoxLayout(chart_card)
-        chart_layout.setContentsMargins(16, 16, 16, 16)
-        chart_layout.setSpacing(8)
+        chart_layout.setContentsMargins(20, 18, 20, 18)
+        chart_layout.setSpacing(12)
+
+        panel_title = QLabel("מאזן חודשי לאורך זמן", chart_card)
+        panel_title.setObjectName("PanelTitle")
+        chart_layout.addWidget(panel_title)
 
         controls_row = QWidget(chart_card)
         controls_layout = QHBoxLayout(controls_row)
