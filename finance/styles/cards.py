@@ -91,6 +91,12 @@ def load_cards_light_styles() -> str:
     QWidget#MonthNetCard QLabel#Subtitle { font-size: 13px; font-weight: 700; color: #7a6420; }
     QWidget#MonthNetCard QLabel#StatValueCard,
     QWidget#MonthNetCard QLabel#StatValueLarge { font-size: 26px; font-weight: 900; color: #2c2612; }
+    QWidget#MonthInfoCard { background: #ecebfb; border: none; border-radius: 20px; }
+    QWidget#MonthInfoCard * { background: transparent; }
+    QWidget#MonthInfoCard QLabel#StatTitle,
+    QWidget#MonthInfoCard QLabel#Subtitle { font-size: 13px; font-weight: 700; color: #6a63a0; }
+    QWidget#MonthInfoCard QLabel#StatValueCard,
+    QWidget#MonthInfoCard QLabel#StatValueLarge { font-size: 26px; font-weight: 900; color: #4a3f9e; }
     QWidget#PageCard {
         background: transparent;
         border: none;

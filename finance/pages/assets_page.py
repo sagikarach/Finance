@@ -275,10 +275,10 @@ class AssetsPage(BasePage):
         cards_row = QHBoxLayout()
         cards_row.setSpacing(12)
         for key, title_txt, style in (
-            ("value", "שווי נכסים", "StatCardGreen"),
-            ("debt", "יתרת משכנתאות", "StatCardRed"),
-            ("net", "שווי נטו", "StatCardPurple"),
-            ("count", "נכסים פעילים", "StatCardYellow"),
+            ("value", "שווי נכסים", "MonthIncomeCard"),
+            ("debt", "יתרת משכנתאות", "MonthExpenseCard"),
+            ("net", "שווי נטו", "MonthNetCard"),
+            ("count", "נכסים פעילים", "MonthInfoCard"),
         ):
             card = QWidget(root)
             card.setObjectName(style)
@@ -288,7 +288,7 @@ class AssetsPage(BasePage):
             except Exception:
                 pass
             cl = QVBoxLayout(card)
-            cl.setContentsMargins(14, 12, 14, 12)
+            cl.setContentsMargins(16, 16, 16, 16)
             cl.setSpacing(6)
             t = QLabel(title_txt, card)
             t.setObjectName("StatTitle")
@@ -309,7 +309,9 @@ class AssetsPage(BasePage):
         header_row = QHBoxLayout(header_card)
         header_row.setContentsMargins(16, 12, 16, 12)
         header_row.setSpacing(8)
-        header_row.addWidget(QLabel("הנכסים שלי", header_card), 0)
+        _hdr_lbl = QLabel("הנכסים שלי", header_card)
+        _hdr_lbl.setObjectName("PanelTitle")
+        header_row.addWidget(_hdr_lbl, 0)
         header_row.addStretch(1)
 
         add_btn = QToolButton(header_card)
