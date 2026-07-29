@@ -259,10 +259,7 @@ class InstallmentsPage(BasePage):
         # hero + progress
         self._name_lbl: Optional[QLabel] = None
         self._acct_badge: Optional[QLabel] = None
-        self._start_lbl: Optional[QLabel] = None
-        self._start_sep: Optional[QLabel] = None
-        self._left_lbl: Optional[QLabel] = None
-        self._left_sep: Optional[QLabel] = None
+        self._meta_lbl: Optional[QLabel] = None
         self._prog_wrap: Optional[QWidget] = None
         self._prog_lead: Optional[QLabel] = None
         self._prog_left: Optional[QLabel] = None
@@ -315,24 +312,20 @@ class InstallmentsPage(BasePage):
         id_col.setSpacing(8)
         self._name_lbl = QLabel("", hero)
         self._name_lbl.setObjectName("EventName")
+        self._name_lbl.setWordWrap(True)
         id_col.addWidget(self._name_lbl)
 
         meta = QHBoxLayout()
         meta.setSpacing(10)
         self._acct_badge = QLabel("", hero)
         self._acct_badge.setObjectName("PlanBadge")
-        self._start_lbl = QLabel("", hero)
-        self._start_lbl.setObjectName("Subtitle")
-        self._start_sep = self._make_dot(hero)
-        self._left_lbl = QLabel("", hero)
-        self._left_lbl.setObjectName("Subtitle")
-        self._left_sep = self._make_dot(hero)
-        meta.addWidget(self._acct_badge, 0)
-        meta.addWidget(self._start_sep, 0)
-        meta.addWidget(self._start_lbl, 0)
-        meta.addWidget(self._left_sep, 0)
-        meta.addWidget(self._left_lbl, 0)
-        meta.addStretch(1)
+        # One combined, word-wrapping meta label so the row breaks cleanly as a
+        # unit when narrow (keeps the page dynamic) instead of forcing width.
+        self._meta_lbl = QLabel("", hero)
+        self._meta_lbl.setObjectName("Subtitle")
+        self._meta_lbl.setWordWrap(True)
+        meta.addWidget(self._acct_badge, 0, Qt.AlignmentFlag.AlignVCenter)
+        meta.addWidget(self._meta_lbl, 1)
         id_col.addLayout(meta)
 
         id_wrap = QWidget(hero)
@@ -349,6 +342,16 @@ class InstallmentsPage(BasePage):
             on_add_plan=self._on_add_clicked,
             on_delete_plan=self._on_delete_clicked,
         )
+        # The hero title already shows the full plan name, so the selector
+        # button need not grow to fit long names — cap it so the page stays
+        # dynamic and never forces the window wider.
+        try:
+            self._selector.setMaximumWidth(200)
+            self._selector.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+            )
+        except Exception:
+            pass
         actions_l.addWidget(self._selector, 0)
 
         self._exclude_btn = QToolButton(actions)
@@ -382,10 +385,12 @@ class InstallmentsPage(BasePage):
         prow.setSpacing(12)
         self._prog_lead = QLabel("", self._prog_wrap)
         self._prog_lead.setObjectName("Subtitle")
+        self._prog_lead.setWordWrap(True)
         self._prog_left = QLabel("", self._prog_wrap)
         self._prog_left.setObjectName("BudgetRemain")
-        prow.addWidget(self._prog_lead, 0)
-        prow.addStretch(1)
+        # Give the lead the stretch so a word-wrap label keeps one line while
+        # there's room and only wraps when the window is genuinely narrow.
+        prow.addWidget(self._prog_lead, 1)
         prow.addWidget(self._prog_left, 0)
         pwl.addLayout(prow)
 
@@ -417,12 +422,6 @@ class InstallmentsPage(BasePage):
 
         hero_l.addWidget(self._prog_wrap)
         return hero
-
-    @staticmethod
-    def _make_dot(parent: QWidget) -> QLabel:
-        dot = QLabel("•", parent)
-        dot.setObjectName("MetaDot")
-        return dot
 
     # ----------------------------------------------------------------- tiles
     def _build_tiles(self, parent: QWidget) -> QWidget:
@@ -538,13 +537,12 @@ class InstallmentsPage(BasePage):
             self._table.setRowCount(0)
             if self._name_lbl is not None:
                 self._name_lbl.setText("אין תכניות תשלומים")
-            for lbl in (self._acct_badge, self._start_lbl, self._left_lbl):
-                if lbl is not None:
-                    lbl.setText("")
-                    lbl.setVisible(False)
-            for sep in (self._start_sep, self._left_sep):
-                if sep is not None:
-                    sep.setVisible(False)
+            if self._acct_badge is not None:
+                self._acct_badge.setText("")
+                self._acct_badge.setVisible(False)
+            if self._meta_lbl is not None:
+                self._meta_lbl.setText("")
+                self._meta_lbl.setVisible(False)
             if self._prog_wrap is not None:
                 self._prog_wrap.setVisible(False)
             for card in (
@@ -576,18 +574,16 @@ class InstallmentsPage(BasePage):
             self._acct_badge.setText(acct)
             self._acct_badge.setVisible(bool(acct))
         start_txt = self._format_date_he(plan.start_date)
-        if self._start_lbl is not None:
-            self._start_lbl.setText(f"החל {start_txt}" if start_txt else "")
-            self._start_lbl.setVisible(bool(start_txt))
-        if self._start_sep is not None:
-            self._start_sep.setVisible(bool(acct) and bool(start_txt))
         left_n = int(getattr(stats, "payments_left", 0) or 0)
-        left_txt = f"נותרו {left_n} תשלומים" if left_n > 0 else "כל התשלומים בוצעו"
-        if self._left_lbl is not None:
-            self._left_lbl.setText(left_txt)
-            self._left_lbl.setVisible(True)
-        if self._left_sep is not None:
-            self._left_sep.setVisible(bool(start_txt) or bool(acct))
+        parts = []
+        if start_txt:
+            parts.append(f"החל {start_txt}")
+        parts.append(
+            f"נותרו {left_n} תשלומים" if left_n > 0 else "כל התשלומים בוצעו"
+        )
+        if self._meta_lbl is not None:
+            self._meta_lbl.setText("  ·  ".join(parts))
+            self._meta_lbl.setVisible(bool(parts))
 
         # ── payment-progress bar ──
         self._fill_progress(plan, stats)
