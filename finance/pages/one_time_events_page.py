@@ -190,8 +190,11 @@ class OneTimeEventsPage(BasePage):
         except Exception:
             pass
         pie_card_l = QVBoxLayout(pie_card)
-        pie_card_l.setContentsMargins(16, 16, 16, 16)
-        pie_card_l.setSpacing(8)
+        pie_card_l.setContentsMargins(20, 18, 20, 18)
+        pie_card_l.setSpacing(10)
+        pie_title = QLabel("פילוח הוצאות", pie_card)
+        pie_title.setObjectName("PanelTitle")
+        pie_card_l.addWidget(pie_title)
         if not charts_available:
             lbl = QLabel(
                 "Charts are unavailable on this backend. Install QtCharts.", pie_card
@@ -213,8 +216,11 @@ class OneTimeEventsPage(BasePage):
         except Exception:
             pass
         line_card_l = QVBoxLayout(line_card)
-        line_card_l.setContentsMargins(16, 16, 16, 16)
-        line_card_l.setSpacing(8)
+        line_card_l.setContentsMargins(20, 18, 20, 18)
+        line_card_l.setSpacing(10)
+        line_title = QLabel("הוצאות לאורך זמן", line_card)
+        line_title.setObjectName("PanelTitle")
+        line_card_l.addWidget(line_title)
         self._expenses_chart = OneTimeEventExpensesOverTimeChart(line_card)
         line_card_l.addWidget(self._expenses_chart, 1)
 

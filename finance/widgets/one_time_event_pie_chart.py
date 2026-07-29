@@ -94,14 +94,15 @@ class OneTimeEventPieChart(QWidget):
                 pass
         else:
             items = list(by_category_expense.items())
-            count = len(items)
-            start_color = QColor("#2563eb")
-            end_color = QColor("#ef4444")
+            # Pastel categorical palette — matches the monthly/accounts donuts.
+            palette = [
+                "#B9B6F0", "#C6D3B4", "#F2D06B", "#E9A491",
+                "#9BB4E6", "#8FBF9F", "#E0B0D8", "#F7E2A6",
+            ]
             for idx, (cat, amount) in enumerate(items):
                 s = series.append(cat, float(amount))
                 try:
-                    t = float(idx) / float(max(count - 1, 1))
-                    s.setBrush(self._interpolate_qcolor(start_color, end_color, t))
+                    s.setBrush(QColor(palette[idx % len(palette)]))
                 except Exception:
                     pass
                 try:

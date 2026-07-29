@@ -15,17 +15,17 @@ class OneTimeEventStatCards(QWidget):
 
         row1 = QHBoxLayout()
         row1.setSpacing(12)
-        c1, self._budget = self._build_stat_card(self, "תקציב", "StatCardPurple")
+        c1, self._budget = self._build_stat_card(self, "תקציב", "MonthNetCard")
         c2, self._remaining = self._build_stat_card(
-            self, "נותר מהתקציב", "StatCardPurple"
+            self, "נותר מהתקציב", "MonthNetCard"
         )
         row1.addWidget(c1, 1)
         row1.addWidget(c2, 1)
 
         row2 = QHBoxLayout()
         row2.setSpacing(12)
-        c3, self._expenses = self._build_stat_card(self, "הוצאות", "StatCardRed")
-        c4, self._income = self._build_stat_card(self, "הכנסות", "StatCardGreen")
+        c3, self._expenses = self._build_stat_card(self, "הוצאות", "MonthExpenseCard")
+        c4, self._income = self._build_stat_card(self, "הכנסות", "MonthIncomeCard")
         row2.addWidget(c3, 1)
         row2.addWidget(c4, 1)
 
