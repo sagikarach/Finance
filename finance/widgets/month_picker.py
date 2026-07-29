@@ -99,12 +99,12 @@ class MonthPickerWidget(QWidget):
         layout.setContentsMargins(6, 5, 6, 5)
         layout.setSpacing(8)
 
-        # Newer months are to the left (‹), older to the right (›) — natural
-        # for a list sorted newest-first.
-        self._newer_btn = _ArrowButton(-1, self)
-        self._older_btn = _ArrowButton(+1, self)
-        self._newer_btn.clicked.connect(lambda: self._step(-1))
-        self._older_btn.clicked.connect(lambda: self._step(+1))
+        # Left arrow (‹) steps to older months, right arrow (›) to newer.
+        # (months are sorted newest-first, so older = higher index.)
+        self._left_btn = _ArrowButton(-1, self)
+        self._right_btn = _ArrowButton(+1, self)
+        self._left_btn.clicked.connect(lambda: self._step(+1))
+        self._right_btn.clicked.connect(lambda: self._step(-1))
 
         self._label = QLabel("", self)
         self._label.setStyleSheet(
@@ -116,9 +116,9 @@ class MonthPickerWidget(QWidget):
         except Exception:
             pass
 
-        layout.addWidget(self._newer_btn)
+        layout.addWidget(self._left_btn)
         layout.addWidget(self._label, 1)
-        layout.addWidget(self._older_btn)
+        layout.addWidget(self._right_btn)
 
     def set_on_changed(self, cb: Optional[Callable[[MonthKey], None]]) -> None:
         self._on_changed = cb
@@ -147,12 +147,13 @@ class MonthPickerWidget(QWidget):
         n = len(self._months)
         if not (0 <= self._index < n):
             self._label.setText("")
-            self._newer_btn.setEnabled(False)
-            self._older_btn.setEnabled(False)
+            self._left_btn.setEnabled(False)
+            self._right_btn.setEnabled(False)
             return
         self._label.setText(self._label_for(self._months[self._index]))
-        self._newer_btn.setEnabled(self._index > 0)
-        self._older_btn.setEnabled(self._index < n - 1)
+        # Left goes older (index+1), right goes newer (index-1).
+        self._left_btn.setEnabled(self._index < n - 1)
+        self._right_btn.setEnabled(self._index > 0)
         if fire and self._on_changed is not None:
             self._on_changed(self._months[self._index])
 
