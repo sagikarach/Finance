@@ -78,12 +78,12 @@ def load_home_page_light_styles() -> str:
         border: none;
     }
     QListWidget#ActionHistoryListWidget QScrollBar::handle:vertical {
-        background: #9fc6f7;
+        background: #d8d4c4;
         border-radius: 999px;
         min-height: 24px;
     }
     QListWidget#ActionHistoryListWidget QScrollBar::handle:vertical:hover {
-        background: #9fc6f7;
+        background: #c4bfa8;
     }
     QListWidget#ActionHistoryListWidget QScrollBar:horizontal {
         background: transparent;
@@ -92,12 +92,12 @@ def load_home_page_light_styles() -> str:
         border: none;
     }
     QListWidget#ActionHistoryListWidget QScrollBar::handle:horizontal {
-        background: #9fc6f7;
+        background: #d8d4c4;
         border-radius: 999px;
         min-width: 24px;
     }
     QListWidget#ActionHistoryListWidget QScrollBar::handle:horizontal:hover {
-        background: #9fc6f7;
+        background: #c4bfa8;
     }
     QListWidget#ActionHistoryListWidget QScrollBar::add-line:vertical,
     QListWidget#ActionHistoryListWidget QScrollBar::sub-line:vertical,

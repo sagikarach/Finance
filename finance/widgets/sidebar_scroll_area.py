@@ -56,8 +56,8 @@ class SidebarScrollArea:
         except Exception:
             is_dark = False
 
-        handle = "#1e3a5f" if is_dark else "#93c5fd"
-        handle_hover = "#2d5a8e" if is_dark else "#60a5fa"
+        handle = "#3f3d36" if is_dark else "#d8d4c4"
+        handle_hover = "#524f45" if is_dark else "#c4bfa8"
 
         try:
             self.scroll.setStyleSheet(
