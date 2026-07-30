@@ -565,9 +565,50 @@ class AssetDetailPage(BasePage):
         lay.addStretch(1)
 
     def _build_details_widget(self, parent, m, s):
-        """Builds the expenses/funding/monthly tab panels (moved verbatim from
-        the old inline page) so they can live inside a focused dialog. Widgets
-        are parented to `root` (= the dialog host) exactly as before."""
+        """Return ONLY the panel for the requested detail (self._active_tab).
+        Each detail opens in its own separate dialog — there is no tab bar, so
+        you can't move between them; each is reached from its tile only."""
+        key = self._active_tab
+        if key == "income":
+            return self._build_funding_panel(parent, m, s)
+        if key == "monthly":
+            return self._build_monthly_panel(parent, m)
+        return self._build_expenses_panel(parent, m)
+
+    def _build_expenses_panel(self, parent, m):
+        movements = self._service.list_movements()
+        price_query = str(getattr(m, "price_query", "") or "").strip()
+        price_paid = (
+            query_paid_amount(price_query, movements, include_transfers=True)
+            if price_query
+            else 0.0
+        )
+        self._one_time_costs = list(m.one_time_costs)
+        expenses_card, expenses_table = self._panel_with_actions(
+            "הוצאות — עלות מלאה ושולם בפועל",
+            self._on_add_cost,
+            self._on_edit_cost,
+            self._on_remove_cost,
+        )
+        self._expense_table = expenses_table
+        expenses_table.setColumnCount(3)
+        expenses_table.setHorizontalHeaderLabels(["רכיב", "סכום", "שולם בפועל"])
+        expenses_table.doubleClicked.connect(self._on_edit_cost)
+        expense_rows = expense_breakdown_rows(
+            float(m.property_price), price_paid, self._one_time_costs, movements
+        )
+        expenses_table.setRowCount(len(expense_rows))
+        for r, row in enumerate(expense_rows):
+            if row.is_total:
+                paid_text = _fmt_money(row.paid)
+            else:
+                paid_text = _fmt_money(row.paid) if row.paid else "—"
+            expenses_table.setItem(r, 0, QTableWidgetItem(row.label))
+            expenses_table.setItem(r, 1, QTableWidgetItem(_fmt_money(row.amount)))
+            expenses_table.setItem(r, 2, QTableWidgetItem(paid_text))
+        return expenses_card
+
+    def _build_funding_panel(self, parent, m, s):
         root = parent
         movements = self._service.list_movements()
         accounts = self._load_accounts()
@@ -583,33 +624,6 @@ class AssetDetailPage(BasePage):
         )
         residual = s.residual_from_bank
         remaining_need = max(0.0, residual - exp_paid)
-
-        self._one_time_costs = list(m.one_time_costs)
-        expenses_card, expenses_table = self._panel_with_actions(
-            "הוצאות — עלות מלאה ושולם בפועל",
-            self._on_add_cost,
-            self._on_edit_cost,
-            self._on_remove_cost,
-        )
-        self._expense_table = expenses_table
-        expenses_table.setColumnCount(3)
-        expenses_table.setHorizontalHeaderLabels(["רכיב", "סכום", "שולם בפועל"])
-        expenses_table.doubleClicked.connect(self._on_edit_cost)
-        # שורה 0 = מחיר הדירה; שורות 1..n = עלויות (אינדקס עלות = שורה − 1); ואז סה״כ.
-        # החישוב נעשה ב-expense_breakdown_rows (לוגיקה טהורה); כאן רק מציירים.
-        expense_rows = expense_breakdown_rows(
-            float(m.property_price), price_paid, self._one_time_costs, movements
-        )
-        expenses_table.setRowCount(len(expense_rows))
-        for r, row in enumerate(expense_rows):
-            if row.is_total:
-                paid_text = _fmt_money(row.paid)
-            else:
-                paid_text = _fmt_money(row.paid) if row.paid else "—"
-            expenses_table.setItem(r, 0, QTableWidgetItem(row.label))
-            expenses_table.setItem(r, 1, QTableWidgetItem(_fmt_money(row.amount)))
-            expenses_table.setItem(r, 2, QTableWidgetItem(paid_text))
-
         # ───────── צד ההכנסות / מקורות מימון (כניסה) ─────────
         income_card = QWidget(root)
         income_card.setObjectName("AssetTablePanel")
@@ -688,8 +702,9 @@ class AssetDetailPage(BasePage):
             income_table.setItem(i, 3, QTableWidgetItem(_fmt_money(row.available)))
             income_table.setItem(i, 4, QTableWidgetItem(spent_text))
         il.addWidget(income_table, 1)
+        return income_card
 
-        # ───────── עלויות חודשיות נלוות (מנוהל אינליין כמו השאר) ─────────
+    def _build_monthly_panel(self, parent, m):
         self._monthly_costs = list(m.monthly_costs)
         monthly_card, monthly_table = self._panel_with_actions(
             "עלויות חודשיות נלוות",
@@ -711,50 +726,7 @@ class AssetDetailPage(BasePage):
         monthly_table.setItem(
             len(self._monthly_costs), 1, QTableWidgetItem(_fmt_money(m_total))
         )
-
-        # ───────── בורר טבלאות — מציגים טבלה אחת בכל פעם ─────────
-        self._tab_cards = {
-            "expenses": expenses_card,
-            "income": income_card,
-            "monthly": monthly_card,
-        }
-        # עוטפים את הבורר ואת הטבלאות באותו מיכל ללא רווח, כך שהכפתור הפעיל
-        # והטבלה שמתחתיו נראים על אותו רקע רציף.
-        self._tab_buttons = {}
-        tabs_wrap = QWidget(root)
-        tabs_wrap_l = QVBoxLayout(tabs_wrap)
-        tabs_wrap_l.setContentsMargins(0, 0, 0, 0)
-        tabs_wrap_l.setSpacing(0)
-
-        tab_bar_w = QWidget(tabs_wrap)
-        tab_bar = QHBoxLayout(tab_bar_w)
-        tab_bar.setContentsMargins(0, 0, 0, 0)
-        tab_bar.setSpacing(4)
-        for key, label in (
-            ("expenses", "הוצאות"),
-            ("income", "הכנסות / מימון"),
-            ("monthly", "עלויות חודשיות"),
-        ):
-            btn = QPushButton(label, tab_bar_w)
-            btn.setObjectName("AssetTabButton")
-            btn.setCheckable(True)
-            try:
-                btn.setMinimumHeight(34)
-                btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            except Exception:
-                pass
-            btn.clicked.connect(lambda _checked=False, k=key: self._show_table(k))
-            tab_bar.addWidget(btn)
-            self._tab_buttons[key] = btn
-        tab_bar.addStretch(1)
-        tabs_wrap_l.addWidget(tab_bar_w, 0)
-
-        for card in self._tab_cards.values():
-            tabs_wrap_l.addWidget(card, 1)
-        if self._active_tab not in self._tab_cards:
-            self._active_tab = "expenses"
-        self._show_table(self._active_tab)
-        return tabs_wrap
+        return monthly_card
 
     # ------------------------------------------------------------- overview
     def _build_equity_panel(self, parent, value, outstanding, equity, eq_frac):
@@ -931,8 +903,13 @@ class AssetDetailPage(BasePage):
         if m is None:
             return
         self._active_tab = initial_tab
+        titles = {
+            "expenses": "עלויות רכישה",
+            "income": "מקורות מימון",
+            "monthly": "עלויות חודשיות",
+        }
         dlg = QDialog(self)
-        dlg.setWindowTitle("פרטי הנכס")
+        dlg.setWindowTitle(titles.get(initial_tab, "פרטי הנכס"))
         try:
             dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             dlg.resize(840, 620)
@@ -977,20 +954,6 @@ class AssetDetailPage(BasePage):
         # Refresh the overview numbers, then the open detail dialog (if any).
         self.on_route_activated()
         self._refresh_details_dialog()
-
-    def _show_table(self, key: str) -> None:
-        """הצג את הטבלה הנבחרת בלבד והדגש את הכפתור המתאים."""
-        self._active_tab = key
-        for k, card in (self._tab_cards or {}).items():
-            try:
-                card.setVisible(k == key)
-            except Exception:
-                pass
-        for k, btn in (self._tab_buttons or {}).items():
-            try:
-                btn.setChecked(k == key)
-            except Exception:
-                pass
 
     def _panel_with_actions(
         self, title_text, on_add, on_edit, on_remove
