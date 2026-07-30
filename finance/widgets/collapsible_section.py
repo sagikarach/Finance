@@ -408,12 +408,12 @@ class CollapsibleButtonList(QWidget):
                 "border-right: none; "
             )
         else:
-            container_bg = "#dcecff"
-            border_color = "#a0bce2"
+            container_bg = "#eeedf9"
+            border_color = "#cfcdea"
             border_css = (
                 "border-top: none; "
                 f"border-bottom: 2px solid {border_color}; "
-                "border-left: none; "
+                "border-left: 4px solid #b9b6f0; "
                 "border-right: none; "
             )
 
