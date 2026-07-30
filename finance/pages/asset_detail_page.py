@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from ..qt import (
     QWidget,
+    QFrame,
     QHBoxLayout,
     QVBoxLayout,
     QLabel,
@@ -14,6 +15,7 @@ from ..qt import (
     QComboBox,
     QDialog,
     QMessageBox,
+    QProgressBar,
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
@@ -30,7 +32,9 @@ from ..models.mortgage import (
 )
 from ..models.mortgage_service import MortgageService
 from ..models.asset import (
+    DEFAULT_ASSUMPTIONS,
     HousePurchase,
+    MortgageLoan,
     build_asset,
     expense_breakdown_rows,
     funding_breakdown_rows,
@@ -43,6 +47,45 @@ from .mortgage_page import HousePurchaseDialog
 from .base_page import BasePage
 
 _BANK_ACCOUNT_NAME = "בנק"  # החשבון שמכסה את היתרה (תואם למסך המשכנתא)
+
+
+class _DetailTile(QFrame):
+    """A clickable tile: bold name + muted subtitle + chevron. Opens a focused
+    dialog (or navigates) so the overview stays clean."""
+
+    def __init__(self, name, subtitle, on_click, parent=None):
+        super().__init__(parent)
+        self.setObjectName("DetailTile")
+        self._on_click = on_click
+        try:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        except Exception:
+            pass
+        row = QHBoxLayout(self)
+        row.setContentsMargins(16, 14, 16, 14)
+        row.setSpacing(10)
+        col = QVBoxLayout()
+        col.setSpacing(3)
+        name_lbl = QLabel(str(name), self)
+        name_lbl.setObjectName("TileName")
+        self._sub_lbl = QLabel(str(subtitle), self)
+        self._sub_lbl.setObjectName("TileSub")
+        self._sub_lbl.setWordWrap(True)
+        col.addWidget(name_lbl)
+        col.addWidget(self._sub_lbl)
+        row.addLayout(col, 1)
+        chev = QLabel("‹", self)
+        chev.setObjectName("TileChev")
+        row.addWidget(chev, 0, Qt.AlignmentFlag.AlignVCenter)
+
+    def mousePressEvent(self, event):  # noqa: N802
+        try:
+            if callable(self._on_click):
+                self._on_click()
+        except Exception:
+            pass
+        super().mousePressEvent(event)
 
 
 def _fmt_money(value: float) -> str:
@@ -355,6 +398,8 @@ class AssetDetailPage(BasePage):
         self._active_tab: str = "expenses"
         self._tab_cards: dict = {}
         self._tab_buttons: dict = {}
+        self._details_dialog: Optional[QDialog] = None
+        self._details_host: Optional[QWidget] = None
         super().__init__(*args, **kwargs)
 
     def _load_accounts(self) -> List[MoneyAccount]:
@@ -445,11 +490,88 @@ class AssetDetailPage(BasePage):
         title_row.addWidget(edit_btn)
         lay.addLayout(title_row, 0)
 
+        # ── מצב נוכחי: שווי, יתרה, הון עצמי וסטטוס המשכנתא ──
+        prepaid = self._service.prepaid_amount(m)
+        st = MortgageLoan(m).status(
+            assumptions=DEFAULT_ASSUMPTIONS, prepaid=prepaid
+        )
+        value = float(build_asset(m).current_value())
+        outstanding = float(st.outstanding)
+        equity = value - outstanding
+        eq_frac = (equity / value) if value > 0 else 0.0
+
+        two = QHBoxLayout()
+        two.setSpacing(16)
+        two.addWidget(
+            self._build_equity_panel(root, value, outstanding, equity, eq_frac), 1
+        )
+        two.addWidget(self._build_status_panel(root, st), 1)
+        lay.addLayout(two, 0)
+
+        lay.addWidget(self._build_allin_strip(root, s), 0)
+
+        details_title = QLabel("פרטים נוספים", root)
+        details_title.setObjectName("PanelTitle")
+        lay.addWidget(details_title, 0)
+
+        grid = QVBoxLayout()
+        grid.setSpacing(12)
+        r1 = QHBoxLayout()
+        r1.setSpacing(12)
+        r1.addWidget(
+            _DetailTile(
+                "עלויות רכישה",
+                f"עלות כוללת {_fmt_money(s.acquisition_cost)} ₪ · "
+                f"כסף עצמי {_fmt_money(s.upfront_cash)} ₪",
+                lambda: self._open_details_dialog("expenses"),
+                root,
+            ),
+            1,
+        )
+        r1.addWidget(
+            _DetailTile(
+                "מקורות מימון",
+                f"מימון {s.ltv * 100:.0f}% משווי הנכס",
+                lambda: self._open_details_dialog("income"),
+                root,
+            ),
+            1,
+        )
+        grid.addLayout(r1)
+        r2 = QHBoxLayout()
+        r2.setSpacing(12)
+        r2.addWidget(
+            _DetailTile(
+                "עלויות חודשיות",
+                f"{_fmt_money(s.monthly_costs_total)} ₪ לחודש",
+                lambda: self._open_details_dialog("monthly"),
+                root,
+            ),
+            1,
+        )
+        r2.addWidget(
+            _DetailTile(
+                "מסלולי המשכנתא · גרף · סימולציה",
+                f"{len(m.tracks)} מסלולים · ריבית צפויה "
+                f"{_fmt_money(st.total_interest)} ₪",
+                self._open_mortgage,
+                root,
+            ),
+            1,
+        )
+        grid.addLayout(r2)
+        lay.addLayout(grid, 0)
+
+        lay.addStretch(1)
+
+    def _build_details_widget(self, parent, m, s):
+        """Builds the expenses/funding/monthly tab panels (moved verbatim from
+        the old inline page) so they can live inside a focused dialog. Widgets
+        are parented to `root` (= the dialog host) exactly as before."""
+        root = parent
         movements = self._service.list_movements()
         accounts = self._load_accounts()
         self._funding_sources = list(m.funding_sources)
-
-        # מה שכבר שולם מהבנק לרכישה = מחיר ששולם + עלויות ששולמו.
         price_query = str(getattr(m, "price_query", "") or "").strip()
         price_paid = (
             query_paid_amount(price_query, movements, include_transfers=True)
@@ -459,100 +581,9 @@ class AssetDetailPage(BasePage):
         exp_paid = price_paid + sum(
             cost_paid_amount(c, movements) for c in m.one_time_costs
         )
-
-        # חשבון "בנק" מכסה את היתרה. הסכום שכבר שולם מהבנק מקוזז כדי לא לספור
-        # פעמיים (הכסף כבר ירד מהיתרה).
-        bank_balance = endpoint_balance(accounts, _BANK_ACCOUNT_NAME, "")
         residual = s.residual_from_bank
         remaining_need = max(0.0, residual - exp_paid)
-        left_in_bank = bank_balance - remaining_need
 
-        # ───────── שני כרטיסי ליבה: עלות רכישה + מה יישאר בבנק ─────────
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(12)
-
-        def build_hero(
-            title_text: str, value_text: str, *, accent: bool = False, tone: str = ""
-        ) -> None:
-            card = QWidget(root)
-            card.setObjectName("AssetHeroCardAccent" if accent else "AssetHeroCard")
-            try:
-                card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-                card.setAutoFillBackground(True)
-            except Exception:
-                pass
-            cl = QVBoxLayout(card)
-            cl.setContentsMargins(16, 14, 16, 14)
-            cl.setSpacing(6)
-            t = QLabel(title_text, card)
-            t.setObjectName("AssetHeroTitle")
-            v = QLabel(value_text, card)
-            v.setObjectName("AssetHeroValue")
-            if tone:
-                v.setProperty("tone", tone)
-            cl.addWidget(t, 0)
-            cl.addWidget(v, 0)
-            cards_row.addWidget(card, 1)
-
-        build_hero("עלות רכישה", f"{_fmt_money(s.acquisition_cost)} ₪", accent=True)
-        # יישאר בבנק — כרטיס מודגש; ירוק אם חיובי, אדום אם החשבון לא מספיק.
-        build_hero(
-            "יישאר בבנק אחרי הרכישה",
-            f"{_fmt_money(left_in_bank)} ₪",
-            accent=True,
-            tone="neg" if left_in_bank < 0 else "pos",
-        )
-        lay.addLayout(cards_row, 0)
-
-        # ───────── שורת caption — המדדים המשניים (חודשי / מימון / הון עצמי) ─────────
-        caption_row = QHBoxLayout()
-        caption_row.setSpacing(10)
-        caption_row.setContentsMargins(4, 0, 4, 0)
-
-        def add_caption(text: str, *, warn: bool = False) -> None:
-            lbl = QLabel(text, root)
-            lbl.setObjectName("AssetCaptionWarn" if warn else "AssetCaption")
-            caption_row.addWidget(lbl, 0)
-
-        def add_sep() -> None:
-            sep = QLabel("·", root)
-            sep.setObjectName("AssetCaptionSep")
-            caption_row.addWidget(sep, 0)
-
-        add_caption(f"חודשי {_fmt_money(s.monthly_total)} ₪")
-        add_sep()
-        # יחס מימון — מודגש באדום כשעובר 75% (התראה שכבר קיימת במודל).
-        ltv_txt = f"מימון {s.ltv * 100:.0f}%"
-        add_caption(f"{ltv_txt} ⚠" if s.ltv_exceeds_75 else ltv_txt, warn=s.ltv_exceeds_75)
-        add_sep()
-        add_caption(f"כסף שנשתמש בו {_fmt_money(s.upfront_cash)} ₪")
-        caption_row.addStretch(1)
-        lay.addLayout(caption_row, 0)
-
-        # ───────── שורת המשכנתא — כפתור לחיץ ברוחב מלא (ירד מהכותרת) ─────────
-        if s.tracks_total > 0:
-            mort_text = (
-                f"משכנתא:  {_fmt_money(s.tracks_total)} ₪ · "
-                f"{_fmt_money(s.mortgage_monthly)} ₪/חודש   ›"
-            )
-        elif s.required_mortgage > 0:
-            mort_text = f"משכנתא:  בנה תמהיל בסך {_fmt_money(s.required_mortgage)} ₪   ›"
-        else:
-            mort_text = "משכנתא —  פתח פרטים   ›"
-        mort_btn = QPushButton(mort_text, root)
-        mort_btn.setObjectName("AssetNavRow")
-        mort_btn.setToolTip("פתח את פרטי המשכנתא (תמהיל, לוח סילוקין, תנועות)")
-        try:
-            mort_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            mort_btn.setSizePolicy(
-                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-            )
-        except Exception:
-            pass
-        mort_btn.clicked.connect(self._open_mortgage)
-        lay.addWidget(mort_btn, 0)
-
-        # ───────── צד ההוצאות (יציאה) — מחיר הדירה + עלויות, בהוספה כמו ההכנסות ─
         self._one_time_costs = list(m.one_time_costs)
         expenses_card, expenses_table = self._panel_with_actions(
             "הוצאות — עלות מלאה ושולם בפועל",
@@ -720,12 +751,232 @@ class AssetDetailPage(BasePage):
 
         for card in self._tab_cards.values():
             tabs_wrap_l.addWidget(card, 1)
-
-        lay.addWidget(tabs_wrap, 1)
-
         if self._active_tab not in self._tab_cards:
             self._active_tab = "expenses"
         self._show_table(self._active_tab)
+        return tabs_wrap
+
+    # ------------------------------------------------------------- overview
+    def _build_equity_panel(self, parent, value, outstanding, equity, eq_frac):
+        panel = QWidget(parent)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        pl = QVBoxLayout(panel)
+        pl.setContentsMargins(22, 20, 22, 20)
+        pl.setSpacing(14)
+        title = QLabel("הון עצמי בנכס", panel)
+        title.setObjectName("PanelTitle")
+        pl.addWidget(title)
+        big = QLabel(
+            f"{_fmt_money(equity)} ₪  "
+            f"<span style='font-size:14px;font-weight:800;color:#2f9e68;'>"
+            f"{eq_frac * 100:.1f}% מהשווי</span>",
+            panel,
+        )
+        big.setStyleSheet("font-size:30px;font-weight:900;color:#1e1e22;")
+        pl.addWidget(big)
+        bar = QProgressBar(panel)
+        bar.setObjectName("EquityBar")
+        bar.setRange(0, 100)
+        bar.setTextVisible(False)
+        try:
+            bar.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            bar.setFixedHeight(16)
+        except Exception:
+            pass
+        bar.setValue(int(round(max(0.0, min(1.0, eq_frac)) * 100)))
+        pl.addWidget(bar)
+        pl.addWidget(self._legend_row(panel, "#2f9e68", "הון עצמי", equity))
+        pl.addWidget(self._legend_row(panel, "#d66a4e", "יתרת חוב", outstanding))
+        pl.addWidget(self._legend_row(panel, "#e6e2d4", "שווי הנכס", value))
+        return panel
+
+    def _legend_row(self, parent, color, name, amount):
+        row = QWidget(parent)
+        rl = QHBoxLayout(row)
+        rl.setContentsMargins(0, 0, 0, 0)
+        rl.setSpacing(9)
+        sw = QLabel(row)
+        sw.setFixedSize(11, 11)
+        sw.setStyleSheet(f"background:{color};border-radius:3px;")
+        nm = QLabel(str(name), row)
+        nm.setStyleSheet("font-size:13.5px;color:#6b6f66;")
+        val = QLabel(f"{_fmt_money(amount)} ₪", row)
+        val.setStyleSheet("font-size:13.5px;font-weight:800;color:#1e1e22;")
+        rl.addWidget(sw, 0)
+        rl.addWidget(nm, 0)
+        rl.addStretch(1)
+        rl.addWidget(val, 0)
+        return row
+
+    def _mini_stat(self, parent, key, value, sub=None, green=False):
+        frame = QFrame(parent)
+        frame.setStyleSheet(
+            "QFrame{background:#faf9f4;border:1px solid #ecece2;"
+            "border-radius:14px;}"
+        )
+        fl = QVBoxLayout(frame)
+        fl.setContentsMargins(14, 12, 14, 12)
+        fl.setSpacing(3)
+        k = QLabel(str(key), frame)
+        k.setStyleSheet("font-size:12px;color:#6b6f66;font-weight:600;")
+        v = QLabel(str(value), frame)
+        vcolor = "#2f9e68" if green else "#1e1e22"
+        v.setStyleSheet(f"font-size:19px;font-weight:900;color:{vcolor};")
+        fl.addWidget(k)
+        fl.addWidget(v)
+        if sub:
+            sb = QLabel(str(sub), frame)
+            sb.setStyleSheet("font-size:11px;color:#a8aca1;")
+            fl.addWidget(sb)
+        return frame
+
+    def _build_status_panel(self, parent, st):
+        panel = QWidget(parent)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        pl = QVBoxLayout(panel)
+        pl.setContentsMargins(22, 20, 22, 20)
+        pl.setSpacing(14)
+        title = QLabel("מצב המשכנתא", panel)
+        title.setObjectName("PanelTitle")
+        pl.addWidget(title)
+
+        mini = QHBoxLayout()
+        mini.setSpacing(10)
+        mini.addWidget(
+            self._mini_stat(
+                panel, "יתרה נוכחית", f"{_fmt_money(st.outstanding)} ₪", green=True
+            ),
+            1,
+        )
+        pay_sub = None
+        if st.dated and st.monthly_now > 0:
+            pay_sub = (
+                f"ריבית {_fmt_money(st.interest_now)} ₪ · "
+                f"קרן {_fmt_money(st.principal_now)} ₪"
+            )
+        mini.addWidget(
+            self._mini_stat(
+                panel, "תשלום חודשי", f"{_fmt_money(st.monthly_now)} ₪", sub=pay_sub
+            ),
+            1,
+        )
+        pl.addLayout(mini)
+
+        bar = QProgressBar(panel)
+        bar.setObjectName("AssetProgress")
+        bar.setRange(0, 100)
+        bar.setTextVisible(False)
+        lbl = QLabel("", panel)
+        lbl.setObjectName("AssetCaption")
+        lbl.setWordWrap(True)
+        if st.dated:
+            pct = int(round(st.pct_paid * 100))
+            bar.setValue(pct)
+            payoff = (
+                f" · סיום {st.payoff_month:02d}/{st.payoff_year}"
+                if st.payoff_year
+                else ""
+            )
+            lbl.setText(
+                f"שולם {pct}% מהקרן · נותרו {st.remaining_payments} "
+                f"תשלומים{payoff}"
+            )
+        else:
+            bar.setValue(0)
+            lbl.setText("טרם הוגדר תאריך התחלה — לא ניתן לחשב התקדמות")
+        pl.addWidget(bar)
+        pl.addWidget(lbl)
+        pl.addStretch(1)
+        return panel
+
+    def _build_allin_strip(self, parent, s):
+        strip = QWidget(parent)
+        strip.setObjectName("AllInStrip")
+        try:
+            strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        row = QHBoxLayout(strip)
+        row.setContentsMargins(20, 16, 20, 16)
+        row.setSpacing(12)
+        col = QVBoxLayout()
+        col.setSpacing(3)
+        k = QLabel("תשלום חודשי כולל", strip)
+        k.setObjectName("AllInKey")
+        sub = QLabel(
+            f"משכנתא {_fmt_money(s.mortgage_monthly)} ₪ · "
+            f"עלויות נלוות {_fmt_money(s.monthly_costs_total)} ₪",
+            strip,
+        )
+        sub.setObjectName("AllInSub")
+        col.addWidget(k)
+        col.addWidget(sub)
+        row.addLayout(col, 1)
+        val = QLabel(f"{_fmt_money(s.monthly_total)} ₪", strip)
+        val.setObjectName("AllInVal")
+        row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
+        return strip
+
+    # -------------------------------------------------------- detail dialogs
+    def _open_details_dialog(self, initial_tab):
+        m = self._selected_asset()
+        if m is None:
+            return
+        self._active_tab = initial_tab
+        dlg = QDialog(self)
+        dlg.setWindowTitle("פרטי הנכס")
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            dlg.resize(840, 620)
+        except Exception:
+            pass
+        outer = QVBoxLayout(dlg)
+        outer.setContentsMargins(16, 16, 16, 16)
+        host = QWidget(dlg)
+        self._details_host = host
+        hl = QVBoxLayout(host)
+        hl.setContentsMargins(0, 0, 0, 0)
+        s = self._service.purchase_summary(m)
+        hl.addWidget(self._build_details_widget(host, m, s))
+        outer.addWidget(host)
+        self._details_dialog = dlg
+        try:
+            dlg.exec()
+        finally:
+            self._details_dialog = None
+            self._details_host = None
+
+    def _refresh_details_dialog(self):
+        host = getattr(self, "_details_host", None)
+        if host is None:
+            return
+        m = self._selected_asset()
+        if m is None:
+            return
+        lay = host.layout()
+        if lay is None:
+            return
+        while lay.count():
+            it = lay.takeAt(0)
+            w = it.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+        s = self._service.purchase_summary(m)
+        lay.addWidget(self._build_details_widget(host, m, s))
+
+    def _after_change(self):
+        # Refresh the overview numbers, then the open detail dialog (if any).
+        self.on_route_activated()
+        self._refresh_details_dialog()
 
     def _show_table(self, key: str) -> None:
         """הצג את הטבלה הנבחרת בלבד והדגש את הכפתור המתאים."""
@@ -807,7 +1058,7 @@ class AssetDetailPage(BasePage):
         if m is None:
             return
         self._service.upsert_mortgage(replace(m, one_time_costs=list(costs)))
-        self.on_route_activated()
+        self._after_change()
 
     def _on_add_cost(self) -> None:
         m = self._selected_asset()
@@ -857,7 +1108,7 @@ class AssetDetailPage(BasePage):
         if m is None:
             return
         self._service.upsert_mortgage(replace(m, monthly_costs=list(costs)))
-        self.on_route_activated()
+        self._after_change()
 
     def _on_add_monthly_cost(self) -> None:
         m = self._selected_asset()
@@ -911,7 +1162,7 @@ class AssetDetailPage(BasePage):
         if m is None:
             return
         self._service.upsert_mortgage(replace(m, funding_sources=list(sources)))
-        self.on_route_activated()
+        self._after_change()
 
     def _on_add_funding(self) -> None:
         m = self._selected_asset()

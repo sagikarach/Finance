@@ -218,6 +218,22 @@ def load_cards_light_styles() -> str:
     QLabel#PayoffIcon { font-size: 17px; }
     QLabel#PayoffText { font-size: 14px; color: #245a41; }
     QLabel#PayoffText b { color: #173f2d; }
+    QProgressBar#EquityBar { background: #e9a491; border: none; border-radius: 8px;
+                             min-height: 16px; max-height: 16px; }
+    QProgressBar#EquityBar::chunk { border-radius: 8px;
+        background: qlineargradient(x1:0,y1:0,x2:1,y2:0,
+                                    stop:0 #8FBF9F, stop:1 #2f9e68); }
+    QWidget#AllInStrip { background: #f2d06b; border: none; border-radius: 20px; }
+    QWidget#AllInStrip * { background: transparent; }
+    QLabel#AllInKey { font-size: 14px; font-weight: 800; color: #7a6420; }
+    QLabel#AllInSub { font-size: 12px; color: #8a7c52; }
+    QLabel#AllInVal { font-size: 26px; font-weight: 900; color: #2c2612; }
+    QFrame#DetailTile { background: #ffffff; border: 1px solid #ecece2;
+                        border-radius: 16px; }
+    QFrame#DetailTile:hover { background: #faf9f4; }
+    QLabel#TileName { font-size: 15px; font-weight: 800; color: #1e1e22; }
+    QLabel#TileSub { font-size: 12.5px; color: #6b6f66; }
+    QLabel#TileChev { font-size: 18px; color: #b4b8ae; }
     QLabel#BudgetRemain { font-size: 14px; font-weight: 800; color: #2f9e68; }
     QLabel#TickLabel { font-size: 12px; color: #a8aca1; }
     QProgressBar#BudgetBar { background: #eef1ea; border: none; border-radius: 7px;
