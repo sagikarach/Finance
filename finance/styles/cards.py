@@ -230,6 +230,7 @@ def load_cards_light_styles() -> str:
     QLabel#AllInVal { font-size: 26px; font-weight: 900; color: #2c2612; }
     QFrame#DetailTile { background: #ffffff; border: 1px solid #ecece2;
                         border-radius: 16px; }
+    QFrame#DetailTile * { background: transparent; }
     QFrame#DetailTile:hover { background: #faf9f4; }
     QLabel#TileName { font-size: 15px; font-weight: 800; color: #1e1e22; }
     QLabel#TileSub { font-size: 12.5px; color: #6b6f66; }
