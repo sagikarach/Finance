@@ -57,8 +57,11 @@ def _parse_amortization(value: Any) -> AmortizationType:
 
 
 def _parse_asset_kind(value: Any) -> AssetKind:
-    # ברירת מחדל: רכישה — כך רשומות קיימות (לפני התוספת) נשארות נכסי רכישה.
+    # ברירת מחדל: נדל״ן — כך רשומות קיימות (לפני התוספת) נשארות נכסי נדל״ן.
     if value is None:
+        return AssetKind.PURCHASE
+    # ערך היסטורי: "רכישה" שונה ל-"נדל״ן". שמור על טעינת רשומות ישנות.
+    if str(value) == "רכישה":
         return AssetKind.PURCHASE
     try:
         return AssetKind(str(value))
