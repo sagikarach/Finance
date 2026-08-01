@@ -13,6 +13,7 @@ from ..qt import (
     QPushButton,
     QLineEdit,
     QComboBox,
+    QDateEdit,
     QDialog,
     QMessageBox,
     QProgressBar,
@@ -21,8 +22,15 @@ from ..qt import (
     QHeaderView,
     QSizePolicy,
     Qt,
+    QDate,
 )
-from ..models.accounts import BankAccount, MoneyAccount, SavingsAccount
+from ..models.accounts import (
+    BankAccount,
+    MoneyAccount,
+    SavingsAccount,
+    parse_iso_date,
+)
+from ..ui.dialog_utils import setup_calendar_popup
 from ..models.mortgage import (
     AssetKind,
     CostItem,
@@ -81,12 +89,15 @@ class _DetailTile(QFrame):
         row.addWidget(chev, 0, Qt.AlignmentFlag.AlignVCenter)
 
     def mousePressEvent(self, event):  # noqa: N802
-        try:
-            if callable(self._on_click):
-                self._on_click()
-        except Exception:
-            pass
+        # Call super() first — the callback may rebuild the page and delete this
+        # tile, and touching a deleted C++ object afterwards raises RuntimeError.
         super().mousePressEvent(event)
+        cb = self._on_click
+        if callable(cb):
+            try:
+                cb()
+            except Exception:
+                pass
 
 
 def _fmt_money(value: float) -> str:
@@ -749,6 +760,26 @@ class AssetDetailPage(BasePage):
         layout.addWidget(e)
         return e
 
+    def _labeled_date(self, parent, layout, label, value_iso=""):
+        layout.addWidget(QLabel(label, parent))
+        d = QDateEdit(parent)
+        d.setCalendarPopup(True)
+        setup_calendar_popup(d)
+        try:
+            d.setDisplayFormat("yyyy-MM-dd")
+        except Exception:
+            pass
+        try:
+            dt = parse_iso_date(str(value_iso or ""))
+            d.setDate(QDate(dt.year, dt.month, dt.day))
+        except Exception:
+            try:
+                d.setDate(QDate.currentDate())
+            except Exception:
+                pass
+        layout.addWidget(d)
+        return d
+
     def _build_car_body(self, lay, root, m):
         a = build_asset(m)  # CarAsset
         current = float(a.current_value())
@@ -756,7 +787,9 @@ class AssetDetailPage(BasePage):
 
         lay.addWidget(self._build_car_value_panel(root, current, initial), 0)
 
-        total = float(a.yearly_costs_total())
+        # Yearly total = what was actually matched from movements when an
+        # identifier is set, else the planned amount.
+        _rows, total = self._car_yearly_rows(m)
         lay.addWidget(self._build_yearly_strip(root, total, len(m.yearly_costs)), 0)
 
         details_title = QLabel("פרטים נוספים", root)
@@ -952,9 +985,7 @@ class AssetDetailPage(BasePage):
         price = self._labeled_edit(
             dlg, root, "מחיר קנייה (₪)", f"{float(m.property_price or 0.0):.0f}"
         )
-        date = self._labeled_edit(
-            dlg, root, "תאריך קנייה (YYYY-MM-DD)", m.start_date or ""
-        )
+        date = self._labeled_date(dlg, root, "תאריך קנייה", m.start_date or "")
         btns = QHBoxLayout()
         btns.addStretch(1)
         save = QPushButton("שמור", dlg)
@@ -968,12 +999,16 @@ class AssetDetailPage(BasePage):
         def _save():
             nm = str(name.text() or "").strip() or m.name
             p = _parse_float(price.text()) or 0.0
+            try:
+                purchase = date.date().toString("yyyy-MM-dd")
+            except Exception:
+                purchase = m.start_date
             self._car_persist(
                 replace(
                     m,
                     name=nm,
                     property_price=float(p),
-                    start_date=str(date.text() or "").strip(),
+                    start_date=purchase,
                 )
             )
             dlg.accept()
@@ -1005,6 +1040,23 @@ class AssetDetailPage(BasePage):
         finally:
             self._yearly_host = None
 
+    def _car_yearly_rows(self, m):
+        """Per-cost (name, planned, actual, effective) + effective total. The
+        effective amount is what was actually matched from bank movements (via
+        the cost's query) when there is one, otherwise the planned amount — so
+        the user can set only a movement identifier and skip the amount."""
+        movements = self._service.list_movements()
+        rows = []
+        total = 0.0
+        for c in m.yearly_costs or []:
+            planned = float(getattr(c, "amount", 0.0) or 0.0)
+            has_q = bool(str(getattr(c, "query", "") or "").strip())
+            actual = float(cost_paid_amount(c, movements)) if has_q else 0.0
+            eff = actual if (has_q and actual > 0) else planned
+            total += eff
+            rows.append((str(c.name), planned, actual, eff))
+        return rows, total
+
     def _build_yearly_panel(self, parent, m):
         self._yearly_costs = list(m.yearly_costs)
         card, table = self._panel_with_actions(
@@ -1014,17 +1066,21 @@ class AssetDetailPage(BasePage):
             self._on_remove_yearly_cost,
         )
         self._yearly_table = table
-        table.setColumnCount(2)
-        table.setHorizontalHeaderLabels(["רכיב", "סכום לשנה"])
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["רכיב", "סכום מתוכנן", "שולם בפועל"])
         table.doubleClicked.connect(self._on_edit_yearly_cost)
-        table.setRowCount(len(self._yearly_costs) + 1)
-        total = 0.0
-        for i, c in enumerate(self._yearly_costs):
-            total += float(c.amount)
-            table.setItem(i, 0, QTableWidgetItem(str(c.name)))
-            table.setItem(i, 1, QTableWidgetItem(_fmt_money(c.amount)))
-        table.setItem(len(self._yearly_costs), 0, QTableWidgetItem("סה״כ"))
-        table.setItem(len(self._yearly_costs), 1, QTableWidgetItem(_fmt_money(total)))
+        rows, total = self._car_yearly_rows(m)
+        table.setRowCount(len(rows) + 1)
+        for i, (name, planned, actual, _eff) in enumerate(rows):
+            table.setItem(i, 0, QTableWidgetItem(name))
+            table.setItem(
+                i, 1, QTableWidgetItem(_fmt_money(planned) if planned else "—")
+            )
+            table.setItem(
+                i, 2, QTableWidgetItem(_fmt_money(actual) if actual else "—")
+            )
+        table.setItem(len(rows), 0, QTableWidgetItem("סה״כ (בפועל)"))
+        table.setItem(len(rows), 2, QTableWidgetItem(_fmt_money(total)))
         return card
 
     def _refresh_yearly_dialog(self):
@@ -1064,7 +1120,7 @@ class AssetDetailPage(BasePage):
         m = self._selected_asset()
         if m is None:
             return
-        dlg = CostItemDialog(show_query=False, parent=self)
+        dlg = CostItemDialog(show_query=True, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         cost = dlg.get_cost()
@@ -1079,7 +1135,7 @@ class AssetDetailPage(BasePage):
         if idx < 0:
             QMessageBox.information(self, "עריכה", "בחר פריט")
             return
-        dlg = CostItemDialog(cost=m.yearly_costs[idx], show_query=False, parent=self)
+        dlg = CostItemDialog(cost=m.yearly_costs[idx], show_query=True, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         cost = dlg.get_cost()

@@ -13,16 +13,20 @@ from ..qt import (
     QPushButton,
     QLineEdit,
     QComboBox,
+    QDateEdit,
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
     QMessageBox,
     QSizePolicy,
     Qt,
+    QDate,
 )
 from ..models.mortgage import AssetKind, Mortgage
+from ..models.accounts import parse_iso_date
 from ..models.mortgage_service import MortgageService
 from ..models.asset import build_asset, new_asset_record
+from ..ui.dialog_utils import setup_calendar_popup
 from .base_page import BasePage
 
 
@@ -91,6 +95,19 @@ class AssetDialog(QDialog):
         root.addWidget(self._value_label)
         root.addWidget(self._value)
 
+        # תאריך קנייה — רלוונטי לרכב (מוצג רק עבורו).
+        self._date_label = QLabel("תאריך קנייה", self)
+        self._date = QDateEdit(self)
+        self._date.setCalendarPopup(True)
+        setup_calendar_popup(self._date)
+        try:
+            self._date.setDisplayFormat("yyyy-MM-dd")
+            self._date.setDate(QDate.currentDate())
+        except Exception:
+            pass
+        root.addWidget(self._date_label)
+        root.addWidget(self._date)
+
         self._kind.currentTextChanged.connect(self._on_kind_changed)
 
         buttons = QHBoxLayout()
@@ -118,6 +135,9 @@ class AssetDialog(QDialog):
             self._value.setPlaceholderText("שווי נוכחי (₪)")
         self._value_label.setVisible(is_valued)
         self._value.setVisible(is_valued)
+        # תאריך קנייה — רק לרכב.
+        self._date_label.setVisible(is_car)
+        self._date.setVisible(is_car)
 
     def _load_initial(self) -> None:
         a = self._asset
@@ -132,6 +152,11 @@ class AssetDialog(QDialog):
         self._kind.setEnabled(False)
         if a.current_value:
             self._value.setText(f"{float(a.current_value):.0f}")
+        try:
+            dt = parse_iso_date(str(getattr(a, "start_date", "") or ""))
+            self._date.setDate(QDate(dt.year, dt.month, dt.day))
+        except Exception:
+            pass
 
     def _on_save(self) -> None:
         name = str(self._name.text() or "").strip()
@@ -155,6 +180,12 @@ class AssetDialog(QDialog):
                 current_value=value,
                 account_name=_MORTGAGE_ACCOUNT_NAME,
             )
+            if kind == AssetKind.CAR:
+                try:
+                    purchase = self._date.date().toString("yyyy-MM-dd")
+                except Exception:
+                    purchase = ""
+                self._asset = replace(self._asset, start_date=purchase)
         self.accept()
 
     def get_asset(self) -> Optional[Mortgage]:
