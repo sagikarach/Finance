@@ -190,6 +190,7 @@ class Mortgage:
     funding_sources: list[FundingSource] = field(default_factory=list)  # צד ההכנסות
     kind: AssetKind = AssetKind.PURCHASE  # סוג הנכס
     current_value: float = 0.0  # שווי נוכחי — לנכס מסוג "אחר"
+    expense_category: str = ""  # קטגוריית תנועות לחישוב ממוצע חודשי (רכב)
     sold: bool = False  # האם הנכס נמכר
     sale_price: float = 0.0  # מחיר המכירה (השווי שמומש)
     sale_date: str = ""  # תאריך המכירה (YYYY-MM-DD)

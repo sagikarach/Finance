@@ -339,6 +339,10 @@ class CarAsset(Asset):
     def purchase_price(self) -> float:
         return float(self.record.property_price or 0.0)
 
+    @property
+    def expense_category(self) -> str:
+        return str(getattr(self.record, "expense_category", "") or "").strip() or "רכב"
+
     def current_value(
         self,
         *,
@@ -487,7 +491,8 @@ def new_asset_record(
         )
     if kind == AssetKind.CAR:
         # property_price = original purchase price; current_value starts equal
-        # (the user maintains it manually thereafter).
+        # (the user maintains it manually thereafter). expense_category drives
+        # the average-monthly-cost figure (default: the "רכב" category).
         v = float(current_value or 0.0)
         return Mortgage(
             name=name,
@@ -495,5 +500,6 @@ def new_asset_record(
             account_name=account_name,
             property_price=v,
             current_value=v,
+            expense_category="רכב",
         )
     return Mortgage(name=name, kind=AssetKind.PURCHASE, account_name=account_name)

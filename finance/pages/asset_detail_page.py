@@ -788,10 +788,11 @@ class AssetDetailPage(BasePage):
 
         lay.addWidget(self._build_car_value_panel(root, current, initial), 0)
 
-        # Yearly total = what was actually matched from movements when an
-        # identifier is set, else the planned amount.
-        _rows, total = self._car_yearly_rows(m)
-        lay.addWidget(self._build_yearly_strip(root, total, len(m.yearly_costs)), 0)
+        # Average monthly car spend from the car's expense category (household
+        # figure — see _car_avg_monthly). This is the honest "what it costs me"
+        # number when fuel & co. can't be attributed per-car.
+        avg, n = self._car_avg_monthly(a.expense_category)
+        lay.addWidget(self._build_avg_strip(root, avg, n, a.expense_category), 0)
 
         details_title = QLabel("פרטים נוספים", root)
         details_title.setObjectName("PanelTitle")
@@ -825,7 +826,7 @@ class AssetDetailPage(BasePage):
         r2.addWidget(
             _DetailTile(
                 "עלויות שנתיות (ביטוח, טסט, אגרה)",
-                f"{len(m.yearly_costs)} פריטים · {_fmt_money(total)} ₪ לשנה",
+                f"{len(m.yearly_costs)} פריטים",
                 self._open_yearly_costs_dialog,
                 root,
             ),
@@ -905,6 +906,83 @@ class AssetDetailPage(BasePage):
         val.setObjectName("AllInVal")
         row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
         return strip
+
+    def _car_avg_monthly(self, category, months=12):
+        """Average monthly spend in ``category`` over the last ``months`` months
+        that have data. This is a household figure by category — with two cars
+        on the same category it's their combined spend; give each car its own
+        category to split it."""
+        cat = str(category or "").strip()
+        if not cat:
+            return 0.0, 0
+        try:
+            movements = self._service.list_movements()
+        except Exception:
+            return 0.0, 0
+        from collections import defaultdict
+        totals = defaultdict(float)
+        for mv in movements:
+            if str(getattr(mv, "category", "") or "").strip() != cat:
+                continue
+            try:
+                amt = float(getattr(mv, "amount", 0.0) or 0.0)
+            except Exception:
+                continue
+            if amt >= 0:
+                continue
+            dt = parse_iso_date(str(getattr(mv, "date", "") or ""))
+            if dt.year <= 1900:
+                continue
+            totals[(dt.year, dt.month)] += -amt
+        if not totals:
+            return 0.0, 0
+        keys = sorted(totals.keys())[-int(months):]
+        n = len(keys)
+        avg = sum(totals[k] for k in keys) / float(n) if n else 0.0
+        return avg, n
+
+    def _build_avg_strip(self, parent, avg, n, category):
+        strip = QWidget(parent)
+        strip.setObjectName("AllInStrip")
+        try:
+            strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        row = QHBoxLayout(strip)
+        row.setContentsMargins(20, 16, 20, 16)
+        row.setSpacing(12)
+        col = QVBoxLayout()
+        col.setSpacing(3)
+        k = QLabel("ממוצע הוצאות רכב חודשי", strip)
+        k.setObjectName("AllInKey")
+        if n > 0:
+            sub_txt = f"קטגוריית ״{category}״ · ממוצע {n} חודשים אחרונים"
+            val_txt = f"{_fmt_money(avg)} ₪"
+        else:
+            sub_txt = f"אין תנועות בקטגוריית ״{category}״"
+            val_txt = "—"
+        sub = QLabel(sub_txt, strip)
+        sub.setObjectName("AllInSub")
+        col.addWidget(k)
+        col.addWidget(sub)
+        row.addLayout(col, 1)
+        val = QLabel(val_txt, strip)
+        val.setObjectName("AllInVal")
+        row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
+        return strip
+
+    def _distinct_categories(self):
+        try:
+            movements = self._service.list_movements()
+        except Exception:
+            return ["רכב"]
+        seen = {}
+        for mv in movements:
+            c = str(getattr(mv, "category", "") or "").strip()
+            if c:
+                seen[c] = seen.get(c, 0) + 1
+        cats = sorted(seen, key=lambda c: -seen[c])
+        return cats or ["רכב"]
 
     def _car_persist(self, updated):
         self._service.upsert_mortgage(updated)
@@ -987,6 +1065,18 @@ class AssetDetailPage(BasePage):
             dlg, root, "מחיר קנייה (₪)", f"{float(m.property_price or 0.0):.0f}"
         )
         date = self._labeled_date(dlg, root, "תאריך קנייה", m.start_date or "")
+        # קטגוריית ההוצאות — לחישוב הממוצע החודשי. שני רכבים? תן לכל אחד קטגוריה
+        # נפרדת כדי לפצל את ההוצאה.
+        root.addWidget(QLabel("קטגוריית הוצאות (לממוצע החודשי)", dlg))
+        cat = QComboBox(dlg)
+        cat.setEditable(True)
+        cur_cat = str(getattr(m, "expense_category", "") or "").strip() or "רכב"
+        cats = self._distinct_categories()
+        if cur_cat not in cats:
+            cats = [cur_cat] + cats
+        cat.addItems(cats)
+        cat.setCurrentText(cur_cat)
+        root.addWidget(cat)
         btns = QHBoxLayout()
         btns.addStretch(1)
         save = QPushButton("שמור", dlg)
@@ -1010,6 +1100,7 @@ class AssetDetailPage(BasePage):
                     name=nm,
                     property_price=float(p),
                     start_date=purchase,
+                    expense_category=str(cat.currentText() or "").strip(),
                 )
             )
             dlg.accept()
