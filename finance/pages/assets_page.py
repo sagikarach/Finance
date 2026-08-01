@@ -22,7 +22,7 @@ from ..qt import (
 )
 from ..models.mortgage import AssetKind, Mortgage
 from ..models.mortgage_service import MortgageService
-from ..models.asset import HousePurchase, build_asset, new_asset_record
+from ..models.asset import build_asset, new_asset_record
 from .base_page import BasePage
 
 
@@ -466,22 +466,23 @@ class AssetsPage(BasePage):
         return self._assets[row]
 
     def _open_asset(self, asset: Mortgage) -> None:
-        if isinstance(build_asset(asset), HousePurchase):
-            # נווט לעמוד הנכס (סקירת תשלומי הרכישה) עם הנכס הנבחר.
-            try:
-                if isinstance(self._app_context, dict):
-                    self._app_context["selected_mortgage_id"] = str(asset.id)
-            except Exception:
-                pass
-            if self._navigate is not None:
-                self._navigate("asset")
-        else:
+        if asset.kind == AssetKind.OTHER:
+            # 'אחר' — אין עמוד ייעודי; ערוך את השווי ישירות בדיאלוג.
             dlg = AssetDialog(asset=asset, parent=self)
             if dlg.exec() == QDialog.DialogCode.Accepted:
                 updated = dlg.get_asset()
                 if updated is not None:
                     self._service.upsert_mortgage(updated)
                     self._reload()
+            return
+        # נדל״ן / רכב — נווט לעמוד הנכס הייעודי (עמוד הנכס מסתעף לפי הסוג).
+        try:
+            if isinstance(self._app_context, dict):
+                self._app_context["selected_mortgage_id"] = str(asset.id)
+        except Exception:
+            pass
+        if self._navigate is not None:
+            self._navigate("asset")
 
     def _on_open_selected(self) -> None:
         a = self._selected_asset()
@@ -499,8 +500,8 @@ class AssetsPage(BasePage):
             return
         self._service.upsert_mortgage(asset)
         self._reload()
-        # נכס רכישה — פתח מיד את מסך הפירוט כדי לבנות את התמהיל.
-        if isinstance(build_asset(asset), HousePurchase):
+        # נדל״ן / רכב — פתח מיד את עמוד הנכס כדי להשלים פרטים (תמהיל / שווי / עלויות).
+        if asset.kind != AssetKind.OTHER:
             self._open_asset(asset)
 
     def _on_delete(self) -> None:
