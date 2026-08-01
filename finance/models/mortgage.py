@@ -69,9 +69,11 @@ class TrackKind(StrEnum):
 
 
 class AssetKind(StrEnum):
-    """סוג הנכס. רכישה = הנכס נרכש (משכנתא/תמהיל + עלויות). אחר = החזקה פשוטה."""
+    """סוג הנכס. רכישה = הנכס נרכש (משכנתא/תמהיל + עלויות). רכב = רכב מתפחת עם
+    הלוואה אופציונלית ועלויות שנתיות. אחר = החזקה פשוטה."""
 
     PURCHASE = "רכישה"
+    CAR = "רכב"
     OTHER = "אחר"
 
 
@@ -181,6 +183,7 @@ class Mortgage:
     price_query: str = ""  # טקסט לשיוך תנועות התשלום למוכר (לחישוב ששולם בפועל)
     one_time_costs: list[CostItem] = field(default_factory=list)  # מס רכישה, עו"ד...
     monthly_costs: list[CostItem] = field(default_factory=list)  # ארנונה, ועד, ביטוח
+    yearly_costs: list[CostItem] = field(default_factory=list)  # ביטוח, טסט, אגרה (רכב)
     funding_sources: list[FundingSource] = field(default_factory=list)  # צד ההכנסות
     kind: AssetKind = AssetKind.PURCHASE  # סוג הנכס
     current_value: float = 0.0  # שווי נוכחי — לנכס מסוג "אחר"

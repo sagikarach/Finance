@@ -107,10 +107,17 @@ class AssetDialog(QDialog):
         self._on_kind_changed(self._kind.currentText())
 
     def _on_kind_changed(self, text: str) -> None:
-        is_other = str(text) == AssetKind.OTHER.value
-        # שדה השווי רלוונטי רק לנכס מסוג "אחר".
-        self._value_label.setVisible(is_other)
-        self._value.setVisible(is_other)
+        # שדה השווי רלוונטי ל"אחר" (שווי נוכחי) ול"רכב" (מחיר הקנייה ההתחלתי).
+        is_car = str(text) == AssetKind.CAR.value
+        is_valued = is_car or str(text) == AssetKind.OTHER.value
+        if is_car:
+            self._value_label.setText("שווי התחלתי (מחיר קנייה)")
+            self._value.setPlaceholderText("מחיר הקנייה (₪)")
+        else:
+            self._value_label.setText("שווי נוכחי")
+            self._value.setPlaceholderText("שווי נוכחי (₪)")
+        self._value_label.setVisible(is_valued)
+        self._value.setVisible(is_valued)
 
     def _load_initial(self) -> None:
         a = self._asset

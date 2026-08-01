@@ -24,6 +24,7 @@ from ..qt import (
 )
 from ..models.accounts import BankAccount, MoneyAccount, SavingsAccount
 from ..models.mortgage import (
+    AssetKind,
     CostItem,
     FundingKind,
     FundingSource,
@@ -400,6 +401,9 @@ class AssetDetailPage(BasePage):
         self._tab_buttons: dict = {}
         self._details_dialog: Optional[QDialog] = None
         self._details_host: Optional[QWidget] = None
+        self._yearly_costs: List[CostItem] = []
+        self._yearly_table: Optional[QTableWidget] = None
+        self._yearly_host: Optional[QWidget] = None
         super().__init__(*args, **kwargs)
 
     def _load_accounts(self) -> List[MoneyAccount]:
@@ -450,8 +454,6 @@ class AssetDetailPage(BasePage):
             lay.addStretch(1)
             return
 
-        s = self._service.purchase_summary(m)
-
         # פירורי לחם — נכסים › שם הנכס (מבהיר את היררכיית הניווט התלת-שלבית).
         crumb = QLabel(f"נכסים  ›  {m.name or '(ללא שם)'}", root)
         crumb.setObjectName("AssetBreadcrumb")
@@ -485,10 +487,21 @@ class AssetDetailPage(BasePage):
             apply_icon(edit_btn, "edit", size=20, is_dark=self._is_dark_theme())
         except Exception:
             edit_btn.setText("✎")
-        edit_btn.setToolTip("ערוך מחיר ועלויות")
-        edit_btn.clicked.connect(self._on_edit_purchase)
+        if m.kind == AssetKind.CAR:
+            edit_btn.setToolTip("ערוך פרטי רכב")
+            edit_btn.clicked.connect(lambda: self._open_car_details_dialog())
+        else:
+            edit_btn.setToolTip("ערוך מחיר ועלויות")
+            edit_btn.clicked.connect(self._on_edit_purchase)
         title_row.addWidget(edit_btn)
         lay.addLayout(title_row, 0)
+
+        # רכב — עמוד ייעודי (שווי מתעדכן ידנית, הלוואה אופציונלית, עלויות שנתיות).
+        if m.kind == AssetKind.CAR:
+            self._build_car_body(lay, root, m)
+            return
+
+        s = self._service.purchase_summary(m)
 
         # ── מצב נוכחי: שווי, יתרה, הון עצמי וסטטוס המשכנתא ──
         prepaid = self._service.prepaid_amount(m)
@@ -728,8 +741,68 @@ class AssetDetailPage(BasePage):
         )
         return monthly_card
 
-    # ------------------------------------------------------------- overview
-    def _build_equity_panel(self, parent, value, outstanding, equity, eq_frac):
+    # ----------------------------------------------------------------- car
+    def _labeled_edit(self, parent, layout, label, value=""):
+        layout.addWidget(QLabel(label, parent))
+        e = QLineEdit(parent)
+        e.setText(str(value))
+        layout.addWidget(e)
+        return e
+
+    def _build_car_body(self, lay, root, m):
+        a = build_asset(m)  # CarAsset
+        current = float(a.current_value())
+        initial = float(a.purchase_price)
+
+        lay.addWidget(self._build_car_value_panel(root, current, initial), 0)
+
+        total = float(a.yearly_costs_total())
+        lay.addWidget(self._build_yearly_strip(root, total, len(m.yearly_costs)), 0)
+
+        details_title = QLabel("פרטים נוספים", root)
+        details_title.setObjectName("PanelTitle")
+        lay.addWidget(details_title, 0)
+
+        grid = QVBoxLayout()
+        grid.setSpacing(12)
+        r1 = QHBoxLayout()
+        r1.setSpacing(12)
+        r1.addWidget(
+            _DetailTile(
+                "עדכן שווי רכב",
+                "עדכון ידני · או בדיקה במחירון העם",
+                self._open_update_value_dialog,
+                root,
+            ),
+            1,
+        )
+        r1.addWidget(
+            _DetailTile(
+                "פרטי הרכב והמחיר",
+                f"מחיר קנייה {_fmt_money(initial)} ₪",
+                self._open_car_details_dialog,
+                root,
+            ),
+            1,
+        )
+        grid.addLayout(r1)
+        r2 = QHBoxLayout()
+        r2.setSpacing(12)
+        r2.addWidget(
+            _DetailTile(
+                "עלויות שנתיות (ביטוח, טסט, אגרה)",
+                f"{len(m.yearly_costs)} פריטים · {_fmt_money(total)} ₪ לשנה",
+                self._open_yearly_costs_dialog,
+                root,
+            ),
+            1,
+        )
+        r2.addStretch(1)
+        grid.addLayout(r2)
+        lay.addLayout(grid, 0)
+        lay.addStretch(1)
+
+    def _build_car_value_panel(self, parent, current, initial):
         panel = QWidget(parent)
         panel.setObjectName("ContentPanel")
         try:
@@ -739,7 +812,317 @@ class AssetDetailPage(BasePage):
         pl = QVBoxLayout(panel)
         pl.setContentsMargins(22, 20, 22, 20)
         pl.setSpacing(14)
-        title = QLabel("הון עצמי בנכס", panel)
+        title = QLabel("שווי הרכב", panel)
+        title.setObjectName("PanelTitle")
+        pl.addWidget(title)
+
+        has_initial = initial > 0
+        retained = max(0.0, min(1.0, (current / initial) if has_initial else 1.0))
+        loss = max(0.0, initial - current) if has_initial else 0.0
+        pct_txt = (
+            f"  <span style='font-size:14px;font-weight:800;color:#2f9e68;'>"
+            f"{retained * 100:.0f}% מהמחיר המקורי</span>"
+            if has_initial
+            else ""
+        )
+        big = QLabel(f"{_fmt_money(current)} ₪{pct_txt}", panel)
+        big.setStyleSheet("font-size:30px;font-weight:900;color:#1e1e22;")
+        pl.addWidget(big)
+
+        if has_initial:
+            # EquityBar = green chunk over clay groove → reads as retained vs lost.
+            bar = QProgressBar(panel)
+            bar.setObjectName("EquityBar")
+            bar.setRange(0, 100)
+            bar.setTextVisible(False)
+            try:
+                bar.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+                bar.setFixedHeight(16)
+            except Exception:
+                pass
+            bar.setValue(int(round(retained * 100)))
+            pl.addWidget(bar)
+            pl.addWidget(self._legend_row(panel, "#2f9e68", "שווי נוכחי", current))
+            pl.addWidget(self._legend_row(panel, "#d66a4e", "ירידת ערך", loss))
+            pl.addWidget(self._legend_row(panel, "#e6e2d4", "מחיר קנייה", initial))
+        return panel
+
+    def _build_yearly_strip(self, parent, total, count):
+        strip = QWidget(parent)
+        strip.setObjectName("AllInStrip")
+        try:
+            strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        row = QHBoxLayout(strip)
+        row.setContentsMargins(20, 16, 20, 16)
+        row.setSpacing(12)
+        col = QVBoxLayout()
+        col.setSpacing(3)
+        k = QLabel("עלויות שנתיות שוטפות", strip)
+        k.setObjectName("AllInKey")
+        monthly = (total / 12.0) if total else 0.0
+        sub = QLabel(f"{count} פריטים · כ-{_fmt_money(monthly)} ₪ לחודש", strip)
+        sub.setObjectName("AllInSub")
+        col.addWidget(k)
+        col.addWidget(sub)
+        row.addLayout(col, 1)
+        val = QLabel(f"{_fmt_money(total)} ₪", strip)
+        val.setObjectName("AllInVal")
+        row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
+        return strip
+
+    def _car_persist(self, updated):
+        self._service.upsert_mortgage(updated)
+        self.on_route_activated()
+        self._refresh_yearly_dialog()
+
+    def _open_update_value_dialog(self):
+        m = self._selected_asset()
+        if m is None:
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle("עדכון שווי הרכב")
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            dlg.setModal(True)
+        except Exception:
+            pass
+        root = QVBoxLayout(dlg)
+        root.setContentsMargins(24, 20, 24, 20)
+        root.setSpacing(10)
+        info = QLabel(
+            "אין מקור אוטומטי אמין לשווי רכב. הזן את השווי הנוכחי ידנית, או בדוק "
+            "במחירון העם ואז הזן את המספר.",
+            dlg,
+        )
+        info.setWordWrap(True)
+        root.addWidget(info)
+        val = self._labeled_edit(
+            dlg, root, "שווי נוכחי (₪)", f"{float(m.current_value or 0.0):.0f}"
+        )
+        open_btn = QPushButton("בדוק במחירון העם ↗", dlg)
+        open_btn.setObjectName("SecondaryButton")
+
+        def _open_site():
+            try:
+                import webbrowser
+                webbrowser.open("https://carlistprice.mot.gov.il/")
+            except Exception:
+                pass
+
+        open_btn.clicked.connect(_open_site)
+        root.addWidget(open_btn)
+        btns = QHBoxLayout()
+        btns.addStretch(1)
+        save = QPushButton("שמור", dlg)
+        save.setObjectName("PrimaryButton")
+        cancel = QPushButton("בטל", dlg)
+        btns.addWidget(save)
+        btns.addWidget(cancel)
+        root.addLayout(btns)
+        cancel.clicked.connect(dlg.reject)
+
+        def _save():
+            v = _parse_float(val.text())
+            if v is None or v < 0:
+                QMessageBox.warning(dlg, "שגיאה", "הזן שווי תקין")
+                return
+            self._car_persist(replace(m, current_value=float(v)))
+            dlg.accept()
+
+        save.clicked.connect(_save)
+        dlg.exec()
+
+    def _open_car_details_dialog(self):
+        m = self._selected_asset()
+        if m is None:
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle("פרטי הרכב")
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            dlg.setModal(True)
+        except Exception:
+            pass
+        root = QVBoxLayout(dlg)
+        root.setContentsMargins(24, 20, 24, 20)
+        root.setSpacing(10)
+        name = self._labeled_edit(dlg, root, "שם הרכב", m.name or "")
+        price = self._labeled_edit(
+            dlg, root, "מחיר קנייה (₪)", f"{float(m.property_price or 0.0):.0f}"
+        )
+        date = self._labeled_edit(
+            dlg, root, "תאריך קנייה (YYYY-MM-DD)", m.start_date or ""
+        )
+        btns = QHBoxLayout()
+        btns.addStretch(1)
+        save = QPushButton("שמור", dlg)
+        save.setObjectName("PrimaryButton")
+        cancel = QPushButton("בטל", dlg)
+        btns.addWidget(save)
+        btns.addWidget(cancel)
+        root.addLayout(btns)
+        cancel.clicked.connect(dlg.reject)
+
+        def _save():
+            nm = str(name.text() or "").strip() or m.name
+            p = _parse_float(price.text()) or 0.0
+            self._car_persist(
+                replace(
+                    m,
+                    name=nm,
+                    property_price=float(p),
+                    start_date=str(date.text() or "").strip(),
+                )
+            )
+            dlg.accept()
+
+        save.clicked.connect(_save)
+        dlg.exec()
+
+    def _open_yearly_costs_dialog(self):
+        m = self._selected_asset()
+        if m is None:
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle("עלויות שנתיות")
+        try:
+            dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            dlg.resize(760, 520)
+        except Exception:
+            pass
+        outer = QVBoxLayout(dlg)
+        outer.setContentsMargins(16, 16, 16, 16)
+        host = QWidget(dlg)
+        self._yearly_host = host
+        hl = QVBoxLayout(host)
+        hl.setContentsMargins(0, 0, 0, 0)
+        hl.addWidget(self._build_yearly_panel(host, m))
+        outer.addWidget(host)
+        try:
+            dlg.exec()
+        finally:
+            self._yearly_host = None
+
+    def _build_yearly_panel(self, parent, m):
+        self._yearly_costs = list(m.yearly_costs)
+        card, table = self._panel_with_actions(
+            "עלויות שנתיות (ביטוח, טסט, אגרה)",
+            self._on_add_yearly_cost,
+            self._on_edit_yearly_cost,
+            self._on_remove_yearly_cost,
+        )
+        self._yearly_table = table
+        table.setColumnCount(2)
+        table.setHorizontalHeaderLabels(["רכיב", "סכום לשנה"])
+        table.doubleClicked.connect(self._on_edit_yearly_cost)
+        table.setRowCount(len(self._yearly_costs) + 1)
+        total = 0.0
+        for i, c in enumerate(self._yearly_costs):
+            total += float(c.amount)
+            table.setItem(i, 0, QTableWidgetItem(str(c.name)))
+            table.setItem(i, 1, QTableWidgetItem(_fmt_money(c.amount)))
+        table.setItem(len(self._yearly_costs), 0, QTableWidgetItem("סה״כ"))
+        table.setItem(len(self._yearly_costs), 1, QTableWidgetItem(_fmt_money(total)))
+        return card
+
+    def _refresh_yearly_dialog(self):
+        host = getattr(self, "_yearly_host", None)
+        if host is None:
+            return
+        m = self._selected_asset()
+        if m is None:
+            return
+        lay = host.layout()
+        if lay is None:
+            return
+        while lay.count():
+            it = lay.takeAt(0)
+            w = it.widget()
+            if w is not None:
+                w.setParent(None)
+                w.deleteLater()
+        lay.addWidget(self._build_yearly_panel(host, m))
+
+    def _selected_yearly_index(self):
+        t = self._yearly_table
+        if t is None:
+            return -1
+        r = t.currentRow()
+        return r if 0 <= r < len(self._yearly_costs) else -1
+
+    def _save_yearly(self, costs):
+        m = self._selected_asset()
+        if m is None:
+            return
+        self._service.upsert_mortgage(replace(m, yearly_costs=list(costs)))
+        self.on_route_activated()
+        self._refresh_yearly_dialog()
+
+    def _on_add_yearly_cost(self):
+        m = self._selected_asset()
+        if m is None:
+            return
+        dlg = CostItemDialog(show_query=False, parent=self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        cost = dlg.get_cost()
+        if cost is not None:
+            self._save_yearly(list(m.yearly_costs) + [cost])
+
+    def _on_edit_yearly_cost(self):
+        m = self._selected_asset()
+        if m is None:
+            return
+        idx = self._selected_yearly_index()
+        if idx < 0:
+            QMessageBox.information(self, "עריכה", "בחר פריט")
+            return
+        dlg = CostItemDialog(cost=m.yearly_costs[idx], show_query=False, parent=self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        cost = dlg.get_cost()
+        if cost is not None:
+            costs = list(m.yearly_costs)
+            costs[idx] = cost
+            self._save_yearly(costs)
+
+    def _on_remove_yearly_cost(self):
+        m = self._selected_asset()
+        if m is None:
+            return
+        idx = self._selected_yearly_index()
+        if idx < 0:
+            QMessageBox.information(self, "מחיקה", "בחר פריט")
+            return
+        costs = list(m.yearly_costs)
+        del costs[idx]
+        self._save_yearly(costs)
+
+    # ------------------------------------------------------------- overview
+    def _build_equity_panel(
+        self,
+        parent,
+        value,
+        outstanding,
+        equity,
+        eq_frac,
+        *,
+        title_text="הון עצמי בנכס",
+        debt_label="יתרת חוב",
+        value_label="שווי הנכס",
+    ):
+        panel = QWidget(parent)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        pl = QVBoxLayout(panel)
+        pl.setContentsMargins(22, 20, 22, 20)
+        pl.setSpacing(14)
+        title = QLabel(title_text, panel)
         title.setObjectName("PanelTitle")
         pl.addWidget(title)
         big = QLabel(
@@ -762,8 +1145,8 @@ class AssetDetailPage(BasePage):
         bar.setValue(int(round(max(0.0, min(1.0, eq_frac)) * 100)))
         pl.addWidget(bar)
         pl.addWidget(self._legend_row(panel, "#2f9e68", "הון עצמי", equity))
-        pl.addWidget(self._legend_row(panel, "#d66a4e", "יתרת חוב", outstanding))
-        pl.addWidget(self._legend_row(panel, "#e6e2d4", "שווי הנכס", value))
+        pl.addWidget(self._legend_row(panel, "#d66a4e", debt_label, outstanding))
+        pl.addWidget(self._legend_row(panel, "#e6e2d4", value_label, value))
         return panel
 
     def _legend_row(self, parent, color, name, amount):
@@ -806,7 +1189,7 @@ class AssetDetailPage(BasePage):
             fl.addWidget(sb)
         return frame
 
-    def _build_status_panel(self, parent, st):
+    def _build_status_panel(self, parent, st, *, title_text="מצב המשכנתא"):
         panel = QWidget(parent)
         panel.setObjectName("ContentPanel")
         try:
@@ -816,7 +1199,7 @@ class AssetDetailPage(BasePage):
         pl = QVBoxLayout(panel)
         pl.setContentsMargins(22, 20, 22, 20)
         pl.setSpacing(14)
-        title = QLabel("מצב המשכנתא", panel)
+        title = QLabel(title_text, panel)
         title.setObjectName("PanelTitle")
         pl.addWidget(title)
 

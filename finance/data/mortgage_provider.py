@@ -192,6 +192,9 @@ def serialize_mortgage(mortgage: Mortgage) -> Dict[str, Any]:
         "price_query": str(getattr(mortgage, "price_query", "") or ""),
         "one_time_costs": [serialize_cost(c) for c in mortgage.one_time_costs],
         "monthly_costs": [serialize_cost(c) for c in mortgage.monthly_costs],
+        "yearly_costs": [
+            serialize_cost(c) for c in getattr(mortgage, "yearly_costs", []) or []
+        ],
         "funding_sources": [serialize_funding(f) for f in mortgage.funding_sources],
         "kind": str(getattr(mortgage.kind, "value", mortgage.kind)),
         "current_value": float(getattr(mortgage, "current_value", 0.0) or 0.0),
@@ -234,6 +237,7 @@ def deserialize_mortgage(item: Any) -> Optional[Mortgage]:
             price_query=str(item.get("price_query", "") or ""),
             one_time_costs=_deserialize_costs(item.get("one_time_costs")),
             monthly_costs=_deserialize_costs(item.get("monthly_costs")),
+            yearly_costs=_deserialize_costs(item.get("yearly_costs")),
             funding_sources=_deserialize_funding(item.get("funding_sources")),
             kind=_parse_asset_kind(item.get("kind")),
             current_value=float(item.get("current_value", 0.0) or 0.0),

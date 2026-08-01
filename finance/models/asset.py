@@ -329,6 +329,34 @@ class HousePurchase(Asset):
 
 
 @dataclass(frozen=True)
+class CarAsset(Asset):
+    """A car (``kind == CAR``): worth its manually-maintained ``current_value``
+    (there is no reliable auto-source). ``property_price`` holds the original
+    purchase price so the UI can show the value it has lost. No debt — a car is
+    tracked as an owned, depreciating asset with recurring yearly costs."""
+
+    @property
+    def purchase_price(self) -> float:
+        return float(self.record.property_price or 0.0)
+
+    def current_value(
+        self,
+        *,
+        as_of_date: Optional[str] = None,
+        assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+    ) -> float:
+        return float(self.record.current_value or 0.0)
+
+    def standalone_value(self) -> float:
+        return self.current_value()
+
+    def yearly_costs_total(self) -> float:
+        return float(
+            sum(float(c.amount) for c in getattr(self.record, "yearly_costs", []) or [])
+        )
+
+
+@dataclass(frozen=True)
 class FundingRow:
     """One row of the purchase funding (income side) table — plain data, no UI.
     ``spent`` is None when there is no actual-spent figure (rendered "—");
@@ -439,6 +467,8 @@ def build_asset(record: Mortgage) -> Asset:
     """Build the right :class:`Asset` subtype from a stored record's kind."""
     if record.kind == AssetKind.OTHER:
         return HeldAsset(record)
+    if record.kind == AssetKind.CAR:
+        return CarAsset(record)
     return HousePurchase(record)
 
 
@@ -454,5 +484,16 @@ def new_asset_record(
     if kind == AssetKind.OTHER:
         return Mortgage(
             name=name, kind=AssetKind.OTHER, current_value=float(current_value or 0.0)
+        )
+    if kind == AssetKind.CAR:
+        # property_price = original purchase price; current_value starts equal
+        # (the user maintains it manually thereafter).
+        v = float(current_value or 0.0)
+        return Mortgage(
+            name=name,
+            kind=AssetKind.CAR,
+            account_name=account_name,
+            property_price=v,
+            current_value=v,
         )
     return Mortgage(name=name, kind=AssetKind.PURCHASE, account_name=account_name)
