@@ -99,6 +99,7 @@ class CostItem:
     name: str = ""
     amount: float = 0.0
     query: str = ""
+    renewal_month: int = 0  # 1-12: חודש חידוש שנתי (לעלויות רכב); 0 = לא הוגדר
 
 
 class FundingKind(StrEnum):

@@ -261,6 +261,41 @@ def cost_paid_amount(
     return 0.0
 
 
+def yearly_cost_cycles(
+    cost: CostItem,
+    movements: Optional[list] = None,
+    *,
+    n_cycles: int = 2,
+) -> List[tuple]:
+    """קבץ את תנועות ההוצאה התואמות ל-``cost.query`` למחזורים שנתיים המתחילים
+    בחודש ``cost.renewal_month`` (1-12). מחזיר את ``n_cycles`` המחזורים האחרונים
+    כרשימת ``(start_year, total)`` מהחדש לישן. הסכום למחזור הוא הסכום שנמצא
+    בפועל — כך הוא משתנה משנה לשנה ואין צורך להזין אותו."""
+    query = str(getattr(cost, "query", "") or "").strip()
+    if not query or not movements:
+        return []
+    rm = int(getattr(cost, "renewal_month", 0) or 0)
+    if rm < 1 or rm > 12:
+        rm = 1
+    matched = match_movements(movements, vendor_query=query, include_transfers=False)
+    totals: Dict[int, float] = {}
+    for m in matched:
+        try:
+            amt = float(getattr(m, "amount", 0.0) or 0.0)
+        except Exception:
+            continue
+        dt = parse_iso_date(str(getattr(m, "date", "") or ""))
+        if dt.year <= 1900:
+            continue
+        # שנת תחילת המחזור: אם החודש ≥ חודש החידוש — השנה; אחרת השנה הקודמת.
+        cy = dt.year if dt.month >= rm else dt.year - 1
+        totals[cy] = totals.get(cy, 0.0) + abs(amt)
+    if not totals:
+        return []
+    years = sorted(totals.keys(), reverse=True)[: max(1, int(n_cycles))]
+    return [(y, float(totals[y])) for y in years]
+
+
 def cost_total_amount(cost: CostItem, movements: Optional[list] = None) -> float:
     """הסכום הכולל (המתוכנן) של שורת עלות — לחישוב עלות הרכישה. אם הוזן סכום
     מתוכנן משתמשים בו; אחרת נופלים לסכום ששולם בפועל (כשהוגדר רק חיפוש תנועות).

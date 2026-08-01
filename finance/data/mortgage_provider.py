@@ -109,6 +109,7 @@ def serialize_cost(item: CostItem) -> Dict[str, Any]:
         "name": str(item.name or ""),
         "amount": float(item.amount),
         "query": str(getattr(item, "query", "") or ""),
+        "renewal_month": int(getattr(item, "renewal_month", 0) or 0),
     }
 
 
@@ -120,6 +121,7 @@ def deserialize_cost(item: Any) -> Optional[CostItem]:
             name=str(item.get("name", "") or ""),
             amount=float(item.get("amount", 0.0) or 0.0),
             query=str(item.get("query", "") or ""),
+            renewal_month=int(item.get("renewal_month", 0) or 0),
         )
     except Exception:
         return None

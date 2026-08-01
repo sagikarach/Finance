@@ -52,11 +52,17 @@ from ..models.asset import (
 from ..models.mortgage_math import (
     cost_paid_amount,
     query_paid_amount,
+    yearly_cost_cycles,
 )
 from .mortgage_page import HousePurchaseDialog
 from .base_page import BasePage
 
 _BANK_ACCOUNT_NAME = "בנק"  # החשבון שמכסה את היתרה (תואם למסך המשכנתא)
+
+_MONTH_NAMES = [
+    "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+    "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
+]
 
 
 class _DetailTile(QFrame):
@@ -309,6 +315,7 @@ class CostItemDialog(QDialog):
         *,
         cost: Optional[CostItem] = None,
         show_query: bool = True,
+        show_renewal: bool = False,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
@@ -319,6 +326,7 @@ class CostItemDialog(QDialog):
         except Exception:
             pass
         self._cost = cost
+        self._show_renewal = show_renewal
 
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 20, 24, 20)
@@ -333,7 +341,12 @@ class CostItemDialog(QDialog):
         root.addWidget(self._name)
 
         self._amount = QLineEdit(self)
-        self._amount.setPlaceholderText("סכום מתוכנן")
+        # לעלויות שנתיות הסכום נגזר מהתנועות לכל מחזור — לכן אופציונלי.
+        self._amount.setPlaceholderText(
+            "סכום מתוכנן (אופציונלי — נגזר מהתנועות)"
+            if show_renewal
+            else "סכום מתוכנן"
+        )
         root.addWidget(QLabel("סכום", self))
         root.addWidget(self._amount)
 
@@ -345,6 +358,18 @@ class CostItemDialog(QDialog):
         if not show_query:
             self._query_label.setVisible(False)
             self._query.setVisible(False)
+
+        # חודש חידוש שנתי — מגדיר מתי מתחיל המחזור השנתי של העלות.
+        self._renewal = QComboBox(self)
+        self._renewal.addItem("ללא", 0)
+        for i, mn in enumerate(_MONTH_NAMES, start=1):
+            self._renewal.addItem(mn, i)
+        self._renewal_label = QLabel("חודש חידוש (תחילת השנה)", self)
+        root.addWidget(self._renewal_label)
+        root.addWidget(self._renewal)
+        if not show_renewal:
+            self._renewal_label.setVisible(False)
+            self._renewal.setVisible(False)
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
@@ -361,6 +386,10 @@ class CostItemDialog(QDialog):
             if cost.amount:
                 self._amount.setText(f"{float(cost.amount):.0f}")
             self._query.setText(str(getattr(cost, "query", "") or ""))
+            rm = int(getattr(cost, "renewal_month", 0) or 0)
+            idx = self._renewal.findData(rm)
+            if idx >= 0:
+                self._renewal.setCurrentIndex(idx)
 
     def _on_save(self) -> None:
         name = str(self._name.text() or "").strip()
@@ -368,10 +397,16 @@ class CostItemDialog(QDialog):
         if not name and not query:
             QMessageBox.warning(self, "שגיאה", "שם ההוצאה לא יכול להיות ריק")
             return
+        renewal = 0
+        try:
+            renewal = int(self._renewal.currentData() or 0)
+        except Exception:
+            renewal = 0
         self._cost = CostItem(
             name=name,
             amount=_parse_float(self._amount.text()) or 0.0,
             query=query,
+            renewal_month=renewal,
         )
         self.accept()
 
@@ -1132,47 +1167,43 @@ class AssetDetailPage(BasePage):
         finally:
             self._yearly_host = None
 
-    def _car_yearly_rows(self, m):
-        """Per-cost (name, planned, actual, effective) + effective total. The
-        effective amount is what was actually matched from bank movements (via
-        the cost's query) when there is one, otherwise the planned amount — so
-        the user can set only a movement identifier and skip the amount."""
-        movements = self._service.list_movements()
-        rows = []
-        total = 0.0
-        for c in m.yearly_costs or []:
-            planned = float(getattr(c, "amount", 0.0) or 0.0)
-            has_q = bool(str(getattr(c, "query", "") or "").strip())
-            actual = float(cost_paid_amount(c, movements)) if has_q else 0.0
-            eff = actual if (has_q and actual > 0) else planned
-            total += eff
-            rows.append((str(c.name), planned, actual, eff))
-        return rows, total
+    def _cost_cycle_cell(self, cost, movements, which):
+        """Text for a cost's cycle: 'yy/yy: amount' (which=0 current, 1 prev)."""
+        cycles = yearly_cost_cycles(cost, movements, n_cycles=2)
+        if which >= len(cycles):
+            return "—"
+        year, total = cycles[which]
+        rm = int(getattr(cost, "renewal_month", 0) or 0)
+        if 1 < rm <= 12:
+            short = f"{str(year)[2:]}/{str(year + 1)[2:]}"
+        else:
+            short = str(year)
+        return f"{short}:  {_fmt_money(total)} ₪"
 
     def _build_yearly_panel(self, parent, m):
         self._yearly_costs = list(m.yearly_costs)
         card, table = self._panel_with_actions(
-            "עלויות שנתיות (ביטוח, טסט, אגרה)",
+            "עלויות שנתיות (ביטוח, טסט, אגרה) — לפי מחזור חידוש",
             self._on_add_yearly_cost,
             self._on_edit_yearly_cost,
             self._on_remove_yearly_cost,
         )
         self._yearly_table = table
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels(["רכיב", "סכום מתוכנן", "שולם בפועל"])
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(
+            ["רכיב", "חודש חידוש", "המחזור הנוכחי", "המחזור הקודם"]
+        )
         table.doubleClicked.connect(self._on_edit_yearly_cost)
-        rows, total = self._car_yearly_rows(m)
-        table.setRowCount(len(rows) + 1)
-        for i, (name, planned, actual, _eff) in enumerate(rows):
-            table.setItem(i, 0, QTableWidgetItem(name))
-            table.setItem(
-                i, 1, QTableWidgetItem(_fmt_money(planned) if planned else "—")
-            )
-            table.setItem(
-                i, 2, QTableWidgetItem(_fmt_money(actual) if actual else "—")
-            )
-        table.setItem(len(rows), 0, QTableWidgetItem("סה״כ (בפועל)"))
-        table.setItem(len(rows), 2, QTableWidgetItem(_fmt_money(total)))
+        movements = self._service.list_movements()
+        costs = self._yearly_costs
+        table.setRowCount(len(costs))
+        for i, c in enumerate(costs):
+            rm = int(getattr(c, "renewal_month", 0) or 0)
+            month_txt = _MONTH_NAMES[rm - 1] if 1 <= rm <= 12 else "—"
+            table.setItem(i, 0, QTableWidgetItem(str(c.name)))
+            table.setItem(i, 1, QTableWidgetItem(month_txt))
+            table.setItem(i, 2, QTableWidgetItem(self._cost_cycle_cell(c, movements, 0)))
+            table.setItem(i, 3, QTableWidgetItem(self._cost_cycle_cell(c, movements, 1)))
         return card
 
     def _refresh_yearly_dialog(self):
@@ -1212,7 +1243,7 @@ class AssetDetailPage(BasePage):
         m = self._selected_asset()
         if m is None:
             return
-        dlg = CostItemDialog(show_query=True, parent=self)
+        dlg = CostItemDialog(show_query=True, show_renewal=True, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         cost = dlg.get_cost()
@@ -1227,7 +1258,7 @@ class AssetDetailPage(BasePage):
         if idx < 0:
             QMessageBox.information(self, "עריכה", "בחר פריט")
             return
-        dlg = CostItemDialog(cost=m.yearly_costs[idx], show_query=True, parent=self)
+        dlg = CostItemDialog(cost=m.yearly_costs[idx], show_query=True, show_renewal=True, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         cost = dlg.get_cost()
