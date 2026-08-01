@@ -822,22 +822,15 @@ class AssetDetailPage(BasePage):
         initial = float(a.purchase_price)
 
         lay.addWidget(self._build_car_value_panel(root, current, initial), 0)
-
-        # Average monthly car spend from the car's expense category (household
-        # figure — see _car_avg_monthly). This is the honest "what it costs me"
-        # number when fuel & co. can't be attributed per-car.
-        avg, n = self._car_avg_monthly(a.expense_category)
-        lay.addWidget(self._build_avg_strip(root, avg, n, a.expense_category), 0)
+        lay.addWidget(self._build_car_expenses_panel(root, m, a), 0)
 
         details_title = QLabel("פרטים נוספים", root)
         details_title.setObjectName("PanelTitle")
         lay.addWidget(details_title, 0)
 
-        grid = QVBoxLayout()
-        grid.setSpacing(12)
-        r1 = QHBoxLayout()
-        r1.setSpacing(12)
-        r1.addWidget(
+        row = QHBoxLayout()
+        row.setSpacing(12)
+        row.addWidget(
             _DetailTile(
                 "עדכן שווי רכב",
                 "עדכון ידני · או בדיקה במחירון העם",
@@ -846,7 +839,7 @@ class AssetDetailPage(BasePage):
             ),
             1,
         )
-        r1.addWidget(
+        row.addWidget(
             _DetailTile(
                 "פרטי הרכב והמחיר",
                 f"מחיר קנייה {_fmt_money(initial)} ₪",
@@ -855,21 +848,7 @@ class AssetDetailPage(BasePage):
             ),
             1,
         )
-        grid.addLayout(r1)
-        r2 = QHBoxLayout()
-        r2.setSpacing(12)
-        r2.addWidget(
-            _DetailTile(
-                "עלויות שנתיות (ביטוח, טסט, אגרה)",
-                f"{len(m.yearly_costs)} פריטים",
-                self._open_yearly_costs_dialog,
-                root,
-            ),
-            1,
-        )
-        r2.addStretch(1)
-        grid.addLayout(r2)
-        lay.addLayout(grid, 0)
+        lay.addLayout(row, 0)
         lay.addStretch(1)
 
     def _build_car_value_panel(self, parent, current, initial):
@@ -976,35 +955,100 @@ class AssetDetailPage(BasePage):
         avg = sum(totals[k] for k in keys) / float(n) if n else 0.0
         return avg, n
 
-    def _build_avg_strip(self, parent, avg, n, category):
-        strip = QWidget(parent)
-        strip.setObjectName("AllInStrip")
+    def _expense_row(self, parent, name, sub, value_txt, *, strong=False):
+        row = QWidget(parent)
+        rl = QHBoxLayout(row)
+        rl.setContentsMargins(0, 0, 0, 0)
+        rl.setSpacing(12)
+        col = QVBoxLayout()
+        col.setSpacing(2)
+        nm = QLabel(str(name), row)
+        nm.setStyleSheet(
+            "font-size:15px;font-weight:800;color:#1e1e22;background:transparent;"
+            if strong
+            else "font-size:14px;font-weight:700;color:#1e1e22;background:transparent;"
+        )
+        col.addWidget(nm)
+        if sub:
+            sb = QLabel(str(sub), row)
+            sb.setStyleSheet("font-size:12px;color:#8a8d83;background:transparent;")
+            col.addWidget(sb)
+        rl.addLayout(col, 1)
+        val = QLabel(str(value_txt), row)
+        val.setStyleSheet(
+            "font-size:19px;font-weight:900;color:#2c2612;background:transparent;"
+            if strong
+            else "font-size:15px;font-weight:800;color:#1e1e22;background:transparent;"
+        )
+        rl.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
+        return row
+
+    def _hline(self, parent):
+        line = QFrame(parent)
         try:
-            strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            line.setFrameShape(QFrame.Shape.HLine)
         except Exception:
             pass
-        row = QHBoxLayout(strip)
-        row.setContentsMargins(20, 16, 20, 16)
-        row.setSpacing(12)
-        col = QVBoxLayout()
-        col.setSpacing(3)
-        k = QLabel("ממוצע הוצאות רכב חודשי", strip)
-        k.setObjectName("AllInKey")
+        line.setStyleSheet("background:#f0eee6;border:none;max-height:1px;min-height:1px;")
+        return line
+
+    def _build_car_expenses_panel(self, parent, m, a):
+        panel = QWidget(parent)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        pl = QVBoxLayout(panel)
+        pl.setContentsMargins(22, 20, 22, 20)
+        pl.setSpacing(12)
+
+        header = QHBoxLayout()
+        title = QLabel("הוצאות הרכב", panel)
+        title.setObjectName("PanelTitle")
+        header.addWidget(title, 0)
+        header.addStretch(1)
+        edit_btn = QToolButton(panel)
+        edit_btn.setText("✎")
+        edit_btn.setObjectName("IconButton")
+        edit_btn.setToolTip("ערוך עלויות שנתיות")
+        edit_btn.clicked.connect(self._open_yearly_costs_dialog)
+        header.addWidget(edit_btn, 0)
+        pl.addLayout(header)
+
+        # ── monthly (variable, from the category average) ──
+        avg, n = self._car_avg_monthly(a.expense_category)
         if n > 0:
-            sub_txt = f"קטגוריית ״{category}״ · ממוצע {n} חודשים אחרונים"
-            val_txt = f"{_fmt_money(avg)} ₪"
+            m_sub = f"קטגוריית ״{a.expense_category}״ · ממוצע {n} חודשים אחרונים"
+            m_val = f"{_fmt_money(avg)} ₪ / חודש"
         else:
-            sub_txt = f"אין תנועות בקטגוריית ״{category}״"
-            val_txt = "—"
-        sub = QLabel(sub_txt, strip)
-        sub.setObjectName("AllInSub")
-        col.addWidget(k)
-        col.addWidget(sub)
-        row.addLayout(col, 1)
-        val = QLabel(val_txt, strip)
-        val.setObjectName("AllInVal")
-        row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
-        return strip
+            m_sub = f"אין תנועות בקטגוריית ״{a.expense_category}״"
+            m_val = "—"
+        pl.addWidget(self._expense_row(panel, "חודשי (ממוצע)", m_sub, m_val, strong=True))
+
+        pl.addWidget(self._hline(panel))
+        yl = QLabel("עלויות שנתיות (כלולות בממוצע החודשי)", panel)
+        yl.setStyleSheet("font-size:13px;font-weight:700;color:#6b6f66;background:transparent;")
+        pl.addWidget(yl)
+
+        movements = self._service.list_movements()
+        if not m.yearly_costs:
+            hint = QLabel("לא הוגדרו עלויות שנתיות — לחץ ✎ להוספה", panel)
+            hint.setStyleSheet("font-size:13px;color:#a8aca1;background:transparent;")
+            pl.addWidget(hint)
+        else:
+            for c in m.yearly_costs:
+                cycles = yearly_cost_cycles(c, movements, n_cycles=1)
+                amt = float(cycles[0][1]) if cycles else float(getattr(c, "amount", 0.0) or 0.0)
+                rm = int(getattr(c, "renewal_month", 0) or 0)
+                sub = (
+                    f"מתחדש ב{_MONTH_NAMES[rm - 1]}" if 1 <= rm <= 12 else "שנתי"
+                )
+                if amt > 0:
+                    sub += f"  ·  ≈{_fmt_money(amt / 12.0)} ₪/חודש"
+                val = f"{_fmt_money(amt)} ₪ / שנה" if amt > 0 else "—"
+                pl.addWidget(self._expense_row(panel, str(c.name), sub, val))
+        return panel
 
     def _distinct_categories(self):
         try:
