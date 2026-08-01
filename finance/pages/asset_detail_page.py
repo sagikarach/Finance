@@ -981,25 +981,41 @@ class AssetDetailPage(BasePage):
         row = QHBoxLayout(strip)
         row.setContentsMargins(20, 16, 20, 16)
         row.setSpacing(12)
+
         col = QVBoxLayout()
         col.setSpacing(3)
-        k = QLabel("ממוצע הוצאות רכב שנתי", strip)
+        k = QLabel("ממוצע הוצאות רכב", strip)
         k.setObjectName("AllInKey")
         avg, n = self._car_avg_monthly(a.expense_category)
         if n > 0:
             sub_txt = f"קטגוריית ״{a.expense_category}״ · על בסיס {n} חודשים אחרונים"
-            val_txt = f"{_fmt_money(avg * 12.0)} ₪"
         else:
             sub_txt = f"אין תנועות בקטגוריית ״{a.expense_category}״"
-            val_txt = "—"
         sub = QLabel(sub_txt, strip)
         sub.setObjectName("AllInSub")
         col.addWidget(k)
         col.addWidget(sub)
         row.addLayout(col, 1)
-        val = QLabel(val_txt, strip)
-        val.setObjectName("AllInVal")
-        row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        # שני ערכים: חודשי ושנתי (ללא פירוט).
+        vals = QVBoxLayout()
+        vals.setSpacing(1)
+        if n > 0:
+            monthly = QLabel(f"{_fmt_money(avg)} ₪ / חודש", strip)
+            yearly = QLabel(f"{_fmt_money(avg * 12.0)} ₪ / שנה", strip)
+        else:
+            monthly = QLabel("—", strip)
+            yearly = QLabel("", strip)
+        monthly.setObjectName("AllInVal")
+        try:
+            monthly.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            yearly.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        except Exception:
+            pass
+        yearly.setStyleSheet("font-size:13px;font-weight:800;color:#8a7c52;background:transparent;")
+        vals.addWidget(monthly)
+        vals.addWidget(yearly)
+        row.addLayout(vals, 0)
         return strip
 
     def _distinct_categories(self):
