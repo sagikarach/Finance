@@ -23,6 +23,7 @@ from ..qt import (
     QSizePolicy,
     Qt,
     QDate,
+    QTimer,
 )
 from ..models.accounts import (
     BankAccount,
@@ -89,15 +90,15 @@ class _DetailTile(QFrame):
         row.addWidget(chev, 0, Qt.AlignmentFlag.AlignVCenter)
 
     def mousePressEvent(self, event):  # noqa: N802
-        # Call super() first — the callback may rebuild the page and delete this
-        # tile, and touching a deleted C++ object afterwards raises RuntimeError.
         super().mousePressEvent(event)
+        # DEFER the callback: it opens a dialog that rebuilds the page and
+        # deletes this tile. Running it synchronously deletes the widget while
+        # Qt is still dispatching this mouse event, and Qt's C++ machinery then
+        # touches the freed object → SIGSEGV. singleShot(0) runs it after the
+        # event fully unwinds, when nothing holds the tile any more.
         cb = self._on_click
         if callable(cb):
-            try:
-                cb()
-            except Exception:
-                pass
+            QTimer.singleShot(0, cb)
 
 
 def _fmt_money(value: float) -> str:
