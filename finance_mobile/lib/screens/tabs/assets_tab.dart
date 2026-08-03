@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/analytics_service.dart';
 import '../../services/assets_service.dart';
 import '../../services/session_service.dart';
 import '../../theme/app_colors.dart';
@@ -22,16 +23,21 @@ class AssetsTab extends StatefulWidget {
 class _AssetsTabState extends State<AssetsTab> {
   final SessionService _session = const SessionService();
   late final AssetsService _assets;
+  late final AnalyticsService _analytics;
+  final PageController _page = PageController();
+  int _current = 0;
 
   bool _loading = true;
   bool _syncing = false;
   String? _error;
   List<Asset> _items = const [];
+  AnalyticsSummary _sum = AnalyticsSummary.empty;
 
   @override
   void initState() {
     super.initState();
     _assets = AssetsService(workspaceId: widget.workspaceId);
+    _analytics = AnalyticsService(workspaceId: widget.workspaceId);
     widget.refresh.addListener(_onRefresh);
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _pull(showToast: false));
@@ -40,7 +46,17 @@ class _AssetsTabState extends State<AssetsTab> {
   @override
   void dispose() {
     widget.refresh.removeListener(_onRefresh);
+    _page.dispose();
     super.dispose();
+  }
+
+  /// Average monthly expense for a movement category (from the analytics
+  /// window), used for the car cards.
+  double _avgMonthlyFor(String category) {
+    for (final c in _sum.avgByCategory) {
+      if (c.name.trim() == category.trim()) return c.amount;
+    }
+    return 0.0;
   }
 
   void _onRefresh() => _pull(showToast: false);
@@ -54,9 +70,16 @@ class _AssetsTabState extends State<AssetsTab> {
     });
     try {
       final items = await _assets.fetch(source: Source.server);
+      // Category averages for the car cards; never let it break the tab.
+      AnalyticsSummary sum = _sum;
+      try {
+        sum = await _analytics.compute(source: Source.server);
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _items = items;
+        _sum = sum;
+        if (_current >= items.length) _current = 0;
         _loading = false;
       });
       if (showToast && mounted) {
@@ -97,17 +120,81 @@ class _AssetsTabState extends State<AssetsTab> {
                       : _items.isEmpty
                           ? const Center(
                               child: Text('אין נכסים עדיין. הוסף נכס בדסקטופ.'))
-                          : ListView(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 4, 16, 110),
-                              children: [
-                                for (final a in _items) ..._assetBlock(a),
-                              ],
-                            ),
+                          : _carousel(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // ── carousel: one asset per page, arrows to move between them ──
+  Widget _carousel() {
+    final many = _items.length > 1;
+    return Column(
+      children: [
+        if (many) _navRow(),
+        Expanded(
+          child: PageView.builder(
+            controller: _page,
+            itemCount: _items.length,
+            onPageChanged: (i) => setState(() => _current = i),
+            itemBuilder: (_, i) => ListView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+              children: _assetBlock(_items[i]),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _go(int i) {
+    if (i < 0 || i >= _items.length) return;
+    _page.animateToPage(i,
+        duration: const Duration(milliseconds: 260), curve: Curves.easeOut);
+  }
+
+  Widget _navRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+      child: Row(
+        children: [
+          // RTL: right arrow → previous asset, left arrow → next asset.
+          _arrow(Icons.chevron_right, _current > 0, () => _go(_current - 1)),
+          Expanded(child: _dots()),
+          _arrow(Icons.chevron_left, _current < _items.length - 1,
+              () => _go(_current + 1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _arrow(IconData icon, bool enabled, VoidCallback onTap) {
+    return IconButton(
+      onPressed: enabled ? onTap : null,
+      icon: Icon(icon, size: 26),
+      color: enabled ? AppColors.ink : AppColors.line,
+      splashRadius: 22,
+    );
+  }
+
+  Widget _dots() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (int i = 0; i < _items.length; i++)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: i == _current ? 20 : 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: i == _current ? AppColors.lav : AppColors.line,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+      ],
     );
   }
 
@@ -116,6 +203,14 @@ class _AssetsTabState extends State<AssetsTab> {
       _hero(a),
       const SizedBox(height: 16),
     ];
+    if (a.isCar) {
+      if (a.hasDepreciation) {
+        widgets.add(_depreciationCard(a));
+        widgets.add(const SizedBox(height: 14));
+      }
+      widgets.add(_expensesCard(a));
+      widgets.add(const SizedBox(height: 16));
+    }
     if (a.isHouse && a.hasMortgage) {
       widgets.addAll([
         _mortgageDonut(a),
@@ -133,6 +228,102 @@ class _AssetsTabState extends State<AssetsTab> {
     }
     widgets.add(const SizedBox(height: 22));
     return widgets;
+  }
+
+  Widget _depreciationCard(Asset a) {
+    final retained = a.retainedFraction;
+    final pct = (retained * 100).round();
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Text('שווי מול מחיר קנייה',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.muted)),
+              const Spacer(),
+              Text('$pct%',
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.green)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 14,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: (retained * 1000).round().clamp(0, 1000),
+                    child: Container(color: AppColors.green),
+                  ),
+                  Expanded(
+                    flex: ((1 - retained) * 1000).round().clamp(0, 1000),
+                    child: Container(color: AppColors.clay),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _stat('שווי נוכחי',
+                  fmtMoney(a.currentValue, decimals: false), AppColors.green),
+              _stat('ירידת ערך', fmtMoney(a.valueLost, decimals: false),
+                  AppColors.clay),
+              _stat('מחיר קנייה',
+                  fmtMoney(a.purchasePrice, decimals: false), null),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _expensesCard(Asset a) {
+    final monthly = _avgMonthlyFor(a.category);
+    final yearly = monthly * 12;
+    final has = monthly > 0;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Text('הוצאות הרכב',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.muted)),
+              const Spacer(),
+              Text('קטגוריית ${a.category}',
+                  style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.muted)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _stat('ממוצע חודשי',
+                  has ? fmtMoney(monthly, decimals: false) : '—',
+                  AppColors.green),
+              _stat('ממוצע שנתי',
+                  has ? fmtMoney(yearly, decimals: false) : '—',
+                  const Color(0xFF7A6420)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _hero(Asset a) {

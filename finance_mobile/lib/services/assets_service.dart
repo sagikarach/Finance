@@ -87,14 +87,15 @@ class MortgageTrack {
 class Asset {
   final String id;
   final String name;
-  final String kind; // רכישה (house) / אחר (other)
-  final double currentValue; // for kind == אחר
-  final double propertyPrice; // for house
+  final String kind; // נדל״ן (house) / רכב (car) / אחר (other)
+  final double currentValue; // for car / other
+  final double propertyPrice; // for house = value; for car = purchase price
   final List<MortgageTrack> tracks;
   final String startDate;
   final bool archived;
   final bool sold;
   final double salePrice;
+  final String expenseCategory; // movement category for the car's avg expense
 
   Asset({
     required this.id,
@@ -107,6 +108,7 @@ class Asset {
     required this.archived,
     required this.sold,
     required this.salePrice,
+    required this.expenseCategory,
   });
 
   /// Kinds mirror the desktop `AssetKind`: נדל״ן (real estate; legacy "רכישה"
@@ -120,6 +122,21 @@ class Asset {
   double get value => isHouse ? propertyPrice : currentValue;
   bool get isActive => !archived && !sold;
   bool get hasMortgage => tracks.isNotEmpty;
+
+  // ── car depreciation: purchase price (property_price) vs current value ──
+  double get purchasePrice => propertyPrice;
+  bool get hasDepreciation => isCar && purchasePrice > 0;
+  double get valueLost =>
+      hasDepreciation ? (purchasePrice - currentValue).clamp(0.0, purchasePrice) : 0.0;
+  double get retainedFraction => (isCar && purchasePrice > 0)
+      ? (currentValue / purchasePrice).clamp(0.0, 1.0)
+      : 1.0;
+
+  /// Movement category driving the car's average expense (default "רכב").
+  String get category {
+    final c = expenseCategory.trim();
+    return c.isNotEmpty ? c : 'רכב';
+  }
   double get mortgagePrincipal =>
       tracks.fold(0.0, (acc, t) => acc + t.principal);
   double get monthlyPayment =>
@@ -148,6 +165,7 @@ class Asset {
       archived: _boolOf(d, 'archived'),
       sold: _boolOf(d, 'sold'),
       salePrice: _numOf(d, 'sale_price'),
+      expenseCategory: _strOf(d, 'expense_category'),
     );
   }
 }

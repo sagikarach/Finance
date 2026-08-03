@@ -260,6 +260,13 @@ class FirebaseWorkspaceWriter:
                 ],
                 "kind": str(getattr(mortgage.kind, "value", mortgage.kind)),
                 "current_value": float(getattr(mortgage, "current_value", 0.0) or 0.0),
+                "expense_category": str(
+                    getattr(mortgage, "expense_category", "") or ""
+                ),
+                "yearly_costs": [
+                    serialize_cost(c)
+                    for c in getattr(mortgage, "yearly_costs", []) or []
+                ],
                 "sold": bool(getattr(mortgage, "sold", False)),
                 "sale_price": float(getattr(mortgage, "sale_price", 0.0) or 0.0),
                 "sale_date": str(getattr(mortgage, "sale_date", "") or ""),
