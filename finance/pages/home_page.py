@@ -176,8 +176,16 @@ class HomePage(BasePage):
             pass
         bars_panel = self._chart_panel(parent_widget, "תזרים חודשי", bars)
 
-        donut = AccountsPieChart(accounts=overview.accounts, parent=parent_widget)
-        donut_panel = self._chart_panel(parent_widget, "פילוח חשבונות", donut)
+        asset_slices = (
+            [("נכסים (שווי נטו)", assets_net)] if assets_net > 0.5 else []
+        )
+        donut = AccountsPieChart(
+            accounts=overview.accounts,
+            parent=parent_widget,
+            extra_slices=asset_slices,
+        )
+        donut_title = "פילוח שווי" if asset_slices else "פילוח חשבונות"
+        donut_panel = self._chart_panel(parent_widget, donut_title, donut)
 
         charts_row = QHBoxLayout()
         charts_row.setSpacing(16)

@@ -31,10 +31,13 @@ class AccountsPieChart(QWidget):
         self,
         accounts: Optional[Sequence[MoneyAccount]] = None,
         parent: Optional[QWidget] = None,
+        extra_slices: Optional[Sequence[tuple]] = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("ChartCard")
         self._accounts: List[MoneyAccount] = list(accounts or [])
+        # ((label, value), ...) — non-account slices, e.g. assets' net worth.
+        self._extra_slices: List[tuple] = list(extra_slices or [])
         self._slice_to_marker: dict = {}
         self._was_hidden: bool = False
         self._layout = QVBoxLayout(self)
@@ -135,7 +138,16 @@ class AccountsPieChart(QWidget):
         gap_color = QColor("#111827" if is_dark else "#ffffff")  # = רקע הפאנל
         empty_color = QColor("#475569" if is_dark else "#d9dce0")
 
-        total = sum(max(a.total_amount, 0.0) for a in self._accounts)
+        entries = [
+            (str(a.name), max(a.total_amount, 0.0)) for a in self._accounts
+        ]
+        for name, value in self._extra_slices:
+            try:
+                entries.append((str(name), max(float(value), 0.0)))
+            except Exception:
+                continue
+        entries = [(n, v) for (n, v) in entries if v > 0.0]
+        total = sum(v for _, v in entries)
         if total <= 0:
             slice_ = series.append("אין נתונים", 1.0)
             try:
@@ -143,16 +155,11 @@ class AccountsPieChart(QWidget):
             except Exception:
                 pass
         else:
-            valid_accounts = [
-                (acc, max(acc.total_amount, 0.0))
-                for acc in self._accounts
-                if max(acc.total_amount, 0.0) > 0.0
-            ]
-            valid_accounts.sort(key=lambda item: item[1], reverse=True)
-            for account, value in valid_accounts:
-                s = series.append(account.name, value)
+            entries.sort(key=lambda item: item[1], reverse=True)
+            for name, value in entries:
+                s = series.append(name, value)
                 try:
-                    s.setProperty("baseLabel", account.name)
+                    s.setProperty("baseLabel", name)
                 except Exception:
                     pass
                 try:
