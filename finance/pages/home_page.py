@@ -14,6 +14,7 @@ from ..qt import (
 from ..data.provider import AccountsProvider
 from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
+from ..models.mortgage_service import MortgageService
 from ..models.yearly_report_service import YearlyReportService
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..widgets.monthly_cashflow_chart import MonthlyCashflowChart
@@ -59,6 +60,7 @@ class HomePage(BasePage):
 
     def _stat_card(
         self, parent: QWidget, object_name: str, title: str, value: str,
+        subtitle: str = "",
     ) -> QWidget:
         card = QWidget(parent)
         card.setObjectName(object_name)
@@ -73,7 +75,7 @@ class HomePage(BasePage):
             pass
         lay = QVBoxLayout(card)
         lay.setContentsMargins(20, 16, 20, 16)
-        lay.setSpacing(6)
+        lay.setSpacing(4)
         t = QLabel(title, card)
         t.setObjectName("StatTitle")
         v = QLabel(value, card)
@@ -81,6 +83,14 @@ class HomePage(BasePage):
         lay.addStretch(1)
         lay.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
         lay.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+        if subtitle:
+            s = QLabel(subtitle, card)
+            s.setObjectName("StatSubtle")
+            try:
+                s.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            except Exception:
+                pass
+            lay.addWidget(s, 0, Qt.AlignmentFlag.AlignHCenter)
         lay.addStretch(1)
         return card
 
@@ -120,13 +130,25 @@ class HomePage(BasePage):
         nets = [n for _, n in window]
         avg_net = (sum(nets) / len(nets)) if nets else 0.0
 
+        # ── net worth of assets (non-liquid), folded into the headline total ──
+        try:
+            assets_net = MortgageService().total_assets_net()
+        except Exception:
+            assets_net = 0.0
+
         # ── top row: three stat cards ──
         cards_row = QHBoxLayout()
         cards_row.setSpacing(16)
+        total_sub = (
+            f"כולל שווי נטו נכסים {format_currency(assets_net)}"
+            if abs(assets_net) > 0.5
+            else ""
+        )
         cards_row.addWidget(
             self._stat_card(
-                parent_widget, "DashHeroYellow", "סה״כ כסף",
-                format_currency(overview.total_all),
+                parent_widget, "DashHeroYellow", "סה״כ שווי",
+                format_currency(overview.total_all + assets_net),
+                subtitle=total_sub,
             ),
             3,
         )

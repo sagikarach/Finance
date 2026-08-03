@@ -248,6 +248,35 @@ class MortgageService:
             total += build_asset(m).standalone_value()
         return float(total)
 
+    def total_assets_net(
+        self,
+        *,
+        as_of_date: Optional[str] = None,
+        assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+        include_archived: bool = False,
+    ) -> float:
+        """שווי נטו של כלל הנכסים הפעילים: סך השווי הנוכחי פחות יתרת החוב
+        (משכנתאות/הלוואות). נכסים שנמכרו אינם נספרים. זהו ההון הלא-נזיל
+        שמתווסף לסך העושר במסך הראשי."""
+        from .asset import build_asset
+
+        value = 0.0
+        for m in self._mortgages_provider.list_mortgages():
+            if not include_archived and bool(getattr(m, "archived", False)):
+                continue
+            if bool(getattr(m, "sold", False)):
+                continue
+            try:
+                value += float(build_asset(m).current_value(as_of_date=as_of_date))
+            except Exception:
+                continue
+        debt = self.total_outstanding(
+            as_of_date=as_of_date,
+            assumptions=assumptions,
+            include_archived=include_archived,
+        )
+        return float(value - debt)
+
     def list_movements(self) -> List[BankMovement]:
         try:
             return list(self._movements_provider.list_movements())

@@ -51,6 +51,9 @@ def load_cards_light_styles() -> str:
     QWidget#DashHeroYellow QLabel#StatValueLarge {
         color: #2c2612; font-size: 40px; font-weight: 900;
     }
+    QWidget#DashHeroYellow QLabel#StatSubtle {
+        color: #8a7c52; font-size: 12px; font-weight: 700;
+    }
     QWidget#DashCard, QWidget#DashCardGreen {
         background: #ffffff;
         border: 1px solid #ecece2;
