@@ -109,11 +109,16 @@ class Asset {
     required this.salePrice,
   });
 
-  /// A missing `kind` defaults to house — matches the desktop deserializer
-  /// (mortgage_provider.py:59-66).
-  bool get isHouse => kind != 'אחר';
+  /// Kinds mirror the desktop `AssetKind`: נדל״ן (real estate; legacy "רכישה"
+  /// or a missing kind also count as this), רכב (car), אחר (other holding).
+  bool get isOther => kind == 'אחר';
+  bool get isCar => kind == 'רכב';
+  bool get isHouse => !isOther && !isCar;
 
+  /// Real estate is worth its property price; a car / other holding is worth
+  /// its manually-maintained current value.
   double get value => isHouse ? propertyPrice : currentValue;
+  bool get isActive => !archived && !sold;
   bool get hasMortgage => tracks.isNotEmpty;
   double get mortgagePrincipal =>
       tracks.fold(0.0, (acc, t) => acc + t.principal);
@@ -177,4 +182,11 @@ class AssetsService {
     });
     return out;
   }
+
+  /// Net worth of the active assets: sum of value minus mortgage principal
+  /// (the non-liquid wealth folded into the home balance). Mirrors the desktop
+  /// `MortgageService.total_assets_net`.
+  static double netWorth(List<Asset> assets) => assets
+      .where((a) => a.isActive)
+      .fold(0.0, (acc, a) => acc + a.value - a.mortgagePrincipal);
 }

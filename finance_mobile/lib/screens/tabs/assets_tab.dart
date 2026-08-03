@@ -136,18 +136,33 @@ class _AssetsTabState extends State<AssetsTab> {
   }
 
   Widget _hero(Asset a) {
-    final isHouse = a.isHouse;
+    final Color bg;
+    final String badge;
+    final String fallbackName;
+    if (a.isCar) {
+      bg = AppColors.yellowSoft;
+      badge = '🚗 רכב';
+      fallbackName = 'רכב';
+    } else if (a.isHouse) {
+      bg = AppColors.lav;
+      badge = '🏠 נדל״ן';
+      fallbackName = 'נדל״ן';
+    } else {
+      bg = AppColors.sage;
+      badge = '💼 נכס';
+      fallbackName = 'נכס';
+    }
     return HeroCard(
-      background: isHouse ? AppColors.lav : AppColors.sage,
+      background: bg,
       center: true,
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       children: [
         TagChip(
-          text: isHouse ? '🏠 בית' : '💼 נכס',
+          text: badge,
           color: const Color(0xFF39366A),
         ),
         const SizedBox(height: 10),
-        Text(a.name.isEmpty ? (isHouse ? 'בית' : 'נכס') : a.name,
+        Text(a.name.isEmpty ? fallbackName : a.name,
             textAlign: TextAlign.center,
             style: const TextStyle(
                 fontSize: 18,

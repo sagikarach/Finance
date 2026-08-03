@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/analytics_service.dart';
+import '../../services/assets_service.dart';
 import '../../services/bootstrap_service.dart';
 import '../../services/dashboard_meta_service.dart';
 import '../../services/session_service.dart';
@@ -39,12 +40,14 @@ class _HomeTabState extends State<HomeTab> {
   late final DashboardMetaService _meta;
   late final AnalyticsService _analytics;
   late final UserProfileService _profile;
+  late final AssetsService _assets;
 
   bool _loading = true;
   bool _syncing = false;
   String? _error;
   DashboardMeta? _dash;
   AnalyticsSummary _sum = AnalyticsSummary.empty;
+  double _assetsNet = 0.0; // non-liquid wealth folded into the total
   String _name = '';
 
   @override
@@ -54,6 +57,7 @@ class _HomeTabState extends State<HomeTab> {
     _meta = DashboardMetaService(workspaceId: widget.workspaceId);
     _analytics = AnalyticsService(workspaceId: widget.workspaceId);
     _profile = UserProfileService(workspaceId: widget.workspaceId);
+    _assets = AssetsService(workspaceId: widget.workspaceId);
     widget.refresh.addListener(_onRefresh);
     // Instant name from the local cache (avoids a wrong-name flash), then the
     // fresh value arrives with the sync.
@@ -84,10 +88,18 @@ class _HomeTabState extends State<HomeTab> {
       final dash = await _meta.fetch(source: Source.server);
       final sum = await _analytics.compute(source: Source.server);
       final name = await _profile.fetchDisplayName(_session.uid ?? '');
+      // Assets' net worth (non-liquid) — folded into the headline total. A
+      // failure here must not break the dashboard.
+      double assetsNet = _assetsNet;
+      try {
+        final assets = await _assets.fetch(source: Source.server);
+        assetsNet = AssetsService.netWorth(assets);
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _dash = dash;
         _sum = sum;
+        _assetsNet = assetsNet;
         if (name.isNotEmpty) _name = name;
         _loading = false;
       });
@@ -180,7 +192,8 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   List<Widget> _content() {
-    final totalAll = _dash?.totalAll ?? 0;
+    // Headline total = accounts + savings + assets' net worth (non-liquid).
+    final totalAll = (_dash?.totalAll ?? 0) + _assetsNet;
     final liquid = _dash?.totalLiquid ?? 0;
     final monthNet = _sum.avgMonthlyNet;
     final rawPct = _sum.avgMonthlyIncome > 0
@@ -242,7 +255,7 @@ class _HomeTabState extends State<HomeTab> {
                       color: Color(0xFF7A6420))),
             ),
             const SizedBox(width: 8),
-            const Text('סה״כ כסף',
+            const Text('סה״כ שווי',
                 style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
