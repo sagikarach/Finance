@@ -128,24 +128,16 @@ class _AssetsTabState extends State<AssetsTab> {
     );
   }
 
-  // ── carousel: one asset per page, arrows to move between them ──
+  // ── carousel: one asset per page; arrows live inside the value card ──
   Widget _carousel() {
-    final many = _items.length > 1;
-    return Column(
-      children: [
-        if (many) _navRow(),
-        Expanded(
-          child: PageView.builder(
-            controller: _page,
-            itemCount: _items.length,
-            onPageChanged: (i) => setState(() => _current = i),
-            itemBuilder: (_, i) => ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
-              children: _assetBlock(_items[i]),
-            ),
-          ),
-        ),
-      ],
+    return PageView.builder(
+      controller: _page,
+      itemCount: _items.length,
+      onPageChanged: (i) => setState(() => _current = i),
+      itemBuilder: (_, i) => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+        children: _assetBlock(_items[i], i),
+      ),
     );
   }
 
@@ -155,27 +147,21 @@ class _AssetsTabState extends State<AssetsTab> {
         duration: const Duration(milliseconds: 260), curve: Curves.easeOut);
   }
 
-  Widget _navRow() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
-      child: Row(
-        children: [
-          // RTL: right arrow → previous asset, left arrow → next asset.
-          _arrow(Icons.chevron_right, _current > 0, () => _go(_current - 1)),
-          Expanded(child: _dots()),
-          _arrow(Icons.chevron_left, _current < _items.length - 1,
-              () => _go(_current + 1)),
-        ],
+  /// An edge arrow overlaid inside the hero card (left/right).
+  Widget _cardArrow(IconData icon, bool enabled, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          width: 46,
+          child: Center(
+            child: Icon(icon,
+                size: 28, color: enabled ? Colors.black54 : Colors.black26),
+          ),
+        ),
       ),
-    );
-  }
-
-  Widget _arrow(IconData icon, bool enabled, VoidCallback onTap) {
-    return IconButton(
-      onPressed: enabled ? onTap : null,
-      icon: Icon(icon, size: 26),
-      color: enabled ? AppColors.ink : AppColors.line,
-      splashRadius: 22,
     );
   }
 
@@ -190,7 +176,7 @@ class _AssetsTabState extends State<AssetsTab> {
             width: i == _current ? 20 : 7,
             height: 7,
             decoration: BoxDecoration(
-              color: i == _current ? AppColors.lav : AppColors.line,
+              color: i == _current ? Colors.black54 : Colors.black26,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -198,9 +184,9 @@ class _AssetsTabState extends State<AssetsTab> {
     );
   }
 
-  List<Widget> _assetBlock(Asset a) {
+  List<Widget> _assetBlock(Asset a, int index) {
     final widgets = <Widget>[
-      _hero(a),
+      _hero(a, index),
       const SizedBox(height: 16),
     ];
     if (a.isCar) {
@@ -326,7 +312,8 @@ class _AssetsTabState extends State<AssetsTab> {
     );
   }
 
-  Widget _hero(Asset a) {
+  Widget _hero(Asset a, int index) {
+    final many = _items.length > 1;
     final Color bg;
     final String badge;
     final String fallbackName;
@@ -343,10 +330,12 @@ class _AssetsTabState extends State<AssetsTab> {
       badge = '💼 נכס';
       fallbackName = 'נכס';
     }
-    return HeroCard(
+    // Leave room on the sides for the edge arrows when there are several assets.
+    final side = many ? 44.0 : 18.0;
+    final card = HeroCard(
       background: bg,
       center: true,
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      padding: EdgeInsets.fromLTRB(side, 16, side, many ? 14 : 18),
       children: [
         TagChip(
           text: badge,
@@ -382,6 +371,31 @@ class _AssetsTabState extends State<AssetsTab> {
                 color: Color(0xFF1F7A4E)),
           ),
         ],
+        if (many) ...[
+          const SizedBox(height: 14),
+          _dots(),
+        ],
+      ],
+    );
+    if (!many) return card;
+    // Arrows inside the card, on its edges. RTL: right = next, left = previous.
+    return Stack(
+      children: [
+        card,
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: _cardArrow(Icons.chevron_left,
+              index < _items.length - 1, () => _go(index + 1)),
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          child: _cardArrow(
+              Icons.chevron_right, index > 0, () => _go(index - 1)),
+        ),
       ],
     );
   }
