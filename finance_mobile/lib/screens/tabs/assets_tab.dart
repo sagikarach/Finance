@@ -130,13 +130,21 @@ class _AssetsTabState extends State<AssetsTab> {
 
   // ── carousel: one asset per page; arrows live inside the value card ──
   Widget _carousel() {
-    return PageView.builder(
-      controller: _page,
-      itemCount: _items.length,
-      onPageChanged: (i) => setState(() => _current = i),
-      itemBuilder: (_, i) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-        children: _assetBlock(_items[i], i),
+    // LTR *paging* so the next page (index+1) sits to the right — matching the
+    // right-edge arrow and its slide direction. Each page keeps RTL content.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: PageView.builder(
+        controller: _page,
+        itemCount: _items.length,
+        onPageChanged: (i) => setState(() => _current = i),
+        itemBuilder: (_, i) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+            children: _assetBlock(_items[i], i),
+          ),
+        ),
       ),
     );
   }
@@ -166,21 +174,25 @@ class _AssetsTabState extends State<AssetsTab> {
   }
 
   Widget _dots() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (int i = 0; i < _items.length; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            width: i == _current ? 20 : 7,
-            height: 7,
-            decoration: BoxDecoration(
-              color: i == _current ? Colors.black54 : Colors.black26,
-              borderRadius: BorderRadius.circular(4),
+    // LTR so dot 0 is leftmost — matching the left-to-right page order.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (int i = 0; i < _items.length; i++)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: i == _current ? 20 : 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: i == _current ? Colors.black54 : Colors.black26,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -382,11 +394,12 @@ class _AssetsTabState extends State<AssetsTab> {
     return Stack(
       children: [
         card,
+        // Right edge → next (slides in from the right); left edge → previous.
         Positioned(
           right: 0,
           top: 0,
           bottom: 0,
-          child: _cardArrow(Icons.chevron_left,
+          child: _cardArrow(Icons.chevron_right,
               index < _items.length - 1, () => _go(index + 1)),
         ),
         Positioned(
@@ -394,7 +407,7 @@ class _AssetsTabState extends State<AssetsTab> {
           top: 0,
           bottom: 0,
           child: _cardArrow(
-              Icons.chevron_right, index > 0, () => _go(index - 1)),
+              Icons.chevron_left, index > 0, () => _go(index - 1)),
         ),
       ],
     );
