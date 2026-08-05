@@ -396,22 +396,21 @@ class _AssetsTabState extends State<AssetsTab> {
     return Stack(
       children: [
         card,
-        // Left arrow points left and slides the card left (index+1); right arrow
-        // points right and slides it right (index-1). With the LTR paging above,
-        // icon direction == side == slide direction.
+        // Arrows swapped: left arrow (‹) -> index-1, right arrow (›) -> index+1,
+        // so each arrow slides the card the way it points.
         Positioned(
           left: 0,
           top: 0,
           bottom: 0,
-          child: _cardArrow(Icons.chevron_left,
-              index < _items.length - 1, () => _go(index + 1)),
+          child: _cardArrow(
+              Icons.chevron_left, index > 0, () => _go(index - 1)),
         ),
         Positioned(
           right: 0,
           top: 0,
           bottom: 0,
-          child: _cardArrow(
-              Icons.chevron_right, index > 0, () => _go(index - 1)),
+          child: _cardArrow(Icons.chevron_right,
+              index < _items.length - 1, () => _go(index + 1)),
         ),
       ],
     );
