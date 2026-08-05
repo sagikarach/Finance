@@ -600,10 +600,16 @@ class AssetDetailPage(BasePage):
         grid.addLayout(r1)
         r2 = QHBoxLayout()
         r2.setSpacing(12)
+        # Real monthly + yearly expenses averaged from the movements, by category
+        # (same source as the car page). Houses default to the "מגורים" category.
+        exp_cat = str(getattr(m, "expense_category", "") or "").strip() or "מגורים"
+        avg_month, n_months = self._car_avg_monthly(exp_cat)
+        monthly_txt = f"{_fmt_money(avg_month)} ₪" if n_months > 0 else "—"
+        yearly_txt = f"{_fmt_money(avg_month * 12.0)} ₪" if n_months > 0 else "—"
         r2.addWidget(
             _DetailTile(
-                "עלויות חודשיות",
-                f"{_fmt_money(s.monthly_costs_total)} ₪ לחודש",
+                "הוצאות הבית",
+                f"ממוצע חודשי · {monthly_txt}\nממוצע שנתי · {yearly_txt}",
                 lambda: self._open_details_dialog("monthly"),
                 root,
             ),
