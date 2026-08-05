@@ -52,6 +52,7 @@ from ..models.asset import (
 )
 from ..models.mortgage_math import (
     cost_paid_amount,
+    cost_monthly_average,
     query_paid_amount,
     yearly_cost_cycles,
 )
@@ -345,7 +346,7 @@ class CostItemDialog(QDialog):
         # לעלויות שנתיות הסכום נגזר מהתנועות לכל מחזור — לכן אופציונלי.
         self._amount.setPlaceholderText(
             "סכום מתוכנן (אופציונלי — נגזר מהתנועות)"
-            if show_renewal
+            if (show_renewal or show_query)
             else "סכום מתוכנן"
         )
         root.addWidget(QLabel("סכום", self))
@@ -797,18 +798,24 @@ class AssetDetailPage(BasePage):
             self._on_remove_monthly_cost,
         )
         self._monthly_table = monthly_table
-        monthly_table.setColumnCount(2)
-        monthly_table.setHorizontalHeaderLabels(["רכיב", "סכום לחודש"])
+        movements = self._service.list_movements()
+        monthly_table.setColumnCount(3)
+        monthly_table.setHorizontalHeaderLabels(["רכיב", "חיפוש תנועות", "סכום לחודש"])
         monthly_table.doubleClicked.connect(self._on_edit_monthly_cost)
         monthly_table.setRowCount(len(self._monthly_costs) + 1)
         m_total = 0.0
         for i, c in enumerate(self._monthly_costs):
-            m_total += float(c.amount)
+            query = str(getattr(c, "query", "") or "").strip()
+            # When a movement search is set, the amount is DERIVED from the
+            # matched movements (monthly average); otherwise use the typed sum.
+            amount = cost_monthly_average(c, movements) if query else float(c.amount)
+            m_total += amount
             monthly_table.setItem(i, 0, QTableWidgetItem(str(c.name)))
-            monthly_table.setItem(i, 1, QTableWidgetItem(_fmt_money(c.amount)))
+            monthly_table.setItem(i, 1, QTableWidgetItem(query or "—"))
+            monthly_table.setItem(i, 2, QTableWidgetItem(_fmt_money(amount)))
         monthly_table.setItem(len(self._monthly_costs), 0, QTableWidgetItem("סה״כ"))
         monthly_table.setItem(
-            len(self._monthly_costs), 1, QTableWidgetItem(_fmt_money(m_total))
+            len(self._monthly_costs), 2, QTableWidgetItem(_fmt_money(m_total))
         )
         return monthly_card
 
@@ -1710,7 +1717,7 @@ class AssetDetailPage(BasePage):
         m = self._selected_asset()
         if m is None:
             return
-        dlg = CostItemDialog(show_query=False, parent=self)
+        dlg = CostItemDialog(show_query=True, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         cost = dlg.get_cost()
@@ -1723,7 +1730,7 @@ class AssetDetailPage(BasePage):
             QMessageBox.information(self, "עלות חודשית", "בחר עלות לעריכה")
             return
         dlg = CostItemDialog(
-            cost=self._monthly_costs[idx], show_query=False, parent=self
+            cost=self._monthly_costs[idx], show_query=True, parent=self
         )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return

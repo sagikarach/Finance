@@ -296,6 +296,32 @@ def yearly_cost_cycles(
     return [(y, float(totals[y])) for y in years]
 
 
+def cost_monthly_average(
+    cost: CostItem, movements: Optional[list] = None, *, months: int = 12
+) -> float:
+    """ממוצע חודשי של ההוצאה לפי חיפוש התנועות (``cost.query``): מקבצים את
+    התנועות התואמות לפי חודש ומחזירים את הממוצע על פני החודשים שיש בהם נתונים
+    (עד ``months`` האחרונים). כך הסכום נגזר מהתנועות ואין צורך להזין אותו."""
+    query = str(getattr(cost, "query", "") or "").strip()
+    if not query or not movements:
+        return 0.0
+    matched = match_movements(movements, vendor_query=query, include_transfers=False)
+    totals: Dict[tuple, float] = {}
+    for m in matched:
+        try:
+            amt = float(getattr(m, "amount", 0.0) or 0.0)
+        except Exception:
+            continue
+        dt = parse_iso_date(str(getattr(m, "date", "") or ""))
+        if dt.year <= 1900:
+            continue
+        totals[(dt.year, dt.month)] = totals.get((dt.year, dt.month), 0.0) + abs(amt)
+    if not totals:
+        return 0.0
+    keys = sorted(totals.keys())[-int(months):]
+    return sum(totals[k] for k in keys) / float(len(keys)) if keys else 0.0
+
+
 def cost_total_amount(cost: CostItem, movements: Optional[list] = None) -> float:
     """הסכום הכולל (המתוכנן) של שורת עלות — לחישוב עלות הרכישה. אם הוזן סכום
     מתוכנן משתמשים בו; אחרת נופלים לסכום ששולם בפועל (כשהוגדר רק חיפוש תנועות).
