@@ -389,21 +389,22 @@ class _AssetsTabState extends State<AssetsTab> {
     return Stack(
       children: [
         card,
-        // RTL: left edge → next (the next card enters from the left); right edge
-        // → previous. Arrow, tap, and slide all agree in one coordinate system.
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: _cardArrow(Icons.chevron_left,
-              index < _items.length - 1, () => _go(index + 1)),
-        ),
+        // Arrows stay put: next on the right, previous on the left. The PageView
+        // is RTL now, so the *slide* direction is flipped vs before — tapping the
+        // right (next) arrow slides the card to the right, next enters from left.
         Positioned(
           right: 0,
           top: 0,
           bottom: 0,
+          child: _cardArrow(Icons.chevron_right,
+              index < _items.length - 1, () => _go(index + 1)),
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
           child: _cardArrow(
-              Icons.chevron_right, index > 0, () => _go(index - 1)),
+              Icons.chevron_left, index > 0, () => _go(index - 1)),
         ),
       ],
     );
