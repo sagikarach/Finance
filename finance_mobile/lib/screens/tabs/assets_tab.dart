@@ -130,24 +130,18 @@ class _AssetsTabState extends State<AssetsTab> {
 
   // ── carousel: one asset per page; arrows live inside the value card ──
   Widget _carousel() {
-    // LTR *paging* so the slide direction is deterministic (verified by widget
-    // test): index+1 -> card slides LEFT, new enters from the RIGHT; index-1 ->
-    // slides RIGHT, new enters from the LEFT. The arrows below map the right (›)
-    // button to index+1 and the left (‹) button to index-1. Each page re-wraps
-    // its own content in RTL so the Hebrew text/numbers stay RTL.
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: PageView.builder(
-        controller: _page,
-        itemCount: _items.length,
-        onPageChanged: (i) => setState(() => _current = i),
-        itemBuilder: (_, i) => Directionality(
-          textDirection: TextDirection.rtl,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-            children: _assetBlock(_items[i], i),
-          ),
-        ),
+    // RTL *paging* (verified by widget test): index+1 -> card slides RIGHT;
+    // index-1 -> slides LEFT. With the arrows below (right/› -> index+1, left/‹
+    // -> index-1) each arrow slides the card the way it points. Arrow glyphs are
+    // forced LTR in _cardArrow so RTL doesn't mirror them. The app is already
+    // RTL, so the PageView inherits RTL paging.
+    return PageView.builder(
+      controller: _page,
+      itemCount: _items.length,
+      onPageChanged: (i) => setState(() => _current = i),
+      itemBuilder: (_, i) => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+        children: _assetBlock(_items[i], i),
       ),
     );
   }
@@ -398,8 +392,8 @@ class _AssetsTabState extends State<AssetsTab> {
     return Stack(
       children: [
         card,
-        // Right (›) -> index+1 (card slides left, new from right); left (‹) ->
-        // index-1 (slides right, new from left). Matches picked behavior "B".
+        // Right (›) -> index+1 (card slides right); left (‹) -> index-1 (slides
+        // left). Each arrow slides the card the way it points.
         Positioned(
           left: 0,
           top: 0,
