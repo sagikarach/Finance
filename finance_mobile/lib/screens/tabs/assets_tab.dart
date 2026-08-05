@@ -168,8 +168,12 @@ class _AssetsTabState extends State<AssetsTab> {
         child: SizedBox(
           width: 46,
           child: Center(
+            // Force LTR so the RTL layout doesn't mirror the chevron glyph:
+            // chevron_left stays ‹ and chevron_right stays › as placed.
             child: Icon(icon,
-                size: 28, color: enabled ? Colors.black54 : Colors.black26),
+                textDirection: TextDirection.ltr,
+                size: 28,
+                color: enabled ? Colors.black54 : Colors.black26),
           ),
         ),
       ),
