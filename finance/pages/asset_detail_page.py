@@ -318,6 +318,7 @@ class CostItemDialog(QDialog):
         cost: Optional[CostItem] = None,
         show_query: bool = True,
         show_renewal: bool = False,
+        show_amount: bool = True,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
@@ -349,8 +350,13 @@ class CostItemDialog(QDialog):
             if (show_renewal or show_query)
             else "סכום מתוכנן"
         )
-        root.addWidget(QLabel("סכום", self))
+        self._amount_label = QLabel("סכום", self)
+        root.addWidget(self._amount_label)
         root.addWidget(self._amount)
+        if not show_amount:
+            # Amount comes only from the movement search — hide the manual field.
+            self._amount_label.setVisible(False)
+            self._amount.setVisible(False)
 
         self._query = QLineEdit(self)
         self._query.setPlaceholderText("חיפוש תנועות (אופציונלי) — לחישוב ששולם בפועל")
@@ -602,12 +608,16 @@ class AssetDetailPage(BasePage):
         grid.addLayout(r1)
         r2 = QHBoxLayout()
         r2.setSpacing(12)
-        # Real monthly + yearly expenses averaged from the movements, by category
-        # (same source as the car page). Houses default to the "מגורים" category.
-        exp_cat = str(getattr(m, "expense_category", "") or "").strip() or "מגורים"
-        avg_month, n_months = self._car_avg_monthly(exp_cat)
-        monthly_txt = f"{_fmt_money(avg_month)} ₪" if n_months > 0 else "—"
-        yearly_txt = f"{_fmt_money(avg_month * 12.0)} ₪" if n_months > 0 else "—"
+        # Monthly + yearly expenses summed from the house's OWN cost items (the
+        # lists in the הוצאות הבית dialog), each derived from its movement search.
+        # NOT a category average.
+        monthly_sum, yearly_sum = self._house_expense_totals(m)
+        avg_month = monthly_sum + yearly_sum / 12.0
+        has_items = bool(getattr(m, "monthly_costs", None)) or bool(
+            getattr(m, "yearly_costs", None)
+        )
+        monthly_txt = f"{_fmt_money(avg_month)} ₪" if has_items else "—"
+        yearly_txt = f"{_fmt_money(avg_month * 12.0)} ₪" if has_items else "—"
         r2.addWidget(
             _DetailTile(
                 "הוצאות הבית",
@@ -644,6 +654,26 @@ class AssetDetailPage(BasePage):
         if key == "house_costs":
             return self._build_house_costs_panel(parent, m)
         return self._build_expenses_panel(parent, m)
+
+    def _house_expense_totals(self, m):
+        """(monthly_per_month, yearly_per_year) summed from the house's OWN cost
+        items — the lists in the הוצאות הבית dialog, NOT a category average.
+        Monthly items: derived from their movement search, else the typed sum.
+        Yearly items: the latest matched cycle, else the typed sum."""
+        movements = self._service.list_movements()
+        monthly = 0.0
+        for c in getattr(m, "monthly_costs", None) or []:
+            q = str(getattr(c, "query", "") or "").strip()
+            monthly += cost_monthly_average(c, movements) if q else float(c.amount)
+        yearly = 0.0
+        for c in getattr(m, "yearly_costs", None) or []:
+            q = str(getattr(c, "query", "") or "").strip()
+            if q:
+                cycles = yearly_cost_cycles(c, movements, n_cycles=1)
+                yearly += float(cycles[0][1]) if cycles else 0.0
+            else:
+                yearly += float(c.amount)
+        return monthly, yearly
 
     def _build_house_costs_panel(self, parent, m):
         """הוצאות הבית — ניהול העלויות החודשיות והשנתיות יחד, זו מעל זו."""
@@ -1717,7 +1747,7 @@ class AssetDetailPage(BasePage):
         m = self._selected_asset()
         if m is None:
             return
-        dlg = CostItemDialog(show_query=True, parent=self)
+        dlg = CostItemDialog(show_query=True, show_amount=False, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         cost = dlg.get_cost()
@@ -1730,7 +1760,10 @@ class AssetDetailPage(BasePage):
             QMessageBox.information(self, "עלות חודשית", "בחר עלות לעריכה")
             return
         dlg = CostItemDialog(
-            cost=self._monthly_costs[idx], show_query=True, parent=self
+            cost=self._monthly_costs[idx],
+            show_query=True,
+            show_amount=False,
+            parent=self,
         )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
