@@ -132,17 +132,24 @@ class _AssetsTabState extends State<AssetsTab> {
   Widget _carousel() {
     // LTR *paging* so the next page (index+1) sits to the right — matching the
     // right-edge arrow and its slide direction. Each page keeps RTL content.
-    // Native RTL paging: next (index+1) enters from the LEFT, previous from the
-    // RIGHT — how every Hebrew app pages. The app is already RTL, so we do NOT
-    // override Directionality here; forcing LTR before is what made the arrows
-    // fight the slide.
-    return PageView.builder(
-      controller: _page,
-      itemCount: _items.length,
-      onPageChanged: (i) => setState(() => _current = i),
-      itemBuilder: (_, i) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-        children: _assetBlock(_items[i], i),
+    // Force LTR *paging* so the slide direction is deterministic and matches the
+    // arrows: a LOWER index slides the card RIGHT, a HIGHER index slides it LEFT.
+    // Paired with the arrows below (right/› -> index-1 -> slides right; left/‹ ->
+    // index+1 -> slides left) the icon, its side, and the slide all agree. Each
+    // page re-wraps its own content in RTL so the Hebrew text/numbers stay RTL.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: PageView.builder(
+        controller: _page,
+        itemCount: _items.length,
+        onPageChanged: (i) => setState(() => _current = i),
+        itemBuilder: (_, i) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+            children: _assetBlock(_items[i], i),
+          ),
+        ),
       ),
     );
   }
@@ -389,8 +396,9 @@ class _AssetsTabState extends State<AssetsTab> {
     return Stack(
       children: [
         card,
-        // Arrows switched: next on the LEFT, previous on the RIGHT. Animation
-        // (RTL PageView slide) is unchanged — only which side triggers next/prev.
+        // Left arrow points left and slides the card left (index+1); right arrow
+        // points right and slides it right (index-1). With the LTR paging above,
+        // icon direction == side == slide direction.
         Positioned(
           left: 0,
           top: 0,
