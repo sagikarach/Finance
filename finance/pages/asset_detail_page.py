@@ -20,6 +20,7 @@ from ..qt import (
     QTableWidget,
     QTableWidgetItem,
     QHeaderView,
+    QScrollArea,
     QSizePolicy,
     Qt,
     QDate,
@@ -610,7 +611,7 @@ class AssetDetailPage(BasePage):
             _DetailTile(
                 "הוצאות הבית",
                 f"ממוצע חודשי · {monthly_txt}\nממוצע שנתי · {yearly_txt}",
-                lambda: self._open_details_dialog("monthly"),
+                lambda: self._open_details_dialog("house_costs"),
                 root,
             ),
             1,
@@ -626,19 +627,6 @@ class AssetDetailPage(BasePage):
             1,
         )
         grid.addLayout(r2)
-        r3 = QHBoxLayout()
-        r3.setSpacing(12)
-        r3.addWidget(
-            _DetailTile(
-                "עלויות שנתיות",
-                f"ביטוח · ארנונה · אגרות  ·  {len(m.yearly_costs)} פריטים · "
-                "הוסף/ערוך",
-                self._open_yearly_costs_dialog,
-                root,
-            ),
-            1,
-        )
-        grid.addLayout(r3)
         lay.addLayout(grid, 0)
 
         lay.addStretch(1)
@@ -652,7 +640,24 @@ class AssetDetailPage(BasePage):
             return self._build_funding_panel(parent, m, s)
         if key == "monthly":
             return self._build_monthly_panel(parent, m)
+        if key == "house_costs":
+            return self._build_house_costs_panel(parent, m)
         return self._build_expenses_panel(parent, m)
+
+    def _build_house_costs_panel(self, parent, m):
+        """הוצאות הבית — ניהול העלויות החודשיות והשנתיות יחד, זו מעל זו."""
+        scroll = QScrollArea(parent)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        inner = QWidget(scroll)
+        v = QVBoxLayout(inner)
+        v.setContentsMargins(0, 0, 0, 0)
+        v.setSpacing(16)
+        v.addWidget(self._build_monthly_panel(inner, m))
+        v.addWidget(self._build_yearly_panel(inner, m))
+        v.addStretch(1)
+        scroll.setWidget(inner)
+        return scroll
 
     def _build_expenses_panel(self, parent, m):
         movements = self._service.list_movements()
@@ -1300,6 +1305,9 @@ class AssetDetailPage(BasePage):
         self._service.upsert_mortgage(replace(m, yearly_costs=list(costs)))
         self.on_route_activated()
         self._refresh_yearly_dialog()
+        # When reached from the house "הוצאות הבית" dialog (not the standalone
+        # yearly dialog), refresh that combined panel too.
+        self._refresh_details_dialog()
 
     def _on_add_yearly_cost(self):
         m = self._selected_asset()
@@ -1531,6 +1539,7 @@ class AssetDetailPage(BasePage):
             "expenses": "עלויות רכישה",
             "income": "מקורות מימון",
             "monthly": "עלויות חודשיות",
+            "house_costs": "הוצאות הבית — חודשי ושנתי",
         }
         dlg = QDialog(self)
         dlg.setWindowTitle(titles.get(initial_tab, "פרטי הנכס"))
