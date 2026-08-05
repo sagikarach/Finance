@@ -626,6 +626,19 @@ class AssetDetailPage(BasePage):
             1,
         )
         grid.addLayout(r2)
+        r3 = QHBoxLayout()
+        r3.setSpacing(12)
+        r3.addWidget(
+            _DetailTile(
+                "עלויות שנתיות",
+                f"ביטוח · ארנונה · אגרות  ·  {len(m.yearly_costs)} פריטים · "
+                "הוסף/ערוך",
+                self._open_yearly_costs_dialog,
+                root,
+            ),
+            1,
+        )
+        grid.addLayout(r3)
         lay.addLayout(grid, 0)
 
         lay.addStretch(1)
