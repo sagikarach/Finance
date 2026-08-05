@@ -130,13 +130,11 @@ class _AssetsTabState extends State<AssetsTab> {
 
   // ── carousel: one asset per page; arrows live inside the value card ──
   Widget _carousel() {
-    // LTR *paging* so the next page (index+1) sits to the right — matching the
-    // right-edge arrow and its slide direction. Each page keeps RTL content.
-    // Force LTR *paging* so the slide direction is deterministic and matches the
-    // arrows: a LOWER index slides the card RIGHT, a HIGHER index slides it LEFT.
-    // Paired with the arrows below (right/› -> index-1 -> slides right; left/‹ ->
-    // index+1 -> slides left) the icon, its side, and the slide all agree. Each
-    // page re-wraps its own content in RTL so the Hebrew text/numbers stay RTL.
+    // LTR *paging* so the slide direction is deterministic (verified by widget
+    // test): index+1 -> card slides LEFT, new enters from the RIGHT; index-1 ->
+    // slides RIGHT, new enters from the LEFT. The arrows below map the right (›)
+    // button to index+1 and the left (‹) button to index-1. Each page re-wraps
+    // its own content in RTL so the Hebrew text/numbers stay RTL.
     return Directionality(
       textDirection: TextDirection.ltr,
       child: PageView.builder(
@@ -392,12 +390,12 @@ class _AssetsTabState extends State<AssetsTab> {
       ],
     );
     if (!many) return card;
-    // Arrows inside the card, on its edges. RTL: right = next, left = previous.
+    // Arrows inside the card, on its edges.
     return Stack(
       children: [
         card,
-        // Arrows swapped: left arrow (‹) -> index-1, right arrow (›) -> index+1,
-        // so each arrow slides the card the way it points.
+        // Right (›) -> index+1 (card slides left, new from right); left (‹) ->
+        // index-1 (slides right, new from left). Matches picked behavior "B".
         Positioned(
           left: 0,
           top: 0,
