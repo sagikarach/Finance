@@ -132,19 +132,17 @@ class _AssetsTabState extends State<AssetsTab> {
   Widget _carousel() {
     // LTR *paging* so the next page (index+1) sits to the right — matching the
     // right-edge arrow and its slide direction. Each page keeps RTL content.
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: PageView.builder(
-        controller: _page,
-        itemCount: _items.length,
-        onPageChanged: (i) => setState(() => _current = i),
-        itemBuilder: (_, i) => Directionality(
-          textDirection: TextDirection.rtl,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-            children: _assetBlock(_items[i], i),
-          ),
-        ),
+    // Native RTL paging: next (index+1) enters from the LEFT, previous from the
+    // RIGHT — how every Hebrew app pages. The app is already RTL, so we do NOT
+    // override Directionality here; forcing LTR before is what made the arrows
+    // fight the slide.
+    return PageView.builder(
+      controller: _page,
+      itemCount: _items.length,
+      onPageChanged: (i) => setState(() => _current = i),
+      itemBuilder: (_, i) => ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+        children: _assetBlock(_items[i], i),
       ),
     );
   }
@@ -174,25 +172,22 @@ class _AssetsTabState extends State<AssetsTab> {
   }
 
   Widget _dots() {
-    // LTR so dot 0 is leftmost — matching the left-to-right page order.
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (int i = 0; i < _items.length; i++)
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: i == _current ? 20 : 7,
-              height: 7,
-              decoration: BoxDecoration(
-                color: i == _current ? Colors.black54 : Colors.black26,
-                borderRadius: BorderRadius.circular(4),
-              ),
+    // Native RTL: dot 0 sits on the right, matching the RTL page order.
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (int i = 0; i < _items.length; i++)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            width: i == _current ? 20 : 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: i == _current ? Colors.black54 : Colors.black26,
+              borderRadius: BorderRadius.circular(4),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
@@ -394,20 +389,21 @@ class _AssetsTabState extends State<AssetsTab> {
     return Stack(
       children: [
         card,
-        // Right edge → next (slides in from the right); left edge → previous.
-        Positioned(
-          right: 0,
-          top: 0,
-          bottom: 0,
-          child: _cardArrow(Icons.chevron_right,
-              index < _items.length - 1, () => _go(index + 1)),
-        ),
+        // RTL: left edge → next (the next card enters from the left); right edge
+        // → previous. Arrow, tap, and slide all agree in one coordinate system.
         Positioned(
           left: 0,
           top: 0,
           bottom: 0,
+          child: _cardArrow(Icons.chevron_left,
+              index < _items.length - 1, () => _go(index + 1)),
+        ),
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
           child: _cardArrow(
-              Icons.chevron_left, index > 0, () => _go(index - 1)),
+              Icons.chevron_right, index > 0, () => _go(index - 1)),
         ),
       ],
     );
