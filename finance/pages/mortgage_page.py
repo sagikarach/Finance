@@ -1007,9 +1007,9 @@ class MortgagePage(BasePage):
         try:
             from ..utils.icons import apply_icon
 
-            apply_icon(back_btn, "arrow_left", size=20, is_dark=self._is_dark_theme())
+            apply_icon(back_btn, "arrow_right", size=20, is_dark=self._is_dark_theme())
         except Exception:
-            back_btn.setText("←")
+            back_btn.setText("→")
         back_btn.setToolTip("חזרה לעמוד הנכס")
         if self._navigate is not None:
             back_btn.clicked.connect(lambda: self._navigate("asset"))
