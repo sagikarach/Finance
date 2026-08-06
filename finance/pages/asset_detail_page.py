@@ -676,6 +676,33 @@ class AssetDetailPage(BasePage):
                 yearly += float(c.amount)
         return monthly, yearly
 
+    def _mortgage_actual_monthly(self, m):
+        """The mortgage payment as ACTUALLY paid — matched bank movements averaged
+        per month over the last 12 months with data. The mortgage isn't a fixed
+        sum, so we read reality rather than the amortization figure; 0 until real
+        payments appear in the movements."""
+        try:
+            paid = self._service.match_movements(m)
+        except Exception:
+            return 0.0
+        from collections import defaultdict
+        totals = defaultdict(float)
+        for x in paid:
+            try:
+                amt = float(getattr(x, "amount", 0.0) or 0.0)
+            except Exception:
+                continue
+            if amt >= 0:
+                continue
+            dt = parse_iso_date(str(getattr(x, "date", "") or ""))
+            if dt.year <= 1900:
+                continue
+            totals[(dt.year, dt.month)] += -amt
+        if not totals:
+            return 0.0
+        keys = sorted(totals.keys())[-12:]
+        return sum(totals[k] for k in keys) / float(len(keys))
+
     def _build_house_costs_panel(self, parent, m):
         """הוצאות הבית — ניהול העלויות החודשיות והשנתיות יחד, זו מעל זו."""
         scroll = QScrollArea(parent)
@@ -1584,7 +1611,8 @@ class AssetDetailPage(BasePage):
         # yearly = ×12. Nothing else is included.
         monthly_sum, yearly_sum = self._house_expense_totals(m)
         house_month = monthly_sum + yearly_sum / 12.0
-        mortgage_month = float(s.mortgage_monthly)
+        # Mortgage from ACTUAL movements (option 2), not the amortization figure.
+        mortgage_month = self._mortgage_actual_monthly(m)
         total_month = house_month + mortgage_month
         total_year = total_month * 12.0
 
