@@ -56,6 +56,7 @@ from ..models.mortgage_math import (
     query_paid_amount,
     yearly_cost_cycles,
 )
+from ..models.movement_matching import match_movements
 from .mortgage_page import HousePurchaseDialog
 from .base_page import BasePage
 
@@ -991,11 +992,12 @@ class AssetDetailPage(BasePage):
         row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
         return strip
 
-    def _car_avg_monthly(self, category, months=12):
+    def _car_avg_monthly(self, category, months=12, exclude_queries=None):
         """Average monthly spend in ``category`` over the last ``months`` months
         that have data. This is a household figure by category — with two cars
         on the same category it's their combined spend; give each car its own
-        category to split it."""
+        category to split it. ``exclude_queries`` drops movements matched by those
+        searches (e.g. the yearly items) so only the monthly spend remains."""
         cat = str(category or "").strip()
         if not cat:
             return 0.0, 0
@@ -1003,10 +1005,19 @@ class AssetDetailPage(BasePage):
             movements = self._service.list_movements()
         except Exception:
             return 0.0, 0
+        excluded = set()
+        for q in exclude_queries or []:
+            qq = str(q or "").strip()
+            if not qq:
+                continue
+            for mm in match_movements(movements, vendor_query=qq):
+                excluded.add(id(mm))
         from collections import defaultdict
         totals = defaultdict(float)
         for mv in movements:
             if str(getattr(mv, "category", "") or "").strip() != cat:
+                continue
+            if id(mv) in excluded:
                 continue
             try:
                 amt = float(getattr(mv, "amount", 0.0) or 0.0)
@@ -1072,14 +1083,40 @@ class AssetDetailPage(BasePage):
         wl.setContentsMargins(0, 0, 0, 0)
         wl.setSpacing(12)
 
-        avg, n = self._car_avg_monthly(a.expense_category)
+        # Monthly = the car-category spend EXCLUDING the yearly items (so they're
+        # not double-counted), PLUS the yearly items amortized (÷12). The yearly
+        # items are the ones defined on the car's עלויות שנתיות manager.
+        m = getattr(a, "record", None)
+        yearly_costs = list(getattr(m, "yearly_costs", []) or []) if m else []
+        yearly_queries = [
+            q
+            for q in (str(getattr(c, "query", "") or "").strip() for c in yearly_costs)
+            if q
+        ]
+        recurring, n = self._car_avg_monthly(
+            a.expense_category, exclude_queries=yearly_queries
+        )
+        movements = self._service.list_movements()
+        yearly_total = 0.0
+        for c in yearly_costs:
+            q = str(getattr(c, "query", "") or "").strip()
+            if q:
+                cyc = yearly_cost_cycles(c, movements, n_cycles=1)
+                yearly_total += float(cyc[0][1]) if cyc else 0.0
+            else:
+                yearly_total += float(getattr(c, "amount", 0.0) or 0.0)
+        avg = recurring + yearly_total / 12.0
+        has_data = n > 0 or yearly_total > 0
         trow = QHBoxLayout()
         trow.setContentsMargins(4, 2, 4, 0)
         t = QLabel("הוצאות הרכב", wrap)
         t.setStyleSheet("font-size:16px;font-weight:800;color:#1e1e22;background:transparent;")
         note = QLabel(
-            f"ממוצע לפי קטגוריית ״{a.expense_category}״ · {n} חודשים אחרונים"
-            if n > 0
+            (
+                f"קטגוריית ״{a.expense_category}״ (חודשי)"
+                + (" + עלויות שנתיות" if yearly_total > 0 else "")
+            )
+            if has_data
             else f"אין תנועות בקטגוריית ״{a.expense_category}״",
             wrap,
         )
@@ -1089,8 +1126,8 @@ class AssetDetailPage(BasePage):
         trow.addWidget(note, 0)
         wl.addLayout(trow)
 
-        monthly_txt = _fmt_money(avg) if n > 0 else "—"
-        yearly_txt = _fmt_money(avg * 12.0) if n > 0 else "—"
+        monthly_txt = _fmt_money(avg) if has_data else "—"
+        yearly_txt = _fmt_money(avg * 12.0) if has_data else "—"
         cards = QHBoxLayout()
         cards.setSpacing(16)
         cards.addWidget(
