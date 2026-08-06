@@ -577,7 +577,7 @@ class AssetDetailPage(BasePage):
         two.addWidget(self._build_status_panel(root, st), 1)
         lay.addLayout(two, 0)
 
-        lay.addWidget(self._build_allin_strip(root, s), 0)
+        lay.addWidget(self._build_allin_strip(root, m, s), 0)
 
         details_title = QLabel("פרטים נוספים", root)
         details_title.setObjectName("PanelTitle")
@@ -1578,32 +1578,53 @@ class AssetDetailPage(BasePage):
         pl.addStretch(1)
         return panel
 
-    def _build_allin_strip(self, parent, s):
+    def _build_allin_strip(self, parent, m, s):
         strip = QWidget(parent)
         strip.setObjectName("AllInStrip")
         try:
             strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         except Exception:
             pass
+        # Total = the mortgage payment + הוצאות הבית (its monthly average). The
+        # yearly is that × 12. Nothing else is included.
+        monthly_sum, yearly_sum = self._house_expense_totals(m)
+        house_month = monthly_sum + yearly_sum / 12.0
+        mortgage_month = float(s.mortgage_monthly)
+        total_month = house_month + mortgage_month
+        total_year = total_month * 12.0
         row = QHBoxLayout(strip)
         row.setContentsMargins(20, 16, 20, 16)
         row.setSpacing(12)
         col = QVBoxLayout()
         col.setSpacing(3)
-        k = QLabel("תשלום חודשי כולל", strip)
+        k = QLabel("הוצאות על הבית", strip)
         k.setObjectName("AllInKey")
         sub = QLabel(
-            f"משכנתא {_fmt_money(s.mortgage_monthly)} ₪ · "
-            f"עלויות נלוות {_fmt_money(s.monthly_costs_total)} ₪",
+            f"משכנתא {_fmt_money(mortgage_month)} ₪ + "
+            f"הוצאות הבית {_fmt_money(house_month)} ₪",
             strip,
         )
         sub.setObjectName("AllInSub")
         col.addWidget(k)
         col.addWidget(sub)
         row.addLayout(col, 1)
-        val = QLabel(f"{_fmt_money(s.monthly_total)} ₪", strip)
-        val.setObjectName("AllInVal")
-        row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        def _val_block(caption, amount):
+            c = QVBoxLayout()
+            c.setSpacing(1)
+            v = QLabel(f"{_fmt_money(amount)} ₪", strip)
+            v.setObjectName("AllInVal")
+            v.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            cap = QLabel(caption, strip)
+            cap.setObjectName("AllInSub")
+            cap.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            c.addWidget(v)
+            c.addWidget(cap)
+            return c
+
+        row.addLayout(_val_block("לחודש", total_month), 0)
+        row.addSpacing(8)
+        row.addLayout(_val_block("לשנה", total_year), 0)
         return strip
 
     # -------------------------------------------------------- detail dialogs
