@@ -1105,7 +1105,10 @@ class AssetDetailPage(BasePage):
                 yearly_total += float(cyc[0][1]) if cyc else 0.0
             else:
                 yearly_total += float(getattr(c, "amount", 0.0) or 0.0)
-        avg = recurring + yearly_total / 12.0
+        # Monthly card = the car-category MONTHLY spend only (yearly items already
+        # excluded above). Yearly card = that annualized PLUS the yearly items.
+        avg_month = recurring
+        avg_year = recurring * 12.0 + yearly_total
         has_data = n > 0 or yearly_total > 0
         trow = QHBoxLayout()
         trow.setContentsMargins(4, 2, 4, 0)
@@ -1126,8 +1129,8 @@ class AssetDetailPage(BasePage):
         trow.addWidget(note, 0)
         wl.addLayout(trow)
 
-        monthly_txt = _fmt_money(avg) if has_data else "—"
-        yearly_txt = _fmt_money(avg * 12.0) if has_data else "—"
+        monthly_txt = _fmt_money(avg_month) if has_data else "—"
+        yearly_txt = _fmt_money(avg_year) if has_data else "—"
         cards = QHBoxLayout()
         cards.setSpacing(16)
         cards.addWidget(
