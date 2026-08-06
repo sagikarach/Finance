@@ -79,7 +79,9 @@ def load_buttons_light_styles() -> str:
         font-weight: 800;
         color: #0f172a;
     }
-    QToolButton#EventSelectorButton::menu-indicator {
+    QToolButton#EventSelectorButton::menu-indicator,
+    QToolButton#IconButton::menu-indicator,
+    QToolButton#HeaderIconButton::menu-indicator {
         image: none;
         width: 0px;
         height: 0px;
@@ -228,7 +230,9 @@ def load_buttons_dark_styles() -> str:
         font-weight: 800;
         color: #e5e7eb;
     }
-    QToolButton#EventSelectorButton::menu-indicator {
+    QToolButton#EventSelectorButton::menu-indicator,
+    QToolButton#IconButton::menu-indicator,
+    QToolButton#HeaderIconButton::menu-indicator {
         image: none;
         width: 0px;
         height: 0px;

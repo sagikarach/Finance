@@ -15,11 +15,25 @@ def load_menus_light_styles() -> str:
     }
     QMenu {
         background: #ffffff;
-        color: #111827;
-        border: 1px solid #e5e7eb;
+        color: #1E1E22;
+        border: 1px solid #E7E4DB;
+        border-radius: 12px;
+        padding: 6px;
+    }
+    QMenu::item {
+        background: transparent;
+        padding: 9px 18px 9px 14px;
+        border-radius: 8px;
+        margin: 1px 2px;
     }
     QMenu::item:selected {
-        background: #f1f5f9;
+        background: #EFEDE4;
+        color: #1E1E22;
+    }
+    QMenu::separator {
+        height: 1px;
+        background: #ECEAE2;
+        margin: 5px 10px;
     }
     """
 
@@ -37,11 +51,25 @@ def load_menus_dark_styles() -> str:
         border-radius: 6px;
     }
     QMenu {
-        background: #020617;
-        color: #e5e7eb;
-        border: 1px solid #1f2937;
+        background: #242219;
+        color: #F3F1EA;
+        border: 1px solid #332f24;
+        border-radius: 12px;
+        padding: 6px;
+    }
+    QMenu::item {
+        background: transparent;
+        padding: 9px 18px 9px 14px;
+        border-radius: 8px;
+        margin: 1px 2px;
     }
     QMenu::item:selected {
-        background: #111827;
+        background: #3a3428;
+        color: #F3F1EA;
+    }
+    QMenu::separator {
+        height: 1px;
+        background: #332f24;
+        margin: 5px 10px;
     }
     """
