@@ -17,12 +17,12 @@ def load_menus_light_styles() -> str:
         background-color: #ffffff;
         color: #1E1E22;
         border: 1px solid #E7E4DB;
-        padding: 6px;
+        padding: 0px;
     }
     QMenu::item {
         background-color: #ffffff;
-        padding: 9px 18px 9px 14px;
-        margin: 1px 2px;
+        padding: 10px 18px;
+        margin: 0px;
     }
     QMenu::item:selected {
         background-color: #EFEDE4;
@@ -30,8 +30,8 @@ def load_menus_light_styles() -> str:
     }
     QMenu::separator {
         height: 1px;
-        background: #ECEAE2;
-        margin: 5px 10px;
+        background-color: #ECEAE2;
+        margin: 0px;
     }
     """
 
@@ -52,12 +52,12 @@ def load_menus_dark_styles() -> str:
         background-color: #242219;
         color: #F3F1EA;
         border: 1px solid #332f24;
-        padding: 6px;
+        padding: 0px;
     }
     QMenu::item {
         background-color: #242219;
-        padding: 9px 18px 9px 14px;
-        margin: 1px 2px;
+        padding: 10px 18px;
+        margin: 0px;
     }
     QMenu::item:selected {
         background-color: #3a3428;
@@ -65,7 +65,7 @@ def load_menus_dark_styles() -> str:
     }
     QMenu::separator {
         height: 1px;
-        background: #332f24;
-        margin: 5px 10px;
+        background-color: #332f24;
+        margin: 0px;
     }
     """
