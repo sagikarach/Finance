@@ -979,31 +979,6 @@ class AssetDetailPage(BasePage):
             pl.addWidget(self._legend_row(panel, "#e6e2d4", "מחיר קנייה", initial))
         return panel
 
-    def _build_yearly_strip(self, parent, total, count):
-        strip = QWidget(parent)
-        strip.setObjectName("AllInStrip")
-        try:
-            strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        row = QHBoxLayout(strip)
-        row.setContentsMargins(20, 16, 20, 16)
-        row.setSpacing(12)
-        col = QVBoxLayout()
-        col.setSpacing(3)
-        k = QLabel("עלויות שנתיות שוטפות", strip)
-        k.setObjectName("AllInKey")
-        monthly = (total / 12.0) if total else 0.0
-        sub = QLabel(f"{count} פריטים · כ-{_fmt_money(monthly)} ₪ לחודש", strip)
-        sub.setObjectName("AllInSub")
-        col.addWidget(k)
-        col.addWidget(sub)
-        row.addLayout(col, 1)
-        val = QLabel(f"{_fmt_money(total)} ₪", strip)
-        val.setObjectName("AllInVal")
-        row.addWidget(val, 0, Qt.AlignmentFlag.AlignVCenter)
-        return strip
-
     def _car_avg_monthly(self, category, months=12, exclude_queries=None):
         """Average monthly spend in ``category`` over the last ``months`` months
         that have data. This is a household figure by category — with two cars
