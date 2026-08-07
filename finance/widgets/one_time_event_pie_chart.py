@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .donut_utils import PASTEL_HEX
+
 from typing import Dict, Optional
 
 from ..qt import (
@@ -95,10 +97,7 @@ class OneTimeEventPieChart(QWidget):
         else:
             items = list(by_category_expense.items())
             # Pastel categorical palette — matches the monthly/accounts donuts.
-            palette = [
-                "#B9B6F0", "#C6D3B4", "#F2D06B", "#E9A491",
-                "#9BB4E6", "#8FBF9F", "#E0B0D8", "#F7E2A6",
-            ]
+            palette = list(PASTEL_HEX)
             for idx, (cat, amount) in enumerate(items):
                 s = series.append(cat, float(amount))
                 try:

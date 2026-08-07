@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .donut_utils import PASTEL_HEX, qcolor_to_hex as _qcolor_to_hex
+
 from typing import List, Optional
 
 from ..models.monthly_report import CategoryMonthlyBreakdown
@@ -139,10 +141,7 @@ class CategoryPieChart(QWidget):
                     "#9BB4E6", "#F7E2A6", "#7FB3B3", "#E0B0D8",
                 ]
             else:
-                palette = [
-                    "#B9B6F0", "#C6D3B4", "#F2D06B", "#E9A491",
-                    "#9BB4E6", "#8FBF9F", "#E0B0D8", "#F7E2A6",
-                ]
+                palette = list(PASTEL_HEX)
 
             for idx, breakdown in enumerate(sorted_breakdowns):
                 s = series.append(breakdown.category, breakdown.total_amount)
@@ -258,9 +257,3 @@ class CategoryPieChart(QWidget):
         except Exception:
             pass
 
-
-def _qcolor_to_hex(c: QColor) -> str:
-    try:
-        return f"#{c.red():02x}{c.green():02x}{c.blue():02x}"
-    except Exception:
-        return "#000000"

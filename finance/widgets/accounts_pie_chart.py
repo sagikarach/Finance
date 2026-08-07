@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .donut_utils import qcolor_to_hex as _qcolor_to_hex
+
 from typing import List, Optional, Sequence
 
 from ..models.accounts import MoneyAccount
@@ -323,11 +325,4 @@ class AccountsPieChart(QWidget):
                 pass
         except Exception:
             pass
-
-
-def _qcolor_to_hex(c: QColor) -> str:
-    try:
-        return "#{:02x}{:02x}{:02x}".format(c.red(), c.green(), c.blue())
-    except Exception:
-        return "#000000"
 
