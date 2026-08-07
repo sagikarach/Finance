@@ -62,21 +62,6 @@ class BankAccountsPage(BasePage):
                 is_dark = False
         self._on_theme_changed(is_dark)
 
-    def _build_header_left_buttons(self) -> List[QToolButton]:
-        buttons: List[QToolButton] = []
-        settings_btn = QToolButton(self)
-        settings_btn.setObjectName("IconButton")
-        try:
-            from ..utils.icons import apply_icon
-            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
-        except Exception:
-            settings_btn.setText("⚙")
-        settings_btn.setToolTip("הגדרות")
-        if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))
-        buttons.append(settings_btn)
-        return buttons
-
     _PASTEL = [
         "#B9B6F0", "#C6D3B4", "#F2D06B", "#E9A491", "#9BB4E6",
         "#8FBF9F", "#E0B0D8", "#F7E2A6", "#7FB3B3", "#E8A87C",

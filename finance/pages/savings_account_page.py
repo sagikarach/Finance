@@ -50,21 +50,6 @@ class SavingsAccountPage(BasePage):
             self._provider, history_provider=self._history_provider
         )
 
-    def _build_header_left_buttons(self) -> List[QToolButton]:
-        buttons: List[QToolButton] = []
-        settings_btn = QToolButton(self)
-        settings_btn.setObjectName("IconButton")
-        try:
-            from ..utils.icons import apply_icon
-            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
-        except Exception:
-            settings_btn.setText("⚙")
-        settings_btn.setToolTip("הגדרות")
-        if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))
-        buttons.append(settings_btn)
-        return buttons
-
     def _build_content(self, main_col: QVBoxLayout) -> None:
         while main_col.count():
             item = main_col.takeAt(0)

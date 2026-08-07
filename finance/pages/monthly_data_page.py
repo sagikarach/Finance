@@ -60,21 +60,6 @@ class MonthlyDataPage(BasePage):
             current_route="monthly_data",
         )
 
-    def _build_header_left_buttons(self) -> List[QToolButton]:
-        buttons: List[QToolButton] = []
-        settings_btn = QToolButton(self)
-        settings_btn.setObjectName("IconButton")
-        try:
-            from ..utils.icons import apply_icon
-            apply_icon(settings_btn, "gear", size=20, is_dark=self._is_dark_theme())
-        except Exception:
-            settings_btn.setText("⚙")
-        settings_btn.setToolTip("הגדרות")
-        if self._navigate is not None:
-            settings_btn.clicked.connect(lambda: self._navigate("settings"))
-        buttons.append(settings_btn)
-        return buttons
-
     def _chart_panel(self, title: str, chart: QWidget) -> QWidget:
         panel = QWidget(self)
         panel.setObjectName("ContentPanel")

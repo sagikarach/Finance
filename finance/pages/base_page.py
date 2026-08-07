@@ -613,8 +613,28 @@ class BasePage(QWidget):
         except Exception:
             pass
 
+    def _make_nav_icon_button(
+        self, icon: str, tooltip: str, route: str, *, fallback: str = "⚙"
+    ) -> QToolButton:
+        """A header icon-button (``IconButton``) that navigates to ``route``.
+        Shared so the gear/back header buttons aren't copy-pasted per page."""
+        btn = QToolButton(self)
+        btn.setObjectName("IconButton")
+        try:
+            from ..utils.icons import apply_icon
+
+            apply_icon(btn, icon, size=20, is_dark=self._is_dark_theme())
+        except Exception:
+            btn.setText(fallback)
+        btn.setToolTip(tooltip)
+        navigate = self._navigate
+        if navigate is not None:
+            btn.clicked.connect(lambda: navigate(route))
+        return btn
+
     def _build_header_left_buttons(self) -> List[QToolButton]:
-        return []
+        # Default: a settings gear. Pages wanting something else override this.
+        return [self._make_nav_icon_button("gear", "הגדרות", "settings")]
 
     def _clear_content_layout(self, layout: QVBoxLayout) -> None:
         while layout.count():
