@@ -402,18 +402,12 @@ class AssetsPage(BasePage):
     def _update_summary(self) -> None:
         if not self._summary_labels:
             return
-        active = [a for a in self._assets if not self._is_sold(a)]
-        total_value = sum(self._asset_value(a) for a in active)
-        try:
-            outstanding = self._service.total_outstanding()
-        except Exception:
-            outstanding = 0.0
-        net = total_value - outstanding
+        s = self._service.assets_summary()
         values = {
-            "value": _fmt_money(total_value),
-            "debt": _fmt_money(outstanding),
-            "net": _fmt_money(net),
-            "count": str(len(active)),
+            "value": _fmt_money(s.value),
+            "debt": _fmt_money(s.debt),
+            "net": _fmt_money(s.net),
+            "count": str(s.count),
         }
         for key, lbl in self._summary_labels.items():
             try:

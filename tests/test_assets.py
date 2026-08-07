@@ -204,3 +204,23 @@ def _run_all() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(_run_all())
+
+
+def test_assets_summary_aggregates_value_debt_net_count() -> None:
+    purchase = _purchase()          # value = property_price 2,000,000; has debt
+    held = _held(value=80_000.0)    # value 80,000; no debt
+    svc = _svc([purchase, held])
+    outstanding = mortgage_outstanding(purchase, None, DEFAULT_ASSUMPTIONS)
+    s = svc.assets_summary()
+    assert s.count == 2
+    assert _approx(s.value, 2_000_000.0 + 80_000.0)
+    assert _approx(s.debt, outstanding)
+    assert _approx(s.net, 2_080_000.0 - outstanding)
+
+
+def test_assets_summary_excludes_sold_assets() -> None:
+    svc = _svc([_held(value=80_000.0), _held(name="נמכר", value=50_000.0, sold=True)])
+    s = svc.assets_summary()
+    assert s.count == 1
+    assert _approx(s.value, 80_000.0)
+    assert _approx(s.net, 80_000.0)  # held assets carry no debt

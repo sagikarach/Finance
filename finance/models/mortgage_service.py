@@ -39,6 +39,16 @@ class MortgageStats:
     matched_movements: List[BankMovement]
 
 
+@dataclass(frozen=True)
+class AssetsSummary:
+    """Portfolio headline for the assets page."""
+
+    value: float  # total current value of active assets
+    debt: float  # total outstanding mortgage/loan balance
+    net: float  # value − debt (net worth)
+    count: int  # number of active assets
+
+
 class MortgageService:
     def __init__(
         self,
@@ -276,6 +286,22 @@ class MortgageService:
             include_archived=include_archived,
         )
         return float(value - debt)
+
+    def assets_summary(self) -> AssetsSummary:
+        """Portfolio figures for the assets page: total current value of active
+        assets, total outstanding debt, net worth, and the active-asset count.
+        (Active = ``build_asset(m).is_active``, matching the page's own rule.)"""
+        from .asset import build_asset
+
+        active = [a for a in self.list_mortgages() if build_asset(a).is_active]
+        value = sum(float(build_asset(a).current_value()) for a in active)
+        try:
+            debt = self.total_outstanding()
+        except Exception:
+            debt = 0.0
+        return AssetsSummary(
+            value=value, debt=debt, net=value - debt, count=len(active)
+        )
 
     def list_movements(self) -> List[BankMovement]:
         try:
