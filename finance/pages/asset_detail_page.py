@@ -51,13 +51,12 @@ from ..models.asset import (
     funding_breakdown_rows,
 )
 from ..models.mortgage_math import (
-    average_monthly,
     cost_paid_amount,
     cost_monthly_average,
     query_paid_amount,
     yearly_cost_cycles,
 )
-from ..models.movement_matching import match_movements
+from ..models.asset_expense_service import AssetExpenseService
 from .mortgage_page import HousePurchaseDialog
 from .base_page import BasePage
 
@@ -420,6 +419,7 @@ class AssetDetailPage(BasePage):
         kwargs.setdefault("page_title", "נכס")
         kwargs.setdefault("current_route", "asset")
         self._service = MortgageService()
+        self._expenses = AssetExpenseService(self._service)
         self._funding_table: Optional[QTableWidget] = None
         self._funding_sources: List[FundingSource] = []
         self._expense_table: Optional[QTableWidget] = None
@@ -586,13 +586,12 @@ class AssetDetailPage(BasePage):
         # Monthly + yearly expenses summed from the house's OWN cost items (the
         # lists in the הוצאות הבית dialog), each derived from its movement search.
         # NOT a category average.
-        monthly_sum, yearly_sum = self._house_expense_totals(m)
-        avg_month = monthly_sum + yearly_sum / 12.0
+        _hx = self._expenses.house_cost_expenses(m)
         has_items = bool(getattr(m, "monthly_costs", None)) or bool(
             getattr(m, "yearly_costs", None)
         )
-        monthly_txt = f"{_fmt_money(avg_month)} ₪" if has_items else "—"
-        yearly_txt = f"{_fmt_money(avg_month * 12.0)} ₪" if has_items else "—"
+        monthly_txt = f"{_fmt_money(_hx.monthly)} ₪" if has_items else "—"
+        yearly_txt = f"{_fmt_money(_hx.yearly)} ₪" if has_items else "—"
         r2.addWidget(
             _DetailTile(
                 "הוצאות הבית",
@@ -629,37 +628,6 @@ class AssetDetailPage(BasePage):
         if key == "house_costs":
             return self._build_house_costs_panel(parent, m)
         return self._build_expenses_panel(parent, m)
-
-    def _house_expense_totals(self, m):
-        """(monthly_per_month, yearly_per_year) summed from the house's OWN cost
-        items — the lists in the הוצאות הבית dialog, NOT a category average.
-        Monthly items: derived from their movement search, else the typed sum.
-        Yearly items: the latest matched cycle, else the typed sum."""
-        movements = self._service.list_movements()
-        monthly = 0.0
-        for c in getattr(m, "monthly_costs", None) or []:
-            q = str(getattr(c, "query", "") or "").strip()
-            monthly += cost_monthly_average(c, movements) if q else float(c.amount)
-        yearly = 0.0
-        for c in getattr(m, "yearly_costs", None) or []:
-            q = str(getattr(c, "query", "") or "").strip()
-            if q:
-                cycles = yearly_cost_cycles(c, movements, n_cycles=1)
-                yearly += float(cycles[0][1]) if cycles else 0.0
-            else:
-                yearly += float(c.amount)
-        return monthly, yearly
-
-    def _mortgage_actual_monthly(self, m):
-        """The mortgage payment as ACTUALLY paid — matched bank movements averaged
-        per month over the last 12 months with data. The mortgage isn't a fixed
-        sum, so we read reality rather than the amortization figure; 0 until real
-        payments appear in the movements."""
-        try:
-            paid = self._service.match_movements(m)
-        except Exception:
-            return 0.0
-        return average_monthly(paid)[0]
 
     def _build_house_costs_panel(self, parent, m):
         """הוצאות הבית — ניהול העלויות החודשיות והשנתיות יחד, זו מעל זו."""
@@ -952,34 +920,6 @@ class AssetDetailPage(BasePage):
             pl.addWidget(self._legend_row(panel, "#e6e2d4", "מחיר קנייה", initial))
         return panel
 
-    def _car_avg_monthly(self, category, months=12, exclude_queries=None):
-        """Average monthly spend in ``category`` over the last ``months`` months
-        that have data. This is a household figure by category — with two cars
-        on the same category it's their combined spend; give each car its own
-        category to split it. ``exclude_queries`` drops movements matched by those
-        searches (e.g. the yearly items) so only the monthly spend remains."""
-        cat = str(category or "").strip()
-        if not cat:
-            return 0.0, 0
-        try:
-            movements = self._service.list_movements()
-        except Exception:
-            return 0.0, 0
-        excluded = set()
-        for q in exclude_queries or []:
-            qq = str(q or "").strip()
-            if not qq:
-                continue
-            for mm in match_movements(movements, vendor_query=qq):
-                excluded.add(id(mm))
-        selected = [
-            mv
-            for mv in movements
-            if str(getattr(mv, "category", "") or "").strip() == cat
-            and id(mv) not in excluded
-        ]
-        return average_monthly(selected, months=months)
-
     def _car_stat_card(self, parent, label, value_txt, per, foot, tone):
         card = QWidget(parent)
         try:
@@ -1031,29 +971,12 @@ class AssetDetailPage(BasePage):
         # not double-counted), PLUS the yearly items amortized (÷12). The yearly
         # items are the ones defined on the car's עלויות שנתיות manager.
         m = getattr(a, "record", None)
-        yearly_costs = list(getattr(m, "yearly_costs", []) or []) if m else []
-        yearly_queries = [
-            q
-            for q in (str(getattr(c, "query", "") or "").strip() for c in yearly_costs)
-            if q
-        ]
-        recurring, n = self._car_avg_monthly(
-            a.expense_category, exclude_queries=yearly_queries
-        )
-        movements = self._service.list_movements()
-        yearly_total = 0.0
-        for c in yearly_costs:
-            q = str(getattr(c, "query", "") or "").strip()
-            if q:
-                cyc = yearly_cost_cycles(c, movements, n_cycles=1)
-                yearly_total += float(cyc[0][1]) if cyc else 0.0
-            else:
-                yearly_total += float(getattr(c, "amount", 0.0) or 0.0)
-        # Monthly card = the car-category MONTHLY spend only (yearly items already
-        # excluded above). Yearly card = that annualized PLUS the yearly items.
-        avg_month = recurring
-        avg_year = recurring * 12.0 + yearly_total
-        has_data = n > 0 or yearly_total > 0
+        _cx = self._expenses.car_expenses(m) if m is not None else None
+        avg_month = _cx.monthly if _cx else 0.0
+        avg_year = _cx.yearly if _cx else 0.0
+        # yearly items = the part of the annual figure above the annualized monthly
+        yearly_total = (avg_year - avg_month * 12.0) if _cx else 0.0
+        has_data = bool(_cx) and (_cx.months_of_data > 0 or yearly_total > 0)
         trow = QHBoxLayout()
         trow.setContentsMargins(4, 2, 4, 0)
         t = QLabel("הוצאות הרכב", wrap)
@@ -1526,12 +1449,11 @@ class AssetDetailPage(BasePage):
         # Same look as the car expenses section: a title + two pastel stat cards
         # (green monthly, yellow yearly). Total = mortgage payment + הוצאות הבית;
         # yearly = ×12. Nothing else is included.
-        monthly_sum, yearly_sum = self._house_expense_totals(m)
-        house_month = monthly_sum + yearly_sum / 12.0
-        # Mortgage from ACTUAL movements (option 2), not the amortization figure.
-        mortgage_month = self._mortgage_actual_monthly(m)
-        total_month = house_month + mortgage_month
-        total_year = total_month * 12.0
+        _ai = self._expenses.house_all_in(m)
+        house_month = _ai.house_monthly
+        mortgage_month = _ai.mortgage_monthly
+        total_month = _ai.total_monthly
+        total_year = _ai.total_yearly
 
         wrap = QWidget(parent)
         wl = QVBoxLayout(wrap)
