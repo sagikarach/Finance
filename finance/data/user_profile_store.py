@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from .json_io import atomic_write_json
 from pathlib import Path
 from typing import List, Optional
 
@@ -70,8 +71,6 @@ class UserProfileStore:
             "lock_enabled": profile.lock_enabled,
         }
         try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            with self._path.open("w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            atomic_write_json(self._path, data)
         except Exception:
             pass

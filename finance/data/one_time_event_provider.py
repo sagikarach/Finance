@@ -5,6 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
+from .json_io import atomic_write_json
 
 from ..models.one_time_event import (
     OneTimeEvent,
@@ -68,10 +69,8 @@ class JsonFileOneTimeEventProvider(OneTimeEventProvider):
 
     def save_events(self, events: List[OneTimeEvent]) -> None:
         p = self._get_path()
-        p.parent.mkdir(parents=True, exist_ok=True)
         payload = [self._serialize(e) for e in events]
-        with p.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
+        atomic_write_json(p, payload)
 
     def upsert_event(self, event: OneTimeEvent) -> None:
         events = self.list_events()

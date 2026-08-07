@@ -5,6 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
+from .json_io import atomic_write_json
 
 from ..models.installment_plan import InstallmentPlan, generate_installment_plan_id
 from ..utils.app_paths import accounts_data_dir
@@ -63,10 +64,8 @@ class JsonFileInstallmentPlanProvider(InstallmentPlanProvider):
 
     def save_plans(self, plans: List[InstallmentPlan]) -> None:
         p = self._get_path()
-        p.parent.mkdir(parents=True, exist_ok=True)
         payload = [self._serialize(p) for p in plans]
-        with p.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
+        atomic_write_json(p, payload)
 
     def upsert_plan(self, plan: InstallmentPlan) -> None:
         plans = self.list_plans()

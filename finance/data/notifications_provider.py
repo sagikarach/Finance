@@ -5,6 +5,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
+from .json_io import atomic_write_json
 
 from ..models.notifications import (
     Notification,
@@ -183,10 +184,7 @@ class JsonFileNotificationsProvider(NotificationsProvider):
         return {"settings": {"enabled": True}, "rules": [], "notifications": []}
 
     def _write(self, data: Dict[str, Any]) -> None:
-        p = self._get_path()
-        p.parent.mkdir(parents=True, exist_ok=True)
-        with p.open("w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(self._get_path(), data)
 
     def _serialize_notification(self, n: Notification) -> Dict[str, Any]:
         d = asdict(n)

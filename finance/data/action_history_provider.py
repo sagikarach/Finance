@@ -5,6 +5,7 @@ from dataclasses import fields
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
+from .json_io import atomic_write_json
 
 from ..models.action_history import (
     Action,
@@ -129,7 +130,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
     def save_history(self, history: List[ActionHistory]) -> None:
         self._ensure_path()
         assert self._history_path is not None
-        self._history_path.parent.mkdir(parents=True, exist_ok=True)
 
         json_data = []
         for entry in history:
@@ -140,8 +140,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             }
             json_data.append(entry_dict)
 
-        with self._history_path.open("w", encoding="utf-8") as f:
-            json.dump(json_data, f, ensure_ascii=False, indent=2)
+        atomic_write_json(self._history_path, json_data)
 
     def add_action(self, action_history: ActionHistory) -> None:
         self._ensure_path()
