@@ -87,19 +87,20 @@ def load_buttons_light_styles() -> str:
         height: 0px;
     }
     QPushButton#SecondaryButton {
-        background: #e2eeff;
-        border: 1px solid #bfdbfe;
+        background: #e5e7eb;
+        border: 1px solid rgba(15,23,42,0.18);
         font-weight: 600;
-        color: #1e40af;
+        min-width: 96px;
+        color: #0f172a;
         padding: 8px 14px;
         border-radius: 8px;
     }
     QPushButton#SecondaryButton:hover {
-        background: #dbeafe;
-        border: 1px solid #93c5fd;
+        background: #d1d5db;
+        border: 1px solid rgba(15,23,42,0.25);
     }
     QPushButton#SecondaryButton:pressed {
-        background: #bfdbfe;
+        background: #cbd5e1;
     }
     QPushButton#AssetTabButton {
         background: transparent;
@@ -122,19 +123,19 @@ def load_buttons_light_styles() -> str:
         color: #1e1e22;
     }
     QPushButton#DangerButton {
-        background: #fee2e2;
-        border: 1px solid #fca5a5;
+        background: #e5e7eb;
+        border: 1px solid rgba(239,68,68,0.55);
         font-weight: 700;
+        min-width: 96px;
         color: #b91c1c;
         padding: 8px 14px;
         border-radius: 8px;
     }
     QPushButton#DangerButton:hover {
-        background: #fecaca;
-        border: 1px solid #f87171;
+        background: #d1d5db;
     }
     QPushButton#DangerButton:pressed {
-        background: #fca5a5;
+        background: #cbd5e1;
     }
     QPushButton#RangeBtn {
         background: transparent;
@@ -238,19 +239,20 @@ def load_buttons_dark_styles() -> str:
         height: 0px;
     }
     QPushButton#SecondaryButton {
-        background: #1e293b;
-        border: 1px solid #334155;
+        background: #374151;
+        border: 1px solid rgba(148,163,184,0.25);
         font-weight: 600;
-        color: #93c5fd;
+        min-width: 96px;
+        color: #e5e7eb;
         padding: 8px 14px;
         border-radius: 8px;
     }
     QPushButton#SecondaryButton:hover {
-        background: #273549;
-        border: 1px solid #475569;
+        background: #4b5563;
+        border: 1px solid rgba(148,163,184,0.35);
     }
     QPushButton#SecondaryButton:pressed {
-        background: #0f172a;
+        background: #334155;
     }
     QPushButton#AssetTabButton {
         background: transparent;
@@ -273,19 +275,20 @@ def load_buttons_dark_styles() -> str:
         color: #ffffff;
     }
     QPushButton#DangerButton {
-        background: #3f1515;
-        border: 1px solid #7f1d1d;
+        background: #374151;
+        border: 1px solid rgba(239,68,68,0.55);
         font-weight: 700;
-        color: #fca5a5;
+        min-width: 96px;
+        color: #fecaca;
         padding: 8px 14px;
         border-radius: 8px;
     }
     QPushButton#DangerButton:hover {
-        background: #4c1a1a;
-        border: 1px solid #991b1b;
+        background: #4b5563;
+        border: 1px solid rgba(239,68,68,0.65);
     }
     QPushButton#DangerButton:pressed {
-        background: #290d0d;
+        background: #334155;
     }
     QPushButton#RangeBtn {
         background: transparent;

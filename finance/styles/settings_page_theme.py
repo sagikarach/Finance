@@ -34,39 +34,6 @@ def load_settings_page_light_styles() -> str:
         background: #247e52;
     }
 
-    QPushButton#SecondaryButton {
-        background: #e5e7eb; /* grey */
-        border: 1px solid rgba(15,23,42,0.18);
-        font-weight: 600;
-        min-width: 96px;
-        color: #0f172a;
-        padding: 8px 14px;
-        border-radius: 8px;
-    }
-    QPushButton#SecondaryButton:hover {
-        background: #d1d5db;
-        border: 1px solid rgba(15,23,42,0.25);
-    }
-    QPushButton#SecondaryButton:pressed {
-        background: #cbd5e1;
-    }
-
-    QPushButton#DangerButton {
-        background: #e5e7eb; /* grey */
-        border: 1px solid rgba(239,68,68,0.55);
-        font-weight: 700;
-        min-width: 96px;
-        color: #b91c1c;
-        padding: 8px 14px;
-        border-radius: 8px;
-    }
-    QPushButton#DangerButton:hover {
-        background: #d1d5db;
-    }
-    QPushButton#DangerButton:pressed {
-        background: #cbd5e1;
-    }
-
     /* Settings internal sidebar menu (matches app sidebar light theme) */
     QListWidget#SettingsMenu {
         background: #ffffff;
@@ -127,40 +94,6 @@ def load_settings_page_dark_styles() -> str:
     }
     QPushButton#SaveButton:pressed {
         background: #1d4ed8;
-    }
-
-    QPushButton#SecondaryButton {
-        background: #374151; /* grey */
-        border: 1px solid rgba(148,163,184,0.25);
-        font-weight: 600;
-        min-width: 96px;
-        color: #e5e7eb;
-        padding: 8px 14px;
-        border-radius: 8px;
-    }
-    QPushButton#SecondaryButton:hover {
-        background: #4b5563;
-        border: 1px solid rgba(148,163,184,0.35);
-    }
-    QPushButton#SecondaryButton:pressed {
-        background: #334155;
-    }
-
-    QPushButton#DangerButton {
-        background: #374151; /* grey */
-        border: 1px solid rgba(239,68,68,0.55);
-        font-weight: 700;
-        min-width: 96px;
-        color: #fecaca;
-        padding: 8px 14px;
-        border-radius: 8px;
-    }
-    QPushButton#DangerButton:hover {
-        background: #4b5563;
-        border: 1px solid rgba(239,68,68,0.65);
-    }
-    QPushButton#DangerButton:pressed {
-        background: #334155;
     }
 
     /* Settings internal sidebar menu (matches app sidebar dark theme) */
