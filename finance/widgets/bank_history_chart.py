@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
+from ..models.account_history import balance_timeline, budget_spend_by_period
+
 from typing import Callable, List, Optional
 
-from ..models.accounts import BankAccount, BudgetAccount, parse_iso_date
+from ..models.accounts import BankAccount, BudgetAccount
 from ..models.bank_movement import BankMovement
 from ..models.charts import (
     build_base_values,
@@ -31,22 +32,6 @@ from .savings_history_chart import (
     _label_step_for,
 )
 from .time_range_bar import TimeRangeBar
-
-
-def _next_month(year: int, month: int) -> tuple[int, int]:
-    return (year + 1, 1) if month >= 12 else (year, month + 1)
-
-
-def _month_key_fast(date_str: str) -> Optional[tuple[int, int]]:
-    s = str(date_str or "").strip()
-    if len(s) >= 7 and s[4] == "-" and s[7:8] in ("", "-"):
-        try:
-            y, m = int(s[0:4]), int(s[5:7])
-            if 1 <= m <= 12:
-                return (y, m)
-        except Exception:
-            pass
-    return None
 
 
 def _build_x_axis_labeled(
@@ -168,96 +153,22 @@ class BankHistoryChartCard(QWidget):
     def _prepare_budget(
         self, account: BudgetAccount, movements: Optional[List[BankMovement]]
     ) -> bool:
-        all_mov = list(movements or [])
-        spent = [
-            m for m in all_mov
-            if m.account_name == account.name
-            and float(getattr(m, "amount", 0.0) or 0.0) < 0.0
-            and not bool(getattr(m, "is_transfer", False))
-        ]
-        if not (charts_available and spent):
+        bs = budget_spend_by_period(account, list(movements or []))
+        if not (charts_available and bs.month_keys):
             return False
-
-        reset_day = max(1, min(28, int(getattr(account, "reset_day", 1) or 1)))
-        spent_by_period: dict[tuple[int, int], float] = {}
-        for m in spent:
-            try:
-                dt = parse_iso_date(str(getattr(m, "date", "") or ""))
-                if dt == datetime.min:
-                    continue
-                end_key = (dt.year, dt.month) if dt.day <= reset_day else _next_month(dt.year, dt.month)
-                spent_by_period[end_key] = spent_by_period.get(end_key, 0.0) + abs(float(getattr(m, "amount", 0.0) or 0.0))
-            except Exception:
-                continue
-
-        keys = sorted(spent_by_period)
-        if not keys:
-            return False
-
-        month_keys: List[tuple[int, int]] = []
-        cur = keys[0]
-        while True:
-            month_keys.append(cur)
-            if cur == keys[-1]:
-                break
-            cur = _next_month(cur[0], cur[1])
-
         self._chart_type = "budget"
-        self._month_keys = month_keys
-        self._base_values = [float(spent_by_period.get(k, 0.0)) for k in month_keys]
+        self._month_keys = bs.month_keys
+        self._base_values = bs.spent
         self._series_name = "הוצאות לפי חודש"
         return True
 
     def _prepare_bank_movements(
         self, account: BankAccount, movements: List[BankMovement]
     ) -> bool:
-        acc_name = str(getattr(account, "name", "") or "").strip()
-        baseline = float(getattr(account, "baseline_amount", 0.0) or 0.0)
-
-        sums: dict[tuple[int, int], float] = {}
-        for m in movements:
-            try:
-                if str(getattr(m, "account_name", "") or "").strip() != acc_name:
-                    continue
-                ks = str(getattr(m, "date", "") or "")
-                key = _month_key_fast(ks)
-                if key is None:
-                    dt = parse_iso_date(ks)
-                    if dt == datetime.min:
-                        continue
-                    key = (dt.year, dt.month)
-                sums[key] = sums.get(key, 0.0) + float(getattr(m, "amount", 0.0) or 0.0)
-            except Exception:
-                continue
-
-        try:
-            if float(baseline) == 0.0:
-                inferred = float(getattr(account, "total_amount", 0.0) or 0.0) - sum(sums.values())
-                if abs(inferred) > 0.0001:
-                    baseline = inferred
-        except Exception:
-            pass
-
-        mk: List[tuple[int, int]] = []
-        if sums:
-            ks = sorted(sums)
-            cur = ks[0]
-            while True:
-                mk.append(cur)
-                if cur == ks[-1]:
-                    break
-                cur = _next_month(cur[0], cur[1])
-
-        running = float(baseline)
-        bv = [running]
-        for k in mk:
-            running += sums.get(k, 0.0)
-            bv.append(running)
-        bv.append(running)  # "today"
-
+        tl = balance_timeline(account, movements)
         self._chart_type = "bank"
-        self._mk_bank = mk
-        self._bv_bank = bv
+        self._mk_bank = tl.month_keys
+        self._bv_bank = tl.values
         self._series_name = str(getattr(account, "name", "") or "")
         return True
 
