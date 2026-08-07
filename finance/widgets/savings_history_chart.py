@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .chart_utils import label_color as _label_color, label_step_for as _label_step_for
+
 import math
 from datetime import date
 from typing import Callable, Dict, List, Optional
@@ -35,18 +37,6 @@ from .time_range_bar import TimeRangeBar
 
 
 # ─────────────────────────────────────────────────────────────── helpers ──
-
-def _label_color() -> QColor:
-    color = QColor("#0f172a")
-    app = QApplication.instance()
-    if app is not None:
-        try:
-            if str(app.property("theme") or "light") == "dark":
-                color = QColor("#ffffff")
-        except Exception:
-            pass
-    return color
-
 
 def _apply_line_pen(
     series: QLineSeries, color: QColor, *, dashed: bool = False
@@ -138,11 +128,6 @@ def _build_y_axis(max_val: float, min_val: float = 0.0) -> QValueAxis:
     except Exception:
         pass
     return axis
-
-
-def _label_step_for(n_visible: int) -> int:
-    """Return a label step that gives at most ~7 labels."""
-    return max(1, (n_visible + 6) // 7)
 
 
 # ──────────────────────────────────────────────────── ShadowChartView ──
