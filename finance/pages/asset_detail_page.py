@@ -51,6 +51,7 @@ from ..models.asset import (
     funding_breakdown_rows,
 )
 from ..models.mortgage_math import (
+    average_monthly,
     cost_paid_amount,
     cost_monthly_average,
     query_paid_amount,
@@ -685,23 +686,7 @@ class AssetDetailPage(BasePage):
             paid = self._service.match_movements(m)
         except Exception:
             return 0.0
-        from collections import defaultdict
-        totals = defaultdict(float)
-        for x in paid:
-            try:
-                amt = float(getattr(x, "amount", 0.0) or 0.0)
-            except Exception:
-                continue
-            if amt >= 0:
-                continue
-            dt = parse_iso_date(str(getattr(x, "date", "") or ""))
-            if dt.year <= 1900:
-                continue
-            totals[(dt.year, dt.month)] += -amt
-        if not totals:
-            return 0.0
-        keys = sorted(totals.keys())[-12:]
-        return sum(totals[k] for k in keys) / float(len(keys))
+        return average_monthly(paid)[0]
 
     def _build_house_costs_panel(self, parent, m):
         """הוצאות הבית — ניהול העלויות החודשיות והשנתיות יחד, זו מעל זו."""
@@ -1039,29 +1024,13 @@ class AssetDetailPage(BasePage):
                 continue
             for mm in match_movements(movements, vendor_query=qq):
                 excluded.add(id(mm))
-        from collections import defaultdict
-        totals = defaultdict(float)
-        for mv in movements:
-            if str(getattr(mv, "category", "") or "").strip() != cat:
-                continue
-            if id(mv) in excluded:
-                continue
-            try:
-                amt = float(getattr(mv, "amount", 0.0) or 0.0)
-            except Exception:
-                continue
-            if amt >= 0:
-                continue
-            dt = parse_iso_date(str(getattr(mv, "date", "") or ""))
-            if dt.year <= 1900:
-                continue
-            totals[(dt.year, dt.month)] += -amt
-        if not totals:
-            return 0.0, 0
-        keys = sorted(totals.keys())[-int(months):]
-        n = len(keys)
-        avg = sum(totals[k] for k in keys) / float(n) if n else 0.0
-        return avg, n
+        selected = [
+            mv
+            for mv in movements
+            if str(getattr(mv, "category", "") or "").strip() == cat
+            and id(mv) not in excluded
+        ]
+        return average_monthly(selected, months=months)
 
     def _car_stat_card(self, parent, label, value_txt, per, foot, tone):
         card = QWidget(parent)

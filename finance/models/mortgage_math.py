@@ -248,14 +248,18 @@ def cost_paid_amount(
     movements: Optional[list] = None,
     *,
     include_transfers: bool = False,
+    match_income: bool = False,
 ) -> float:
-    """כמה שולם בפועל עבור שורת עלות — סכום התנועות התואמות ל-``query`` (0 אם
-    אין שאילתה או אין התאמה). זהו ה'שולם בפועל' — אין נפילה לסכום המתוכנן.
+    """סכום התנועות התואמות ל-``query`` (0 אם אין שאילתה או התאמה). ברירת המחדל
+    היא הוצאות; ``match_income=True`` מחזיר את התנועות הנכנסות (למקורות מימון).
     ``include_transfers`` שימושי להון עצמי (מקדמה משולמת לרוב כהעברה)."""
     query = str(getattr(cost, "query", "") or "").strip()
     if query and movements:
         matched = match_movements(
-            movements, vendor_query=query, include_transfers=include_transfers
+            movements,
+            vendor_query=query,
+            include_transfers=include_transfers,
+            match_income=match_income,
         )
         return float(sum(abs(float(m.amount)) for m in matched))
     return 0.0
@@ -296,30 +300,40 @@ def yearly_cost_cycles(
     return [(y, float(totals[y])) for y in years]
 
 
+def average_monthly(movements: Optional[list] = None, *, months: int = 12):
+    """ממוצע חודשי של ההוצאות מתוך רשימת תנועות שכבר נבחרה (לפי חיפוש/קטגוריה
+    וכו'): מקבצים לפי (שנה, חודש), מסכמים את ההוצאות, ומחזירים
+    ``(ממוצע, מספר_חודשים)`` על פני ``months`` החודשים האחרונים שיש בהם נתונים.
+    זהו הלולאה המשותפת ל-cost_monthly_average / הרכב / המשכנתא."""
+    totals: Dict[tuple, float] = {}
+    for mv in movements or []:
+        try:
+            amt = float(getattr(mv, "amount", 0.0) or 0.0)
+        except Exception:
+            continue
+        if amt >= 0:
+            continue
+        dt = parse_iso_date(str(getattr(mv, "date", "") or ""))
+        if dt.year <= 1900:
+            continue
+        key = (dt.year, dt.month)
+        totals[key] = totals.get(key, 0.0) + (-amt)
+    if not totals:
+        return 0.0, 0
+    keys = sorted(totals.keys())[-int(months):]
+    return sum(totals[k] for k in keys) / float(len(keys)), len(keys)
+
+
 def cost_monthly_average(
     cost: CostItem, movements: Optional[list] = None, *, months: int = 12
 ) -> float:
-    """ממוצע חודשי של ההוצאה לפי חיפוש התנועות (``cost.query``): מקבצים את
-    התנועות התואמות לפי חודש ומחזירים את הממוצע על פני החודשים שיש בהם נתונים
-    (עד ``months`` האחרונים). כך הסכום נגזר מהתנועות ואין צורך להזין אותו."""
+    """ממוצע חודשי של ההוצאה לפי חיפוש התנועות (``cost.query``) — נגזר מהתנועות
+    התואמות; 0 אם אין שאילתה/התאמה."""
     query = str(getattr(cost, "query", "") or "").strip()
     if not query or not movements:
         return 0.0
     matched = match_movements(movements, vendor_query=query, include_transfers=False)
-    totals: Dict[tuple, float] = {}
-    for m in matched:
-        try:
-            amt = float(getattr(m, "amount", 0.0) or 0.0)
-        except Exception:
-            continue
-        dt = parse_iso_date(str(getattr(m, "date", "") or ""))
-        if dt.year <= 1900:
-            continue
-        totals[(dt.year, dt.month)] = totals.get((dt.year, dt.month), 0.0) + abs(amt)
-    if not totals:
-        return 0.0
-    keys = sorted(totals.keys())[-int(months):]
-    return sum(totals[k] for k in keys) / float(len(keys)) if keys else 0.0
+    return average_monthly(matched, months=months)[0]
 
 
 def cost_total_amount(cost: CostItem, movements: Optional[list] = None) -> float:
@@ -346,17 +360,14 @@ def query_paid_amount(
 def query_received_amount(
     query: str, movements: Optional[list] = None, *, include_transfers: bool = False
 ) -> float:
-    """סכום התנועות הנכנסות (הכנסה) התואמות לטקסט החיפוש — למקורות מימון."""
-    q = str(query or "").strip()
-    if q and movements:
-        matched = match_movements(
-            movements,
-            vendor_query=q,
-            include_transfers=include_transfers,
-            match_income=True,
-        )
-        return float(sum(abs(float(m.amount)) for m in matched))
-    return 0.0
+    """סכום התנועות הנכנסות (הכנסה) התואמות לטקסט החיפוש — למקורות מימון.
+    זהה ל-``query_paid_amount`` פרט לכיוון (הכנסה במקום הוצאה)."""
+    return cost_paid_amount(
+        CostItem(query=str(query or "")),
+        movements,
+        include_transfers=include_transfers,
+        match_income=True,
+    )
 
 
 def purchase_summary(
