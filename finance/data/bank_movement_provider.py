@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 import json
 
-from ..models.bank_movement import BankMovement, MovementType
+from ..models.bank_movement import BankMovement, deserialize_bank_movement
 from ..models.firebase_session import (
     current_firebase_uid,
     current_firebase_workspace_id,
@@ -75,61 +75,9 @@ class JsonFileBankMovementProvider(BankMovementProvider):
             return movements
 
         for item in data:
-            try:
-                amount = float(item.get("amount", 0.0))
-                date = str(item.get("date", "")).strip()
-                account_name = str(item.get("account_name", "")).strip()
-                category = str(item.get("category", "")).strip()
-                type_value = item.get("type", MovementType.ONE_TIME.value)
-                try:
-                    movement_type = MovementType(type_value)
-                except Exception:
-                    movement_type = MovementType.ONE_TIME
-                description_value = item.get("description")
-                description = (
-                    str(description_value)
-                    if isinstance(description_value, str)
-                    else None
-                )
-                event_id_value = item.get("event_id")
-                event_id = (
-                    str(event_id_value).strip()
-                    if event_id_value is not None and str(event_id_value).strip()
-                    else None
-                )
-                is_transfer = bool(item.get("is_transfer", False))
-                if not is_transfer:
-                    try:
-                        if str(category or "").strip() == "העברה":
-                            is_transfer = True
-                    except Exception:
-                        pass
-                movement_id = item.get("id")
-                if movement_id is not None:
-                    movement_id = str(movement_id).strip()
-                if not movement_id:
-                    from ..models.bank_movement import generate_movement_id
-
-                    movement_id = generate_movement_id()
-
-                if not date or not account_name:
-                    continue
-
-                movements.append(
-                    BankMovement(
-                        amount=amount,
-                        date=date,
-                        account_name=account_name,
-                        category=category,
-                        type=movement_type,
-                        is_transfer=is_transfer,
-                        description=description,
-                        event_id=event_id,
-                        id=movement_id,
-                    )
-                )
-            except Exception:
-                continue
+            mv = deserialize_bank_movement(item)
+            if mv is not None:
+                movements.append(mv)
 
         return movements
 

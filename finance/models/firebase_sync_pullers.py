@@ -2,22 +2,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Tuple
 
-from .bank_movement import BankMovement, MovementType
+from .bank_movement import BankMovement, deserialize_bank_movement
 from .firebase_client import FirestoreClient
-
-
-def parse_movement_type(raw: str) -> MovementType:
-    raw = (raw or "").strip()
-    if raw in ("MONTHLY", "monthly"):
-        return MovementType.MONTHLY
-    if raw in ("YEARLY", "yearly"):
-        return MovementType.YEARLY
-    if raw in ("ONE_TIME", "one_time", "onetime"):
-        return MovementType.ONE_TIME
-    try:
-        return MovementType(raw)
-    except Exception:
-        return MovementType.ONE_TIME
 
 
 def pull_remote_movements(
@@ -87,46 +73,10 @@ def merge_remote_into_local(
                     pulled += 1
                 continue
 
-            amount = float(f.get("amount", 0.0) or 0.0)
-            date = str(f.get("date", "") or "").strip()
-            account_name = str(f.get("account_name", "") or "").strip()
-            category = str(f.get("category", "") or "").strip()
-            t_raw = str(f.get("type", "") or "").strip()
-            movement_type = parse_movement_type(t_raw)
-            is_transfer = bool(f.get("is_transfer", False))
-            if not is_transfer:
-                try:
-                    if str(category or "").strip() == "העברה":
-                        is_transfer = True
-                except Exception:
-                    pass
-            description = f.get("description")
-            desc_str = (
-                str(description)
-                if isinstance(description, str) and description
-                else None
-            )
-            event_id = f.get("event_id")
-            event_id_str = (
-                str(event_id).strip()
-                if event_id is not None and str(event_id).strip()
-                else None
-            )
-
-            if not date or not account_name:
+            mv = deserialize_bank_movement(f, movement_id=mid)
+            if mv is None:
                 continue
-
-            local_by_id[mid] = BankMovement(
-                amount=amount,
-                date=date,
-                account_name=account_name,
-                category=category,
-                type=movement_type,
-                is_transfer=is_transfer,
-                description=desc_str,
-                event_id=event_id_str,
-                id=mid,
-            )
+            local_by_id[mid] = mv
             pulled += 1
         except Exception:
             continue
