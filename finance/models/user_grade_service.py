@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..utils.dates import shift_month as _shift_month
+
 from dataclasses import dataclass
 from datetime import date
 import math
@@ -15,15 +17,6 @@ from ..data.bank_movement_provider import (
 def _month_key(date_str: object) -> str:
     s = str(date_str or "")
     return s[:7] if len(s) >= 7 else ""
-
-
-def _shift_month(base: date, delta_months: int) -> tuple[int, int]:
-    y = int(base.year)
-    m0 = int(base.month) - 1
-    n = y * 12 + m0 + int(delta_months)
-    ny = n // 12
-    nm0 = n % 12
-    return int(ny), int(nm0 + 1)
 
 
 def _clamp(x: float, lo: float, hi: float) -> float:

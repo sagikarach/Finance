@@ -60,7 +60,7 @@ class YearlyReportService:
             try:
                 if account_set is not None and m.account_name not in account_set:
                     continue
-                if self._is_transfer(m):
+                if m.counts_as_transfer:
                     continue
                 dt = parse_iso_date(m.date)
                 if dt.year != year:
@@ -118,7 +118,7 @@ class YearlyReportService:
                     continue
                 if type_set is not None and m.type not in type_set:
                     continue
-                if self._is_transfer(m):
+                if m.counts_as_transfer:
                     continue
                 dt = parse_iso_date(m.date)
                 if dt.year != year:
@@ -198,7 +198,7 @@ class YearlyReportService:
         nets: Dict[Tuple[int, int], float] = defaultdict(float)
         for mv in all_mvs:
             try:
-                if self._is_transfer(mv):
+                if mv.counts_as_transfer:
                     continue
                 if not include_one_time and mv.type == MovementType.ONE_TIME:
                     continue
@@ -237,7 +237,7 @@ class YearlyReportService:
         expense = 0.0
         for mv in all_mvs:
             try:
-                if self._is_transfer(mv):
+                if mv.counts_as_transfer:
                     continue
                 if not include_one_time and mv.type == MovementType.ONE_TIME:
                     continue
@@ -291,7 +291,7 @@ class YearlyReportService:
                     continue
                 if type_set is not None and mv.type not in type_set:
                     continue
-                if self._is_transfer(mv):
+                if mv.counts_as_transfer:
                     continue
                 dt = parse_iso_date(mv.date)
                 key = (dt.year, dt.month)
@@ -311,10 +311,6 @@ class YearlyReportService:
             f"{self._HEB_MONTHS[mo - 1]} {yr % 100:02d}" for yr, mo in window
         ]
         return dict(out), labels
-
-    def _is_transfer(self, movement: BankMovement) -> bool:
-        return movement.counts_as_transfer
-
 
 # ---------------------------------------------------------------------------
 # Naive mathematical forecast helpers (no external dependencies)

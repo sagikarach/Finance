@@ -16,11 +16,6 @@ def _is_in_month(date_str: str, year: int, month: int) -> bool:
         return False
 
 
-def _is_report_transfer(movement: BankMovement) -> bool:
-    """Transfers are excluded from monthly reports (ledger plumbing, not spend)."""
-    return movement.counts_as_transfer
-
-
 @dataclass(frozen=True)
 class MonthlyMovementSummary:
     year: int
@@ -139,7 +134,7 @@ class MonthlyReport:
             for m in movements
             if _is_in_month(m.date, year, month)
             and m.type == MovementType.MONTHLY
-            and not _is_report_transfer(m)
+            and not m.counts_as_transfer
             and (account_set is None or m.account_name in account_set)
         ]
 

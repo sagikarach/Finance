@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..utils.dates import shift_month as _shift_month
+
 from datetime import date
 from typing import Dict
 
@@ -15,15 +17,6 @@ from ..models.dashboard_meta import DashboardMeta
 
 def _month_key(y: int, m: int) -> str:
     return f"{y:04d}-{m:02d}"
-
-
-def _shift_month(base: date, delta_months: int) -> tuple[int, int]:
-    y = int(base.year)
-    m0 = int(base.month) - 1
-    n = y * 12 + m0 + int(delta_months)
-    ny = n // 12
-    nm0 = n % 12
-    return int(ny), int(nm0 + 1)
 
 
 class DashboardMetaService:
