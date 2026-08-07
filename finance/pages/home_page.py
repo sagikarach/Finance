@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, List, Callable
+from typing import Dict, Optional, Callable
 
 from ..qt import (
-    QLabel,
     QVBoxLayout,
     QHBoxLayout,
     QWidget,
     Qt,
-    QSizePolicy,
-    QToolButton,
 )
 from ..data.provider import AccountsProvider
 from ..models.accounts_service import AccountsService

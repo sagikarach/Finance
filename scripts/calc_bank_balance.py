@@ -33,7 +33,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
@@ -178,8 +178,10 @@ def main() -> int:
         print(f"  init (baseline)            : {_round(init):>15,.2f}")
         print(f"  + regular movements ({n_reg:>4}) : {_round(reg):>15,.2f}")
         print(f"  + transfer movements ({n_tr:>3}) : {_round(tr):>15,.2f}")
-        print(f"  ----------------------------------------------")
+        print("  ----------------------------------------------")
         print(f"  = computed balance         : {_round(computed):>15,.2f}   <- init + movements (the real balance)")
+        status = "✓ matches computed" if match else f"✗ differs by {_round(diff):,.2f}"
+        print(f"  stored total_amount        : {_round(stored):>15,.2f}   <- {status}")
         if displayed is not None:
             d_amt = displayed[2]
             print(f"  app shows (latest snapshot): {_round(d_amt):>15,.2f}   <- history point dated {displayed[1]}")

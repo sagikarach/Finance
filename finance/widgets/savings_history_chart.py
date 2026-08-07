@@ -7,7 +7,6 @@ from datetime import date
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (
-    QApplication,
     QColor,
     QCursor,
     QFrame,

@@ -3,10 +3,9 @@ from __future__ import annotations
 from .chart_utils import label_color as _label_color, month_keys_from as _month_keys_from, label_step_for as _label_step_for
 
 import math
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from ..qt import (
-    QApplication,
     QColor,
     QFrame,
     QLabel,

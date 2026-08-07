@@ -1,0 +1,11 @@
+# Lint config. Conservative, high-signal rules to start:
+#   F  = pyflakes  (unused imports/vars, redefinitions, undefined names — the
+#                   dead-code/unused checks; catches exactly what a manual
+#                   audit found)
+#   E9 = syntax errors
+# Expand later (e.g. I for import sorting, B for bugbear) once the tree is green.
+line-length = 100
+extend-exclude = ["**/__pycache__", "build", "dist"]
+
+[lint]
+select = ["F", "E9"]

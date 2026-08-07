@@ -10,7 +10,6 @@ from ..qt import (
     QWidget,
     Qt,
     QSizePolicy,
-    QToolButton,
     QPushButton,
     QLineEdit,
     QComboBox,

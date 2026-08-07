@@ -8,7 +8,6 @@ from ..models.yearly_report_service import YearlyReportService
 from ..qt import (
     QLabel,
     QSizePolicy,
-    QToolButton,
     QVBoxLayout,
     QWidget,
     Qt,

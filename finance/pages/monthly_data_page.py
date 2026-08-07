@@ -9,7 +9,6 @@ from ..qt import (
     QWidget,
     Qt,
     QSizePolicy,
-    QToolButton,
     QPushButton,
 )
 from ..data.provider import AccountsProvider

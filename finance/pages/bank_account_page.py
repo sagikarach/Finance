@@ -11,7 +11,6 @@ from ..qt import (
     QHBoxLayout,
     QWidget,
     Qt,
-    QToolButton,
     QPushButton,
     QSizePolicy,
     QTimer,

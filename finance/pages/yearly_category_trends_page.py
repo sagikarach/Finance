@@ -11,7 +11,6 @@ from ..qt import (
     QLabel,
     QCheckBox,
     QHBoxLayout,
-    QToolButton,
     QVBoxLayout,
     QWidget,
     QSizePolicy,

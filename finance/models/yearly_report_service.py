@@ -5,11 +5,10 @@ from typing import Dict, List, Optional, Set, Tuple
 
 from ..data.bank_movement_provider import BankMovementProvider
 from .accounts import parse_iso_date
-from .bank_movement import BankMovement, MovementType
+from .bank_movement import MovementType
 from .yearly_report import (
     MonthTypeSummary,
     movement_type_to_bucket,
-    YearlyReport,
 )
 
 

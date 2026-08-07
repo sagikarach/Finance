@@ -32,7 +32,6 @@ from .mortgage_math import (
     early_payoff_savings,
     months_after,
     months_between,
-    mortgage_initial_monthly,
     mortgage_outstanding,
     mortgage_total_interest,
     track_schedule,

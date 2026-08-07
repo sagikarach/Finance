@@ -8,9 +8,7 @@ from ..qt import (
     QHBoxLayout,
     QWidget,
     Qt,
-    QSizePolicy,
     QApplication,
-    QToolButton,
 )
 from ..data.provider import AccountsProvider
 from ..models.accounts import BankAccount
