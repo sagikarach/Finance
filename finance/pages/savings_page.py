@@ -86,29 +86,7 @@ class SavingsPage(BasePage):
     ]
 
     def _stat_card(self, object_name: str, title: str, value: str) -> QWidget:
-        card = QWidget(self)
-        card.setObjectName(object_name)
-        try:
-            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-            card.setMinimumHeight(112)
-            card.setMaximumHeight(150)
-        except Exception:
-            pass
-        lay = QVBoxLayout(card)
-        lay.setContentsMargins(20, 16, 20, 16)
-        lay.setSpacing(6)
-        t = QLabel(title, card)
-        t.setObjectName("StatTitle")
-        v = QLabel(value, card)
-        v.setObjectName("StatValueLarge")
-        lay.addStretch(1)
-        lay.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
-        lay.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
-        lay.addStretch(1)
-        return card
+        return self._make_stat_card(object_name, title, value, min_height=112)
 
     def _icon_button(self, glyph: str, *, danger: bool = False) -> QPushButton:
         b = QPushButton(glyph, self)

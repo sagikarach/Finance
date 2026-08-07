@@ -47,37 +47,10 @@ class HomePage(BasePage):
         self, parent: QWidget, object_name: str, title: str, value: str,
         subtitle: str = "",
     ) -> QWidget:
-        card = QWidget(parent)
-        card.setObjectName(object_name)
-        try:
-            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            card.setSizePolicy(
-                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
-            )
-            card.setMinimumHeight(118)
-            card.setMaximumHeight(150)
-        except Exception:
-            pass
-        lay = QVBoxLayout(card)
-        lay.setContentsMargins(20, 16, 20, 16)
-        lay.setSpacing(4)
-        t = QLabel(title, card)
-        t.setObjectName("StatTitle")
-        v = QLabel(value, card)
-        v.setObjectName("StatValueLarge")
-        lay.addStretch(1)
-        lay.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
-        lay.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
-        if subtitle:
-            s = QLabel(subtitle, card)
-            s.setObjectName("StatSubtle")
-            try:
-                s.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            except Exception:
-                pass
-            lay.addWidget(s, 0, Qt.AlignmentFlag.AlignHCenter)
-        lay.addStretch(1)
-        return card
+        return self._make_stat_card(
+            object_name, title, value,
+            subtitle=subtitle, min_height=118, spacing=4, parent=parent,
+        )
 
     def _chart_panel(self, parent: QWidget, title: str, chart: QWidget) -> QWidget:
         return self._content_panel(title, chart, parent)

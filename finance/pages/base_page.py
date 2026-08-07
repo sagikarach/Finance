@@ -656,6 +656,51 @@ class BasePage(QWidget):
         lay.addWidget(inner, 1)
         return panel
 
+    def _make_stat_card(
+        self,
+        object_name: str,
+        title: str,
+        value: str,
+        *,
+        subtitle: str = "",
+        min_height: int = 118,
+        spacing: int = 6,
+        parent: Optional[QWidget] = None,
+    ) -> QWidget:
+        """A centered stat card (title + large value, optional subtitle). Shared
+        so the home/accounts/savings summary cards aren't re-implemented."""
+        card = QWidget(parent if parent is not None else self)
+        card.setObjectName(object_name)
+        try:
+            card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+            card.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+            )
+            card.setMinimumHeight(min_height)
+            card.setMaximumHeight(150)
+        except Exception:
+            pass
+        lay = QVBoxLayout(card)
+        lay.setContentsMargins(20, 16, 20, 16)
+        lay.setSpacing(spacing)
+        t = QLabel(title, card)
+        t.setObjectName("StatTitle")
+        v = QLabel(value, card)
+        v.setObjectName("StatValueLarge")
+        lay.addStretch(1)
+        lay.addWidget(t, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(v, 0, Qt.AlignmentFlag.AlignHCenter)
+        if subtitle:
+            s = QLabel(subtitle, card)
+            s.setObjectName("StatSubtle")
+            try:
+                s.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            except Exception:
+                pass
+            lay.addWidget(s, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addStretch(1)
+        return card
+
     def _clear_content_layout(self, layout: QVBoxLayout) -> None:
         while layout.count():
             item = layout.takeAt(0)
