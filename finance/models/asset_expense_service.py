@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, List
 
-from .mortgage_math import average_monthly, cost_monthly_average, yearly_cost_cycles
+from .mortgage_math import (
+    average_monthly,
+    cost_monthly_average,
+    cost_paid_amount,
+    query_paid_amount,
+    yearly_cost_cycles,
+)
 from .movement_matching import match_movements
 
 
@@ -87,6 +93,25 @@ class AssetExpenseService:
             total_monthly=total,
             total_yearly=total * 12.0,
         )
+
+    def acquisition_paid(self, mortgage: Any) -> float:
+        """Total actually paid toward the purchase: matched price payments
+        (transfers included, since a down-payment is usually a transfer) plus
+        matched one-time costs."""
+        movements = self._movements()
+        pq = str(getattr(mortgage, "price_query", "") or "").strip()
+        price_paid = (
+            query_paid_amount(pq, movements, include_transfers=True) if pq else 0.0
+        )
+        one_time = sum(
+            cost_paid_amount(c, movements)
+            for c in getattr(mortgage, "one_time_costs", None) or []
+        )
+        return float(price_paid + one_time)
+
+    def financing_gap(self, mortgage: Any, residual: float) -> float:
+        """How much of the bank-financed residual is still unpaid (never < 0)."""
+        return max(0.0, float(residual) - self.acquisition_paid(mortgage))
 
     # ── car ──────────────────────────────────────────────────────────────
     def car_expenses(self, mortgage: Any, *, months: int = 12) -> ExpenseSummary:

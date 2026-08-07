@@ -51,7 +51,6 @@ from ..models.asset import (
     funding_breakdown_rows,
 )
 from ..models.mortgage_math import (
-    cost_paid_amount,
     cost_monthly_average,
     query_paid_amount,
     yearly_cost_cycles,
@@ -682,17 +681,9 @@ class AssetDetailPage(BasePage):
         movements = self._service.list_movements()
         accounts = self._load_accounts()
         self._funding_sources = list(m.funding_sources)
-        price_query = str(getattr(m, "price_query", "") or "").strip()
-        price_paid = (
-            query_paid_amount(price_query, movements, include_transfers=True)
-            if price_query
-            else 0.0
-        )
-        exp_paid = price_paid + sum(
-            cost_paid_amount(c, movements) for c in m.one_time_costs
-        )
+        exp_paid = self._expenses.acquisition_paid(m)
         residual = s.residual_from_bank
-        remaining_need = max(0.0, residual - exp_paid)
+        remaining_need = self._expenses.financing_gap(m, residual)
         # ───────── צד ההכנסות / מקורות מימון (כניסה) ─────────
         income_card = QWidget(root)
         income_card.setObjectName("AssetTablePanel")

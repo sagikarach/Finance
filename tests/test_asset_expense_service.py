@@ -115,3 +115,18 @@ def test_car_excludes_yearly_items_from_monthly_and_adds_them_annually():
     # yearly = recurring*12 + the yearly item cycle (1200)
     assert round(car.yearly, 2) == 6000.0
     assert car.months_of_data == 2
+
+
+def test_acquisition_paid_sums_price_and_one_time_matches():
+    movs = [_mv(-100000, 2026, 1, desc="מקדמה"), _mv(-5000, 2026, 1, desc="עורך דין")]
+    exp = AssetExpenseService(_FakeService(movs))
+    m = SimpleNamespace(
+        price_query="מקדמה",
+        one_time_costs=[CostItem(name="עו״ד", query="עורך דין")],
+        monthly_costs=[],
+        yearly_costs=[],
+        expense_category="",
+    )
+    assert round(exp.acquisition_paid(m), 2) == 105000.0
+    assert exp.financing_gap(m, 120000) == 15000.0
+    assert exp.financing_gap(m, 100000) == 0.0  # paid exceeds residual → clamped
