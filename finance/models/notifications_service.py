@@ -228,14 +228,6 @@ class NotificationsService:
             not in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED)
         ]
 
-    def _push_status(self, notif: Notification) -> None:
-        try:
-            from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
-
-            FirebaseWorkspaceWriter().upsert_notification(notif)
-        except Exception:
-            pass
-
     def get_movement_by_id(self, movement_id: str) -> Optional[BankMovement]:
         movement_id = str(movement_id or "").strip()
         if not movement_id:
@@ -285,10 +277,6 @@ class NotificationsService:
 
     def mark_unread(self, key: str) -> None:
         self._provider.update_status(key=key, status=NotificationStatus.UNREAD)
-        self._best_effort_push_status(key=key)
-
-    def dismiss(self, key: str) -> None:
-        self._provider.update_status(key=key, status=NotificationStatus.DISMISSED)
         self._best_effort_push_status(key=key)
 
     def resolve(self, key: str) -> None:

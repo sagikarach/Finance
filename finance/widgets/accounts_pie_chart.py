@@ -331,10 +331,3 @@ def _qcolor_to_hex(c: QColor) -> str:
     except Exception:
         return "#000000"
 
-
-def _interpolate_qcolor(c1: QColor, c2: QColor, t: float) -> QColor:
-    t = 0.0 if t < 0.0 else 1.0 if t > 1.0 else t
-    r = int(c1.red() + (c2.red() - c1.red()) * t)
-    g = int(c1.green() + (c2.green() - c1.green()) * t)
-    b = int(c1.blue() + (c2.blue() - c1.blue()) * t)
-    return QColor(r, g, b)

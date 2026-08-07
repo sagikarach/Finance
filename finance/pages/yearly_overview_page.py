@@ -83,10 +83,6 @@ class AutoStatCard(QWidget):
 
         self._apply_fonts()
 
-    def set_value(self, text: str) -> None:
-        self._value.setText(text)
-        self._apply_fonts()
-
     def value_label(self) -> QLabel:
         return self._value
 

@@ -325,22 +325,6 @@ class SimilarityBasedClassifier:
 
         return desc_score + amount_score
 
-    def _has_common_words(self, str1: str, str2: str) -> bool:
-        return bool(self._tokens(str1) & self._tokens(str2))
-
-    def _get_most_common(self, array: List[str]) -> Optional[str]:
-        if not array:
-            return None
-
-        counts: Dict[str, int] = {}
-        for value in array:
-            counts[value] = counts.get(value, 0) + 1
-
-        if not counts:
-            return None
-
-        return max(counts.items(), key=lambda x: x[1])[0]
-
     def learn(self, confirmed_expense: Dict[str, Any]) -> None:
         if not self._is_initialized:
             self.initialize()

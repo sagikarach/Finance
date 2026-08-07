@@ -444,35 +444,6 @@ class FirestoreClient:
                 docs.append(doc)
         return docs
 
-    def upsert_user_movement(
-        self,
-        *,
-        uid: str,
-        movement_id: str,
-        id_token: str,
-        fields: Dict[str, Any],
-    ) -> None:
-        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        now_ms = int(time.time() * 1000)
-        body_fields = dict(fields)
-        body_fields.setdefault("id", movement_id)
-        body_fields.setdefault("created_at", now)
-        body_fields.setdefault("created_at_ms", now_ms)
-        body_fields["updated_at"] = now
-        body_fields["updated_at_ms"] = now_ms
-        doc = {"fields": {k: _fs_value(v) for k, v in body_fields.items()}}
-
-        url = f"{self._doc_base()}/users/{uid}/movements/{movement_id}"
-        _http_json(
-            method="PATCH",
-            url=url,
-            headers={
-                "Authorization": f"Bearer {id_token}",
-                "Content-Type": "application/json",
-            },
-            body=json.dumps(doc).encode("utf-8"),
-        )
-
     def get_document(self, *, document_path: str, id_token: str) -> Dict[str, Any]:
         url = f"{self._doc_base()}/{document_path.lstrip('/')}"
         resp = _http_json(

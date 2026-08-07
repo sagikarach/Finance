@@ -996,27 +996,6 @@ class BasePage(QWidget):
                 theme = "light"
         return theme == "dark"
 
-    def _sync_icon_path(self, is_dark: bool) -> Optional[str]:
-        # Preferred: one icon that works on both themes.
-        # Fallback: per-theme icons.
-        name = "sync_dark_mode" if is_dark else "sync_light_mode"
-        other_name = "sync_light_mode" if is_dark else "sync_dark_mode"
-        try:
-            from ..utils.resources import find_first_existing
-
-            p = find_first_existing(
-                [
-                    "data/assets/icons/sync.png",
-                    f"data/assets/icons/{name}.png",
-                    f"data/assets/icons/{other_name}.png",
-                    f"{name}.png",
-                    f"{other_name}.png",
-                ]
-            )
-            return str(p) if p is not None else None
-        except Exception:
-            return None
-
     def _update_sync_icon(self) -> None:
         btn = self._sync_btn
         if btn is None:

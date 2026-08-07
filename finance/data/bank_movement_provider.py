@@ -222,10 +222,6 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         merged = set(mapping.get("income", [])) | set(mapping.get("outcome", []))
         return list(merged)
 
-    def save_categories(self, categories: List[str]) -> None:
-        mapping = {"income": list(categories), "outcome": list(categories)}
-        self._save_categories_by_type(mapping)
-
     def add_category_for_type(self, name: str, is_income: bool) -> None:
         name = name.strip()
         if not name:

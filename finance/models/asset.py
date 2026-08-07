@@ -98,11 +98,6 @@ class MortgageLoan:
     ) -> float:
         return float(mortgage_outstanding(self.record, as_of_date, assumptions))
 
-    def initial_monthly(
-        self, *, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
-    ) -> float:
-        return float(mortgage_initial_monthly(self.record, assumptions))
-
     def total_interest(
         self, *, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
     ) -> float:
@@ -353,11 +348,6 @@ class CarAsset(Asset):
 
     def standalone_value(self) -> float:
         return self.current_value()
-
-    def yearly_costs_total(self) -> float:
-        return float(
-            sum(float(c.amount) for c in getattr(self.record, "yearly_costs", []) or [])
-        )
 
 
 @dataclass(frozen=True)

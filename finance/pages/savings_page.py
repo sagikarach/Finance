@@ -352,9 +352,6 @@ class SavingsPage(BasePage):
     def _get_savings_accounts(self) -> List[SavingsAccount]:
         return [acc for acc in self._accounts if isinstance(acc, SavingsAccount)]
 
-    def _get_bank_accounts(self) -> List[BankAccount]:
-        return [acc for acc in self._accounts if isinstance(acc, BankAccount)]
-
     def _save_and_refresh(self) -> None:
         try:
             if self._accounts_service is None:
@@ -402,73 +399,6 @@ class SavingsPage(BasePage):
                 return
             self._accounts = self._accounts_service.add_savings_account(
                 self._accounts, form
-            )
-            self._save_and_refresh()
-
-    def _handle_edit_account(self) -> None:
-        savings_accounts = self._get_savings_accounts()
-        if not savings_accounts:
-            return
-
-        existing_names = [acc.name for acc in savings_accounts]
-
-        dialog = EditSavingsAccountDialog(
-            accounts=savings_accounts,
-            existing_names=existing_names,
-            parent=self,
-        )
-        if dialog.exec():
-            selected_account = dialog.get_selected_account()
-            if selected_account is None:
-                return
-
-            account_to_edit = None
-            for account in self._accounts:
-                if account is selected_account:
-                    account_to_edit = account
-                    break
-
-            if account_to_edit is None:
-                for account in self._accounts:
-                    if (
-                        isinstance(account, SavingsAccount)
-                        and account.name == selected_account.name
-                    ):
-                        account_to_edit = account
-                        break
-
-            if account_to_edit is None:
-                return
-
-            form = SavingsAccountForm(
-                name=dialog.get_name(),
-                is_liquid=dialog.get_is_liquid(),
-            )
-            if not form.name.strip():
-                return
-
-            if self._accounts_service is None:
-                return
-            self._accounts = self._accounts_service.edit_savings_account(
-                self._accounts, account_to_edit, form
-            )
-            self._save_and_refresh()
-
-    def _handle_delete_account(self) -> None:
-        savings_accounts = self._get_savings_accounts()
-        if not savings_accounts:
-            return
-
-        dialog = DeleteSavingsAccountDialog(accounts=savings_accounts, parent=self)
-        if dialog.exec():
-            selected_account = dialog.get_selected_account()
-            if selected_account is None:
-                return
-
-            if self._accounts_service is None:
-                return
-            self._accounts = self._accounts_service.delete_savings_account(
-                self._accounts, selected_account
             )
             self._save_and_refresh()
 

@@ -449,13 +449,3 @@ class FirebaseWorkspaceWriter:
                 "source": "desktop",
             },
         )
-
-    def upsert_ml_seed(self, *, examples: List[Dict[str, Any]]) -> None:
-        s = self._load_session_refresh_if_needed()
-        wid = self._ensure_workspace(s)
-        fs = self._fs(s.project_id)
-        fs.upsert_document(
-            document_path=f"workspaces/{wid}/meta/ml_seed",
-            id_token=s.id_token,
-            fields={"examples": list(examples), "version": 1},
-        )

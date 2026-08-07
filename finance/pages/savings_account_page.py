@@ -221,18 +221,6 @@ class SavingsAccountPage(BasePage):
     def _get_savings_accounts(self) -> List[SavingsAccount]:
         return [acc for acc in self._accounts if isinstance(acc, SavingsAccount)]
 
-    def _replace_savings_account(
-        self, original: SavingsAccount, updated: SavingsAccount
-    ) -> None:
-        for i, acc in enumerate(self._accounts):
-            if acc is original:
-                self._accounts[i] = updated
-                return
-        for i, acc in enumerate(self._accounts):
-            if isinstance(acc, SavingsAccount) and acc.name == original.name:
-                self._accounts[i] = updated
-                return
-
     def _save_savings_accounts_and_refresh(self, selected_name: str) -> None:
         if not isinstance(self._provider, JsonFileAccountsProvider):
             return

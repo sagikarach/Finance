@@ -181,18 +181,6 @@ class OneTimeEventPieChart(QWidget):
 
         self._view.setChart(chart)
 
-    @staticmethod
-    def _interpolate_qcolor(start: QColor, end: QColor, t: float) -> QColor:
-        try:
-            r1, g1, b1 = start.red(), start.green(), start.blue()
-            r2, g2, b2 = end.red(), end.green(), end.blue()
-            r = int(r1 + (r2 - r1) * t)
-            g = int(g1 + (g2 - g1) * t)
-            b = int(b1 + (b2 - b1) * t)
-            return QColor(r, g, b)
-        except Exception:
-            return start
-
     def _on_slice_hover(
         self,
         series: QPieSeries,

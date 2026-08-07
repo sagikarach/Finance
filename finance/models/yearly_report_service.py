@@ -17,20 +17,6 @@ class YearlyReportService:
     def __init__(self, movement_provider: BankMovementProvider) -> None:
         self.movement_provider = movement_provider
 
-    def get_yearly_report(
-        self,
-        year: int,
-        account_names: Optional[List[str]] = None,
-        movement_types: Optional[Set[MovementType]] = None,
-    ) -> Optional[YearlyReport]:
-        try:
-            all_movements = self.movement_provider.list_movements()
-        except Exception:
-            return None
-
-        # The report knows how to build itself from the movements.
-        return YearlyReport.build(all_movements, year, account_names, movement_types)
-
     def get_available_years(
         self, account_names: Optional[List[str]] = None
     ) -> List[int]:
