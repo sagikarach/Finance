@@ -17,6 +17,7 @@ from ..models.mortgage import (
     generate_track_id,
 )
 from .json_io import atomic_write_json, read_json_list, workspace_json_path
+from ..utils.enums import coerce_enum
 
 
 class MortgageProvider(ABC):
@@ -35,33 +36,6 @@ class MortgageProvider(ABC):
     @abstractmethod
     def delete_mortgage(self, mortgage_id: str) -> None:
         raise NotImplementedError
-
-
-def _parse_track_kind(value: Any) -> TrackKind:
-    try:
-        return TrackKind(str(value))
-    except Exception:
-        return TrackKind.FIXED_UNLINKED
-
-
-def _parse_amortization(value: Any) -> AmortizationType:
-    try:
-        return AmortizationType(str(value))
-    except Exception:
-        return AmortizationType.SPITZER
-
-
-def _parse_asset_kind(value: Any) -> AssetKind:
-    # ברירת מחדל: נדל״ן — כך רשומות קיימות (לפני התוספת) נשארות נכסי נדל״ן.
-    if value is None:
-        return AssetKind.PURCHASE
-    # ערך היסטורי: "רכישה" שונה ל-"נדל״ן". שמור על טעינת רשומות ישנות.
-    if str(value) == "רכישה":
-        return AssetKind.PURCHASE
-    try:
-        return AssetKind(str(value))
-    except Exception:
-        return AssetKind.PURCHASE
 
 
 def serialize_track(track: MortgageTrack) -> Dict[str, Any]:
@@ -86,11 +60,11 @@ def deserialize_track(item: Any) -> Optional[MortgageTrack]:
         return MortgageTrack(
             id=str(item.get("id", "")).strip() or generate_track_id(),
             name=str(item.get("name", "") or ""),
-            kind=_parse_track_kind(item.get("kind")),
+            kind=coerce_enum(TrackKind, item.get("kind"), TrackKind.FIXED_UNLINKED),
             principal=float(item.get("principal", 0.0) or 0.0),
             annual_rate=float(item.get("annual_rate", 0.0) or 0.0),
             term_months=int(item.get("term_months", 0) or 0),
-            amortization=_parse_amortization(item.get("amortization")),
+            amortization=coerce_enum(AmortizationType, item.get("amortization"), AmortizationType.SPITZER),
             cpi_linked=bool(item.get("cpi_linked", False)),
             prime_spread=float(item.get("prime_spread", 0.0) or 0.0),
             reset_months=int(item.get("reset_months", 0) or 0),
@@ -132,13 +106,6 @@ def _deserialize_costs(raw: Any) -> List[CostItem]:
     return out
 
 
-def _parse_funding_kind(value: Any) -> FundingKind:
-    try:
-        return FundingKind(str(value))
-    except Exception:
-        return FundingKind.FUTURE
-
-
 def serialize_funding(item: FundingSource) -> Dict[str, Any]:
     return {
         "name": str(item.name or ""),
@@ -157,7 +124,7 @@ def deserialize_funding(item: Any) -> Optional[FundingSource]:
         return FundingSource(
             name=str(item.get("name", "") or ""),
             amount=float(item.get("amount", 0.0) or 0.0),
-            kind=_parse_funding_kind(item.get("kind")),
+            kind=coerce_enum(FundingKind, item.get("kind"), FundingKind.FUTURE),
             query=str(item.get("query", "") or ""),
             account_name=str(item.get("account_name", "") or ""),
             saving_name=str(item.get("saving_name", "") or ""),
@@ -240,7 +207,7 @@ def deserialize_mortgage(item: Any) -> Optional[Mortgage]:
             monthly_costs=_deserialize_costs(item.get("monthly_costs")),
             yearly_costs=_deserialize_costs(item.get("yearly_costs")),
             funding_sources=_deserialize_funding(item.get("funding_sources")),
-            kind=_parse_asset_kind(item.get("kind")),
+            kind=coerce_enum(AssetKind, item.get("kind"), AssetKind.PURCHASE, aliases={"רכישה": AssetKind.PURCHASE}),
             current_value=float(item.get("current_value", 0.0) or 0.0),
             expense_category=str(item.get("expense_category", "") or ""),
             sold=bool(item.get("sold", False)),
