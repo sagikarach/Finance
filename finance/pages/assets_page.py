@@ -30,21 +30,10 @@ from ..ui.dialog_utils import setup_calendar_popup
 from .base_page import BasePage
 
 
-def _fmt_money(value: float) -> str:
-    try:
-        return f"{float(value):,.0f}"
-    except Exception:
-        return str(value)
+from ..utils.formatting import fmt_money as _fmt_money
 
 
-def _parse_float(text: str) -> Optional[float]:
-    s = str(text or "").strip().replace(",", "")
-    if not s:
-        return None
-    try:
-        return float(s)
-    except Exception:
-        return None
+from ..utils.formatting import parse_float as _parse_float
 
 
 # מזהה החשבון הקבוע לנכסי רכישה (תואם למסך המשכנתא).

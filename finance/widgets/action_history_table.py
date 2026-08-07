@@ -46,14 +46,11 @@ from ..models.action_history import (
 )
 
 
+from ..utils.formatting import fmt_money
+
+
 def _fmt_money(amount: float) -> str:
-    try:
-        return f"{amount:,.2f}"
-    except Exception:
-        try:
-            return str(amount)
-        except Exception:
-            return ""
+    return fmt_money(amount, 2)
 
 
 _ACTION_TITLE_MAP: dict[str, str] = {

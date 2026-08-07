@@ -34,11 +34,11 @@ from ..widgets.installments_selector import InstallmentsSelector
 from .base_page import BasePage
 
 
+from ..utils.formatting import fmt_money
+
+
 def _fmt_money(value: float) -> str:
-    try:
-        return f"{float(value):,.2f}"
-    except Exception:
-        return str(value)
+    return fmt_money(value, 2)
 
 
 class InstallmentPlanDialog(QDialog):
