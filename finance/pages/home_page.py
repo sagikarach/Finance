@@ -79,23 +79,8 @@ class HomePage(BasePage):
         lay.addStretch(1)
         return card
 
-    def _chart_panel(
-        self, parent: QWidget, title: str, chart: QWidget,
-    ) -> QWidget:
-        panel = QWidget(parent)
-        panel.setObjectName("ContentPanel")
-        try:
-            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        lay = QVBoxLayout(panel)
-        lay.setContentsMargins(18, 14, 18, 14)
-        lay.setSpacing(8)
-        ttl = QLabel(title, panel)
-        ttl.setObjectName("PanelTitle")
-        lay.addWidget(ttl)
-        lay.addWidget(chart, 1)
-        return panel
+    def _chart_panel(self, parent: QWidget, title: str, chart: QWidget) -> QWidget:
+        return self._content_panel(title, chart, parent)
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         overview = AccountsOverview.for_home(self._accounts)

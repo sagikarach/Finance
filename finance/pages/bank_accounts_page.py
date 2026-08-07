@@ -93,20 +93,7 @@ class BankAccountsPage(BasePage):
         return card
 
     def _panel(self, title: str, inner: QWidget) -> QWidget:
-        panel = QWidget(self)
-        panel.setObjectName("ContentPanel")
-        try:
-            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        lay = QVBoxLayout(panel)
-        lay.setContentsMargins(18, 14, 18, 14)
-        lay.setSpacing(8)
-        ttl = QLabel(title, panel)
-        ttl.setObjectName("PanelTitle")
-        lay.addWidget(ttl)
-        lay.addWidget(inner, 1)
-        return panel
+        return self._content_panel(title, inner)
 
     def _accounts_list(self, accounts: List[BankAccount]) -> QWidget:
         wrap = QWidget(self)

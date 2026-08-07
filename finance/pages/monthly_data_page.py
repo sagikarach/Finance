@@ -61,20 +61,7 @@ class MonthlyDataPage(BasePage):
         )
 
     def _chart_panel(self, title: str, chart: QWidget) -> QWidget:
-        panel = QWidget(self)
-        panel.setObjectName("ContentPanel")
-        try:
-            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
-            pass
-        lay = QVBoxLayout(panel)
-        lay.setContentsMargins(18, 14, 18, 14)
-        lay.setSpacing(8)
-        ttl = QLabel(title, panel)
-        ttl.setObjectName("PanelTitle")
-        lay.addWidget(ttl)
-        lay.addWidget(chart, 1)
-        return panel
+        return self._content_panel(title, chart)
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
         self._clear_content_layout(main_col)

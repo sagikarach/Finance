@@ -636,6 +636,26 @@ class BasePage(QWidget):
         # Default: a settings gear. Pages wanting something else override this.
         return [self._make_nav_icon_button("gear", "הגדרות", "settings")]
 
+    def _content_panel(
+        self, title: str, inner: QWidget, parent: Optional[QWidget] = None
+    ) -> QWidget:
+        """A titled ``ContentPanel`` card wrapping ``inner`` (stretched). Shared
+        so pages don't re-implement the same panel skeleton."""
+        panel = QWidget(parent if parent is not None else self)
+        panel.setObjectName("ContentPanel")
+        try:
+            panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except Exception:
+            pass
+        lay = QVBoxLayout(panel)
+        lay.setContentsMargins(18, 14, 18, 14)
+        lay.setSpacing(8)
+        ttl = QLabel(title, panel)
+        ttl.setObjectName("PanelTitle")
+        lay.addWidget(ttl)
+        lay.addWidget(inner, 1)
+        return panel
+
     def _clear_content_layout(self, layout: QVBoxLayout) -> None:
         while layout.count():
             item = layout.takeAt(0)
