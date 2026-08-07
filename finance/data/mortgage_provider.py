@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-import json
 
 from ..models.mortgage import (
     AmortizationType,
@@ -17,11 +16,7 @@ from ..models.mortgage import (
     generate_mortgage_id,
     generate_track_id,
 )
-from ..utils.app_paths import accounts_data_dir
-from ..models.firebase_session import (
-    current_firebase_uid,
-    current_firebase_workspace_id,
-)
+from .json_io import atomic_write_json, read_json_list, workspace_json_path
 
 
 class MortgageProvider(ABC):
@@ -266,42 +261,14 @@ class JsonFileMortgageProvider(MortgageProvider):
         self._explicit_path: Optional[Path] = Path(path) if path else None
 
     def _get_path(self) -> Path:
-        if self._explicit_path is not None:
-            return self._explicit_path
-        key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
-        suffix = f"_{key}" if key else ""
-        return accounts_data_dir() / f"mortgages{suffix}.json"
+        return workspace_json_path("mortgages", self._explicit_path)
 
     def list_mortgages(self) -> List[Mortgage]:
-        p = self._get_path()
-        if not p.exists():
-            return []
-        try:
-            with p.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            return []
-        if not isinstance(data, list):
-            return []
-        out: List[Mortgage] = []
-        for item in data:
-            mortgage = deserialize_mortgage(item)
-            if mortgage is not None:
-                out.append(mortgage)
-        return out
+        return read_json_list(self._get_path(), deserialize_mortgage)
 
     def save_mortgages(self, mortgages: List[Mortgage]) -> None:
-        import os
-
-        p = self._get_path()
-        p.parent.mkdir(parents=True, exist_ok=True)
         payload = [serialize_mortgage(m) for m in mortgages]
-        tmp = p.with_suffix(".tmp")
-        with tmp.open("w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, p)
+        atomic_write_json(self._get_path(), payload)
 
     def upsert_mortgage(self, mortgage: Mortgage) -> None:
         mortgages = self.list_mortgages()

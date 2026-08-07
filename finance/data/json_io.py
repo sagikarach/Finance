@@ -41,3 +41,42 @@ def atomic_write_json(path: Path, data: Any, *, indent: int = 2) -> None:
             except OSError:
                 pass
             raise
+
+
+def workspace_json_path(stem: str, explicit: Any = None) -> Path:
+    """Path to a per-workspace JSON file: ``<data_dir>/<stem>_<workspace|uid>.json``
+    (or ``explicit`` when given). Centralizes the workspace-suffix logic that
+    every provider re-implemented identically."""
+    if explicit is not None:
+        return Path(explicit)
+    from ..models.firebase_session import (
+        current_firebase_uid,
+        current_firebase_workspace_id,
+    )
+    from ..utils.app_paths import accounts_data_dir
+
+    key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
+    suffix = f"_{key}" if key else ""
+    return accounts_data_dir() / f"{stem}{suffix}.json"
+
+
+def read_json_list(path: Path, deserialize) -> list:
+    """Read a JSON-array file and map each item through ``deserialize``, skipping
+    ``None`` results. Returns ``[]`` on a missing file, a parse error, or non-list
+    content — the exact shape every provider's ``list_*`` repeated."""
+    path = Path(path)
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    out = []
+    for item in data:
+        obj = deserialize(item)
+        if obj is not None:
+            out.append(obj)
+    return out
