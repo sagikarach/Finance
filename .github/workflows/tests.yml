@@ -22,3 +22,24 @@ jobs:
         run: pip install pytest platformdirs PyNaCl certifi
       - name: Run test suite
         run: python -m pytest -q
+
+  # Offscreen render-smoke for the chart widgets. Needs PySide6 + a few Qt
+  # system libs; runs headless via the offscreen platform plugin.
+  gui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Qt runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libxkbcommon0 libdbus-1-3 libglib2.0-0
+      - name: Install deps
+        run: pip install -r requirements.txt pytest
+      - name: Run offscreen GUI smoke
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest tests/test_gui_smoke.py -q
