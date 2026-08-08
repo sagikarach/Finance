@@ -119,6 +119,9 @@ def test_sold_asset_is_inactive() -> None:
 # ----- AssetsPage now routes value/sold through the model --------------------
 
 def test_assets_page_value_and_sold_use_model() -> None:
+    import pytest
+
+    pytest.importorskip("PySide6")  # page import needs Qt; runs in the gui job
     from finance.pages.assets_page import AssetsPage
 
     assert _approx(AssetsPage._asset_value(_purchase()), 2_000_000.0)
