@@ -238,10 +238,6 @@ class Asset:
     def is_active(self) -> bool:
         return not (self.archived or self.sold)
 
-    def realized_value(self) -> float:
-        """Cash realized if the asset was sold, else 0."""
-        return float(self.record.sale_price or 0.0) if self.sold else 0.0
-
     def current_value(
         self,
         *,

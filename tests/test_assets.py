@@ -74,17 +74,6 @@ def test_total_outstanding_sums_purchases_only() -> None:
     assert expected > 0  # sanity: the purchase actually has debt
 
 
-def test_total_other_assets_value_sums_held_only() -> None:
-    svc = _svc([_purchase(), _held(value=80_000.0)])
-    assert _approx(svc.total_other_assets_value(), 80_000.0)
-
-
-def test_archived_excluded_unless_requested() -> None:
-    svc = _svc([_held(value=80_000.0), _held(name="ישן", value=50_000.0, archived=True)])
-    assert _approx(svc.total_other_assets_value(), 80_000.0)
-    assert _approx(svc.total_other_assets_value(include_archived=True), 130_000.0)
-
-
 # ----- the OOP Asset model ---------------------------------------------------
 
 def test_build_asset_picks_subtype_by_kind() -> None:
@@ -120,12 +109,11 @@ def test_house_purchase_value_equity_and_mortgage() -> None:
     assert _approx(a.mortgage.original_principal, 1_000_000.0)
 
 
-def test_sold_asset_realized_value_and_inactive() -> None:
+def test_sold_asset_is_inactive() -> None:
     from finance.models.asset import build_asset
 
     a = build_asset(_held(name="ישן", value=50_000.0, sold=True, sale_price=60_000.0))
     assert a.is_active is False
-    assert _approx(a.realized_value(), 60_000.0)
 
 
 # ----- AssetsPage now routes value/sold through the model --------------------

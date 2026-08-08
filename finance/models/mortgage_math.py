@@ -493,29 +493,6 @@ def payment_split_projection(
 # ─────────────────────── חשיפה למדד / ריבית ממוצעת ───────────────────────
 
 
-def linked_principal_fraction(mortgage: Mortgage) -> float:
-    """חלק הקרן המקורית הצמוד למדד (0..1)."""
-    total = float(mortgage.original_principal)
-    if total <= 0:
-        return 0.0
-    linked = sum(float(t.principal) for t in mortgage.tracks if bool(t.cpi_linked))
-    return float(linked / total)
-
-
-def weighted_annual_rate(
-    mortgage: Mortgage, assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS
-) -> float:
-    """ריבית שנתית ממוצעת משוקללת לפי קרן המסלולים (באחוזים)."""
-    total = float(mortgage.original_principal)
-    if total <= 0:
-        return 0.0
-    acc = sum(
-        float(t.principal) * effective_annual_rate(t, assumptions)
-        for t in mortgage.tracks
-    )
-    return float(acc / total)
-
-
 # ─────────────────────── רגישות להנחות (פריים / מדד) ───────────────────────
 
 

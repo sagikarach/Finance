@@ -33,12 +33,10 @@ from finance.models.mortgage_math import (  # noqa: E402
     cost_total_amount,
     assumptions_sensitivity,
     early_payoff_savings,
-    linked_principal_fraction,
     months_after,
     months_between,
     payment_split_projection,
     track_end_milestones,
-    weighted_annual_rate,
     mortgage_initial_monthly,
     mortgage_outstanding,
     mortgage_total_interest,
@@ -421,19 +419,6 @@ def test_payment_split_matches_schedule() -> None:
     assert pts[-1].principal > pts[-1].interest
     # סכום הריבית לאורך הזמן = סך הריבית של המסלול.
     assert _approx(sum(p.interest for p in pts), track_total_interest(t), 1.0)
-
-
-def test_linked_fraction_and_weighted_rate() -> None:
-    m = Mortgage(
-        tracks=[
-            MortgageTrack(principal=300_000, annual_rate=3.0, term_months=240,
-                          cpi_linked=True),
-            MortgageTrack(principal=700_000, annual_rate=5.0, term_months=240),
-        ]
-    )
-    assert _approx(linked_principal_fraction(m), 0.3, 0.001)
-    # ריבית ממוצעת משוקללת = (300k*3 + 700k*5)/1000k = 4.4%.
-    assert _approx(weighted_annual_rate(m), 4.4, 0.01)
 
 
 def test_sensitivity_prime_only_affects_prime_tracks() -> None:

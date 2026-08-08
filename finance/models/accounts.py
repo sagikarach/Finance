@@ -462,11 +462,3 @@ def to_iso_date(value: str) -> str:
     if dt == datetime.min:
         return s
     return dt.date().isoformat()
-
-
-def latest_amount_from_history(history: Iterable[MoneySnapshot]) -> Optional[float]:
-    """The current balance implied by ``history``: the amount of the most recent
-    non-future snapshot. Thin wrapper over :func:`_latest_non_future_snapshot`
-    kept for callers that work with a bare history list."""
-    latest = _latest_non_future_snapshot(history)
-    return float(latest.amount) if latest is not None else None

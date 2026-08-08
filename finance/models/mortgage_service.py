@@ -257,17 +257,6 @@ class MortgageService:
                 continue
         return float(total)
 
-    def total_other_assets_value(self, *, include_archived: bool = False) -> float:
-        """סך השווי של נכסים מסוג 'אחר' (החזקות שאינן רכישה/משכנתא)."""
-        from .asset import build_asset
-
-        total = 0.0
-        for m in self._mortgages_provider.list_mortgages():
-            if not include_archived and bool(getattr(m, "archived", False)):
-                continue
-            total += build_asset(m).standalone_value()
-        return float(total)
-
     def total_assets_net(
         self,
         *,

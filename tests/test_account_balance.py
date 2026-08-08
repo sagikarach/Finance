@@ -18,12 +18,19 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from finance.models.accounts import (  # noqa: E402
     BankAccount,
     MoneySnapshot,
-    latest_amount_from_history,
+    _latest_non_future_snapshot,
 )
 
 
 def _approx(a: float, b: float, tol: float = 0.005) -> bool:
     return abs(float(a) - float(b)) <= tol
+
+
+def _latest_amount(history):
+    """Current balance implied by ``history`` — exercises the live
+    ``_latest_non_future_snapshot`` used by BankAccount.__post_init__."""
+    snap = _latest_non_future_snapshot(history)
+    return float(snap.amount) if snap is not None else None
 
 
 def test_latest_ignores_future_dated_snapshot() -> None:
@@ -33,7 +40,7 @@ def test_latest_ignores_future_dated_snapshot() -> None:
         MoneySnapshot(today, 232_555.92),
         MoneySnapshot(future, 117_921.23),  # date typo / projection
     ]
-    assert _approx(latest_amount_from_history(hist), 232_555.92)
+    assert _approx(_latest_amount(hist), 232_555.92)
 
 
 def test_latest_picks_most_recent_past() -> None:
@@ -42,7 +49,7 @@ def test_latest_picks_most_recent_past() -> None:
         MoneySnapshot("2026-06-22", 300.0),
         MoneySnapshot("2026-03-01", 200.0),
     ]
-    assert _approx(latest_amount_from_history(hist), 300.0)
+    assert _approx(_latest_amount(hist), 300.0)
 
 
 def test_all_future_falls_back_to_latest() -> None:
@@ -50,7 +57,7 @@ def test_all_future_falls_back_to_latest() -> None:
     f2 = (date.today() + timedelta(days=20)).isoformat()
     hist = [MoneySnapshot(f1, 50.0), MoneySnapshot(f2, 75.0)]
     # every snapshot is future-dated -> fall back to the latest overall
-    assert _approx(latest_amount_from_history(hist), 75.0)
+    assert _approx(_latest_amount(hist), 75.0)
 
 
 def test_bank_account_total_ignores_future_snapshot() -> None:
@@ -71,7 +78,7 @@ def test_bank_account_total_ignores_future_snapshot() -> None:
 
 
 def test_empty_history_returns_none() -> None:
-    assert latest_amount_from_history([]) is None
+    assert _latest_amount([]) is None
 
 
 def test_same_date_ties_take_last_recorded() -> None:
@@ -83,7 +90,7 @@ def test_same_date_ties_take_last_recorded() -> None:
         MoneySnapshot(d, 202_273.28),
         MoneySnapshot(d, 232_555.92),
     ]
-    assert _approx(latest_amount_from_history(hist), 232_555.92)
+    assert _approx(_latest_amount(hist), 232_555.92)
 
 
 def _run_all() -> int:
