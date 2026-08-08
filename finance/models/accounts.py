@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Iterable, List, Optional
 import re
+from ..utils.safe import PARSE_ERRORS
 
 
 @dataclass(frozen=True)
@@ -303,7 +304,7 @@ class SavingsAccount(MoneyAccount):
                     if not str(sd.get("name", "")).strip():
                         continue
                     savings.append(Savings.from_dict(sd))
-                except Exception:
+                except PARSE_ERRORS:
                     continue
         return cls(
             name=str(item.get("name", "")).strip(),
@@ -329,7 +330,7 @@ class MovementLedger:
         for m in self._by_name.get(name, []):
             try:
                 total += float(getattr(m, "amount", 0.0) or 0.0)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
         return total
 
@@ -360,7 +361,7 @@ def _history_from_dicts(raw) -> List[MoneySnapshot]:
         for row in raw:
             try:
                 out.append(MoneySnapshot.from_dict(row))
-            except Exception:
+            except PARSE_ERRORS:
                 continue
     return out
 
@@ -404,21 +405,21 @@ def parse_iso_date(value: str) -> datetime:
     # Fast path: ISO-like formats.
     try:
         return datetime.fromisoformat(s)
-    except Exception:
+    except PARSE_ERRORS:
         pass
     try:
         return datetime.strptime(s, "%Y-%m-%d")
-    except Exception:
+    except PARSE_ERRORS:
         pass
 
     # Common bank-export formats.
     try:
         return datetime.strptime(s, "%d/%m/%Y")
-    except Exception:
+    except PARSE_ERRORS:
         pass
     try:
         return datetime.strptime(s, "%d.%m.%Y")
-    except Exception:
+    except PARSE_ERRORS:
         pass
 
     # 2-digit year (e.g. 01/01/24 or 01.01.24)
@@ -430,7 +431,7 @@ def parse_iso_date(value: str) -> datetime:
             yy = int(m.group(3))
             year = 2000 + yy  # assume 20xx for exports
             return datetime(year, mo, d)
-        except Exception:
+        except PARSE_ERRORS:
             return datetime.min
 
     # Missing year (e.g. 01/01 or 01.01) -> assume current year.
@@ -441,7 +442,7 @@ def parse_iso_date(value: str) -> datetime:
             mo = int(m2.group(2))
             now = datetime.now()
             return datetime(int(now.year), mo, d)
-        except Exception:
+        except PARSE_ERRORS:
             return datetime.min
 
     return datetime.min

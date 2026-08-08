@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from .accounts import parse_iso_date
 from .bank_movement import BankMovement
 from .bank_movement import MovementType
+from ..utils.safe import PARSE_ERRORS
 
 MonthKey = Tuple[int, int]
 
@@ -19,7 +20,7 @@ def _income_outcome_counts(movements: List[BankMovement]) -> tuple[float, float,
     for m in movements:
         try:
             amount = float(m.amount)
-        except Exception:
+        except PARSE_ERRORS:
             continue
         if amount > 0:
             total_income += amount
@@ -104,7 +105,7 @@ class CategoryYearlyBreakdown:
         for m in movements:
             try:
                 amount = float(m.amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
             category = m.category or "שונות"
             data[(category, amount > 0)].append(abs(amount))
@@ -157,7 +158,7 @@ class YearlyReport:
                 if parse_iso_date(m.date).year != year:
                     continue
                 selected.append(m)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         selected.sort(key=lambda x: parse_iso_date(x.date), reverse=True)
 
@@ -170,7 +171,7 @@ class YearlyReport:
             try:
                 dt = parse_iso_date(m.date)
                 by_month[(dt.year, dt.month)].append(m)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         return cls(

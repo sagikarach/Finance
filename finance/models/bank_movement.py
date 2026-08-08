@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Optional
 import uuid
+from ..utils.safe import PARSE_ERRORS
 
 
 class MovementType(StrEnum):
@@ -28,7 +29,7 @@ def parse_movement_type(raw: object) -> "MovementType":
         return MovementType.ONE_TIME
     try:
         return MovementType(text)
-    except Exception:
+    except PARSE_ERRORS:
         return MovementType.ONE_TIME
 
 
@@ -74,7 +75,7 @@ def deserialize_bank_movement(
             event_id=event_id,
             id=mid,
         )
-    except Exception:
+    except PARSE_ERRORS:
         return None
 
 

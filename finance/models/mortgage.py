@@ -6,6 +6,7 @@ from typing import List, Optional
 import uuid
 
 from .accounts import MoneyAccount, SavingsAccount
+from ..utils.safe import PARSE_ERRORS
 
 
 def endpoint_balance(
@@ -46,7 +47,7 @@ def account_transferred_out(
                 and str(getattr(m, "account_name", "") or "").strip() == target
             ):
                 total += abs(float(m.amount))
-        except Exception:
+        except PARSE_ERRORS:
             continue
     return float(total)
 

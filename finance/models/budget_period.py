@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from .accounts import parse_iso_date
+from ..utils.safe import PARSE_ERRORS
 
 
 def next_month(year: int, month: int) -> tuple[int, int]:
@@ -22,7 +23,7 @@ def future_months(
         try:
             today = _date.today()
             after = (today.year, today.month)
-        except Exception:
+        except PARSE_ERRORS:
             after = (1970, 1)
     y, m = int(after[0]), int(after[1])
     out: list[tuple[int, int]] = []
@@ -37,7 +38,7 @@ def budget_period_end_key(date_str: str, reset_day: int) -> Optional[tuple[int, 
 
     try:
         dt = parse_iso_date(str(date_str or "").strip())
-    except Exception:
+    except PARSE_ERRORS:
         return None
     if dt == _datetime.min:
         return None
@@ -51,7 +52,7 @@ def current_budget_period_end_key(reset_day: int) -> tuple[int, int]:
         from datetime import date as _date
 
         today = _date.today()
-    except Exception:
+    except PARSE_ERRORS:
         return 1970, 1
     if int(today.day) <= int(reset_day):
         return int(today.year), int(today.month)

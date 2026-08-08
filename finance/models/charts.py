@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Tuple
 from datetime import datetime, timedelta
 
 from .accounts import MoneySnapshot, parse_iso_date
+from ..utils.safe import PARSE_ERRORS
 
 
 MonthKey = Tuple[int, int]
@@ -35,7 +36,7 @@ def latest_snapshots_by_month_with_axis(
     for snap in history:
         try:
             dt = parse_iso_date(str(snap.date))
-        except Exception:
+        except PARSE_ERRORS:
             continue
         if dt == datetime.min:
             continue
@@ -150,19 +151,19 @@ def cumulative_daily_series(points: Iterable[Any]) -> Tuple[List[str], List[floa
         return [], []
     try:
         pts = sorted(pts, key=lambda p: parse_iso_date(p.date_iso))
-    except Exception:
+    except PARSE_ERRORS:
         pass
     try:
         start_dt = parse_iso_date(pts[0].date_iso).date()
         end_dt = parse_iso_date(pts[-1].date_iso).date()
-    except Exception:
+    except PARSE_ERRORS:
         return [], []
 
     day_sum: Dict[str, float] = {}
     for p in pts:
         try:
             d = parse_iso_date(p.date_iso).date().isoformat()
-        except Exception:
+        except PARSE_ERRORS:
             continue
         day_sum[d] = float(day_sum.get(d, 0.0) + float(p.amount))
 

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from .accounts import BankAccount
+from ..utils.safe import PARSE_ERRORS
 
 
 @dataclass(frozen=True)
@@ -40,7 +41,7 @@ def apply_bank_settings(rows: List[BankSettingsRowInput]) -> List[BankAccount]:
         new_total = account.total_amount
         try:
             baseline_amount = float(getattr(account, "baseline_amount", 0.0) or 0.0)
-        except Exception:
+        except PARSE_ERRORS:
             baseline_amount = 0.0
 
         # Starter amount is a baseline (not "set current balance").

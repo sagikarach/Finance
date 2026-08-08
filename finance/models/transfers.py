@@ -12,6 +12,7 @@ from .accounts import (
     SavingsAccount,
 )
 from .bank_movement import BankMovement, MovementType
+from ..utils.safe import PARSE_ERRORS
 
 
 TransferEndpointKind = Literal["bank", "saving"]
@@ -80,7 +81,7 @@ class TransferRequest:
         elif src.kind == "saving" and isinstance(src_acc, SavingsAccount):
             try:
                 src_saving = src_acc.savings[src.savings_index]
-            except Exception:
+            except PARSE_ERRORS:
                 return TransferResult(
                     accounts=accounts, error=TransferError("שגיאה בחסכון.")
                 )
@@ -113,7 +114,7 @@ class TransferRequest:
 
         try:
             today_str = _date.today().isoformat()
-        except Exception:
+        except PARSE_ERRORS:
             today_str = ""
 
         updated_accounts: List[MoneyAccount] = []
@@ -127,7 +128,7 @@ class TransferRequest:
                         new_history.append(
                             MoneySnapshot(date=today_str, amount=new_total)
                         )
-                    except Exception:
+                    except PARSE_ERRORS:
                         pass
                     updated_accounts.append(
                         BankAccount(
@@ -161,7 +162,7 @@ class TransferRequest:
                             new_history.append(
                                 MoneySnapshot(date=today_str, amount=new_amount)
                             )
-                        except Exception:
+                        except PARSE_ERRORS:
                             pass
                         new_savings.append(
                             Savings(
@@ -214,7 +215,7 @@ class TransferRequest:
                         f"{src_acc.name} -- "
                         f"{src_acc.savings[self.source.savings_index].name}"
                     )
-                except Exception:
+                except PARSE_ERRORS:
                     pass
             if self.target.kind == "saving" and isinstance(dst_acc, SavingsAccount):
                 try:
@@ -222,10 +223,10 @@ class TransferRequest:
                         f"{dst_acc.name} -- "
                         f"{dst_acc.savings[self.target.savings_index].name}"
                     )
-                except Exception:
+                except PARSE_ERRORS:
                     pass
             return (src_name, dst_name, src_type, dst_type)
-        except Exception:
+        except PARSE_ERRORS:
             return None
 
     def ledger_movements(

@@ -7,6 +7,7 @@ import uuid
 
 from .accounts import parse_iso_date
 from .bank_movement import BankMovement
+from ..utils.safe import PARSE_ERRORS
 
 
 class OneTimeEventStatus(StrEnum):
@@ -22,7 +23,7 @@ def parse_one_time_event_status(raw: object) -> OneTimeEventStatus:
         return OneTimeEventStatus.ACTIVE
     try:
         return OneTimeEventStatus(text)
-    except Exception:
+    except PARSE_ERRORS:
         pass
     upper = text.upper()
     if upper in ("PLANNED", "PLAN"):
@@ -89,7 +90,7 @@ class OneTimeEvent:
                 continue
             try:
                 amt = float(m.amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
             if amt < 0:
                 a = abs(amt)

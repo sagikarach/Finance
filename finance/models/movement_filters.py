@@ -3,13 +3,14 @@ from __future__ import annotations
 from typing import Any, List
 
 from .accounts import parse_iso_date
+from ..utils.safe import PARSE_ERRORS
 
 
 def _in_month(date_str: str, year: int, month: int) -> bool:
     try:
         dt = parse_iso_date(date_str)
         return dt.year == year and dt.month == month
-    except Exception:
+    except PARSE_ERRORS:
         return False
 
 

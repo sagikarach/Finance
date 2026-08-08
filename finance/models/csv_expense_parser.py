@@ -8,6 +8,7 @@ import re
 
 from .accounts import to_iso_date
 from .parsed_expense import ParsedExpense
+from ..utils.safe import PARSE_ERRORS
 
 
 @dataclass
@@ -92,7 +93,7 @@ class CsvExpenseParser:
             try:
                 reader = csv.reader(StringIO(raw_line))
                 parts = next(reader)
-            except Exception:
+            except PARSE_ERRORS:
                 parts = raw_line.split(",")
 
             if len(parts) < 3:

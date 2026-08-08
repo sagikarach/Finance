@@ -6,13 +6,14 @@ from typing import Dict, List, Optional
 
 from .accounts import parse_iso_date
 from .bank_movement import BankMovement, MovementType
+from ..utils.safe import PARSE_ERRORS
 
 
 def _is_in_month(date_str: str, year: int, month: int) -> bool:
     try:
         dt = parse_iso_date(date_str)
         return dt.year == year and dt.month == month
-    except Exception:
+    except PARSE_ERRORS:
         return False
 
 
@@ -42,7 +43,7 @@ class MonthlyMovementSummary:
         for movement in movements:
             try:
                 amount = float(movement.amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
             if amount > 0:
                 total_income += amount
@@ -83,7 +84,7 @@ class CategoryMonthlyBreakdown:
         for movement in movements:
             try:
                 amount = float(movement.amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
             category = movement.category or "שונות"
             category_data[(category, amount > 0)].append(abs(amount))

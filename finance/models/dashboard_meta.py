@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from ..utils.safe import PARSE_ERRORS
 
 
 @dataclass(frozen=True)
@@ -24,7 +25,7 @@ class DashboardMeta:
     ) -> "DashboardMeta":
         try:
             d = date.today().isoformat()
-        except Exception:
+        except PARSE_ERRORS:
             d = ""
         return DashboardMeta(
             total_all=float(total_all),

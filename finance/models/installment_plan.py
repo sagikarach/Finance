@@ -6,6 +6,7 @@ import uuid
 
 from .bank_movement import BankMovement
 from .movement_matching import match_movements
+from ..utils.safe import PARSE_ERRORS
 
 
 def generate_installment_plan_id() -> str:
@@ -55,13 +56,13 @@ class InstallmentPlan:
             try:
                 amt = float(m.amount)
                 total_paid += -amt if amt < 0 else amt
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         overpaid = 0.0
         try:
             if float(self.original_amount) > 0:
                 overpaid = max(0.0, float(total_paid) - float(self.original_amount))
-        except Exception:
+        except PARSE_ERRORS:
             overpaid = 0.0
         return InstallmentPlanStats(
             paid_count=int(paid_count),

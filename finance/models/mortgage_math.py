@@ -19,6 +19,7 @@ from typing import Dict, List, Optional
 from .accounts import parse_iso_date
 from .mortgage import AmortizationType, CostItem, Mortgage, MortgageTrack, TrackKind
 from .movement_matching import match_movements
+from ..utils.safe import PARSE_ERRORS
 
 # ריבית פריים נוכחית בישראל (ברירת מחדל הניתנת לעקיפה דרך ההנחות).
 DEFAULT_PRIME_RATE = 6.0
@@ -286,7 +287,7 @@ def yearly_cost_cycles(
     for m in matched:
         try:
             amt = float(getattr(m, "amount", 0.0) or 0.0)
-        except Exception:
+        except PARSE_ERRORS:
             continue
         dt = parse_iso_date(str(getattr(m, "date", "") or ""))
         if dt.year <= 1900:
@@ -309,7 +310,7 @@ def average_monthly(movements: Optional[list] = None, *, months: int = 12):
     for mv in movements or []:
         try:
             amt = float(getattr(mv, "amount", 0.0) or 0.0)
-        except Exception:
+        except PARSE_ERRORS:
             continue
         if amt >= 0:
             continue

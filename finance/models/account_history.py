@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Tuple
 
 from .accounts import parse_iso_date
 from .budget_period import budget_period_end_key, next_month
+from ..utils.safe import PARSE_ERRORS
 
 MonthKey = Tuple[int, int]
 
@@ -18,7 +19,7 @@ def _month_key_fast(date_str: str) -> Optional[MonthKey]:
             y, m = int(s[0:4]), int(s[5:7])
             if 1 <= m <= 12:
                 return (y, m)
-        except Exception:
+        except PARSE_ERRORS:
             pass
     return None
 
@@ -76,7 +77,7 @@ def balance_timeline(account: Any, movements: List[Any]) -> BalanceTimeline:
                     continue
                 key = (dt.year, dt.month)
             sums[key] = sums.get(key, 0.0) + float(getattr(m, "amount", 0.0) or 0.0)
-        except Exception:
+        except PARSE_ERRORS:
             continue
 
     try:
@@ -86,7 +87,7 @@ def balance_timeline(account: Any, movements: List[Any]) -> BalanceTimeline:
             )
             if abs(inferred) > 0.0001:
                 baseline = inferred
-    except Exception:
+    except PARSE_ERRORS:
         pass
 
     month_keys = _contiguous_months(list(sums.keys()))

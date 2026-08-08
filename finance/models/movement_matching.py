@@ -12,6 +12,7 @@ import unicodedata
 
 from .accounts import parse_iso_date
 from .bank_movement import BankMovement
+from ..utils.safe import PARSE_ERRORS
 
 
 # איחוד גרסאות מרכאות/גרש לצורה אחת — בנקים משתמשים בגרשיים (״) ובגרש (׳)
@@ -55,19 +56,19 @@ def normalize_text(value: str) -> str:
     value = str(value or "")
     try:
         value = unicodedata.normalize("NFKC", value)
-    except Exception:
+    except PARSE_ERRORS:
         pass
     try:
         value = "".join(ch for ch in value if ch not in _DROP_CHARS)
-    except Exception:
+    except PARSE_ERRORS:
         pass
     try:
         value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
-    except Exception:
+    except PARSE_ERRORS:
         pass
     try:
         value = value.translate(_QUOTE_TRANSLATION)
-    except Exception:
+    except PARSE_ERRORS:
         pass
     value = " ".join(value.split())
     return value
@@ -130,7 +131,7 @@ def match_movements(
                 if parse_iso_date(str(getattr(m, "date", "") or "")) < start_dt:
                     continue
             out.append(m)
-        except Exception:
+        except PARSE_ERRORS:
             continue
 
     out.sort(key=lambda x: parse_iso_date(str(getattr(x, "date", "") or "")))

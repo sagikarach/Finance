@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 from contextlib import contextmanager
+from ..utils.safe import PARSE_ERRORS
 
 
 _tls = threading.local()
@@ -10,7 +11,7 @@ _tls = threading.local()
 def is_syncing() -> bool:
     try:
         return bool(getattr(_tls, "syncing", False))
-    except Exception:
+    except PARSE_ERRORS:
         return False
 
 
@@ -29,7 +30,7 @@ def sync_context():
     prev = False
     try:
         prev = bool(getattr(_tls, "syncing", False))
-    except Exception:
+    except PARSE_ERRORS:
         prev = False
     try:
         _tls.syncing = True
@@ -37,5 +38,5 @@ def sync_context():
     finally:
         try:
             _tls.syncing = prev
-        except Exception:
+        except PARSE_ERRORS:
             pass

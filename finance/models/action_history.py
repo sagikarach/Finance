@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 import uuid
+from ..utils.safe import PARSE_ERRORS
 
 
 @dataclass(frozen=True)
@@ -234,5 +235,5 @@ def generate_action_id() -> str:
 def get_current_timestamp() -> str:
     try:
         return date.today().isoformat()
-    except Exception:
+    except PARSE_ERRORS:
         return ""
