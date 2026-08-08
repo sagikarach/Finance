@@ -633,3 +633,46 @@ class AccountsService:
             FirebaseWorkspaceWriter().upsert_accounts_snapshot(accounts)
         except Exception:
             pass
+
+    def save_preserving_bank_baselines(
+        self, accounts: List[MoneyAccount]
+    ) -> List[MoneyAccount]:
+        """Persist ``accounts``, but carry each bank account's stored
+        ``baseline_amount`` (keyed by name) over from what's currently on disk so
+        an in-memory save can't wipe it. Returns the merged list that was saved."""
+        existing_baseline_by_name: dict[str, float] = {}
+        try:
+            for a in list(self.provider.list_accounts() or []):
+                if isinstance(a, BankAccount):
+                    existing_baseline_by_name[str(a.name)] = float(
+                        getattr(a, "baseline_amount", 0.0) or 0.0
+                    )
+        except Exception:
+            existing_baseline_by_name = {}
+
+        merged_accounts: List[MoneyAccount] = []
+        try:
+            for a in list(accounts or []):
+                if isinstance(a, BankAccount):
+                    merged_accounts.append(
+                        BankAccount(
+                            name=a.name,
+                            total_amount=float(a.total_amount),
+                            is_liquid=bool(a.is_liquid),
+                            history=list(getattr(a, "history", []) or []),
+                            active=bool(getattr(a, "active", False)),
+                            baseline_amount=float(
+                                existing_baseline_by_name.get(
+                                    str(a.name),
+                                    float(getattr(a, "baseline_amount", 0.0) or 0.0),
+                                )
+                            ),
+                        )
+                    )
+                else:
+                    merged_accounts.append(a)
+        except Exception:
+            merged_accounts = list(accounts or [])
+
+        self.save_all(merged_accounts)
+        return merged_accounts

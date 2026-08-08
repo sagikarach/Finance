@@ -26,7 +26,7 @@ from ..models.action_history import (
     generate_action_id,
     get_current_timestamp,
 )
-from ..widgets.bank_history_chart import create_bank_history_chart_card
+from ..widgets.bank_history_chart import BankHistoryChartCard
 from ..utils.formatting import format_currency
 from ..ui.sibus_expenses_dialog import SibusExpensesDialog
 from ..ui.account_movements_dialog import AccountMovementsDialog
@@ -236,7 +236,7 @@ class BankAccountPage(BasePage):
                 initial_chart.setObjectName("Subtitle")
                 initial_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
             elif isinstance(target, BankAccount) and getattr(target, "history", None):
-                initial_chart = create_bank_history_chart_card(
+                initial_chart = BankHistoryChartCard(
                     self,
                     target,
                     format_currency,
@@ -320,7 +320,7 @@ class BankAccountPage(BasePage):
                 return
 
             try:
-                new_chart = create_bank_history_chart_card(
+                new_chart = BankHistoryChartCard(
                     self,
                     target,
                     format_currency,

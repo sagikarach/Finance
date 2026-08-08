@@ -27,11 +27,10 @@ from ..qt import (
     QTimer,
 )
 from ..models.accounts import (
-    BankAccount,
     MoneyAccount,
-    SavingsAccount,
     parse_iso_date,
 )
+from ..models.transfers import funding_endpoints
 from ..ui.dialog_utils import setup_calendar_popup
 from ..models.mortgage import (
     AssetKind,
@@ -114,29 +113,6 @@ from ..utils.formatting import fmt_money as _fmt_money
 
 
 from ..utils.formatting import parse_float as _parse_float
-
-
-def funding_endpoints(
-    accounts: List[MoneyAccount],
-) -> List[tuple[str, str, str, float]]:
-    """רשימת יעדים לבחירה (כמו בהעברה): חשבונות בנק + חסכונות בודדים.
-
-    כל פריט: (תווית, שם_חשבון, שם_חיסכון, יתרה)."""
-    out: List[tuple[str, str, str, float]] = []
-    for a in accounts:
-        if isinstance(a, SavingsAccount):
-            for sv in a.savings:
-                out.append(
-                    (
-                        f"{a.name} / {sv.name}",
-                        str(a.name),
-                        str(sv.name),
-                        float(getattr(sv, "amount", 0.0) or 0.0),
-                    )
-                )
-        elif isinstance(a, BankAccount) and bool(getattr(a, "active", False)):
-            out.append((str(a.name), str(a.name), "", float(a.total_amount)))
-    return out
 
 
 class FundingSourceDialog(QDialog):

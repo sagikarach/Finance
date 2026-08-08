@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Tuple
-from datetime import datetime
+from typing import Any, Dict, Iterable, List, Tuple
+from datetime import datetime, timedelta
 
 from .accounts import MoneySnapshot, parse_iso_date
 
@@ -137,3 +137,42 @@ def catmull_rom_spline_samples(
             samples.append((x_val, y_val))
 
     return samples
+
+
+def cumulative_daily_series(points: Iterable[Any]) -> Tuple[List[str], List[float]]:
+    """Gap-filled cumulative running total of dated expense ``points`` (each with
+    ``.date_iso`` and ``.amount``): walk every calendar day from the first to the
+    last point, summing that day's amounts into a rising total. Returns parallel
+    ``(labels, values)`` — labels are ``dd/mm/yy``. Empty lists when there are no
+    parseable dates."""
+    pts = list(points or [])
+    if not pts:
+        return [], []
+    try:
+        pts = sorted(pts, key=lambda p: parse_iso_date(p.date_iso))
+    except Exception:
+        pass
+    try:
+        start_dt = parse_iso_date(pts[0].date_iso).date()
+        end_dt = parse_iso_date(pts[-1].date_iso).date()
+    except Exception:
+        return [], []
+
+    day_sum: Dict[str, float] = {}
+    for p in pts:
+        try:
+            d = parse_iso_date(p.date_iso).date().isoformat()
+        except Exception:
+            continue
+        day_sum[d] = float(day_sum.get(d, 0.0) + float(p.amount))
+
+    labels: List[str] = []
+    values: List[float] = []
+    cum = 0.0
+    dcur = start_dt
+    while dcur <= end_dt:
+        cum += float(day_sum.get(dcur.isoformat(), 0.0))
+        labels.append(dcur.strftime("%d/%m/%y"))
+        values.append(float(cum))
+        dcur = dcur + timedelta(days=1)
+    return labels, values

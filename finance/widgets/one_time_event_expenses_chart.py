@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from ..models.accounts import parse_iso_date
+from ..models.charts import cumulative_daily_series
 from ..qt import (
     QApplication,
     QCategoryAxis,
@@ -67,52 +66,21 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
             self._root.addWidget(self._placeholder("אין הוצאות להצגה"), 1)
             return
 
-        try:
-            expenses = sorted(expenses, key=lambda p: parse_iso_date(p.date_iso))
-        except Exception:
-            pass
-
-        try:
-            start_dt = parse_iso_date(expenses[0].date_iso).date()
-            end_dt = parse_iso_date(expenses[-1].date_iso).date()
-        except Exception:
+        labels, values = cumulative_daily_series(expenses)
+        if not values:
             self._root.addWidget(self._placeholder("אין הוצאות להצגה"), 1)
             return
 
-        day_sum: Dict[str, float] = {}
-        for p in expenses:
-            try:
-                d = parse_iso_date(p.date_iso).date().isoformat()
-            except Exception:
-                continue
-            day_sum[d] = float(day_sum.get(d, 0.0) + float(p.amount))
-
-        labels: List[str] = []
-        values: List[float] = []
         series = QLineSeries()
         try:
             series.setName("הוצאות")
         except Exception:
             pass
-
-        cum = 0.0
-        idx = 0
-        dcur = start_dt
-        while dcur <= end_dt:
-            key = dcur.isoformat()
-            cum += float(day_sum.get(key, 0.0))
-            labels.append(dcur.strftime("%d/%m/%y"))
-            values.append(float(cum))
+        for idx, cum in enumerate(values):
             try:
                 series.append(float(idx), float(cum))
             except Exception:
                 pass
-            idx += 1
-            dcur = dcur + timedelta(days=1)
-
-        if not values:
-            self._root.addWidget(self._placeholder("אין הוצאות להצגה"), 1)
-            return
 
         # Store full data for range filtering
         self._all_values = list(values)

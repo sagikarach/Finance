@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from .chart_utils import label_color as _label_color, label_step_for as _label_step_for
+from ..models.budget_period import future_months
 
 import math
-from datetime import date
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (
@@ -73,20 +73,6 @@ def _apply_line_pen(
 
 _FORECAST_HISTORY_MONTHS = 3   # past months shown in forecast mode
 _FORECAST_FUTURE_MONTHS = 6   # future months shown in forecast mode
-
-
-def _compute_future_months(n: int = _FORECAST_FUTURE_MONTHS) -> List[tuple[int, int]]:
-    """Return the next *n* (year, month) tuples after today."""
-    today = date.today()
-    keys: List[tuple[int, int]] = []
-    y, m = today.year, today.month
-    for _ in range(n):
-        m += 1
-        if m > 12:
-            m = 1
-            y += 1
-        keys.append((y, m))
-    return keys
 
 
 def _build_x_axis(
@@ -489,7 +475,9 @@ class SavingsHistoryChartCard(QWidget):
         self._all_series_data: List[tuple[str, List[float], QColor]] = []
         # list of (name, proj_vals_13, color) — last-hist value + future
         self._proj_series_data: List[tuple[str, List[float], QColor]] = []
-        self._future_month_keys: List[tuple[int, int]] = _compute_future_months()
+        self._future_month_keys: List[tuple[int, int]] = future_months(
+            _FORECAST_FUTURE_MONTHS
+        )
         self._current_months: int = 0
         self._format_amount = format_amount
 
@@ -751,12 +739,3 @@ class SavingsHistoryChartCard(QWidget):
             self._chart_view.update()
         except Exception:
             pass
-
-
-def create_savings_history_chart_card(
-    parent: QWidget,
-    account: SavingsAccount,
-    format_amount: Callable[[float], str],
-) -> QWidget:
-    """Backward-compatible factory — returns a SavingsHistoryChartCard."""
-    return SavingsHistoryChartCard(parent, account, format_amount)

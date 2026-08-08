@@ -267,3 +267,47 @@ class TransferRequest:
                 )
             )
         return movements
+
+
+def funding_endpoints(
+    accounts: List[MoneyAccount],
+) -> List[Tuple[str, str, str, float]]:
+    """יעדי מימון לבחירה: חסכונות בודדים + חשבונות בנק פעילים.
+
+    כל פריט: ``(תווית, שם_חשבון, שם_חיסכון, יתרה)``. חשבון בנק נכלל רק כאשר
+    ``active`` (ברירת מחדל: לא פעיל)."""
+    out: List[Tuple[str, str, str, float]] = []
+    for a in accounts:
+        if isinstance(a, SavingsAccount):
+            for sv in a.savings:
+                out.append(
+                    (
+                        f"{a.name} / {sv.name}",
+                        str(a.name),
+                        str(sv.name),
+                        float(getattr(sv, "amount", 0.0) or 0.0),
+                    )
+                )
+        elif isinstance(a, BankAccount) and bool(getattr(a, "active", False)):
+            out.append((str(a.name), str(a.name), "", float(a.total_amount)))
+    return out
+
+
+def transfer_endpoints(
+    accounts: List[MoneyAccount],
+) -> List[Tuple[str, str, int, int]]:
+    """נקודות קצה להעברה בין חשבונות: חשבונות בנק פעילים + כל חיסכון.
+
+    כל פריט: ``(תווית, סוג, אינדקס_חשבון, אינדקס_חיסכון)`` כאשר סוג הוא
+    ``"bank"``/``"saving"``. חשבון בנק נכלל אלא אם ``active`` הוא False
+    (ברירת מחדל: פעיל)."""
+    endpoints: List[Tuple[str, str, int, int]] = []
+    for acc_idx, acc in enumerate(accounts):
+        if isinstance(acc, BankAccount):
+            if not getattr(acc, "active", True):
+                continue
+            endpoints.append((acc.name, "bank", acc_idx, -1))
+        elif isinstance(acc, SavingsAccount):
+            for s_idx, s in enumerate(acc.savings):
+                endpoints.append((f"{acc.name} — {s.name}", "saving", acc_idx, s_idx))
+    return endpoints

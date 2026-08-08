@@ -923,45 +923,7 @@ class BasePage(QWidget):
 
         if svc is not None:
             try:
-                existing_baseline_by_name: dict[str, float] = {}
-                try:
-                    for a in list(self._provider.list_accounts() or []):
-                        if isinstance(a, BankAccount):
-                            existing_baseline_by_name[str(a.name)] = float(
-                                getattr(a, "baseline_amount", 0.0) or 0.0
-                            )
-                except Exception:
-                    existing_baseline_by_name = {}
-
-                merged_accounts: List[MoneyAccount] = []
-                try:
-                    for a in list(self._accounts or []):
-                        if isinstance(a, BankAccount):
-                            merged_accounts.append(
-                                BankAccount(
-                                    name=a.name,
-                                    total_amount=float(a.total_amount),
-                                    is_liquid=bool(a.is_liquid),
-                                    history=list(getattr(a, "history", []) or []),
-                                    active=bool(getattr(a, "active", False)),
-                                    baseline_amount=float(
-                                        existing_baseline_by_name.get(
-                                            str(a.name),
-                                            float(
-                                                getattr(a, "baseline_amount", 0.0)
-                                                or 0.0
-                                            ),
-                                        )
-                                    ),
-                                )
-                            )
-                        else:
-                            merged_accounts.append(a)
-                except Exception:
-                    merged_accounts = list(self._accounts or [])
-
-                self._accounts = merged_accounts
-                svc.save_all(self._accounts)
+                self._accounts = svc.save_preserving_bank_baselines(self._accounts)
             except Exception:
                 pass
 

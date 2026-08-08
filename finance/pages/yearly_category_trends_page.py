@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Callable, Dict, List, Optional, Set
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
@@ -18,22 +17,8 @@ from ..qt import (
 )
 from ..widgets.category_trends_chart import CategoryTrendsChart
 from ..widgets.time_range_bar import TimeRangeBar
+from ..widgets.chart_utils import future_month_labels
 from .base_page import BasePage
-
-
-def _future_month_labels(horizon: int) -> List[str]:
-    heb = ["ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
-           "יול", "אוג", "ספט", "אוק", "נוב", "דצמ"]
-    today = date.today()
-    labels: List[str] = []
-    y, m = today.year, today.month
-    for _ in range(horizon):
-        m += 1
-        if m > 12:
-            m = 1
-            y += 1
-        labels.append(f"{heb[m - 1]} {y % 100:02d}")
-    return labels
 
 
 class YearlyCategoryTrendsPage(BasePage):
@@ -292,7 +277,7 @@ class YearlyCategoryTrendsPage(BasePage):
                 expenses_negative=False,
                 proj_income=self._proj_income,
                 proj_expense=self._proj_expense,
-                proj_labels=_future_month_labels(6),
+                proj_labels=future_month_labels(6),
             )
         else:
             self._combined_chart.set_combined_series(

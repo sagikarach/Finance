@@ -354,14 +354,3 @@ class BankHistoryChartCard(QWidget):
                 self._chart.removeAxis(ax)
             except Exception:
                 pass
-
-
-def create_bank_history_chart_card(
-    parent: QWidget,
-    account: BankAccount | BudgetAccount,
-    format_amount: Callable[[float], str],
-    *,
-    movements: Optional[List[BankMovement]] = None,
-) -> QWidget:
-    """Backward-compatible factory — returns a BankHistoryChartCard."""
-    return BankHistoryChartCard(parent, account, format_amount, movements=movements)

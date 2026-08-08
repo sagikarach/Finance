@@ -22,7 +22,7 @@ from ..models.accounts import SavingsAccount
 from ..models.accounts_service import AccountsService
 from ..models.yearly_report_service import forecast_savings_by_name
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row, setup_calendar_popup
-from ..widgets.savings_history_chart import SavingsHistoryChartCard, create_savings_history_chart_card
+from ..widgets.savings_history_chart import SavingsHistoryChartCard
 from ..utils.formatting import format_currency
 from .base_page import BasePage
 
@@ -143,7 +143,7 @@ class SavingsAccountPage(BasePage):
         update_saving_btn.clicked.connect(lambda: self._handle_update_saving(target))
         delete_saving_btn.clicked.connect(lambda: self._handle_delete_saving(target))
 
-        chart_card = create_savings_history_chart_card(self, target, format_currency)
+        chart_card = SavingsHistoryChartCard(self, target, format_currency)
 
         chart_panel = QWidget(self)
         chart_panel.setObjectName("ContentPanel")
@@ -163,13 +163,10 @@ class SavingsAccountPage(BasePage):
         main_col.addWidget(chart_panel, 1)
 
         if isinstance(chart_card, SavingsHistoryChartCard):
-            self._inject_math_projection(target, chart_card)
-
-    def _inject_math_projection(
-        self, account: SavingsAccount, chart_card: SavingsHistoryChartCard
-    ) -> None:
-        """Compute and inject forecast data synchronously using linear extrapolation."""
-        chart_card.set_projection_data(forecast_savings_by_name(account, horizon=6))
+            # forecast (linear extrapolation), computed synchronously
+            chart_card.set_projection_data(
+                forecast_savings_by_name(target, horizon=6)
+            )
 
     def on_route_activated(self) -> None:
         super().on_route_activated()

@@ -11,6 +11,27 @@ def next_month(year: int, month: int) -> tuple[int, int]:
     return year, month + 1
 
 
+def future_months(
+    n: int, *, after: Optional[tuple[int, int]] = None
+) -> list[tuple[int, int]]:
+    """The next ``n`` ``(year, month)`` tuples strictly after ``after`` — which
+    defaults to the current calendar month."""
+    if after is None:
+        from datetime import date as _date
+
+        try:
+            today = _date.today()
+            after = (today.year, today.month)
+        except Exception:
+            after = (1970, 1)
+    y, m = int(after[0]), int(after[1])
+    out: list[tuple[int, int]] = []
+    for _ in range(max(0, int(n))):
+        y, m = next_month(y, m)
+        out.append((y, m))
+    return out
+
+
 def budget_period_end_key(date_str: str, reset_day: int) -> Optional[tuple[int, int]]:
     from datetime import datetime as _datetime
 

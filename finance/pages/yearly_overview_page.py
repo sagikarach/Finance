@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Callable, Dict, List, Optional
 
 from ..data.bank_movement_provider import JsonFileBankMovementProvider
@@ -18,23 +17,8 @@ from ..qt import (
 from ..utils.formatting import format_currency
 from ..widgets.yearly_balance_chart import YearlyBalanceChart
 from ..widgets.time_range_bar import TimeRangeBar
+from ..widgets.chart_utils import future_month_labels
 from .base_page import BasePage
-
-
-def _future_month_labels(horizon: int) -> List[str]:
-    """Return short Hebrew month labels for the next *horizon* months."""
-    heb = ["ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
-           "יול", "אוג", "ספט", "אוק", "נוב", "דצמ"]
-    today = date.today()
-    labels: List[str] = []
-    y, m = today.year, today.month
-    for _ in range(horizon):
-        m += 1
-        if m > 12:
-            m = 1
-            y += 1
-        labels.append(f"{heb[m - 1]} {y % 100:02d}")
-    return labels
 
 
 class AutoStatCard(QWidget):
@@ -281,7 +265,7 @@ class YearlyOverviewPage(BasePage):
                 self._balance_chart.set_monthly_net(
                     nets, labels,
                     proj_values=self._proj_nets,
-                    proj_labels=_future_month_labels(len(self._proj_nets)),
+                    proj_labels=future_month_labels(len(self._proj_nets)),
                 )
             else:
                 self._balance_chart.set_monthly_net(nets, labels)

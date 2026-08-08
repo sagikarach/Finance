@@ -4,6 +4,17 @@ from typing import List, Tuple
 
 from ..qt import QApplication, QColor
 
+_HEB_MONTHS = ["ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
+               "יול", "אוג", "ספט", "אוק", "נוב", "דצמ"]
+
+
+def future_month_labels(horizon: int) -> List[str]:
+    """Short Hebrew labels (``'מון YY'``) for the next *horizon* months after
+    today — the forecast axis labels shared by the yearly pages."""
+    from ..models.budget_period import future_months
+
+    return [f"{_HEB_MONTHS[m - 1]} {y % 100:02d}" for (y, m) in future_months(horizon)]
+
 
 def label_color() -> QColor:
     """Axis/label color that follows the app theme (dark → white, else ink)."""

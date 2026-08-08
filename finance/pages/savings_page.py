@@ -23,7 +23,7 @@ from ..models.accounts import (
     SavingsAccount,
     BankAccount,
 )
-from ..models.transfers import TransferEndpoint, TransferRequest
+from ..models.transfers import TransferEndpoint, TransferRequest, transfer_endpoints
 from ..models.savings_dialogs import SavingsAccountForm
 from ..models.accounts_service import AccountsService
 from ..widgets.accounts_pie_chart import AccountsPieChart
@@ -370,17 +370,7 @@ class SavingsPage(BasePage):
         if not self._accounts:
             return
 
-        endpoints: List[tuple[str, str, int, int]] = []
-        for acc_idx, acc in enumerate(self._accounts):
-            if isinstance(acc, BankAccount):
-                if not getattr(acc, "active", True):
-                    continue
-                label = acc.name
-                endpoints.append((label, "bank", acc_idx, -1))
-            elif isinstance(acc, SavingsAccount):
-                for s_idx, s in enumerate(acc.savings):
-                    label = f"{acc.name} — {s.name}"
-                    endpoints.append((label, "saving", acc_idx, s_idx))
+        endpoints = transfer_endpoints(self._accounts)
 
         if len(endpoints) < 2:
             return
