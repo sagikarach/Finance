@@ -18,6 +18,10 @@ from ..models.mortgage import (
 )
 from .json_io import atomic_write_json, read_json_list, workspace_json_path
 from ..utils.enums import coerce_enum
+from ..utils.logging_setup import get_logger
+from ..utils.safe import PARSE_ERRORS
+
+_log = get_logger("data")
 
 
 class MortgageProvider(ABC):
@@ -69,7 +73,8 @@ def deserialize_track(item: Any) -> Optional[MortgageTrack]:
             prime_spread=float(item.get("prime_spread", 0.0) or 0.0),
             reset_months=int(item.get("reset_months", 0) or 0),
         )
-    except Exception:
+    except PARSE_ERRORS as exc:
+        _log.debug("skipping malformed mortgage track: %s", exc)
         return None
 
 
@@ -92,7 +97,8 @@ def deserialize_cost(item: Any) -> Optional[CostItem]:
             query=str(item.get("query", "") or ""),
             renewal_month=int(item.get("renewal_month", 0) or 0),
         )
-    except Exception:
+    except PARSE_ERRORS as exc:
+        _log.debug("skipping malformed cost item: %s", exc)
         return None
 
 
@@ -129,7 +135,8 @@ def deserialize_funding(item: Any) -> Optional[FundingSource]:
             account_name=str(item.get("account_name", "") or ""),
             saving_name=str(item.get("saving_name", "") or ""),
         )
-    except Exception:
+    except PARSE_ERRORS as exc:
+        _log.debug("skipping malformed funding source: %s", exc)
         return None
 
 
@@ -219,7 +226,8 @@ def deserialize_mortgage(item: Any) -> Optional[Mortgage]:
                 if str(x).strip()
             ],
         )
-    except Exception:
+    except PARSE_ERRORS as exc:
+        _log.debug("skipping malformed mortgage: %s", exc)
         return None
 
 

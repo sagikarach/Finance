@@ -7,7 +7,10 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from ..utils.logging_setup import get_logger
+
 _WRITE_LOCK = threading.Lock()
+_log = get_logger("data")
 
 
 def atomic_write_json(path: Path, data: Any, *, indent: int = 2) -> None:
@@ -70,7 +73,8 @@ def read_json_list(path: Path, deserialize) -> list:
     try:
         with path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-    except Exception:
+    except (OSError, ValueError) as exc:
+        _log.warning("could not read %s: %s", path, exc)
         return []
     if not isinstance(data, list):
         return []

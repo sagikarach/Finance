@@ -41,6 +41,10 @@ from ..models.firebase_session import (
     current_firebase_workspace_id,
 )
 from ..utils.app_paths import accounts_data_dir
+from ..utils.logging_setup import get_logger
+from ..utils.safe import PARSE_ERRORS, swallow
+
+_log = get_logger("data")
 
 
 class ActionHistoryProvider(ABC):
@@ -96,7 +100,8 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         try:
             with self._history_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-        except Exception:
+        except (OSError, ValueError) as exc:
+            _log.warning("could not read %s: %s", self._history_path, exc)
             return history
 
         if not isinstance(data, list):
@@ -122,7 +127,8 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                         action=action,
                     )
                 )
-            except Exception:
+            except PARSE_ERRORS as exc:
+                _log.debug("skipping malformed action-history entry: %s", exc)
                 continue
 
         return history
@@ -147,7 +153,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         current_history = self.list_history()
         current_history.append(action_history)
         self.save_history(current_history)
-        try:
+        with swallow(msg="push action-history to firebase"):
             from ..models.sync_gate import allow_firebase_push
 
             if not allow_firebase_push():
@@ -155,8 +161,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             FirebaseWorkspaceWriter().upsert_action_history(action_history)
-        except Exception:
-            pass
 
     def _serialize_action(self, action: Action) -> dict:
         action_dict: dict = {
@@ -258,9 +262,9 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                                         kwargs[field_info.name] = parsed
                                     else:
                                         kwargs[field_info.name] = []
-                                except Exception:
+                                except (ValueError, SyntaxError):
                                     kwargs[field_info.name] = []
-                        except Exception:
+                        except (ValueError, SyntaxError):
                             try:
                                 import ast
 
@@ -269,7 +273,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                                     kwargs[field_info.name] = parsed
                                 else:
                                     kwargs[field_info.name] = []
-                            except Exception:
+                            except (ValueError, SyntaxError):
                                 kwargs[field_info.name] = []
                     else:
                         kwargs[field_info.name] = (
@@ -288,5 +292,6 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
                     kwargs[field_info.name] = field_value
 
             return action_class(**kwargs)
-        except Exception:
+        except PARSE_ERRORS as exc:
+            _log.debug("could not deserialize action %r: %s", action_name, exc)
             return None

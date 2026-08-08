@@ -13,6 +13,9 @@ from ..models.firebase_session import (
     current_firebase_workspace_id,
 )
 from ..utils.app_paths import accounts_data_dir
+from ..utils.logging_setup import get_logger
+
+_log = get_logger("data")
 
 
 class BankMovementProvider(ABC):
@@ -68,7 +71,8 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         try:
             with self._movements_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-        except Exception:
+        except (OSError, ValueError) as exc:
+            _log.warning("could not read %s: %s", self._movements_path, exc)
             return movements
 
         if not isinstance(data, list):
@@ -102,8 +106,8 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         except Exception:
             try:
                 _tmp.unlink(missing_ok=True)
-            except Exception:
-                pass
+            except OSError:
+                _log.debug("could not remove temp file %s", _tmp)
             raise
 
     def add_movement(self, movement: BankMovement) -> None:
@@ -118,7 +122,8 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         try:
             with self._categories_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-        except Exception:
+        except (OSError, ValueError) as exc:
+            _log.warning("could not read %s: %s", self._categories_path, exc)
             return {"income": [], "outcome": []}
 
         if isinstance(data, list):

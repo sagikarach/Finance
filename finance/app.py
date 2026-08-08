@@ -11,6 +11,7 @@ from .ui.main_window import MainWindow
 from .ui.lock_dialog import LockDialog
 from .data.user_profile_store import UserProfileStore
 from .utils.defaults import load_defaults
+from .utils.logging_setup import setup_logging
 from .utils.resources import find_first_existing
 
 
@@ -32,6 +33,8 @@ class FilteredStderr:
 def run_app(argv: Optional[list[str]] = None) -> None:
     if argv is None:
         argv = sys.argv
+
+    setup_logging()
 
     # On Windows, set an explicit AppUserModelID so the taskbar uses our icon.
     if sys.platform.startswith("win"):

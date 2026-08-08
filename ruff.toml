@@ -1,11 +1,35 @@
-# Lint config. Conservative, high-signal rules to start:
-#   F  = pyflakes  (unused imports/vars, redefinitions, undefined names — the
-#                   dead-code/unused checks; catches exactly what a manual
-#                   audit found)
-#   E9 = syntax errors
-# Expand later (e.g. I for import sorting, B for bugbear) once the tree is green.
+# Lint config. Conservative, high-signal rules:
+#   F   = pyflakes (unused imports/vars, redefinitions, undefined names)
+#   E9  = syntax errors
+#   BLE = flake8-blind-except (BLE001: `except Exception`/`except BaseException`)
+#   S110/S112 = bandit: `try ... except: pass` / `except: continue`
+#
+# The BLE/S11x rules ban silent blanket-excepts — the idiom that hid the
+# atomic-write corruption and the shadowed button style. They are enabled only
+# for the pure layers (models/data/utils), where blanket-except-pass is almost
+# never justified; the Qt boundary (widgets/pages/ui) is exempt for now and will
+# be migrated to finance.utils.safe.swallow incrementally.
 line-length = 100
 extend-exclude = ["**/__pycache__", "build", "dist"]
 
 [lint]
-select = ["F", "E9"]
+select = ["F", "E9", "BLE", "S110", "S112"]
+
+[lint.per-file-ignores]
+# Enforced so far: finance/data/*. Remaining layers are exempt and get migrated
+# to finance.utils.safe.swallow incrementally — remove a line as its layer is
+# cleaned. TODO: models/ (next), then utils/, then the Qt boundary.
+"finance/models/*" = ["BLE", "S110", "S112"]
+"finance/utils/*" = ["BLE", "S110", "S112"]
+# Qt boundary — defensive catching is more defensible here; migrate last.
+"finance/widgets/*" = ["BLE", "S110", "S112"]
+"finance/pages/*" = ["BLE", "S110", "S112"]
+"finance/ui/*" = ["BLE", "S110", "S112"]
+# app.py wires the Qt app together and keeps a few boundary guards.
+"finance/app.py" = ["BLE", "S110", "S112"]
+# qt.py is the PySide import shim — defensive fallbacks are its whole job.
+"finance/qt.py" = ["BLE", "S110", "S112"]
+# TODO: migrate with the models layer.
+"finance/firebase_defaults.py" = ["BLE", "S110", "S112"]
+# Tests may assert on broad failure paths.
+"tests/*" = ["BLE", "S110", "S112"]

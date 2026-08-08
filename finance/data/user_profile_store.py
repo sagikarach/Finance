@@ -8,7 +8,10 @@ from typing import List, Optional
 from ..models.accounts import MoneyAccount
 from ..models.user import UserProfile
 from ..utils.app_paths import user_profile_path
+from ..utils.logging_setup import get_logger
 from ..utils.password_hash import hash_password, is_hashed
+
+_log = get_logger("data")
 
 
 class UserProfileStore:
@@ -34,13 +37,13 @@ class UserProfileStore:
                     password = str(raw_password) if raw_password is not None else None
                     raw_lock = data.get("lock_enabled")
                     lock_enabled = bool(raw_lock) if raw_lock is not None else False
-            except Exception:
-                pass
+            except (OSError, ValueError) as exc:
+                _log.warning("could not read profile %s: %s", self._path, exc)
         else:
             try:
                 self._path.parent.mkdir(parents=True, exist_ok=True)
-            except Exception:
-                pass
+            except OSError as exc:
+                _log.debug("could not create profile dir: %s", exc)
 
         profile = UserProfile(
             full_name=full_name,
@@ -72,5 +75,5 @@ class UserProfileStore:
         }
         try:
             atomic_write_json(self._path, data)
-        except Exception:
-            pass
+        except OSError as exc:
+            _log.warning("could not save profile %s: %s", self._path, exc)

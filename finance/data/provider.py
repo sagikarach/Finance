@@ -18,6 +18,10 @@ from ..models.firebase_session import (
     current_firebase_workspace_id,
 )
 from ..utils.app_paths import accounts_data_dir
+from ..utils.logging_setup import get_logger
+from ..utils.safe import PARSE_ERRORS
+
+_log = get_logger("data")
 
 
 class AccountsProvider(ABC):
@@ -83,7 +87,8 @@ class JsonFileAccountsProvider(AccountsProvider):
         try:
             with self._bank_accounts_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-        except Exception:
+        except (OSError, ValueError) as exc:
+            _log.warning("could not read %s: %s", self._bank_accounts_path, exc)
             return accounts
 
         if not isinstance(data, list):
@@ -94,7 +99,8 @@ class JsonFileAccountsProvider(AccountsProvider):
                 acc = bank_entry_from_storage_dict(item)
                 if acc is not None:
                     accounts.append(acc)
-            except Exception:
+            except PARSE_ERRORS as exc:
+                _log.debug("skipping malformed bank account entry: %s", exc)
                 continue
         return accounts
 
@@ -107,7 +113,8 @@ class JsonFileAccountsProvider(AccountsProvider):
         try:
             with self._savings_accounts_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-        except Exception:
+        except (OSError, ValueError) as exc:
+            _log.warning("could not read %s: %s", self._savings_accounts_path, exc)
             return accounts
 
         if not isinstance(data, list):
@@ -118,7 +125,8 @@ class JsonFileAccountsProvider(AccountsProvider):
                 if not str(item.get("name", "")).strip():
                     continue
                 accounts.append(SavingsAccount.from_storage_dict(item))
-            except Exception:
+            except PARSE_ERRORS as exc:
+                _log.debug("skipping malformed savings account entry: %s", exc)
                 continue
         return accounts
 

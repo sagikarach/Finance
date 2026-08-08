@@ -16,6 +16,10 @@ from ..models.notifications import (
     RuleType,
 )
 from ..utils.app_paths import accounts_data_dir
+from ..utils.logging_setup import get_logger
+from ..utils.safe import PARSE_ERRORS
+
+_log = get_logger("data")
 
 
 class NotificationsProvider(ABC):
@@ -72,7 +76,8 @@ class JsonFileNotificationsProvider(NotificationsProvider):
             key = (
                 current_firebase_workspace_id() or current_firebase_uid() or ""
             ).strip()
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - session lookup, any failure → no suffix
+            _log.debug("workspace key unavailable: %s", exc)
             key = ""
         suffix = f"_{key}" if key else ""
         return accounts_data_dir() / f"notifications{suffix}.json"
@@ -179,8 +184,8 @@ class JsonFileNotificationsProvider(NotificationsProvider):
                 if "settings" not in data:
                     data["settings"] = {"enabled": True}
                 return data
-        except Exception:
-            pass
+        except (OSError, ValueError) as exc:
+            _log.warning("could not read %s: %s", p, exc)
         return {"settings": {"enabled": True}, "rules": [], "notifications": []}
 
     def _write(self, data: Dict[str, Any]) -> None:
@@ -210,7 +215,8 @@ class JsonFileNotificationsProvider(NotificationsProvider):
                 source=str(item.get("source", "system")),
                 context=dict(item.get("context", {}) or {}),
             )
-        except Exception:
+        except PARSE_ERRORS as exc:
+            _log.debug("skipping malformed notification: %s", exc)
             return None
 
     def _serialize_rule(self, r: NotificationRule) -> Dict[str, Any]:
@@ -229,5 +235,6 @@ class JsonFileNotificationsProvider(NotificationsProvider):
                 schedule=str(item.get("schedule", "daily")),
                 params=dict(item.get("params", {}) or {}),
             )
-        except Exception:
+        except PARSE_ERRORS as exc:
+            _log.debug("skipping malformed notification rule: %s", exc)
             return None

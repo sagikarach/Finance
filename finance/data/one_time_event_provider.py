@@ -5,6 +5,10 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from .json_io import atomic_write_json, read_json_list, workspace_json_path
+from ..utils.logging_setup import get_logger
+from ..utils.safe import PARSE_ERRORS
+
+_log = get_logger("data")
 
 from ..models.one_time_event import (
     OneTimeEvent,
@@ -88,5 +92,6 @@ class JsonFileOneTimeEventProvider(OneTimeEventProvider):
                 end_date=str(item["end_date"]) if item.get("end_date") else None,
                 notes=str(item["notes"]) if item.get("notes") else None,
             )
-        except Exception:
+        except PARSE_ERRORS as exc:
+            _log.debug("skipping malformed one-time event: %s", exc)
             return None

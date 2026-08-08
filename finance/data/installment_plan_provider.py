@@ -5,6 +5,10 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from .json_io import atomic_write_json, read_json_list, workspace_json_path
+from ..utils.logging_setup import get_logger
+from ..utils.safe import PARSE_ERRORS
+
+_log = get_logger("data")
 
 from ..models.installment_plan import InstallmentPlan, generate_installment_plan_id
 
@@ -92,5 +96,6 @@ class JsonFileInstallmentPlanProvider(InstallmentPlanProvider):
                 excluded_movement_ids=excluded,
                 archived=bool(item.get("archived", False)),
             )
-        except Exception:
+        except PARSE_ERRORS as exc:
+            _log.debug("skipping malformed installment plan: %s", exc)
             return None
