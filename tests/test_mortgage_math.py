@@ -525,6 +525,19 @@ def test_early_payoff_targets_longest_track_to_shorten() -> None:
     assert res.interest_saved > 0
 
 
+def test_equity_split_basic() -> None:
+    from finance.models.mortgage_math import equity_split
+
+    assert equity_split(1_000_000.0, 300_000.0) == (700_000.0, 0.7)
+
+
+def test_equity_split_zero_or_negative_value_gives_zero_fraction() -> None:
+    from finance.models.mortgage_math import equity_split
+
+    assert equity_split(0.0, 50_000.0) == (-50_000.0, 0.0)
+    assert equity_split(-10.0, 5.0) == (-15.0, 0.0)
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

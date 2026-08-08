@@ -16,7 +16,7 @@ from ..data.bank_movement_provider import JsonFileBankMovementProvider
 from ..models.monthly_report_service import MonthlyReportService
 from ..models.monthly_report import MonthlyReport
 from ..models.bank_movement import BankMovement, MovementType
-from ..models.accounts import parse_iso_date
+from ..models.movement_filters import movements_for_month
 from ..utils.formatting import format_currency
 from ..widgets.category_pie_chart import CategoryPieChart
 from ..widgets.month_picker import MonthPickerWidget, MonthKey
@@ -311,25 +311,14 @@ class MonthlyDataPage(BasePage):
         if self._current_year is None or self._current_month is None:
             return []
         try:
-            all_movements = self._bank_movement_service.list_movements()
-            filtered = [
-                m
-                for m in all_movements
-                if m.type == movement_type
-                and self._is_in_month(m.date, self._current_year, self._current_month)
-                and not bool(getattr(m, "is_transfer", False))
-                and str(getattr(m, "category", "") or "").strip() != "העברה"
-            ]
-            return sorted(filtered, key=lambda x: parse_iso_date(x.date), reverse=True)
+            return movements_for_month(
+                self._bank_movement_service.list_movements(),
+                movement_type,
+                self._current_year,
+                self._current_month,
+            )
         except Exception:
             return []
-
-    def _is_in_month(self, date_str: str, year: int, month: int) -> bool:
-        try:
-            dt = parse_iso_date(date_str)
-            return dt.year == year and dt.month == month
-        except Exception:
-            return False
 
     def _on_month_changed(self, month_key: MonthKey) -> None:
         year, month = month_key

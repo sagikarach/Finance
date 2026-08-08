@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from ..data.bank_movement_provider import BankMovementProvider
 from .accounts import parse_iso_date
@@ -376,3 +376,25 @@ def forecast_savings_balance(
         cap = abs(current_balance) * 0.05
         slope = max(-cap, min(cap, slope))
     return [max(0.0, current_balance + slope * (i + 1)) for i in range(horizon)]
+
+
+def forecast_savings_by_name(account: Any, *, horizon: int = 6) -> Dict[str, List[float]]:
+    """Per-sub-savings forecast for a savings account: each sub-account's dated
+    history is turned into a value series and extrapolated with
+    :func:`forecast_savings_balance`, keyed by the sub-account name."""
+    from datetime import datetime as _dt
+
+    result: Dict[str, List[float]] = {}
+    for s in getattr(account, "savings", None) or []:
+        history_vals: List[float] = []
+        for snap in getattr(s, "history", None) or []:
+            try:
+                dt = parse_iso_date(str(snap.date))
+                if dt != _dt.min:
+                    history_vals.append(float(snap.amount))
+            except Exception:
+                pass
+        result[str(s.name)] = forecast_savings_balance(
+            history_vals, float(s.amount), horizon=horizon
+        )
+    return result

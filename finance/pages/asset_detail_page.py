@@ -52,6 +52,7 @@ from ..models.asset import (
 )
 from ..models.mortgage_math import (
     cost_monthly_average,
+    equity_split,
     query_paid_amount,
     yearly_cost_cycles,
 )
@@ -539,8 +540,7 @@ class AssetDetailPage(BasePage):
         )
         value = float(build_asset(m).current_value())
         outstanding = float(st.outstanding)
-        equity = value - outstanding
-        eq_frac = (equity / value) if value > 0 else 0.0
+        equity, eq_frac = equity_split(value, outstanding)
 
         two = QHBoxLayout()
         two.setSpacing(16)

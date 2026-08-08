@@ -712,3 +712,12 @@ def early_payoff_savings(
         new_interest=float(new_interest),
         interest_saved=float(baseline_interest - new_interest),
     )
+
+
+def equity_split(value: float, outstanding: float) -> tuple[float, float]:
+    """Equity and its fraction of value for an asset worth ``value`` carrying
+    ``outstanding`` debt: ``(value − outstanding, equity ⁄ value)``. The
+    fraction is 0 when the value is non-positive."""
+    equity = float(value) - float(outstanding)
+    frac = (equity / value) if value > 0 else 0.0
+    return equity, frac

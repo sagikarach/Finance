@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime as _dt
 from typing import Callable, Dict, List, Optional
 
 from ..qt import (
@@ -19,9 +18,9 @@ from ..qt import (
 )
 from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..data.action_history_provider import JsonFileActionHistoryProvider
-from ..models.accounts import SavingsAccount, parse_iso_date
+from ..models.accounts import SavingsAccount
 from ..models.accounts_service import AccountsService
-from ..models.yearly_report_service import forecast_savings_balance
+from ..models.yearly_report_service import forecast_savings_by_name
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row, setup_calendar_popup
 from ..widgets.savings_history_chart import SavingsHistoryChartCard, create_savings_history_chart_card
 from ..utils.formatting import format_currency
@@ -170,20 +169,7 @@ class SavingsAccountPage(BasePage):
         self, account: SavingsAccount, chart_card: SavingsHistoryChartCard
     ) -> None:
         """Compute and inject forecast data synchronously using linear extrapolation."""
-        result: Dict[str, List[float]] = {}
-        for s in account.savings:
-            history_vals: List[float] = []
-            for snap in s.history:
-                try:
-                    dt = parse_iso_date(str(snap.date))
-                    if dt != _dt.min:
-                        history_vals.append(float(snap.amount))
-                except Exception:
-                    pass
-            result[str(s.name)] = forecast_savings_balance(
-                history_vals, float(s.amount), horizon=6
-            )
-        chart_card.set_projection_data(result)
+        chart_card.set_projection_data(forecast_savings_by_name(account, horizon=6))
 
     def on_route_activated(self) -> None:
         super().on_route_activated()

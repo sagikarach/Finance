@@ -59,6 +59,55 @@ def test_category_breakdown_income_first() -> None:
     assert r.category_breakdowns[0].category == "משכורת"
 
 
+def test_forecast_savings_by_name_series_per_sub() -> None:
+    from types import SimpleNamespace
+
+    from finance.models.yearly_report_service import (
+        forecast_savings_balance,
+        forecast_savings_by_name,
+    )
+
+    acc = SimpleNamespace(
+        savings=[
+            SimpleNamespace(
+                name="קרן",
+                amount=1000.0,
+                history=[
+                    SimpleNamespace(date="2026-01-01", amount=900.0),
+                    SimpleNamespace(date="2026-02-01", amount=950.0),
+                ],
+            )
+        ]
+    )
+    out = forecast_savings_by_name(acc, horizon=3)
+    assert set(out) == {"קרן"}
+    assert out["קרן"] == forecast_savings_balance([900.0, 950.0], 1000.0, horizon=3)
+
+
+def test_forecast_savings_by_name_skips_unparseable_dates() -> None:
+    from types import SimpleNamespace
+
+    from finance.models.yearly_report_service import (
+        forecast_savings_balance,
+        forecast_savings_by_name,
+    )
+
+    acc = SimpleNamespace(
+        savings=[
+            SimpleNamespace(
+                name="x",
+                amount=500.0,
+                history=[
+                    SimpleNamespace(date="not-a-date", amount=100.0),
+                    SimpleNamespace(date="2026-01-01", amount=400.0),
+                ],
+            )
+        ]
+    )
+    out = forecast_savings_by_name(acc)
+    assert out["x"] == forecast_savings_balance([400.0], 500.0, horizon=6)
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

@@ -591,13 +591,11 @@ class MortgagePaymentsDialog(QDialog):
             self._table.setRowCount(0)
             self._summary.setText("")
             return
-        expenses = self._service.match_movements(m)
-        incomes = self._service.match_income(m)
-        total_paid = sum(abs(float(x.amount)) for x in expenses)
-        total_in = sum(abs(float(x.amount)) for x in incomes)
+        mt = self._service.matched_totals(m)
+        expenses, incomes = mt.expenses, mt.incomes
         self._summary.setText(
-            f"הוצאות: {len(expenses)} ({_fmt_money(total_paid)} ₪)   |   "
-            f"הכנסות: {len(incomes)} ({_fmt_money(total_in)} ₪)"
+            f"הוצאות: {len(expenses)} ({_fmt_money(mt.total_paid)} ₪)   |   "
+            f"הכנסות: {len(incomes)} ({_fmt_money(mt.total_in)} ₪)"
         )
         # מיזוג ומיון לפי תאריך; הוצאות בעמודה אחת, הכנסות באחרת.
         from ..models.accounts import parse_iso_date

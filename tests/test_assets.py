@@ -185,6 +185,21 @@ def test_new_asset_record_factory() -> None:
     assert isinstance(build_asset(house), HousePurchase)
 
 
+def test_matched_totals_sums_abs_amounts() -> None:
+    from types import SimpleNamespace
+
+    svc = _svc([])
+    exp = [SimpleNamespace(amount=-5000.0), SimpleNamespace(amount=-1200.5)]
+    inc = [SimpleNamespace(amount=200_000.0)]
+    svc.match_movements = lambda m: exp  # type: ignore[method-assign]
+    svc.match_income = lambda m: inc  # type: ignore[method-assign]
+
+    mt = svc.matched_totals(object())
+    assert mt.expenses is exp and mt.incomes is inc
+    assert mt.total_paid == 6200.5
+    assert mt.total_in == 200_000.0
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

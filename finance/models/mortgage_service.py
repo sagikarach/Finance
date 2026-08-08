@@ -40,6 +40,16 @@ class MortgageStats:
 
 
 @dataclass(frozen=True)
+class MatchedTotals:
+    """A mortgage's matched movements split into expenses/incomes with sums."""
+
+    expenses: List[BankMovement]
+    incomes: List[BankMovement]
+    total_paid: float
+    total_in: float
+
+
+@dataclass(frozen=True)
 class AssetsSummary:
     """Portfolio headline for the assets page."""
 
@@ -333,6 +343,20 @@ class MortgageService:
             excluded_ids=getattr(mortgage, "excluded_movement_ids", []) or [],
             include_transfers=True,
             match_income=True,
+        )
+
+    def matched_totals(self, mortgage: Mortgage) -> "MatchedTotals":
+        """The mortgage's matched expenses and incomes together with their
+        summed absolute amounts — everything the movements dialog shows."""
+        expenses = self.match_movements(mortgage)
+        incomes = self.match_income(mortgage)
+        total_paid = sum(abs(float(x.amount)) for x in expenses)
+        total_in = sum(abs(float(x.amount)) for x in incomes)
+        return MatchedTotals(
+            expenses=expenses,
+            incomes=incomes,
+            total_paid=float(total_paid),
+            total_in=float(total_in),
         )
 
     def compute_stats(self, mortgage: Mortgage) -> MortgageStats:
