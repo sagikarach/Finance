@@ -25,5 +25,5 @@ def coerce_enum(
         return aliases[key]
     try:
         return enum_cls(key)
-    except Exception:
+    except (ValueError, KeyError):
         return default

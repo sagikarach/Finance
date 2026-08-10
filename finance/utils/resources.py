@@ -12,7 +12,7 @@ def _candidate_roots() -> Iterable[Path]:
 
     try:
         yield Path(__file__).resolve().parents[2]
-    except Exception:
+    except (OSError, IndexError):
         pass
 
     yield Path.cwd()
@@ -26,6 +26,6 @@ def find_first_existing(relative_paths: Iterable[str]) -> Optional[Path]:
                 p = root / rel
                 if p.exists():
                     return p
-            except Exception:
+            except (OSError, IndexError):
                 continue
     return None

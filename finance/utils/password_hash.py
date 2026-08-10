@@ -83,5 +83,5 @@ def verify_password(plaintext: str, stored: Optional[str]) -> bool:
             dklen=len(expected),
         )
         return hmac.compare_digest(actual, expected)
-    except Exception:
+    except (ValueError, TypeError):
         return False

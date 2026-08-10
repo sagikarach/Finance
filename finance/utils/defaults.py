@@ -30,7 +30,7 @@ def load_defaults() -> Dict[str, str]:
                     default_theme = str(
                         app_defaults.get("default_theme", default_theme)
                     )
-        except Exception:
+        except (OSError, ValueError):
             pass
 
     return {

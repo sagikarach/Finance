@@ -10,7 +10,7 @@ def _load_local() -> tuple[str, str]:
     try:
         from .firebase_defaults_local import API_KEY as k, PROJECT_ID as p  # type: ignore[import]
         return k, p
-    except Exception:
+    except ImportError:
         pass
     return (
         os.environ.get("FINANCE_FIREBASE_API_KEY", ""),

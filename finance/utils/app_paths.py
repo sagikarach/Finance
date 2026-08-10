@@ -10,7 +10,7 @@ import sys
 _platform_user_data_dir: Callable[..., str] | None
 try:
     from platformdirs import user_data_dir as _platform_user_data_dir
-except Exception:
+except ImportError:
     _platform_user_data_dir = None
 
 
@@ -54,7 +54,7 @@ def _dir_is_empty(p: Path) -> bool:
         return False
     except StopIteration:
         return True
-    except Exception:
+    except OSError:
         return False
 
 
@@ -70,7 +70,7 @@ def app_data_dir() -> Path:
     try:
         if old != p and old.exists() and old.is_dir() and _dir_is_empty(p):
             shutil.copytree(old, p, dirs_exist_ok=True)
-    except Exception:
+    except OSError:
         pass
     return p
 
@@ -107,7 +107,7 @@ def user_profile_path(uid: Optional[str] = None) -> Path:
             sess = FirebaseSessionStore().load()
             candidate = (sess.workspace_id or sess.uid or "").strip()
             uid = candidate if candidate else None
-        except Exception:
+        except (ImportError, OSError, ValueError, AttributeError):
             uid = None
 
     if not uid:
@@ -120,7 +120,7 @@ def user_profile_path(uid: Optional[str] = None) -> Path:
         try:
             import shutil as _shutil
             _shutil.copy2(base, suffixed)
-        except Exception:
+        except OSError:
             pass
 
     return suffixed
@@ -132,7 +132,7 @@ def legacy_accounts_dirs() -> Iterable[Path]:
         here = Path(__file__).resolve()
         root = here.parents[2]
         yield root / "data" / "accounts"
-    except Exception:
+    except (OSError, IndexError):
         return
 
 
@@ -151,7 +151,7 @@ def migrate_legacy_accounts_data(*, overwrite: bool = False) -> bool:
                 if has_json:
                     src = cand
                     break
-        except Exception:
+        except OSError:
             continue
     if src is None:
         return False
@@ -168,9 +168,9 @@ def migrate_legacy_accounts_data(*, overwrite: bool = False) -> bool:
             try:
                 shutil.copy2(item, target)
                 copied_any = True
-            except Exception:
+            except OSError:
                 continue
-    except Exception:
+    except OSError:
         return copied_any
 
     return copied_any

@@ -22,7 +22,6 @@ select = ["F", "E9", "BLE", "S110", "S112"]
 # a documented `# noqa: BLE001`. Remaining layers are exempt and get migrated
 # incrementally — remove a line as it's cleaned.
 # TODO: utils/ next.
-"finance/utils/*" = ["BLE", "S110", "S112"]
 # Qt boundary — defensive catching is more defensible here; migrate last.
 "finance/widgets/*" = ["BLE", "S110", "S112"]
 "finance/pages/*" = ["BLE", "S110", "S112"]
@@ -31,7 +30,7 @@ select = ["F", "E9", "BLE", "S110", "S112"]
 "finance/app.py" = ["BLE", "S110", "S112"]
 # qt.py is the PySide import shim — defensive fallbacks are its whole job.
 "finance/qt.py" = ["BLE", "S110", "S112"]
-# TODO: migrate with the models layer.
-"finance/firebase_defaults.py" = ["BLE", "S110", "S112"]
+# icons.py renders SVGs through PySide — part of the Qt boundary.
+"finance/utils/icons.py" = ["BLE", "S110", "S112"]
 # Tests may assert on broad failure paths.
 "tests/*" = ["BLE", "S110", "S112"]

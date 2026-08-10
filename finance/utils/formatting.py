@@ -8,7 +8,7 @@ def fmt_money(value: float, decimals: int = 0) -> str:
     (e.g. ``1,234``). Falls back to ``str(value)`` on bad input."""
     try:
         return f"{float(value):,.{int(decimals)}f}"
-    except Exception:
+    except (ValueError, TypeError):
         return str(value)
 
 
@@ -20,7 +20,7 @@ def parse_float(text: object) -> Optional[float]:
         return None
     try:
         return float(s)
-    except Exception:
+    except (ValueError, TypeError):
         return None
 
 
@@ -30,5 +30,5 @@ def format_currency(value: float, use_compact: bool = False) -> str:
             return f"₪{value:,.0f}" if abs(value) >= 1000 else f"₪{value:,.2f}"
         else:
             return f"₪{value:,.2f}"
-    except Exception:
+    except (ValueError, TypeError):
         return f"₪{value}"

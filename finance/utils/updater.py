@@ -41,7 +41,7 @@ def _http_get(url: str, timeout: int = 12) -> bytes:
     try:
         import certifi
         ctx = _ssl.create_default_context(cafile=certifi.where())
-    except Exception:
+    except (ImportError, OSError):
         ctx = _ssl.create_default_context()
     req = urllib.request.Request(url, headers={"User-Agent": "Finance-App-Updater"})
     with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
@@ -53,7 +53,7 @@ def _ssl_context() -> ssl.SSLContext:
     try:
         import certifi
         return ssl.create_default_context(cafile=certifi.where())
-    except Exception:
+    except (ImportError, OSError):
         pass
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -68,7 +68,7 @@ def _parse_version(v: str) -> Tuple[int, ...]:
     for part in v.split("."):
         try:
             parts.append(int(part))
-        except Exception:
+        except (ValueError, TypeError):
             parts.append(0)
     return tuple(parts)
 
@@ -111,7 +111,7 @@ def _github_latest_release(repo: str) -> dict:
     try:
         data = _http_get(url)
         releases = json.loads(data)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - classify by message, then re-raise
         msg = str(exc)
         if "404" in msg or "Not Found" in msg or "curl error 22" in msg:
             raise _NoReleaseFound("אין גרסאות פורסמו עדיין.") from exc
@@ -147,7 +147,7 @@ def _get_public_key() -> Optional[VerifyKey]:
     try:
         data = base64.b64decode(raw.strip())
         return VerifyKey(data)
-    except Exception:
+    except (ValueError, TypeError):
         return None
 
 
@@ -273,7 +273,7 @@ def install_app_to_applications(app_path: pathlib.Path) -> Optional[str]:
         if result.returncode != 0:
             return result.stderr.strip() or "ditto failed"
         return None
-    except Exception as exc:
+    except (OSError, subprocess.SubprocessError) as exc:
         return str(exc)
 
 
