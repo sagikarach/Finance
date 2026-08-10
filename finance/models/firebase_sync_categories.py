@@ -3,6 +3,9 @@ from __future__ import annotations
 from typing import List
 
 from .firebase_client import FirestoreClient
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def sync_categories(
@@ -35,17 +38,18 @@ def sync_categories(
             remote_outcome = [
                 str(x).strip() for x in ro if isinstance(x, str) and str(x).strip()
             ]
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("sync_categories: %s", exc)
         remote_income = []
         remote_outcome = []
 
     try:
         local_income = list(provider.list_categories_for_type(True))
-    except Exception:
+    except PARSE_ERRORS:
         local_income = []
     try:
         local_outcome = list(provider.list_categories_for_type(False))
-    except Exception:
+    except PARSE_ERRORS:
         local_outcome = []
 
     merged_income = sorted({*(remote_income), *(local_income)})
@@ -58,10 +62,8 @@ def sync_categories(
             fields={"income": merged_income, "outcome": merged_outcome, "version": 1},
         )
 
-    try:
+    with swallow(msg="sync_categories"):
         for c in merged_income:
             provider.add_category_for_type(c, True)
         for c in merged_outcome:
             provider.add_category_for_type(c, False)
-    except Exception:
-        pass

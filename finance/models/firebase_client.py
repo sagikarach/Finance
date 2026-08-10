@@ -8,6 +8,7 @@ import time
 import urllib.parse
 import urllib.request
 import urllib.error
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 def _ssl_context() -> ssl.SSLContext:
@@ -18,15 +19,11 @@ def _ssl_context() -> ssl.SSLContext:
     back to the default context, and as a last resort return an unverified
     context so the app at least attempts to connect.
     """
-    try:
+    with swallow(msg="_ssl_context"):
         import certifi
         return ssl.create_default_context(cafile=certifi.where())
-    except Exception:
-        pass
-    try:
+    with swallow(msg="_ssl_context"):
         return ssl.create_default_context()
-    except Exception:
-        pass
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
@@ -61,12 +58,12 @@ def _http_json(
         raw = ""
         try:
             raw = e.read().decode("utf-8", errors="replace")
-        except Exception:
+        except PARSE_ERRORS:
             raw = ""
 
         try:
             data = json.loads(raw) if raw else None
-        except Exception:
+        except PARSE_ERRORS:
             data = None
 
         if isinstance(data, dict):
@@ -84,11 +81,11 @@ def _http_json(
         code = getattr(e, "code", "")
         reason = getattr(e, "reason", "") or ""
         raise RuntimeError(f"HTTP {code} {reason}".strip())
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - translate any transport error to RuntimeError
         raise RuntimeError(str(e))
     try:
         return json.loads(raw)
-    except Exception:
+    except Exception:  # noqa: BLE001 - any parse failure means an invalid response
         raise RuntimeError("Invalid JSON response")
 
 
@@ -185,12 +182,12 @@ def _fs_any(raw: Any) -> Any:
     if "doubleValue" in raw:
         try:
             return float(raw.get("doubleValue", 0.0) or 0.0)
-        except Exception:
+        except PARSE_ERRORS:
             return 0.0
     if "integerValue" in raw:
         try:
             return int(str(raw.get("integerValue", "0") or "0"))
-        except Exception:
+        except PARSE_ERRORS:
             return 0
     if "booleanValue" in raw:
         return bool(raw.get("booleanValue", False))
@@ -220,12 +217,12 @@ def _fs_get(fields: Dict[str, Any], key: str) -> Any:
     if "doubleValue" in raw:
         try:
             return float(raw.get("doubleValue", 0.0) or 0.0)
-        except Exception:
+        except PARSE_ERRORS:
             return 0.0
     if "integerValue" in raw:
         try:
             return int(str(raw.get("integerValue", "0") or "0"))
-        except Exception:
+        except PARSE_ERRORS:
             return 0
     if "booleanValue" in raw:
         return bool(raw.get("booleanValue", False))
@@ -400,7 +397,7 @@ class FirestoreClient:
         workspace_id = str(workspace_id or "").strip()
         try:
             updated_after_ms = int(updated_after_ms or 0)
-        except Exception:
+        except PARSE_ERRORS:
             updated_after_ms = 0
         if not workspace_id or updated_after_ms <= 0:
             return []

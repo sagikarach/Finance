@@ -6,6 +6,7 @@ from .firebase_client import FirestoreClient
 from ..data.provider import JsonFileAccountsProvider
 from ..models.accounts_service import AccountsService
 from ..models.accounts import BudgetAccount, MoneySnapshot
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 def pull_accounts_meta_to_local_cache(
@@ -20,7 +21,7 @@ def pull_accounts_meta_to_local_cache(
     if not workspace_id:
         return
 
-    try:
+    with swallow(msg="pull_accounts_meta_to_local_cache"):
         from ..models.accounts import (
             BankAccount,
             Savings,
@@ -72,22 +73,22 @@ def pull_accounts_meta_to_local_cache(
                 active = bool(row.get("active", False))
                 try:
                     baseline_amount = float(row.get("baseline_amount", 0.0) or 0.0)
-                except Exception:
+                except PARSE_ERRORS:
                     baseline_amount = 0.0
                 remote_bank_names.add(name)
                 if kind == "budget":
                     try:
                         mb = float(row.get("monthly_budget", 0.0) or 0.0)
-                    except Exception:
+                    except PARSE_ERRORS:
                         mb = 0.0
                     try:
                         rd = int(row.get("reset_day", 1) or 1)
-                    except Exception:
+                    except PARSE_ERRORS:
                         rd = 1
                     last_period = str(row.get("last_reset_period", "") or "").strip()
                     try:
                         bal = float(row.get("total_amount", 0.0) or 0.0)
-                    except Exception:
+                    except PARSE_ERRORS:
                         bal = 0.0
                     hist_rows = row.get("history", [])
                     hist: List[MoneySnapshot] = []
@@ -100,7 +101,7 @@ def pull_accounts_meta_to_local_cache(
                                 continue
                             try:
                                 ha = float(h.get("amount", 0.0) or 0.0)
-                            except Exception:
+                            except PARSE_ERRORS:
                                 ha = 0.0
                             hist.append(MoneySnapshot(date=ds, amount=ha))
                     existing_b = local_budget_by_name.get(name)
@@ -184,7 +185,7 @@ def pull_accounts_meta_to_local_cache(
                                 date_str = str(h.get("date", "") or "").strip()
                                 try:
                                     amt = float(h.get("amount", 0.0) or 0.0)
-                                except Exception:
+                                except PARSE_ERRORS:
                                     amt = 0.0
                                 if date_str:
                                     shist.append(
@@ -192,7 +193,7 @@ def pull_accounts_meta_to_local_cache(
                                     )
                         try:
                             amt = float(srow.get("amount", 0.0) or 0.0)
-                        except Exception:
+                        except PARSE_ERRORS:
                             amt = 0.0
                         savings.append(Savings(name=sname, amount=amt, history=shist))
 
@@ -226,5 +227,3 @@ def pull_accounts_meta_to_local_cache(
 
         provider.save_bank_accounts(list(bank_accounts) + list(budget_accounts))
         provider.save_savings_accounts(savings_accounts)
-    except Exception:
-        pass

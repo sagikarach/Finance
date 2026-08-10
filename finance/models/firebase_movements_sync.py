@@ -34,6 +34,9 @@ from ..models.firebase_sync_action_history import pull_action_history_to_local_c
 from ..models.firebase_sync_balance_apply import (
     apply_movements_to_account_balances_once,
 )
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 class FirebaseMovementsSyncService:
@@ -58,40 +61,31 @@ class FirebaseMovementsSyncService:
         src = accounts_data_dir() / "bank_movements.json"
         try:
             wid = str(self._session_store.load().workspace_id or "").strip()
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("ensure_user_local_file: %s", exc)
             wid = ""
         if wid and str(key or "").strip() == wid:
-            try:
+            with swallow(msg="ensure_user_local_file"):
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 if src.exists():
                     dst.write_bytes(src.read_bytes())
                 else:
                     dst.write_text("[]", encoding="utf-8")
-            except Exception:
-                pass
             return
-        try:
+        with swallow(msg="ensure_user_local_file"):
             any_scoped = False
             for p in accounts_data_dir().glob("bank_movements_*.json"):
-                try:
+                with swallow(msg="ensure_user_local_file"):
                     if p.is_file():
                         any_scoped = True
                         break
-                except Exception:
-                    continue
             if (not any_scoped) and src.exists():
-                try:
+                with swallow(msg="ensure_user_local_file"):
                     dst.write_bytes(src.read_bytes())
                     return
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        try:
+        with swallow(msg="ensure_user_local_file"):
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_text("[]", encoding="utf-8")
-        except Exception:
-            pass
 
     def _load_session_refresh_if_needed(self):
         return FirebaseSessionManager(store=self._session_store).get_valid_session()
@@ -99,7 +93,7 @@ class FirebaseMovementsSyncService:
     def _best_effort(self, fn, *args, **kwargs) -> None:
         try:
             fn(*args, **kwargs)
-        except Exception:
+        except PARSE_ERRORS:
             return
 
     def _sync_categories_pull_only(
@@ -129,11 +123,13 @@ class FirebaseMovementsSyncService:
             updated_after = str(
                 getattr(state, "last_remote_updated_at", "") or ""
             ).strip()
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("_pull_and_merge_movements: %s", exc)
             updated_after = ""
         try:
             updated_after_ms = int(getattr(state, "last_remote_updated_at_ms", 0) or 0)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("_pull_and_merge_movements: %s", exc)
             updated_after_ms = 0
 
         remote_ids, remote_by_id = pull_remote_movements(
@@ -152,7 +148,7 @@ class FirebaseMovementsSyncService:
         self._provider.save_movements(list(local_by_id.values()))
 
         # Advance incremental watermark (best-effort)
-        try:
+        with swallow(msg="_pull_and_merge_movements"):
             max_u = updated_after
             max_ms = int(updated_after_ms or 0)
             for _mid, f in remote_by_id.items():
@@ -161,7 +157,7 @@ class FirebaseMovementsSyncService:
                     max_u = u
                 try:
                     ums = int(f.get("updated_at_ms", 0) or 0)
-                except Exception:
+                except PARSE_ERRORS:
                     ums = 0
                 if ums and ums > max_ms:
                     max_ms = ums
@@ -169,8 +165,6 @@ class FirebaseMovementsSyncService:
                 state.last_remote_updated_at = str(max_u)
             if state is not None and max_ms > 0:
                 state.last_remote_updated_at_ms = int(max_ms)
-        except Exception:
-            pass
 
         return pulled, remote_ids, remote_by_id, local_by_id
 
@@ -194,13 +188,11 @@ class FirebaseMovementsSyncService:
 
         # On background pull-only syncs, skip if caches were refreshed recently.
         if not bool(allow_push) and state is not None:
-            try:
+            with swallow(msg="_pull_workspace_caches"):
                 last_ms = int(getattr(state, "last_workspace_cache_pull_at_ms", 0) or 0)
                 now_ms = int(time.time() * 1000)
                 if last_ms > 0 and (now_ms - last_ms) < self._CACHE_TTL_MS:
                     return
-            except Exception:
-                pass
 
         # Run sequentially for stability (avoid native crashes seen under heavy concurrent pulls).
         pull_ml_seed_best_effort(workspace_id=wid, ensure_in_firebase=bool(allow_push))
@@ -239,10 +231,8 @@ class FirebaseMovementsSyncService:
 
         # Record successful pull time so the TTL check above works next time.
         if state is not None:
-            try:
+            with swallow(msg="_pull_workspace_caches"):
                 state.last_workspace_cache_pull_at_ms = int(time.time() * 1000)
-            except Exception:
-                pass
 
     def _apply_balances_once(
         self,
@@ -264,7 +254,8 @@ class FirebaseMovementsSyncService:
 
             if not allow_firebase_push():
                 return
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("sync_categories_only: %s", exc)
             return
         session = self._load_session_refresh_if_needed()
         wid = str(getattr(session, "workspace_id", "") or "").strip()
@@ -356,7 +347,7 @@ class FirebaseMovementsSyncService:
             self._best_effort(save_sync_state, key, state)
 
             # Save timings to help diagnose slow syncs
-            try:
+            with swallow(msg="sync_now"):
                 p = app_data_dir() / "firebase"
                 p.mkdir(parents=True, exist_ok=True)
                 (p / "last_sync_profile.json").write_text(
@@ -381,15 +372,11 @@ class FirebaseMovementsSyncService:
                     ),
                     encoding="utf-8",
                 )
-            except Exception:
-                pass
 
             return pulled, pushed
         finally:
-            try:
+            with swallow(msg="sync_now"):
                 lock.release()
-            except Exception:
-                pass
 
     def _push_all_local(
         self, *, fs: FirestoreClient, wid: str, uid: str, id_token: str, state
@@ -414,17 +401,15 @@ class FirebaseMovementsSyncService:
 
             try:
                 income = list(self._provider.list_categories_for_type(True))
-            except Exception:
+            except PARSE_ERRORS:
                 income = []
             try:
                 outcome = list(self._provider.list_categories_for_type(False))
-            except Exception:
+            except PARSE_ERRORS:
                 outcome = []
-            try:
+            with swallow(msg="_push_all_local"):
                 writer.upsert_categories(income=income, outcome=outcome)
                 pushed += 1
-            except Exception:
-                pass
 
             del_mov = list(getattr(state, "pending_delete_movement_ids", []) or [])
             kept_mov: list[str] = []
@@ -432,7 +417,8 @@ class FirebaseMovementsSyncService:
                 try:
                     writer.delete_movement(movement_id=str(mid))
                     pushed += 1
-                except Exception:
+                except Exception as exc:  # noqa: BLE001
+                    _log.debug("_push_all_local: %s", exc)
                     kept_mov.append(str(mid))
             state.pending_delete_movement_ids = kept_mov
 
@@ -442,7 +428,8 @@ class FirebaseMovementsSyncService:
                 try:
                     writer.delete_event(event_id=str(eid))
                     pushed += 1
-                except Exception:
+                except Exception as exc:  # noqa: BLE001
+                    _log.debug("_push_all_local: %s", exc)
                     kept_evt.append(str(eid))
             state.pending_delete_event_ids = kept_evt
 
@@ -454,7 +441,8 @@ class FirebaseMovementsSyncService:
                 try:
                     writer.delete_installment_plan(plan_id=str(pid))
                     pushed += 1
-                except Exception:
+                except Exception as exc:  # noqa: BLE001
+                    _log.debug("_push_all_local: %s", exc)
                     kept_pl.append(str(pid))
             state.pending_delete_installment_plan_ids = kept_pl
 
@@ -464,24 +452,24 @@ class FirebaseMovementsSyncService:
                 try:
                     writer.delete_mortgage(mortgage_id=str(mgid))
                     pushed += 1
-                except Exception:
+                except Exception as exc:  # noqa: BLE001
+                    _log.debug("_push_all_local: %s", exc)
                     kept_mg.append(str(mgid))
             state.pending_delete_mortgage_ids = kept_mg
 
             try:
                 movements = list(self._provider.list_movements())
-            except Exception:
+            except PARSE_ERRORS:
                 movements = []
             if movements:
                 try:
                     pushed += int(writer.upsert_movements_bulk(movements))
-                except Exception:
+                except Exception as exc:  # noqa: BLE001
+                    _log.debug("_push_all_local: %s", exc)
                     for m in movements:
-                        try:
+                        with swallow(msg="_push_all_local"):
                             writer.upsert_movement(m)
                             pushed += 1
-                        except Exception:
-                            continue
 
             acc_svc = AccountsService(JsonFileAccountsProvider())
             accounts = acc_svc.load_accounts()
@@ -489,37 +477,29 @@ class FirebaseMovementsSyncService:
             # the remote workspace's account metadata with nothing, which can
             # happen right after a user-switch before the pull has completed.
             if accounts:
-                try:
+                with swallow(msg="_push_all_local"):
                     writer.upsert_accounts_snapshot(accounts)
                     pushed += 1
-                except Exception:
-                    pass
 
             for e in list(JsonFileOneTimeEventProvider().list_events()):
-                try:
+                with swallow(msg="_push_all_local"):
                     writer.upsert_event(e)
                     pushed += 1
-                except Exception:
-                    continue
 
             for p in list(JsonFileInstallmentPlanProvider().list_plans()):
-                try:
+                with swallow(msg="_push_all_local"):
                     writer.upsert_installment_plan(p)
                     pushed += 1
-                except Exception:
-                    continue
 
             pending_up_mg = set(
                 getattr(state, "pending_upsert_mortgage_ids", []) or []
             )
             pushed_up_mg: set[str] = set()
             for mg in list(JsonFileMortgageProvider().list_mortgages()):
-                try:
+                with swallow(msg="_push_all_local"):
                     writer.upsert_mortgage(mg)
                     pushed += 1
                     pushed_up_mg.add(str(mg.id))
-                except Exception:
-                    continue
             # Clear the dirty flag only for mortgages that actually reached the
             # server; any that failed stay protected until the next push.
             if pending_up_mg:
@@ -528,7 +508,7 @@ class FirebaseMovementsSyncService:
                 ]
 
             prov = JsonFileNotificationsProvider()
-            try:
+            with swallow(msg="_push_all_local"):
                 rules = [
                     {
                         "id": r.id,
@@ -541,41 +521,31 @@ class FirebaseMovementsSyncService:
                 ]
                 writer.upsert_notifications_meta(enabled=prov.is_enabled(), rules=rules)
                 pushed += 1
-            except Exception:
-                pass
-            try:
+            with swallow(msg="_push_all_local"):
                 for n in list(prov.list_notifications()):
-                    try:
+                    with swallow(msg="_push_all_local"):
                         writer.upsert_notification(n)
                         pushed += 1
-                    except Exception:
-                        continue
-            except Exception:
-                pass
 
             try:
                 hist = JsonFileActionHistoryProvider().list_history()
-            except Exception:
+            except PARSE_ERRORS:
                 hist = []
             logged = set(getattr(state, "logged_action_ids", []) or [])
             new_logged: list[str] = list(getattr(state, "logged_action_ids", []) or [])
             for entry in hist:
-                try:
+                with swallow(msg="_push_all_local"):
                     eid = str(getattr(entry, "id", "") or "").strip()
-                except Exception:
-                    continue
                 if not eid or eid in logged:
                     continue
-                try:
+                with swallow(msg="_push_all_local"):
                     writer.upsert_action_history(entry)
                     pushed += 1
                     new_logged.append(eid)
                     logged.add(eid)
-                except Exception:
-                    continue
             state.logged_action_ids = new_logged
 
-            try:
+            with swallow(msg="_push_all_local"):
                 path = user_profile_path()
                 if path.exists():
                     raw = json.loads(path.read_text(encoding="utf-8") or "{}")
@@ -588,14 +558,11 @@ class FirebaseMovementsSyncService:
                         uid=str(uid), full_name=full_name, lock_enabled=lock_enabled
                     )
                     pushed += 1
-            except Exception:
-                pass
 
-            try:
+            with swallow(msg="_push_all_local"):
                 save_sync_state(str(wid or uid), state)
-            except Exception:
-                pass
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("_push_all_local: %s", exc)
             return pushed
         return pushed
 
@@ -611,10 +578,9 @@ class FirebaseMovementsSyncService:
             ).compute()
             writer = FirebaseWorkspaceWriter()
             writer.upsert_dashboard_meta(meta)
-            try:
+            with swallow(msg="_push_dashboard_meta"):
                 grade = UserGradeService(movement_provider=self._provider).compute()
                 writer.upsert_workspace_grade(grade)
-            except Exception:
-                pass
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("_push_dashboard_meta: %s", exc)
             return

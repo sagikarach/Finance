@@ -11,6 +11,9 @@ from .firebase_session import FirebaseSessionStore
 from .firebase_client import FirestoreClient
 from .firebase_session_manager import FirebaseSessionManager
 from .movement_classifier import SimilarityBasedClassifier
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def _training_dir() -> Path:
@@ -33,7 +36,7 @@ def _seed_from_repo_file() -> List[Dict[str, Any]]:
         data = json.loads(p.read_text(encoding="utf-8"))
         if isinstance(data, list):
             return [x for x in data if isinstance(x, dict)]
-    except Exception:
+    except PARSE_ERRORS:
         return []
     return []
 
@@ -62,7 +65,7 @@ def _movement_to_training_row(m: BankMovement) -> Optional[Dict[str, Any]]:
             "expenseType": expense_type_str,
             "source": "history",
         }
-    except Exception:
+    except PARSE_ERRORS:
         return None
 
 
@@ -71,7 +74,8 @@ class WorkspaceMLTrainer:
     def _session(self):
         try:
             s = FirebaseSessionManager(store=FirebaseSessionStore()).get_valid_session()
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("_session: %s", exc)
             return None
         wid = str(getattr(s, "workspace_id", "") or "").strip()
         if not wid:
@@ -84,7 +88,7 @@ class WorkspaceMLTrainer:
             return
         wid = str(getattr(s, "workspace_id", "") or "").strip()
         fs = FirestoreClient(project_id=s.project_id)
-        try:
+        with swallow(msg="pull_seed_to_cache"):
             doc = fs.get_document(
                 document_path=f"workspaces/{wid}/meta/ml_seed", id_token=s.id_token
             )
@@ -99,8 +103,6 @@ class WorkspaceMLTrainer:
             _seed_cache_path(wid).write_text(
                 json.dumps(cleaned, ensure_ascii=False, indent=2), encoding="utf-8"
             )
-        except Exception:
-            pass
 
     def ensure_seed_in_firebase(self) -> None:
         s = self._session()
@@ -109,25 +111,21 @@ class WorkspaceMLTrainer:
         wid = str(getattr(s, "workspace_id", "") or "").strip()
         fs = FirestoreClient(project_id=s.project_id)
 
-        try:
+        with swallow(msg="ensure_seed_in_firebase"):
             fs.get_document(
                 document_path=f"workspaces/{wid}/meta/ml_seed", id_token=s.id_token
             )
             return
-        except Exception:
-            pass
 
         seed = _seed_from_repo_file()
         if not seed:
             return
-        try:
+        with swallow(msg="ensure_seed_in_firebase"):
             fs.upsert_document(
                 document_path=f"workspaces/{wid}/meta/ml_seed",
                 id_token=s.id_token,
                 fields={"examples": seed, "version": 1},
             )
-        except Exception:
-            pass
 
     def _load_seed_cached_or_default(self) -> List[Dict[str, Any]]:
         s = FirebaseSessionStore().load()
@@ -135,12 +133,10 @@ class WorkspaceMLTrainer:
         key = wid or str(getattr(s, "uid", "") or "").strip()
         p = _seed_cache_path(key)
         if p.exists():
-            try:
+            with swallow(msg="_load_seed_cached_or_default"):
                 data = json.loads(p.read_text(encoding="utf-8"))
                 if isinstance(data, list):
                     return [x for x in data if isinstance(x, dict)]
-            except Exception:
-                pass
         return _seed_from_repo_file()
 
     def rebuild_training_file(
@@ -152,7 +148,7 @@ class WorkspaceMLTrainer:
         seed = self._load_seed_cached_or_default()
         seed_rows: List[Dict[str, Any]] = []
         for it in seed:
-            try:
+            with swallow(msg="rebuild_training_file"):
                 desc = str(it.get("description", "") or "").strip()
                 cat = str(it.get("category", "") or "").strip()
                 if not desc or not cat:
@@ -160,7 +156,7 @@ class WorkspaceMLTrainer:
                 amt = it.get("amount", 0.0)
                 try:
                     amt_f = float(abs(float(amt)))
-                except Exception:
+                except PARSE_ERRORS:
                     amt_f = 0.0
                 et = str(it.get("expenseType", "חודשית") or "חודשית")
                 seed_rows.append(
@@ -172,8 +168,6 @@ class WorkspaceMLTrainer:
                         "source": "seed",
                     }
                 )
-            except Exception:
-                continue
 
         history_rows: List[Dict[str, Any]] = []
         for m in movements:

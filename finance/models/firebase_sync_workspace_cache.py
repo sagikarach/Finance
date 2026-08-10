@@ -2,6 +2,9 @@ from __future__ import annotations
 
 
 from .firebase_client import FirestoreClient
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def pull_ml_seed_best_effort(
@@ -9,15 +12,13 @@ def pull_ml_seed_best_effort(
 ) -> None:
     if not str(workspace_id or "").strip():
         return
-    try:
+    with swallow(msg="pull_ml_seed_best_effort"):
         from .workspace_ml_trainer import WorkspaceMLTrainer
 
         t = WorkspaceMLTrainer()
         t.pull_seed_to_cache()
         if bool(ensure_in_firebase):
             t.ensure_seed_in_firebase()
-    except Exception:
-        pass
 
 
 def pull_events_to_local_cache(
@@ -26,7 +27,7 @@ def pull_events_to_local_cache(
     workspace_id = str(workspace_id or "").strip()
     if not workspace_id:
         return
-    try:
+    with swallow(msg="pull_events_to_local_cache"):
         from ..data.one_time_event_provider import JsonFileOneTimeEventProvider
         from ..models.one_time_event import (
             OneTimeEvent,
@@ -42,7 +43,7 @@ def pull_events_to_local_cache(
         local_events_by_id = {e.id: e for e in provider_events.list_events()}
         deleted_ids: set = set()
         for d in docs_events:
-            try:
+            with swallow(msg="pull_events_to_local_cache"):
                 doc_id, parsed = fs.parse_any_doc(d)
                 eid = str(parsed.get("id") or doc_id).strip()
                 if not eid:
@@ -74,11 +75,7 @@ def pull_events_to_local_cache(
                     if isinstance(notes, str) and str(notes).strip()
                     else None,
                 )
-            except Exception:
-                continue
         provider_events.save_events(list(local_events_by_id.values()))
-    except Exception:
-        pass
 
 
 def pull_installment_plans_to_local_cache(
@@ -87,7 +84,7 @@ def pull_installment_plans_to_local_cache(
     workspace_id = str(workspace_id or "").strip()
     if not workspace_id:
         return
-    try:
+    with swallow(msg="pull_installment_plans_to_local_cache"):
         from ..data.installment_plan_provider import JsonFileInstallmentPlanProvider
         from ..models.installment_plan import InstallmentPlan
 
@@ -98,7 +95,7 @@ def pull_installment_plans_to_local_cache(
         provider_plans = JsonFileInstallmentPlanProvider()
         local_plans_by_id = {p.id: p for p in provider_plans.list_plans()}
         for d in docs_plans:
-            try:
+            with swallow(msg="pull_installment_plans_to_local_cache"):
                 doc_id, parsed = fs.parse_any_doc(d)
                 if bool(parsed.get("deleted", False)):
                     pid_del = str(parsed.get("id") or doc_id).strip()
@@ -129,11 +126,7 @@ def pull_installment_plans_to_local_cache(
                     excluded_movement_ids=excluded,
                     archived=archived,
                 )
-            except Exception:
-                continue
         provider_plans.save_plans(list(local_plans_by_id.values()))
-    except Exception:
-        pass
 
 
 def pull_mortgages_to_local_cache(
@@ -143,7 +136,7 @@ def pull_mortgages_to_local_cache(
     if not workspace_id:
         return
     skip = {str(x).strip() for x in (skip_ids or set()) if str(x).strip()}
-    try:
+    with swallow(msg="pull_mortgages_to_local_cache"):
         from ..data.mortgage_provider import (
             JsonFileMortgageProvider,
             deserialize_mortgage,
@@ -156,7 +149,7 @@ def pull_mortgages_to_local_cache(
         provider = JsonFileMortgageProvider()
         local_by_id = {m.id: m for m in provider.list_mortgages()}
         for d in docs:
-            try:
+            with swallow(msg="pull_mortgages_to_local_cache"):
                 doc_id, parsed = fs.parse_any_doc(d)
                 mid = str(parsed.get("id") or doc_id).strip()
                 if not mid:
@@ -174,11 +167,7 @@ def pull_mortgages_to_local_cache(
                 mortgage = deserialize_mortgage(parsed)
                 if mortgage is not None:
                     local_by_id[mid] = mortgage
-            except Exception:
-                continue
         provider.save_mortgages(list(local_by_id.values()))
-    except Exception:
-        pass
 
 
 def pull_notifications_to_local_cache(
@@ -187,7 +176,7 @@ def pull_notifications_to_local_cache(
     workspace_id = str(workspace_id or "").strip()
     if not workspace_id:
         return
-    try:
+    with swallow(msg="pull_notifications_to_local_cache"):
         from ..data.notifications_provider import JsonFileNotificationsProvider
         from ..models.notifications import (
             Notification,
@@ -206,7 +195,7 @@ def pull_notifications_to_local_cache(
         by_key = {n.key: n for n in local if getattr(n, "key", "")}
 
         for d in docs:
-            try:
+            with swallow(msg="pull_notifications_to_local_cache"):
                 doc_id, parsed = fs.parse_any_doc(d)
                 nid = str(parsed.get("id") or "").strip() or str(doc_id or "").strip()
                 key = str(parsed.get("key") or "").strip() or str(doc_id or "").strip()
@@ -248,14 +237,10 @@ def pull_notifications_to_local_cache(
                     context=dict(parsed.get("context") or {}),
                 )
                 by_key[key] = notif
-            except Exception:
-                continue
 
         merged = list(by_key.values())
         merged.sort(key=lambda x: str(getattr(x, "created_at", "") or ""), reverse=True)
         prov.save_notifications(merged)
-    except Exception:
-        pass
 
 
 def pull_notifications_meta_to_local_cache(
@@ -284,7 +269,7 @@ def pull_notifications_meta_to_local_cache(
             for r in rules_raw:
                 if not isinstance(r, dict):
                     continue
-                try:
+                with swallow(msg="pull_notifications_meta_to_local_cache"):
                     rules.append(
                         NotificationRule(
                             id=str(r.get("id", "") or ""),
@@ -294,8 +279,6 @@ def pull_notifications_meta_to_local_cache(
                             params=dict(r.get("params", {}) or {}),
                         )
                     )
-                except Exception:
-                    continue
         prov = JsonFileNotificationsProvider()
         # Only update enabled state when Firebase explicitly has the field.
         enabled_raw = parsed.get("enabled")
@@ -303,7 +286,8 @@ def pull_notifications_meta_to_local_cache(
             prov.set_enabled(bool(enabled_raw))
         if rules:
             prov.save_rules(rules)
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("pull_notifications_meta_to_local_cache: %s", exc)
         return
 
 
@@ -336,7 +320,7 @@ def pull_user_profile_to_local_cache(
         if path.exists():
             try:
                 local = json.loads(path.read_text(encoding="utf-8") or "{}")
-            except Exception:
+            except PARSE_ERRORS:
                 local = {}
         if not isinstance(local, dict):
             local = {}
@@ -350,5 +334,6 @@ def pull_user_profile_to_local_cache(
         path.write_text(
             json.dumps(local, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("pull_user_profile_to_local_cache: %s", exc)
         return

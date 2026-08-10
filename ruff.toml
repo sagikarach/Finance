@@ -16,20 +16,12 @@ extend-exclude = ["**/__pycache__", "build", "dist"]
 select = ["F", "E9", "BLE", "S110", "S112"]
 
 [lint.per-file-ignores]
-# Enforced so far: finance/data/* and all of finance/models/ except the
-# firebase/sync and ML/classifier boundaries. Remaining layers/files are exempt
-# and get migrated to finance.utils.safe.swallow incrementally — remove a line
-# as it's cleaned.
-#
-# models/: the pure-domain models AND the service layer are enforced (parse/
-# compute handlers narrowed to PARSE_ERRORS; best-effort firebase pushes use
-# swallow()). Still exempt: the firebase/sync boundary and the ML/classifier
-# boundary — broad network catches are most defensible there; they migrate next.
-"finance/models/firebase_*" = ["BLE", "S110", "S112"]
-"finance/models/*_classifier.py" = ["BLE", "S110", "S112"]
-"finance/models/workspace_*" = ["BLE", "S110", "S112"]
-"finance/models/keychain_passwords.py" = ["BLE", "S110", "S112"]
-# TODO: utils/ after the models service layer.
+# Enforced: all of finance/data/ and all of finance/models/. Parse/compute
+# handlers are narrowed to PARSE_ERRORS; best-effort firebase/network blocks use
+# swallow() (broad but logged); a handful of exception-translation handlers keep
+# a documented `# noqa: BLE001`. Remaining layers are exempt and get migrated
+# incrementally — remove a line as it's cleaned.
+# TODO: utils/ next.
 "finance/utils/*" = ["BLE", "S110", "S112"]
 # Qt boundary — defensive catching is more defensible here; migrate last.
 "finance/widgets/*" = ["BLE", "S110", "S112"]

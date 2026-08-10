@@ -4,6 +4,9 @@ from typing import Dict, List, Tuple
 
 from .bank_movement import BankMovement, deserialize_bank_movement
 from .firebase_client import FirestoreClient
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def pull_remote_movements(
@@ -19,7 +22,7 @@ def pull_remote_movements(
         updated_after = str(updated_after or "").strip()
         try:
             updated_after_ms = int(updated_after_ms or 0)
-        except Exception:
+        except PARSE_ERRORS:
             updated_after_ms = 0
         docs = None
         if updated_after_ms > 0:
@@ -30,7 +33,8 @@ def pull_remote_movements(
                     updated_after_ms=updated_after_ms,
                     limit=1000,
                 )
-            except Exception:
+            except Exception as exc:  # noqa: BLE001
+                _log.debug("pull_remote_movements: %s", exc)
                 docs = None
         elif updated_after:
             try:
@@ -39,7 +43,8 @@ def pull_remote_movements(
                     id_token=id_token,
                     updated_after=updated_after,
                 )
-            except Exception:
+            except Exception as exc:  # noqa: BLE001
+                _log.debug("pull_remote_movements: %s", exc)
                 docs = None
         if docs is None:
             docs = fs.list_workspace_movements(
@@ -66,7 +71,7 @@ def merge_remote_into_local(
 ) -> int:
     pulled = 0
     for mid, f in remote_by_id.items():
-        try:
+        with swallow(msg="merge_remote_into_local"):
             if bool(f.get("deleted", False)):
                 if mid in local_by_id:
                     local_by_id.pop(mid, None)
@@ -78,6 +83,4 @@ def merge_remote_into_local(
                 continue
             local_by_id[mid] = mv
             pulled += 1
-        except Exception:
-            continue
     return pulled

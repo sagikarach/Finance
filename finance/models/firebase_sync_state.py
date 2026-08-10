@@ -6,6 +6,9 @@ from typing import List
 import json
 
 from ..utils.app_paths import app_data_dir
+from ..utils.safe import swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def sync_state_path(key: str) -> Path:
@@ -107,13 +110,15 @@ class SyncState:
         last_remote_updated_at = str(d.get("last_remote_updated_at", "") or "").strip()
         try:
             last_remote_updated_at_ms = int(d.get("last_remote_updated_at_ms", 0) or 0)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("from_dict: %s", exc)
             last_remote_updated_at_ms = 0
         try:
             last_workspace_cache_pull_at_ms = int(
                 d.get("last_workspace_cache_pull_at_ms", 0) or 0
             )
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("from_dict: %s", exc)
             last_workspace_cache_pull_at_ms = 0
         return SyncState(
             remote_ids=ids,
@@ -146,7 +151,8 @@ def load_sync_state(key: str) -> SyncState:
     try:
         raw = json.loads(path.read_text(encoding="utf-8") or "{}")
         return SyncState.from_dict(raw)
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("load_sync_state: %s", exc)
         return SyncState(
             remote_ids=[],
             applied_balance_ids=[],
@@ -203,7 +209,8 @@ def add_pending_delete(*, key: str, kind: str, item_id: str) -> None:
                 + [item_id]
             )
         save_sync_state(key, state)
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("add_pending_delete: %s", exc)
         return
 
 
@@ -220,15 +227,14 @@ def mark_pending_upsert_mortgage(*, key: str, mortgage_id: str) -> None:
             list(getattr(state, "pending_upsert_mortgage_ids", []) or []) + [mortgage_id]
         )
         save_sync_state(key, state)
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("mark_pending_upsert_mortgage: %s", exc)
         return
 
 
 def save_sync_state(key: str, state: SyncState) -> None:
-    try:
+    with swallow(msg="save_sync_state"):
         sync_state_path(key).write_text(
             json.dumps(state.to_dict(), ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-    except Exception:
-        pass

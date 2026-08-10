@@ -8,6 +8,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .bank_movement import MovementType
 from .keychain_passwords import delete_password, get_password, set_password
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 _KEYCHAIN_ACCOUNT = "gemini_api_key"
 # Ordered list of models to try; first available / not quota-exhausted wins.
@@ -259,7 +262,8 @@ class GeminiClassifier:
         try:
             client = genai.Client(api_key=api_key, http_options={"timeout": 30_000})
             raw = _generate_with_retry(client, prompt)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("classify_batch: %s", exc)
             return {}
 
         return self._parse_response(raw, len(expenses), allowed_categories)
@@ -277,14 +281,14 @@ class GeminiClassifier:
 
         try:
             data = json.loads(cleaned)
-        except Exception:
+        except PARSE_ERRORS:
             # Try to extract a JSON array from the middle of the text
             m = re.search(r"\[.*\]", cleaned, re.DOTALL)
             if not m:
                 return {}
             try:
                 data = json.loads(m.group(0))
-            except Exception:
+            except PARSE_ERRORS:
                 return {}
 
         if not isinstance(data, list):
@@ -390,7 +394,8 @@ class GeminiClassifier:
         try:
             client = genai.Client(api_key=api_key, http_options={"timeout": 30_000})
             raw = _generate_with_retry(client, prompt)
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("filter_unexpected_expenses: %s", exc)
             return {}
 
         return self._parse_filter_response(raw, id_map)
@@ -402,13 +407,13 @@ class GeminiClassifier:
 
         try:
             data = json.loads(cleaned)
-        except Exception:
+        except PARSE_ERRORS:
             m = re.search(r"\[.*\]", cleaned, re.DOTALL)
             if not m:
                 return {}
             try:
                 data = json.loads(m.group(0))
-            except Exception:
+            except PARSE_ERRORS:
                 return {}
 
         if not isinstance(data, list):
@@ -423,14 +428,12 @@ class GeminiClassifier:
 
             # Prefer index-based lookup (new format)
             if id_map is not None and "index" in item:
-                try:
+                with swallow(msg="_parse_filter_response"):
                     idx = int(item["index"])
                     mid = id_map.get(idx)
                     if mid:
                         result[mid] = (is_unusual, reason)
                         continue
-                except Exception:
-                    pass
 
             # Fallback: movement_id field (old format)
             mid = str(item.get("movement_id") or "").strip()

@@ -4,6 +4,9 @@ from typing import Dict, List, Optional
 
 from .bank_movement import BankMovement
 from .accounts_service import AccountsService
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def apply_movements_to_account_balances_once(
@@ -30,7 +33,8 @@ def apply_movements_to_account_balances_once(
             movements=movements, accounts_service=accounts_service
         )
         return list(already | set(actually_applied))
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("apply_movements_to_account_balances_once: %s", exc)
         return list(applied_balance_ids or [])
 
 
@@ -43,18 +47,16 @@ def _apply_to_account_balances(
         from datetime import date as _date
 
         today = _date.today().isoformat()
-    except Exception:
+    except PARSE_ERRORS:
         today = ""
 
     delta_by_account: Dict[str, float] = {}
     for m in movements:
-        try:
+        with swallow(msg="_apply_to_account_balances"):
             name = str(m.account_name or "").strip()
             if not name:
                 continue
             delta_by_account[name] = delta_by_account.get(name, 0.0) + float(m.amount)
-        except Exception:
-            continue
 
     if not delta_by_account:
         return
@@ -74,7 +76,7 @@ def _apply_to_account_balances(
             delta = float(delta_by_account.get(acc.name, 0.0))
             try:
                 current_total = float(acc.total_amount)
-            except Exception:
+            except PARSE_ERRORS:
                 current_total = 0.0
             new_total = current_total + delta
             new_history = list(acc.history)

@@ -8,6 +8,9 @@ import time
 
 from ..utils.app_paths import app_data_dir
 from ..firebase_defaults import API_KEY as DEFAULT_API_KEY, PROJECT_ID as DEFAULT_PROJECT_ID
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def _session_path() -> Path:
@@ -38,7 +41,7 @@ class FirebaseSession:
             return False
         try:
             exp = float(self.expires_at)
-        except Exception:
+        except PARSE_ERRORS:
             return False
         return time.time() < exp - 30
 
@@ -90,7 +93,8 @@ class FirebaseSessionStore:
             if not sess.project_id:
                 sess.project_id = str(DEFAULT_PROJECT_ID or "").strip()
             return sess
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("load: %s", exc)
             return FirebaseSession(
                 api_key=str(DEFAULT_API_KEY or "").strip(),
                 project_id=str(DEFAULT_PROJECT_ID or "").strip(),
@@ -102,11 +106,9 @@ class FirebaseSessionStore:
             json.dump(session.to_dict(), f, ensure_ascii=False, indent=2)
 
     def clear(self) -> None:
-        try:
+        with swallow(msg="clear"):
             if self._path.exists():
                 self._path.unlink()
-        except Exception:
-            pass
 
 
 def current_firebase_uid() -> Optional[str]:
@@ -114,7 +116,8 @@ def current_firebase_uid() -> Optional[str]:
         uid = FirebaseSessionStore().load().uid
         uid = str(uid).strip()
         return uid if uid else None
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("current_firebase_uid: %s", exc)
         return None
 
 
@@ -123,5 +126,6 @@ def current_firebase_workspace_id() -> Optional[str]:
         wid = FirebaseSessionStore().load().workspace_id
         wid = str(wid).strip()
         return wid if wid else None
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("current_firebase_workspace_id: %s", exc)
         return None

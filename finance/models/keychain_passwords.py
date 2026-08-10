@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 from typing import Optional
+from ..utils.safe import PARSE_ERRORS
 
 
 SERVICE_NAME = "Finance"
@@ -40,7 +41,7 @@ def get_password(*, account: str, service: str = SERVICE_NAME) -> Optional[str]:
         )
         pw = (res.stdout or "").rstrip("\n")
         return pw if pw else None
-    except Exception:
+    except PARSE_ERRORS:
         return None
 
 
@@ -50,5 +51,5 @@ def delete_password(*, account: str, service: str = SERVICE_NAME) -> None:
         return
     try:
         _run_security(["delete-generic-password", "-a", account, "-s", service])
-    except Exception:
+    except PARSE_ERRORS:
         return

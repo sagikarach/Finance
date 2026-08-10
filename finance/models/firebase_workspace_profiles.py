@@ -8,6 +8,9 @@ import json
 import time
 
 from ..utils.app_paths import app_data_dir
+from ..utils.safe import PARSE_ERRORS, swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 def _profiles_path() -> Path:
@@ -50,7 +53,7 @@ class WorkspaceProfile:
         email = str(d.get("email", "") or "").strip()
         try:
             last_used_at = float(d.get("last_used_at", 0.0) or 0.0)
-        except Exception:
+        except PARSE_ERRORS:
             last_used_at = 0.0
         remember_password = bool(d.get("remember_password", False))
         keychain_account = str(d.get("keychain_account", "") or "").strip()
@@ -79,7 +82,7 @@ class FirebaseWorkspaceProfilesStore:
             return []
         try:
             raw = json.loads(self._path.read_text(encoding="utf-8") or "[]")
-        except Exception:
+        except PARSE_ERRORS:
             self._load_ok = False
             return []
         if not isinstance(raw, list):
@@ -191,11 +194,9 @@ class FirebaseWorkspaceProfilesStore:
         if not wid:
             return None
         for p in self.list_profiles():
-            try:
+            with swallow(msg="find_by_workspace_id"):
                 if str(getattr(p, "workspace_id", "") or "").strip() == wid:
                     return p
-            except Exception:
-                continue
         return None
 
     def update_ui_prefs(
@@ -216,7 +217,8 @@ class FirebaseWorkspaceProfilesStore:
                 if str(getattr(p, "workspace_id", "") or "").strip() != wid:
                     updated.append(p)
                     continue
-            except Exception:
+            except Exception as exc:  # noqa: BLE001
+                _log.debug("update_ui_prefs: %s", exc)
                 updated.append(p)
                 continue
 

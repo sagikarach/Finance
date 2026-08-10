@@ -12,6 +12,7 @@ import threading
 from .bank_movement import BankMovement, MovementType
 from ..utils.app_paths import app_data_dir
 from .firebase_session import current_firebase_uid, current_firebase_workspace_id
+from ..utils.safe import swallow
 
 
 # Module-level lock guards the JSON writes from concurrent learn()/set_training_data()
@@ -111,7 +112,7 @@ class SimilarityBasedClassifier:
 
         loaded = False
         for candidate_path in candidate_paths:
-            try:
+            with swallow(msg="initialize"):
                 if candidate_path.exists():
                     with candidate_path.open("r", encoding="utf-8") as f:
                         data = json.load(f)
@@ -119,14 +120,10 @@ class SimilarityBasedClassifier:
                             self._training_data = data
                             loaded = True
                             break
-            except Exception:
-                continue
 
         if not loaded:
-            try:
+            with swallow(msg="initialize"):
                 self.training_data_path.parent.mkdir(parents=True, exist_ok=True)
-            except Exception:
-                pass
             self._training_data = []
 
         self._is_initialized = True
@@ -139,10 +136,8 @@ class SimilarityBasedClassifier:
     def set_training_data(self, training: List[Dict[str, Any]]) -> None:
         self._training_data = list(training)
         self._is_initialized = True
-        try:
+        with swallow(msg="set_training_data"):
             _atomic_write_json(self.training_data_path, self._training_data)
-        except Exception:
-            pass
 
     def classify_outcome(
         self,
@@ -269,14 +264,12 @@ class SimilarityBasedClassifier:
     def _weighted_pick(self, rows: List[Dict[str, Any]], *, field: str) -> str:
         scores: Dict[str, float] = {}
         for r in rows:
-            try:
+            with swallow(msg="_weighted_pick"):
                 v = str(r.get(field, "") or "").strip()
                 if not v:
                     continue
                 sim = float(r.get("similarity", 0.0) or 0.0)
                 scores[v] = scores.get(v, 0.0) + max(0.0, sim)
-            except Exception:
-                continue
         if not scores:
             return ""
         return max(scores.items(), key=lambda x: x[1])[0]
@@ -341,10 +334,8 @@ class SimilarityBasedClassifier:
         if not is_duplicate:
             self._training_data.append(confirmed_expense)
 
-            try:
+            with swallow(msg="learn"):
                 _atomic_write_json(self.training_data_path, self._training_data)
-            except Exception:
-                pass
 
 
 def _default_training_path() -> Path:

@@ -17,6 +17,9 @@ from ..models.accounts import (
     BudgetAccount,
     SavingsAccount,
 )
+from ..utils.safe import PARSE_ERRORS
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 class FirebaseWorkspaceWriter:
@@ -71,14 +74,15 @@ class FirebaseWorkspaceWriter:
         fs = self._fs(s.project_id)
         try:
             from ..models.firebase_client import _fs_value  # type: ignore
-        except Exception:
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("upsert_movements_bulk: %s", exc)
             _fs_value = None  # type: ignore
         try:
             import time as _time
 
             now = _time.strftime("%Y-%m-%dT%H:%M:%SZ", _time.gmtime())
             now_ms = int(_time.time() * 1000)
-        except Exception:
+        except PARSE_ERRORS:
             now = ""
             now_ms = 0
 
@@ -323,7 +327,7 @@ class FirebaseWorkspaceWriter:
                 if is_dataclass(action) and not isinstance(action, type)
                 else {"action_name": str(getattr(action, "action_name", ""))}
             )
-        except Exception:
+        except PARSE_ERRORS:
             action_dict = {"action_name": str(getattr(entry.action, "action_name", ""))}
         fs.upsert_document(
             document_path=f"workspaces/{wid}/actions/{entry.id}",

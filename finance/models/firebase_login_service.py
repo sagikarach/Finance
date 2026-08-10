@@ -6,6 +6,7 @@ from .firebase_client import FirebaseAuthClient
 from .firebase_session import FirebaseSession, FirebaseSessionStore
 from ..utils.time_utils import now_ts
 from ..firebase_defaults import API_KEY as DEFAULT_API_KEY, PROJECT_ID as DEFAULT_PROJECT_ID
+from ..utils.safe import swallow
 
 
 @dataclass
@@ -48,7 +49,7 @@ class FirebaseLoginService:
         )
         self.session_store.save(s)
 
-        try:
+        with swallow(msg="login_with_email_password"):
             from .firebase_movements_sync import FirebaseMovementsSyncService
 
             key = (
@@ -57,7 +58,5 @@ class FirebaseLoginService:
             )
             if key:
                 FirebaseMovementsSyncService().ensure_user_local_file(key)
-        except Exception:
-            pass
 
         return s

@@ -5,6 +5,9 @@ from typing import Dict, Optional, Protocol
 from .firebase_client import FirestoreClient
 from .action_history import ActionHistory
 from .action_history import Action
+from ..utils.safe import swallow
+from ..utils.logging_setup import get_logger
+_log = get_logger("models")
 
 
 class ActionHistoryProviderProto(Protocol):
@@ -38,7 +41,7 @@ def pull_action_history_to_local_cache(
         by_id: Dict[str, ActionHistory] = {h.id: h for h in local_hist}
 
         for doc in docs_actions:
-            try:
+            with swallow(msg="pull_action_history_to_local_cache"):
                 doc_id, parsed = fs.parse_any_doc(doc)
                 hid = str(parsed.get("id") or doc_id).strip()
                 ts = str(parsed.get("timestamp") or "").strip()
@@ -51,17 +54,14 @@ def pull_action_history_to_local_cache(
                 if action_obj is None:
                     continue
                 by_id[hid] = ActionHistory(id=hid, timestamp=ts, action=action_obj)
-            except Exception:
-                continue
 
         # Ensure stable ordering so "latest N" UI shows the newest actions reliably.
         entries = list(by_id.values())
-        try:
+        with swallow(msg="pull_action_history_to_local_cache"):
             entries.sort(key=lambda h: (str(h.timestamp or ""), str(h.id or "")))
-        except Exception:
-            pass
         provider.save_history(entries)
-    except Exception as _e:
+    except Exception as _e:  # noqa: BLE001
+        _log.debug("pull_action_history_to_local_cache: %s", _e)
         import logging
         logging.getLogger(__name__).warning(
             "pull_action_history_to_local_cache failed: %s", _e
