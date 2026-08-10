@@ -12,6 +12,7 @@ from ..data.bank_movement_provider import (
     BankMovementProvider,
     JsonFileBankMovementProvider,
 )
+from ..utils.safe import PARSE_ERRORS
 
 
 def _month_key(date_str: object) -> str:
@@ -74,7 +75,7 @@ class UserGradeService:
                     continue
                 if str(getattr(mv, "category", "") or "").strip() == "העברה":
                     continue
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
             mm = _month_key(getattr(mv, "date", ""))
@@ -83,7 +84,7 @@ class UserGradeService:
 
             try:
                 amt = float(getattr(mv, "amount", 0.0) or 0.0)
-            except Exception:
+            except PARSE_ERRORS:
                 amt = 0.0
 
             if amt > 0:
@@ -153,7 +154,7 @@ class UserGradeService:
         try:
             best_month = max(month_scores, key=lambda x: x[1])[0]
             explanations.append(f"חודש חזק: {best_month}")
-        except Exception:
+        except PARSE_ERRORS:
             pass
         if baseline > 0.0:
             explanations.append(f"בסיס הוצאות חודשי (מדיאן): {baseline:.0f}")

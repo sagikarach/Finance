@@ -28,6 +28,7 @@ from .classified_expense import ClassifiedExpense
 from .csv_expense_parser import CsvExpenseParser
 from .movement_classifier import SimilarityBasedClassifier
 from .gemini_classifier import get_gemini_classifier, has_gemini_api_key, _CONFIDENCE as _GEMINI_CONFIDENCE
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 class OverBudgetError(ValueError):
@@ -51,7 +52,7 @@ class BankMovementService:
     def list_movements(self) -> List[BankMovement]:
         try:
             return list(self.movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
     def list_categories(self, is_income: bool) -> List[str]:
@@ -61,7 +62,7 @@ class BankMovementService:
                 return list(p.list_categories_for_type(is_income))
             if hasattr(p, "list_categories"):
                 return list(p.list_categories())
-        except Exception:
+        except PARSE_ERRORS:
             return []
         return []
 
@@ -77,7 +78,7 @@ class BankMovementService:
         """
         try:
             self.movement_provider.save_movements(list(all_movements))
-        except Exception:
+        except PARSE_ERRORS:
             return
 
         try:
@@ -85,21 +86,17 @@ class BankMovementService:
 
             if not allow_firebase_push():
                 return
-        except Exception:
+        except ImportError:
             return
 
         to_push = changed_movements if changed_movements is not None else all_movements
-        try:
+        with swallow(msg="firebase sync in save_movements"):
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             w = FirebaseWorkspaceWriter()
             for m in to_push:
-                try:
+                with swallow(msg="firebase sync in save_movements"):
                     w.upsert_movement(m)
-                except Exception:
-                    continue
-        except Exception:
-            return
 
     def apply_movement(
         self,
@@ -117,7 +114,7 @@ class BankMovementService:
                 ):
                     target_acc = acc
                     break
-        except Exception:
+        except PARSE_ERRORS:
             target_acc = None
 
         movement_period_key: Optional[tuple[int, int]] = None
@@ -125,7 +122,7 @@ class BankMovementService:
         if isinstance(target_acc, BudgetAccount):
             try:
                 amt = float(movement.amount)
-            except Exception:
+            except PARSE_ERRORS:
                 amt = 0.0
             if amt > 0:
                 raise ValueError("לא ניתן להוסיף הכנסה לחשבון תקציב")
@@ -145,13 +142,13 @@ class BankMovementService:
 
             try:
                 budget = float(getattr(target_acc, "monthly_budget", 0.0) or 0.0)
-            except Exception:
+            except PARSE_ERRORS:
                 budget = 0.0
 
             spent_by_period: Dict[tuple[int, int], float] = {}
             try:
                 existing = list(self.movement_provider.list_movements())
-            except Exception:
+            except PARSE_ERRORS:
                 existing = []
             for m in existing:
                 try:
@@ -171,7 +168,7 @@ class BankMovementService:
                     if k is None:
                         continue
                     spent_by_period[k] = float(spent_by_period.get(k, 0.0)) + abs(a)
-                except Exception:
+                except PARSE_ERRORS:
                     continue
 
             already_spent = float(spent_by_period.get(movement_period_key, 0.0))
@@ -186,24 +183,22 @@ class BankMovementService:
 
         try:
             self.movement_provider.add_movement(movement)
-        except Exception:
+        except PARSE_ERRORS:
             return list(accounts)
 
-        try:
+        with swallow(msg="firebase sync in apply_movement"):
             from ..models.sync_gate import allow_firebase_push
 
             if allow_firebase_push():
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().upsert_movement(movement)
-        except Exception:
-            pass
 
         if record_history:
             try:
                 try:
                     is_income_movement = movement.amount > 0
-                except Exception:
+                except PARSE_ERRORS:
                     is_income_movement = bool(is_income_hint)
 
                 if is_income_movement:
@@ -223,7 +218,7 @@ class BankMovementService:
                     action=action_obj,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
         updated_accounts: List[MoneyAccount] = []
@@ -237,11 +232,11 @@ class BankMovementService:
             ):
                 try:
                     current_total = float(acc.total_amount)
-                except Exception:
+                except PARSE_ERRORS:
                     current_total = 0.0
                 try:
                     move_amt = float(movement.amount)
-                except Exception:
+                except PARSE_ERRORS:
                     move_amt = 0.0
 
                 if isinstance(acc, BudgetAccount):
@@ -265,14 +260,14 @@ class BankMovementService:
 
                 try:
                     date_str = movement.date
-                except Exception:
+                except PARSE_ERRORS:
                     date_str = ""
                 if not date_str:
                     try:
                         from datetime import date as _date
 
                         date_str = _date.today().isoformat()
-                    except Exception:
+                    except PARSE_ERRORS:
                         date_str = ""
 
                 new_history = list(getattr(acc, "history", []) or [])
@@ -322,7 +317,7 @@ class BankMovementService:
 
         try:
             all_movements = self.movement_provider.list_movements()
-        except Exception:
+        except PARSE_ERRORS:
             return accounts
 
         # Each account type knows how to recompute its own balance from the
@@ -334,7 +329,7 @@ class BankMovementService:
             from datetime import date as _date
 
             today = _date.today().isoformat()
-        except Exception:
+        except PARSE_ERRORS:
             today = ""
 
         return [acc.recalculated(ledger, today) for acc in accounts]
@@ -352,7 +347,7 @@ class BankMovementService:
 
         try:
             all_movements = list(self.movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             return accounts
 
         target: Optional[BankMovement] = None
@@ -370,7 +365,7 @@ class BankMovementService:
                 if not name:
                     continue
                 sum_by_account[name] = sum_by_account.get(name, 0.0) + float(m.amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         baseline_by_account: Dict[str, float] = {}
@@ -380,16 +375,16 @@ class BankMovementService:
                     baseline_by_account[acc.name] = float(acc.total_amount) - float(
                         sum_by_account.get(acc.name, 0.0)
                     )
-                except Exception:
+                except PARSE_ERRORS:
                     baseline_by_account[acc.name] = 0.0
 
         updated_movements = [m for m in all_movements if str(m.id) != movement_id]
         try:
             self.movement_provider.save_movements(updated_movements)
-        except Exception:
+        except PARSE_ERRORS:
             return accounts
 
-        try:
+        with swallow(msg="firebase sync in delete_movement"):
             from ..models.firebase_session import (
                 current_firebase_uid,
                 current_firebase_workspace_id,
@@ -407,11 +402,9 @@ class BankMovementService:
                 from .firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().delete_movement(movement_id=movement_id)
-        except Exception:
-            pass
 
         if record_history:
-            try:
+            with swallow(msg="firebase sync in delete_movement"):
                 action = DeleteMovementAction(
                     action_name="delete_movement",
                     movement_id=movement_id,
@@ -426,8 +419,6 @@ class BankMovementService:
                         action=action,
                     )
                 )
-            except Exception:
-                pass
 
         new_sum_by_account: Dict[str, float] = {}
         for m in updated_movements:
@@ -438,14 +429,14 @@ class BankMovementService:
                 new_sum_by_account[name] = new_sum_by_account.get(name, 0.0) + float(
                     m.amount
                 )
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         try:
             from datetime import date as _date
 
             today = _date.today().isoformat()
-        except Exception:
+        except PARSE_ERRORS:
             today = ""
 
         out: List[MoneyAccount] = []
@@ -487,7 +478,7 @@ class BankMovementService:
                         restored_total = float(acc.total_amount) + abs(
                             float(target.amount)
                         )
-                    except Exception:
+                    except PARSE_ERRORS:
                         restored_total = float(getattr(acc, "total_amount", 0.0) or 0.0)
                 new_history = list(getattr(acc, "history", []) or [])
                 if today:
@@ -524,7 +515,7 @@ class BankMovementService:
                 allowed_categories = provider.list_categories_for_type(False)
             elif hasattr(provider, "list_categories"):
                 allowed_categories = provider.list_categories()
-        except Exception:
+        except PARSE_ERRORS:
             allowed_categories = []
 
         path = Path(csv_path)
@@ -533,7 +524,7 @@ class BankMovementService:
 
         try:
             csv_text = path.read_text(encoding="utf-8-sig")
-        except Exception:
+        except PARSE_ERRORS:
             return accounts
 
         expenses = self.csv_parser.parse(csv_text)
@@ -543,7 +534,7 @@ class BankMovementService:
         for parsed_expense in expenses:
             try:
                 movement = parsed_expense.to_bank_movement(account_name)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
             if self.classifier is not None:
@@ -591,7 +582,7 @@ class BankMovementService:
                             suggested_type=g_type,
                             confidence=_GEMINI_CONFIDENCE,
                         )
-                except Exception:
+                except PARSE_ERRORS:
                     pass
         # ---------------------------------------------------------------------
 
@@ -615,7 +606,7 @@ class BankMovementService:
                             record_history=False,
                         )
                         self._imported_for_last_csv.append(movement)
-                    except Exception:
+                    except PARSE_ERRORS:
                         continue
                 else:
                     if classified not in top_3_lowest:
@@ -640,7 +631,7 @@ class BankMovementService:
             category, mtype, confidence = self.classifier.classify_outcome(
                 movement, allowed_categories
             )
-        except Exception:
+        except PARSE_ERRORS:
             return ClassifiedExpense(
                 movement=movement,
                 suggested_category=None,

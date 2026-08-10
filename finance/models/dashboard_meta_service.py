@@ -13,6 +13,7 @@ from ..data.provider import AccountsProvider, JsonFileAccountsProvider
 from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
 from ..models.dashboard_meta import DashboardMeta
+from ..utils.safe import PARSE_ERRORS
 
 
 def _month_key(y: int, m: int) -> str:
@@ -36,7 +37,7 @@ class DashboardMetaService:
 
         try:
             movements = list(self._movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             movements = []
 
         today = date.today()
@@ -54,12 +55,12 @@ class DashboardMetaService:
             try:
                 if bool(getattr(m, "deleted", False)):
                     continue
-            except Exception:
+            except PARSE_ERRORS:
                 pass
             try:
                 if bool(getattr(m, "is_transfer", False)):
                     continue
-            except Exception:
+            except PARSE_ERRORS:
                 pass
             try:
                 dt = getattr(m, "date", None)
@@ -67,7 +68,7 @@ class DashboardMetaService:
                     mm = dt[:7]
                 else:
                     mm = str(dt)[:7]
-            except Exception:
+            except PARSE_ERRORS:
                 mm = ""
             if not mm or len(mm) < 7:
                 continue
@@ -76,7 +77,7 @@ class DashboardMetaService:
 
             try:
                 amt = float(getattr(m, "amount", 0.0) or 0.0)
-            except Exception:
+            except PARSE_ERRORS:
                 amt = 0.0
 
             if amt > 0:

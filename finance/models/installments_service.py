@@ -21,6 +21,7 @@ from .action_history import (
     get_current_timestamp,
 )
 from .installment_plan import InstallmentPlan, InstallmentPlanStats
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 class InstallmentsService:
@@ -51,19 +52,17 @@ class InstallmentsService:
                 if p.id == plan.id:
                     old = p
                     break
-        except Exception:
+        except PARSE_ERRORS:
             old = None
 
         self._plans_provider.upsert_plan(plan)
-        try:
+        with swallow(msg="firebase sync in upsert_plan"):
             from ..models.sync_gate import allow_firebase_push
 
             if allow_firebase_push():
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().upsert_installment_plan(plan)
-        except Exception:
-            pass
 
         try:
             from .action_history import (
@@ -135,7 +134,7 @@ class InstallmentsService:
                     action=action_obj,
                 )
             )
-        except Exception:
+        except PARSE_ERRORS:
             pass
 
     def delete_plan(self, plan_id: str) -> None:
@@ -148,11 +147,11 @@ class InstallmentsService:
                 if p.id == plan_id:
                     plan_name = p.name
                     break
-        except Exception:
+        except PARSE_ERRORS:
             plan_name = ""
 
         self._plans_provider.delete_plan(plan_id)
-        try:
+        with swallow(msg="firebase sync in delete_plan"):
             from ..models.firebase_session import (
                 current_firebase_uid,
                 current_firebase_workspace_id,
@@ -170,10 +169,8 @@ class InstallmentsService:
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().delete_installment_plan(plan_id=plan_id)
-        except Exception:
-            pass
 
-        try:
+        with swallow(msg="firebase sync in delete_plan"):
             from .action_history import DeleteInstallmentPlanAction
 
             self._history_provider.add_action(
@@ -187,8 +184,6 @@ class InstallmentsService:
                     ),
                 )
             )
-        except Exception:
-            pass
 
     def exclude_movement(self, *, plan_id: str, movement_id: str) -> None:
         plan_id = str(plan_id or "").strip()

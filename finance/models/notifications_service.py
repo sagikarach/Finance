@@ -26,12 +26,13 @@ from .notifications import (
     RuleType,
 )
 from .gemini_classifier import get_gemini_classifier, has_gemini_api_key
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 def _today_iso() -> str:
     try:
         return date.today().isoformat()
-    except Exception:
+    except PARSE_ERRORS:
         return ""
 
 
@@ -52,7 +53,7 @@ class NotificationsService:
     def ensure_defaults(self) -> None:
         try:
             rules = list(self._provider.list_rules())
-        except Exception:
+        except PARSE_ERRORS:
             rules = []
         by_id = {r.id: r for r in rules if getattr(r, "id", None)}
 
@@ -96,7 +97,7 @@ class NotificationsService:
         if callable(getter):
             try:
                 return bool(getter())
-            except Exception:
+            except PARSE_ERRORS:
                 return True
         return True
 
@@ -105,14 +106,14 @@ class NotificationsService:
         if callable(setter):
             try:
                 setter(bool(enabled))
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
     def list_rules(self) -> List[NotificationRule]:
         self.ensure_defaults()
         try:
             return list(self._provider.list_rules())
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
     def list_notifications(self) -> List[Notification]:
@@ -120,7 +121,7 @@ class NotificationsService:
             return []
         try:
             items = list(self._provider.list_notifications())
-        except Exception:
+        except PARSE_ERRORS:
             items = []
         visible = self._filter_by_enabled_rules(items)
         return [
@@ -134,7 +135,7 @@ class NotificationsService:
         self.ensure_defaults()
         try:
             rules = self._provider.list_rules()
-        except Exception:
+        except PARSE_ERRORS:
             return
         changed = False
         updated: List[NotificationRule] = []
@@ -152,7 +153,7 @@ class NotificationsService:
         if changed:
             try:
                 self._provider.save_rules(updated)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
     def refresh(self) -> List[Notification]:
@@ -208,17 +209,15 @@ class NotificationsService:
 
         for n in created:
             self._provider.upsert(n)
-            try:
+            with swallow(msg="firebase sync in refresh"):
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().upsert_notification(n)
-            except Exception:
-                pass
 
         self._resolve_stale(active_keys=active_keys)
         try:
             items = list(self._provider.list_notifications())
-        except Exception:
+        except PARSE_ERRORS:
             items = []
         visible = self._filter_by_enabled_rules(items)
         return [
@@ -236,13 +235,13 @@ class NotificationsService:
             return None
         try:
             items = list(self._movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             items = []
         for m in items:
             try:
                 if str(getattr(m, "id", "") or "") == movement_id:
                     return m
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         return None
 
@@ -253,13 +252,13 @@ class NotificationsService:
             return []
         try:
             items = list(self._movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             items = []
         out: List[BankMovement] = []
         for m in items:
             try:
                 mid = str(getattr(m, "id", "") or "")
-            except Exception:
+            except PARSE_ERRORS:
                 continue
             if mid in want:
                 out.append(m)
@@ -289,7 +288,7 @@ class NotificationsService:
             return
         try:
             items = list(self._provider.list_notifications())
-        except Exception:
+        except PARSE_ERRORS:
             items = []
         notif = None
         for n in items:
@@ -297,11 +296,11 @@ class NotificationsService:
                 if str(getattr(n, "key", "") or "") == key:
                     notif = n
                     break
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         if notif is None:
             return
-        try:
+        with swallow(msg="firebase sync in _best_effort_push_status"):
             from ..models.sync_gate import allow_firebase_push
 
             if not allow_firebase_push():
@@ -309,13 +308,11 @@ class NotificationsService:
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             FirebaseWorkspaceWriter().upsert_notification(notif)
-        except Exception:
-            return
 
     def _enabled_rule_ids(self) -> set[str]:
         try:
             rules = self._provider.list_rules()
-        except Exception:
+        except PARSE_ERRORS:
             return set()
         return {r.id for r in rules if bool(getattr(r, "enabled", False))}
 
@@ -333,7 +330,7 @@ class NotificationsService:
                     if rule_id and rule_id not in enabled_rule_ids:
                         continue
                 out.append(n)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         return out
 
@@ -363,7 +360,7 @@ class NotificationsService:
         out: List[Notification] = []
         try:
             events = JsonFileOneTimeEventProvider().list_events()
-        except Exception:
+        except PARSE_ERRORS:
             events = []
 
         movements = (
@@ -416,7 +413,7 @@ class NotificationsService:
                         },
                     )
                 )
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         return out
@@ -427,23 +424,23 @@ class NotificationsService:
             try:
                 if getattr(m, "type", None) != MovementType.ONE_TIME:
                     continue
-            except Exception:
+            except PARSE_ERRORS:
                 continue
             try:
                 if getattr(m, "event_id", None) != event.id:
                     continue
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
             try:
                 if not self._event_in_range(event, m):
                     continue
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
             try:
                 amt = float(getattr(m, "amount", 0.0))
-            except Exception:
+            except PARSE_ERRORS:
                 continue
             if amt < 0:
                 spent += abs(amt)
@@ -453,7 +450,7 @@ class NotificationsService:
         try:
             start = getattr(event, "start_date", None)
             end = getattr(event, "end_date", None)
-        except Exception:
+        except PARSE_ERRORS:
             start, end = None, None
         if not start and not end:
             return True
@@ -475,7 +472,7 @@ class NotificationsService:
         percentile = float(rule.params.get("percentile", 0.8))
         try:
             percentile = max(0.0, min(1.0, percentile))
-        except Exception:
+        except PARSE_ERRORS:
             percentile = 0.8
 
         today = date.today()
@@ -495,7 +492,7 @@ class NotificationsService:
                 movement_dt[m.id] = dt
                 if dt.year == target_year and dt.month == target_month:
                     prev_month_expenses.append(abs(amt))
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         if not prev_month_expenses:
@@ -521,7 +518,7 @@ class NotificationsService:
                 desc = unwrap_rtl(str(desc_raw)).strip().lower()
                 key_t = (str(getattr(m, "date", "")), abs(float(amt)), desc)
                 groups.setdefault(key_t, []).append(m)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         for (date_str, abs_amt, desc), items in groups.items():
@@ -569,7 +566,7 @@ class NotificationsService:
                 if key in existing_by_key:
                     continue
                 candidates.append(m)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         # Build per-category monthly context for the past 6 months
@@ -592,7 +589,7 @@ class NotificationsService:
                 ai_results = get_gemini_classifier().filter_unexpected_expenses(
                     batch, category_context
                 )
-            except Exception:
+            except PARSE_ERRORS:
                 ai_results = {}
 
         for m in candidates:
@@ -634,7 +631,7 @@ class NotificationsService:
                         },
                     )
                 )
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         return out
@@ -665,7 +662,7 @@ class NotificationsService:
                         continue
                     cat = str(getattr(mv, "category", "") or "שונות")
                     cat_totals[cat] += abs(amt)
-                except Exception:
+                except PARSE_ERRORS:
                     continue
             for cat, total in cat_totals.items():
                 monthly_by_cat[cat].append(total)
@@ -713,7 +710,7 @@ class NotificationsService:
                 if ts.year == target_year and ts.month == target_month:
                     has_upload = True
                     break
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         if has_upload:
@@ -751,7 +748,7 @@ class NotificationsService:
             return []
         try:
             accounts = self._accounts_provider.list_accounts()
-        except Exception:
+        except PARSE_ERRORS:
             accounts = []
         savings_accounts = [a for a in accounts if isinstance(a, SavingsAccount)]
         if not savings_accounts:
@@ -777,7 +774,7 @@ class NotificationsService:
                     ts = parse_iso_date(getattr(h, "timestamp", ""))
                     if latest is None or ts > latest:
                         latest = ts
-                except Exception:
+                except PARSE_ERRORS:
                     continue
             return latest
 
@@ -810,6 +807,6 @@ class NotificationsService:
                         },
                     )
                 )
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         return out

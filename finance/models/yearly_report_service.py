@@ -10,6 +10,7 @@ from .yearly_report import (
     MonthTypeSummary,
     movement_type_to_bucket,
 )
+from ..utils.safe import PARSE_ERRORS
 
 
 class YearlyReportService:
@@ -21,7 +22,7 @@ class YearlyReportService:
     ) -> List[int]:
         try:
             all_movements = self.movement_provider.list_movements()
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
         account_set: Optional[Set[str]] = set(account_names) if account_names else None
@@ -35,7 +36,7 @@ class YearlyReportService:
                 if dt == _dt.min:
                     continue
                 years.add(dt.year)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         return sorted(years, reverse=True)
@@ -47,7 +48,7 @@ class YearlyReportService:
     ) -> List[MonthTypeSummary]:
         try:
             all_movements = self.movement_provider.list_movements()
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
         account_set: Optional[Set[str]] = set(account_names) if account_names else None
@@ -70,7 +71,7 @@ class YearlyReportService:
                     by_month[dt.month]["income"][bucket] += amount
                 else:
                     by_month[dt.month]["expense"][bucket] += abs(amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         out: List[MonthTypeSummary] = []
@@ -102,7 +103,7 @@ class YearlyReportService:
     ) -> Dict[str, List[float]]:
         try:
             all_movements = self.movement_provider.list_movements()
-        except Exception:
+        except PARSE_ERRORS:
             return {}
 
         account_set: Optional[Set[str]] = set(account_names) if account_names else None
@@ -130,7 +131,7 @@ class YearlyReportService:
                 category = m.category or "שונות"
                 idx = max(0, min(11, dt.month - 1))
                 out[category][idx] += abs(amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         return dict(out)
@@ -152,7 +153,7 @@ class YearlyReportService:
         if months <= 0:
             try:
                 all_mvs = self.movement_provider.list_movements()
-            except Exception:
+            except PARSE_ERRORS:
                 return []
             keys_seen: Set[Tuple[int, int]] = set()
             for mv in all_mvs:
@@ -160,7 +161,7 @@ class YearlyReportService:
                     dt = parse_iso_date(mv.date)
                     if dt != _dt.min:
                         keys_seen.add((dt.year, dt.month))
-                except Exception:
+                except PARSE_ERRORS:
                     continue
             return sorted(keys_seen)
 
@@ -191,7 +192,7 @@ class YearlyReportService:
             return []
         try:
             all_mvs = list(self.movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
         nets: Dict[Tuple[int, int], float] = defaultdict(float)
@@ -205,7 +206,7 @@ class YearlyReportService:
                 if dt == _dt.min:
                     continue
                 nets[(dt.year, dt.month)] += float(mv.amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         result: List[Tuple[str, float]] = []
@@ -229,7 +230,7 @@ class YearlyReportService:
             return 0.0, 0.0, 0.0
         try:
             all_mvs = list(self.movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             return 0.0, 0.0, 0.0
 
         income = 0.0
@@ -250,7 +251,7 @@ class YearlyReportService:
                     income += amount
                 elif amount < 0:
                     expense += abs(amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         return income, expense, income - expense
 
@@ -275,7 +276,7 @@ class YearlyReportService:
 
         try:
             all_mvs = list(self.movement_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             return {}, []
 
         account_set: Optional[Set[str]] = set(account_names) if account_names else None
@@ -303,7 +304,7 @@ class YearlyReportService:
                     continue
                 category = mv.category or "שונות"
                 out[category][key_to_idx[key]] += abs(amount)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         labels = [
@@ -392,7 +393,7 @@ def forecast_savings_by_name(account: Any, *, horizon: int = 6) -> Dict[str, Lis
                 dt = parse_iso_date(str(snap.date))
                 if dt != _dt.min:
                     history_vals.append(float(snap.amount))
-            except Exception:
+            except PARSE_ERRORS:
                 pass
         result[str(s.name)] = forecast_savings_balance(
             history_vals, float(s.amount), horizon=horizon

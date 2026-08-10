@@ -37,6 +37,7 @@ from .savings_dialogs import (
     remove_savings_account,
 )
 from .transfers import TransferRequest, TransferResult
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 @dataclass
@@ -80,7 +81,7 @@ class AccountsService:
         ):
             try:
                 self.save_all(enforced)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
         return enforced
 
@@ -123,7 +124,7 @@ class AccountsService:
 
             try:
                 reset_date = _date(period_y, period_m, reset_day).isoformat()
-            except Exception:
+            except PARSE_ERRORS:
                 reset_date = today.isoformat()
             new_history = list(acc.history) + [
                 MoneySnapshot(date=reset_date, amount=float(acc.monthly_budget))
@@ -165,7 +166,7 @@ class AccountsService:
                     action=action,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
         return updated_accounts
@@ -220,7 +221,7 @@ class AccountsService:
                     action=action,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
         return out
@@ -237,7 +238,7 @@ class AccountsService:
         updated_accounts = remove_savings_account(accounts, selected)
 
         if self.history_provider is not None:
-            try:
+            with swallow(msg="firebase sync in delete_savings_account"):
                 action = DeleteSavingsAccountAction(
                     action_name="delete_savings_account",
                     account_name=selected.name,
@@ -249,8 +250,6 @@ class AccountsService:
                     action=action,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
-                pass
 
         return updated_accounts
 
@@ -268,7 +267,7 @@ class AccountsService:
         if date_str is None:
             try:
                 date_str = _date.today().isoformat()
-            except Exception:
+            except PARSE_ERRORS:
                 date_str = ""
 
         updated_accounts: List[MoneyAccount] = []
@@ -303,7 +302,7 @@ class AccountsService:
                     action=action,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
         return updated_accounts
@@ -328,7 +327,7 @@ class AccountsService:
         if date_str is None:
             try:
                 date_str = _date.today().isoformat()
-            except Exception:
+            except PARSE_ERRORS:
                 date_str = ""
 
         updated_accounts: List[MoneyAccount] = []
@@ -370,7 +369,7 @@ class AccountsService:
                     action=action,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
         return updated_accounts
@@ -403,7 +402,7 @@ class AccountsService:
                 updated_accounts.append(acc)
 
         if self.history_provider is not None:
-            try:
+            with swallow(msg="firebase sync in delete_saving"):
                 action = DeleteSavingAction(
                     action_name="delete_saving",
                     account_name=account.name,
@@ -416,8 +415,6 @@ class AccountsService:
                     action=action,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
-                pass
 
         return updated_accounts
 
@@ -452,7 +449,7 @@ class AccountsService:
                     action=action,
                 )
                 self.history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
         # The transfer knows which ledger movements it implies (outgoing record,
@@ -466,18 +463,16 @@ class AccountsService:
                 try:
                     self.movements_provider.add_movement(movement)
                     persisted = True
-                except Exception:
+                except PARSE_ERRORS:
                     persisted = False
 
                 if persisted:
-                    try:
+                    with swallow(msg="firebase sync in apply_transfer_request"):
                         from ..models.firebase_workspace_writer import (
                             FirebaseWorkspaceWriter,
                         )
 
                         FirebaseWorkspaceWriter().upsert_movement(movement)
-                    except Exception:
-                        pass
 
         return result
 
@@ -509,7 +504,7 @@ class AccountsService:
                             prev_baseline = float(
                                 getattr(current_account, "baseline_amount", 0.0) or 0.0
                             )
-                        except Exception:
+                        except PARSE_ERRORS:
                             prev_baseline = None
                     else:
                         existing_acc = existing_bank_accounts.get(row.name)
@@ -518,7 +513,7 @@ class AccountsService:
                                 prev_baseline = float(
                                     getattr(existing_acc, "baseline_amount", 0.0) or 0.0
                                 )
-                            except Exception:
+                            except PARSE_ERRORS:
                                 prev_baseline = None
 
                     if current_account is not None:
@@ -540,7 +535,7 @@ class AccountsService:
                         if amount_text:
                             try:
                                 starter_amount = float(amount_text)
-                            except Exception:
+                            except PARSE_ERRORS:
                                 starter_amount = None
 
                         activate_action = ActivateBankAccountAction(
@@ -569,7 +564,7 @@ class AccountsService:
                         starter_amount = None
                         try:
                             starter_amount = float(amount_text)
-                        except Exception:
+                        except PARSE_ERRORS:
                             starter_amount = None
 
                         if (
@@ -594,7 +589,7 @@ class AccountsService:
                                     action=set_amount_action,
                                 )
                                 self.history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
         return merged
@@ -612,14 +607,14 @@ class AccountsService:
 
         try:
             self.provider.save_savings_accounts(savings_accounts)
-        except Exception:
+        except PARSE_ERRORS:
             pass
         try:
             self.provider.save_bank_accounts(bank_accounts)
-        except Exception:
+        except PARSE_ERRORS:
             pass
 
-        try:
+        with swallow(msg="firebase sync in save_all"):
             # ``force_remote`` pushes the snapshot immediately regardless of the
             # explicit-Sync gate. Used for savings-account mutations so a change
             # always reaches the remote and a later pull cannot revert it.
@@ -631,8 +626,6 @@ class AccountsService:
             from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
             FirebaseWorkspaceWriter().upsert_accounts_snapshot(accounts)
-        except Exception:
-            pass
 
     def save_preserving_bank_baselines(
         self, accounts: List[MoneyAccount]
@@ -647,7 +640,7 @@ class AccountsService:
                     existing_baseline_by_name[str(a.name)] = float(
                         getattr(a, "baseline_amount", 0.0) or 0.0
                     )
-        except Exception:
+        except PARSE_ERRORS:
             existing_baseline_by_name = {}
 
         merged_accounts: List[MoneyAccount] = []
@@ -671,7 +664,7 @@ class AccountsService:
                     )
                 else:
                     merged_accounts.append(a)
-        except Exception:
+        except PARSE_ERRORS:
             merged_accounts = list(accounts or [])
 
         self.save_all(merged_accounts)

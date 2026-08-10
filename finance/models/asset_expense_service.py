@@ -11,6 +11,7 @@ from .mortgage_math import (
     yearly_cost_cycles,
 )
 from .movement_matching import match_movements
+from ..utils.safe import PARSE_ERRORS
 
 
 @dataclass(frozen=True)
@@ -49,7 +50,7 @@ class AssetExpenseService:
     def _movements(self) -> List[Any]:
         try:
             return list(self._svc.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
     # ── house ────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ class AssetExpenseService:
         over the last 12 months with data. 0 until real payments appear."""
         try:
             paid = self._svc.match_movements(mortgage)
-        except Exception:
+        except PARSE_ERRORS:
             return 0.0
         return average_monthly(paid)[0]
 

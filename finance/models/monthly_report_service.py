@@ -7,6 +7,7 @@ from .monthly_report import (
     MonthlyReport,
 )
 from ..data.bank_movement_provider import BankMovementProvider
+from ..utils.safe import PARSE_ERRORS
 
 
 class MonthlyReportService:
@@ -21,7 +22,7 @@ class MonthlyReportService:
     ) -> Optional[MonthlyReport]:
         try:
             all_movements = self.movement_provider.list_movements()
-        except Exception:
+        except PARSE_ERRORS:
             return None
         # The report knows how to build itself from the movements.
         return MonthlyReport.build(all_movements, year, month, account_names)
@@ -31,7 +32,7 @@ class MonthlyReportService:
     ) -> List[tuple[int, int]]:
         try:
             all_movements = self.movement_provider.list_movements()
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
         if account_names:
@@ -49,7 +50,7 @@ class MonthlyReportService:
                     continue
                 month_key = (dt.year, dt.month)
                 month_keys.add(month_key)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
 
         sorted_months = sorted(month_keys, key=lambda k: (k[0], k[1]), reverse=True)

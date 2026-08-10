@@ -30,6 +30,7 @@ from .mortgage_math import (
     purchase_summary,
 )
 from .movement_matching import match_movements
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 @dataclass(frozen=True)
@@ -89,7 +90,7 @@ class MortgageService:
                 if m.id == mortgage.id:
                     old = m
                     break
-        except Exception:
+        except PARSE_ERRORS:
             old = None
 
         self._mortgages_provider.upsert_mortgage(mortgage)
@@ -97,7 +98,7 @@ class MortgageService:
         # Flag this mortgage as a local edit not yet confirmed on the server, so
         # a background (pull-only) sync's remote-wins pull cannot overwrite it
         # before the next Sync pushes it. Cleared once successfully pushed.
-        try:
+        with swallow(msg="firebase sync in upsert_mortgage"):
             from ..models.firebase_session import (
                 current_firebase_uid,
                 current_firebase_workspace_id,
@@ -107,18 +108,14 @@ class MortgageService:
             key = current_firebase_workspace_id() or current_firebase_uid() or ""
             if key:
                 mark_pending_upsert_mortgage(key=key, mortgage_id=mortgage.id)
-        except Exception:
-            pass
 
-        try:
+        with swallow(msg="firebase sync in upsert_mortgage"):
             from ..models.sync_gate import allow_firebase_push
 
             if allow_firebase_push():
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().upsert_mortgage(mortgage)
-        except Exception:
-            pass
 
         try:
             from .action_history import AddMortgageAction, EditMortgageAction
@@ -180,7 +177,7 @@ class MortgageService:
                     action=action_obj,
                 )
             )
-        except Exception:
+        except PARSE_ERRORS:
             pass
 
     def delete_mortgage(self, mortgage_id: str) -> None:
@@ -193,11 +190,11 @@ class MortgageService:
                 if m.id == mortgage_id:
                     mortgage_name = m.name
                     break
-        except Exception:
+        except PARSE_ERRORS:
             mortgage_name = ""
 
         self._mortgages_provider.delete_mortgage(mortgage_id)
-        try:
+        with swallow(msg="firebase sync in delete_mortgage"):
             from ..models.firebase_session import (
                 current_firebase_uid,
                 current_firebase_workspace_id,
@@ -215,10 +212,8 @@ class MortgageService:
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().delete_mortgage(mortgage_id=mortgage_id)
-        except Exception:
-            pass
 
-        try:
+        with swallow(msg="firebase sync in delete_mortgage"):
             from .action_history import DeleteMortgageAction
 
             self._history_provider.add_action(
@@ -232,8 +227,6 @@ class MortgageService:
                     ),
                 )
             )
-        except Exception:
-            pass
 
     def total_outstanding(
         self,
@@ -253,7 +246,7 @@ class MortgageService:
                 total += build_asset(m).outstanding_debt(
                     as_of_date=as_of_date, assumptions=assumptions
                 )
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         return float(total)
 
@@ -277,7 +270,7 @@ class MortgageService:
                 continue
             try:
                 value += float(build_asset(m).current_value(as_of_date=as_of_date))
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         debt = self.total_outstanding(
             as_of_date=as_of_date,
@@ -296,7 +289,7 @@ class MortgageService:
         value = sum(float(build_asset(a).current_value()) for a in active)
         try:
             debt = self.total_outstanding()
-        except Exception:
+        except PARSE_ERRORS:
             debt = 0.0
         return AssetsSummary(
             value=value, debt=debt, net=value - debt, count=len(active)
@@ -305,7 +298,7 @@ class MortgageService:
     def list_movements(self) -> List[BankMovement]:
         try:
             return list(self._movements_provider.list_movements())
-        except Exception:
+        except PARSE_ERRORS:
             return []
 
     def purchase_summary(self, mortgage: Mortgage) -> PurchaseSummary:
@@ -354,7 +347,7 @@ class MortgageService:
         for m in matched:
             try:
                 total_paid += abs(float(m.amount))
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         return MortgageStats(
             paid_count=len(matched),
@@ -404,7 +397,7 @@ class MortgageService:
             if str(getattr(mv, "id", "")) in ids:
                 try:
                     total += abs(float(mv.amount))
-                except Exception:
+                except PARSE_ERRORS:
                     continue
         return float(total)
 

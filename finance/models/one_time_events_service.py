@@ -28,6 +28,7 @@ from .action_history import (
     get_current_timestamp,
 )
 from .one_time_event import EventTotals, OneTimeEvent, OneTimeEventStatus
+from ..utils.safe import PARSE_ERRORS, swallow
 
 
 class OneTimeEventsService:
@@ -56,18 +57,16 @@ class OneTimeEventsService:
                 if e.id == event.id:
                     old = e
                     break
-        except Exception:
+        except PARSE_ERRORS:
             old = None
         self._events_provider.upsert_event(event)
-        try:
+        with swallow(msg="firebase sync in upsert_event"):
             from ..models.sync_gate import allow_firebase_push
 
             if allow_firebase_push():
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().upsert_event(event)
-        except Exception:
-            pass
         try:
             action_obj: Action
             if old is None:
@@ -118,7 +117,7 @@ class OneTimeEventsService:
                 action=action_obj,
             )
             self._history_provider.add_action(history_entry)
-        except Exception:
+        except PARSE_ERRORS:
             pass
 
     def delete_event(self, event_id: str) -> None:
@@ -128,10 +127,10 @@ class OneTimeEventsService:
                 if e.id == event_id:
                     event_name = e.name
                     break
-        except Exception:
+        except PARSE_ERRORS:
             event_name = ""
         self._events_provider.delete_event(event_id)
-        try:
+        with swallow(msg="firebase sync in delete_event"):
             from ..models.firebase_session import (
                 current_firebase_uid,
                 current_firebase_workspace_id,
@@ -149,8 +148,6 @@ class OneTimeEventsService:
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 FirebaseWorkspaceWriter().delete_event(event_id=event_id)
-        except Exception:
-            pass
         movements = self._movements_provider.list_movements()
         updated: List[BankMovement] = []
         changed = False
@@ -159,7 +156,7 @@ class OneTimeEventsService:
             if getattr(m, "event_id", None) == event_id:
                 try:
                     unassigned_ids.append(str(m.id))
-                except Exception:
+                except PARSE_ERRORS:
                     pass
                 updated.append(
                     BankMovement(
@@ -179,7 +176,7 @@ class OneTimeEventsService:
                 updated.append(m)
         if changed:
             self._movements_provider.save_movements(updated)
-            try:
+            with swallow(msg="firebase sync in delete_event"):
                 from ..models.sync_gate import allow_firebase_push
 
                 if allow_firebase_push():
@@ -190,14 +187,10 @@ class OneTimeEventsService:
                     w = FirebaseWorkspaceWriter()
                     _unassigned_set = set(unassigned_ids)
                     for m in updated:
-                        try:
+                        with swallow(msg="firebase sync in delete_event"):
                             if getattr(m, "id", "") in _unassigned_set:
                                 w.upsert_movement(m)
-                        except Exception:
-                            continue
-            except Exception:
-                pass
-        try:
+        with swallow(msg="firebase sync in delete_event"):
             action_obj = DeleteOneTimeEventAction(
                 action_name="delete_one_time_event",
                 event_id=event_id,
@@ -210,8 +203,6 @@ class OneTimeEventsService:
                 action=action_obj,
             )
             self._history_provider.add_action(history_entry)
-        except Exception:
-            pass
 
     def list_one_time_movements(self) -> List[BankMovement]:
         out: List[BankMovement] = []
@@ -219,7 +210,7 @@ class OneTimeEventsService:
             try:
                 if m.type == MovementType.ONE_TIME:
                     out.append(m)
-            except Exception:
+            except PARSE_ERRORS:
                 continue
         out.sort(key=lambda m: parse_iso_date(m.date))
         return out
@@ -238,7 +229,7 @@ class OneTimeEventsService:
                 continue
             try:
                 previous_event_id = getattr(m, "event_id", None)
-            except Exception:
+            except PARSE_ERRORS:
                 previous_event_id = None
             if getattr(m, "event_id", None) == event_id:
                 updated.append(m)
@@ -259,7 +250,7 @@ class OneTimeEventsService:
             changed = True
         if changed:
             self._movements_provider.save_movements(updated)
-            try:
+            with swallow(msg="firebase sync in assign_movement"):
                 from ..models.sync_gate import allow_firebase_push
 
                 if allow_firebase_push():
@@ -271,8 +262,6 @@ class OneTimeEventsService:
                         if m.id == movement_id:
                             FirebaseWorkspaceWriter().upsert_movement(m)
                             break
-            except Exception:
-                pass
             try:
                 action_obj: Action
                 if event_id is None:
@@ -293,7 +282,7 @@ class OneTimeEventsService:
                     action=action_obj,
                 )
                 self._history_provider.add_action(history_entry)
-            except Exception:
+            except PARSE_ERRORS:
                 pass
 
     def event_totals(self, event: OneTimeEvent) -> EventTotals:
