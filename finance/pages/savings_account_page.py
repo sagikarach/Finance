@@ -25,6 +25,7 @@ from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons
 from ..widgets.savings_history_chart import SavingsHistoryChartCard
 from ..utils.formatting import format_currency
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class SavingsAccountPage(BasePage):
@@ -58,7 +59,7 @@ class SavingsAccountPage(BasePage):
         selected_name = ""
         try:
             selected_name = str(self._app_context.get("selected_savings_account", ""))
-        except Exception:
+        except QT_ERRORS:
             selected_name = ""
 
         target: Optional[SavingsAccount] = None
@@ -78,7 +79,7 @@ class SavingsAccountPage(BasePage):
         top_card.setObjectName("DashHeroYellow")
         try:
             top_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         top_layout = QHBoxLayout(top_card)
         top_layout.setContentsMargins(22, 20, 22, 20)
@@ -126,7 +127,7 @@ class SavingsAccountPage(BasePage):
             b.setStyleSheet(pill_style)
             try:
                 b.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            except Exception:
+            except QT_ERRORS:
                 pass
             buttons_row.addWidget(b, 0, Qt.AlignmentFlag.AlignLeft)
 
@@ -149,7 +150,7 @@ class SavingsAccountPage(BasePage):
         chart_panel.setObjectName("ContentPanel")
         try:
             chart_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart_panel_layout = QVBoxLayout(chart_panel)
         chart_panel_layout.setContentsMargins(18, 14, 18, 14)
@@ -196,23 +197,23 @@ class SavingsAccountPage(BasePage):
             # Savings changes push to the remote immediately (force_remote) so a
             # later pull cannot revert a local edit that hasn't synced yet.
             self._accounts_service.save_all(self._accounts, force_remote=True)
-        except Exception:
+        except QT_ERRORS:
             return
 
         try:
             self._accounts = self._provider.list_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
                 self._sidebar.update_accounts(self._accounts)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         try:
             self._app_context["selected_savings_account"] = selected_name
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if isinstance(self._content_col, QVBoxLayout):
@@ -228,7 +229,7 @@ class SavingsAccountPage(BasePage):
             date_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
             date_edit.setDate(QDate.currentDate())
             setup_calendar_popup(date_edit)
-        except Exception:
+        except QT_ERRORS:
             pass
         return date_edit
 
@@ -276,7 +277,7 @@ class SavingsAccountPage(BasePage):
                 return
             try:
                 amount_val = float(amount_text)
-            except Exception:
+            except QT_ERRORS:
                 error_label.setText("סכום לא חוקי.")
                 error_label.show()
                 return
@@ -284,7 +285,7 @@ class SavingsAccountPage(BasePage):
             try:
                 date_qt = date_edit.date()
                 date_str = date_qt.toString("yyyy-MM-dd")
-            except Exception:
+            except QT_ERRORS:
                 date_str = ""
 
             if any(s.name == name for s in account.savings):
@@ -301,7 +302,7 @@ class SavingsAccountPage(BasePage):
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
                 dlg.accept()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         ok_btn.clicked.connect(on_accept)
@@ -320,10 +321,10 @@ class SavingsAccountPage(BasePage):
         savings_combo = QComboBox(dlg)
         try:
             savings_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 savings_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for s in account.savings:
             savings_combo.addItem(s.name, s)
@@ -336,7 +337,7 @@ class SavingsAccountPage(BasePage):
         try:
             first = account.savings[0]
             amount_edit.setText(str(first.amount))
-        except Exception:
+        except QT_ERRORS:
             pass
         amount_row.addWidget(amount_label, 0)
         amount_row.addWidget(amount_edit, 1)
@@ -378,7 +379,7 @@ class SavingsAccountPage(BasePage):
                 return
             try:
                 amount_val = float(amount_text)
-            except Exception:
+            except QT_ERRORS:
                 error_label.setText("סכום לא חוקי.")
                 error_label.show()
                 return
@@ -386,7 +387,7 @@ class SavingsAccountPage(BasePage):
             try:
                 date_qt = date_edit.date()
                 date_str = date_qt.toString("yyyy-MM-dd")
-            except Exception:
+            except QT_ERRORS:
                 date_str = ""
 
             try:
@@ -398,7 +399,7 @@ class SavingsAccountPage(BasePage):
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
                 dlg.accept()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         ok_btn.clicked.connect(on_accept)
@@ -417,10 +418,10 @@ class SavingsAccountPage(BasePage):
         savings_combo = QComboBox(dlg)
         try:
             savings_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 savings_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for s in account.savings:
             savings_combo.addItem(s.name, s)
@@ -453,7 +454,7 @@ class SavingsAccountPage(BasePage):
                 self._accounts = updated_accounts
                 self._save_savings_accounts_and_refresh(account.name)
                 dlg.accept()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         delete_btn.clicked.connect(on_delete)

@@ -5,6 +5,7 @@ from typing import Callable, List, Optional
 from ..qt import QHBoxLayout, QLabel, QWidget, Qt
 
 from .month_picker import _ArrowButton
+from ..utils.safe import QT_ERRORS
 
 
 class YearPickerWidget(QWidget):
@@ -33,7 +34,7 @@ class YearPickerWidget(QWidget):
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             self.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         self.setStyleSheet(
             "QWidget#MonthPicker{background:#ffffff;border:1px solid #ecece2;"
@@ -58,7 +59,7 @@ class YearPickerWidget(QWidget):
         try:
             self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._label.setMinimumWidth(84)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout.addWidget(self._left_btn)

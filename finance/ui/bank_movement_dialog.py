@@ -23,6 +23,7 @@ from .dialog_utils import (
 )
 from ..models.accounts import BudgetAccount, MoneyAccount
 from ..models.bank_movement import BankMovement, MovementType
+from ..utils.safe import QT_ERRORS
 
 
 class NewCategoryDialog(QDialog):
@@ -111,19 +112,19 @@ class BankMovementDialog(QDialog):
         self._amount_edit = QLineEdit(self)
         try:
             self._amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._amount_edit.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._amount_edit.setAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._amount_edit.setAlignment(Qt.AlignRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         amount_row.addWidget(amount_label, 0)
         amount_row.addWidget(self._amount_edit, 1)
@@ -136,12 +137,12 @@ class BankMovementDialog(QDialog):
         try:
             self._date_edit.setCalendarPopup(True)
             setup_calendar_popup(self._date_edit)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             today = _date.today()
             self._date_edit.setDate(QDate(today.year, today.month, today.day))
-        except Exception:
+        except QT_ERRORS:
             pass
         date_row.addWidget(date_label, 0)
         date_row.addWidget(self._date_edit, 1)
@@ -153,17 +154,17 @@ class BankMovementDialog(QDialog):
         self._account_combo = QComboBox(self)
         try:
             self._account_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._account_combo.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._account_combo.setStyleSheet(
                 "QComboBox { text-align: right; } "
                 "QComboBox QAbstractItemView::item { text-align: right; }"
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         for acc in self._accounts:
             self._account_combo.addItem(acc.name)
@@ -182,22 +183,22 @@ class BankMovementDialog(QDialog):
         self._category_combo.addItem("הוסף קטגוריה חדשה…", self._add_category_sentinel)
         try:
             self._category_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._category_combo.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._category_combo.setStyleSheet(
                 "QComboBox { text-align: right; } "
                 "QComboBox QAbstractItemView::item { text-align: right; }"
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         apply_rtl_alignment(self._category_combo)
         try:
             self._category_combo.activated.connect(self._on_category_activated)
-        except Exception:
+        except QT_ERRORS:
             pass
         category_row.addWidget(category_label, 0)
         category_row.addWidget(self._category_combo, 1)
@@ -209,17 +210,17 @@ class BankMovementDialog(QDialog):
         self._type_combo = QComboBox(self)
         try:
             self._type_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._type_combo.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._type_combo.setStyleSheet(
                 "QComboBox { text-align: right; } "
                 "QComboBox QAbstractItemView::item { text-align: right; }"
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         for mt in MovementType:
             self._type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
@@ -234,23 +235,23 @@ class BankMovementDialog(QDialog):
         self._description_edit = QLineEdit(self)
         try:
             self._description_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._description_edit.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._description_edit.setAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._description_edit.setAlignment(Qt.AlignRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._description_edit.setStyleSheet("text-align: right;")
-        except Exception:
+        except QT_ERRORS:
             pass
         desc_row.addWidget(desc_label, 0)
         desc_row.addWidget(self._description_edit, 1)
@@ -282,7 +283,7 @@ class BankMovementDialog(QDialog):
                 return
             try:
                 amount_value = float(text.replace(",", ""))
-            except Exception:
+            except QT_ERRORS:
                 self._show_error("הסכום חייב להיות מספר")
                 return
             if amount_value <= 0:
@@ -304,7 +305,7 @@ class BankMovementDialog(QDialog):
                     if a.name == account_name:
                         selected_acc = a
                         break
-            except Exception:
+            except QT_ERRORS:
                 selected_acc = None
 
             if isinstance(selected_acc, BudgetAccount):
@@ -317,7 +318,7 @@ class BankMovementDialog(QDialog):
             qdate = self._date_edit.date()
             try:
                 date_str = qdate.toString("yyyy-MM-dd")
-            except Exception:
+            except QT_ERRORS:
                 date_str = ""
 
             category = self._category_combo.currentText().strip()
@@ -334,7 +335,7 @@ class BankMovementDialog(QDialog):
 
                     type_text = unwrap_rtl(self._type_combo.currentText())
                     mtype = MovementType(type_text)
-                except Exception:
+                except QT_ERRORS:
                     mtype = MovementType.ONE_TIME
 
             description = self._description_edit.text().strip() or None
@@ -358,7 +359,7 @@ class BankMovementDialog(QDialog):
         self._error_label.show()
         try:
             self.adjustSize()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def get_movement(self) -> Optional[BankMovement]:
@@ -385,11 +386,11 @@ class BankMovementDialog(QDialog):
                     if self._on_category_added is not None:
                         try:
                             self._on_category_added(name)
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                     self._category_combo.setCurrentIndex(insert_index)
                     self._last_category_index = insert_index
             else:
                 self._last_category_index = index
-        except Exception:
+        except QT_ERRORS:
             pass

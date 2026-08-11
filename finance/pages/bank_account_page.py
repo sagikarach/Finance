@@ -31,6 +31,7 @@ from ..utils.formatting import format_currency
 from ..ui.sibus_expenses_dialog import SibusExpensesDialog
 from ..ui.account_movements_dialog import AccountMovementsDialog
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class BankAccountPage(BasePage):
@@ -63,7 +64,7 @@ class BankAccountPage(BasePage):
         selected_name = ""
         try:
             selected_name = str(self._app_context.get("selected_bank_account", ""))
-        except Exception:
+        except QT_ERRORS:
             selected_name = ""
 
         target: Optional[BankAccount | BudgetAccount] = None
@@ -86,7 +87,7 @@ class BankAccountPage(BasePage):
         top_card.setObjectName("DashHeroYellow")
         try:
             top_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         top_layout = QHBoxLayout(top_card)
         top_layout.setContentsMargins(22, 20, 22, 20)
@@ -146,13 +147,13 @@ class BankAccountPage(BasePage):
                 manage_btn.setSizePolicy(
                     QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 manage_btn.clicked.connect(
                     lambda _=None, acc=target: self._open_sibus_expenses_dialog(acc)
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             buttons_row.addWidget(manage_btn, 0, Qt.AlignmentFlag.AlignLeft)
         elif isinstance(target, BankAccount):
@@ -163,13 +164,13 @@ class BankAccountPage(BasePage):
                 manage_btn.setSizePolicy(
                     QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 manage_btn.clicked.connect(
                     lambda _=None, acc=target: self._open_account_movements_dialog(acc)
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             buttons_row.addWidget(manage_btn, 0, Qt.AlignmentFlag.AlignLeft)
 
@@ -183,19 +184,19 @@ class BankAccountPage(BasePage):
                     import_btn.setToolTip(
                         "החשבון אינו פעיל. הפעל אותו בהגדרות כדי לייבא קובץ."
                     )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 import_btn.clicked.connect(
                     lambda _=None, acc=target: self._on_import_csv(acc)
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 import_btn.setSizePolicy(
                     QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             buttons_row.addWidget(import_btn, 0, Qt.AlignmentFlag.AlignLeft)
 
@@ -214,7 +215,7 @@ class BankAccountPage(BasePage):
         chart_panel.setObjectName("ContentPanel")
         try:
             chart_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart_panel_layout = QVBoxLayout(chart_panel)
         chart_panel_layout.setContentsMargins(18, 14, 18, 14)
@@ -246,7 +247,7 @@ class BankAccountPage(BasePage):
                 initial_chart = QLabel("טוען גרף...", chart_container)
                 initial_chart.setObjectName("Subtitle")
                 initial_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
+        except QT_ERRORS:
             initial_chart = QLabel("טוען גרף...", chart_container)
             initial_chart.setObjectName("Subtitle")
             initial_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -259,7 +260,7 @@ class BankAccountPage(BasePage):
         build_token = object()
         try:
             self._bank_chart_build_token = build_token  # type: ignore[attr-defined]
-        except Exception:
+        except QT_ERRORS:
             pass
         result_q: "queue.Queue[List[Any]]" = queue.Queue(maxsize=1)
 
@@ -267,12 +268,12 @@ class BankAccountPage(BasePage):
             try:
                 if getattr(self, "_bank_chart_build_token", None) is not build_token:  # type: ignore[attr-defined]
                     return
-            except Exception:
+            except QT_ERRORS:
                 return
             try:
                 if chart_container is None or chart_container.parent() is None:
                     return
-            except Exception:
+            except QT_ERRORS:
                 return
 
             # Clear container and insert the new chart.
@@ -287,35 +288,35 @@ class BankAccountPage(BasePage):
             svc = getattr(self, "_bank_movement_service", None)
             try:
                 movements_loaded = svc.list_movements() if svc is not None else []
-            except Exception:
+            except QT_ERRORS:
                 movements_loaded = []
             try:
                 # Send result back to the UI thread via a queue (thread-safe).
                 result_q.put(list(movements_loaded), block=False)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         try:
             threading.Thread(target=_load_and_build, daemon=True).start()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         def _poll_result() -> None:
             try:
                 if getattr(self, "_bank_chart_build_token", None) is not build_token:  # type: ignore[attr-defined]
                     return
-            except Exception:
+            except QT_ERRORS:
                 return
 
             try:
                 movements_loaded = result_q.get(block=False)
-            except Exception:
+            except QT_ERRORS:
                 movements_loaded = None
 
             if movements_loaded is None:
                 try:
                     QTimer.singleShot(80, _poll_result)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 return
 
@@ -326,7 +327,7 @@ class BankAccountPage(BasePage):
                     format_currency,
                     movements=list(movements_loaded),
                 )
-            except Exception:
+            except QT_ERRORS:
                 new_chart = QLabel("שגיאה בטעינת הגרף", chart_container)
                 new_chart.setObjectName("Subtitle")
                 new_chart.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -335,7 +336,7 @@ class BankAccountPage(BasePage):
         try:
             # Start polling from the UI thread (this thread has the Qt event loop).
             QTimer.singleShot(0, _poll_result)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _on_import_csv(self, account: BankAccount) -> None:
@@ -348,10 +349,10 @@ class BankAccountPage(BasePage):
                         QCursor.pos(),
                         "החשבון אינו פעיל. הפעל אותו בהגדרות כדי לייבא קובץ.",
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
                 return
-        except Exception:
+        except QT_ERRORS:
             return
         QFileDialogCls = None
         try:
@@ -359,13 +360,13 @@ class BankAccountPage(BasePage):
 
             QtWidgets = importlib.import_module("PySide6.QtWidgets")
             QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
-        except Exception:
+        except QT_ERRORS:
             try:
                 import importlib
 
                 QtWidgets = importlib.import_module("PyQt6.QtWidgets")
                 QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
-            except Exception:
+            except QT_ERRORS:
                 QFileDialogCls = None
         if QFileDialogCls is None:
             return
@@ -377,7 +378,7 @@ class BankAccountPage(BasePage):
                 "",
                 "CSV Files (*.csv);;All Files (*)",
             )
-        except Exception:
+        except QT_ERRORS:
             return
 
         if not file_path:
@@ -393,11 +394,11 @@ class BankAccountPage(BasePage):
             self._accounts = service.import_outcome_csv(
                 self._accounts, account.name, file_path
             )
-        except Exception:
+        except QT_ERRORS:
             return
         try:
             pending = service.pop_pending_reviews()
-        except Exception:
+        except QT_ERRORS:
             pending = []
         if pending:
             categories: list[str] = []
@@ -409,7 +410,7 @@ class BankAccountPage(BasePage):
                     categories = provider.list_categories_for_type(False)
                 elif provider is not None and hasattr(provider, "list_categories"):
                     categories = provider.list_categories()
-            except Exception:
+            except QT_ERRORS:
                 categories = []
 
             on_category_added = None
@@ -419,7 +420,7 @@ class BankAccountPage(BasePage):
                     def _on_cat_added(name: str, *, _prov=provider) -> None:
                         try:
                             _prov.add_category_for_type(name, False)
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         try:
                             from ..models.firebase_movements_sync import (
@@ -427,13 +428,13 @@ class BankAccountPage(BasePage):
                             )
 
                             FirebaseMovementsSyncService().sync_categories_only()
-                        except Exception:
+                        except QT_ERRORS:
                             pass
 
                     on_category_added = _on_cat_added
                 elif provider is not None and hasattr(provider, "add_category"):
                     on_category_added = getattr(provider, "add_category")
-            except Exception:
+            except QT_ERRORS:
                 on_category_added = None
 
             pending_sorted = sorted(pending, key=lambda x: x.confidence)
@@ -453,13 +454,13 @@ class BankAccountPage(BasePage):
                         parent=self,
                     )
                     result = dlg.exec()
-                except Exception:
+                except QT_ERRORS:
                     result = False
 
                 if result and dlg is not None:
                     try:
                         results = dlg.get_results()
-                    except Exception:
+                    except QT_ERRORS:
                         results = []
                     for idx, updated in enumerate(results):
                         if updated is None:
@@ -475,7 +476,7 @@ class BankAccountPage(BasePage):
                             from_dialog.append(updated)
                             try:
                                 service._imported_for_last_csv.append(updated)
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
 
                             if service.classifier is not None and hasattr(
@@ -498,7 +499,7 @@ class BankAccountPage(BasePage):
                                         "expenseType": expense_type_str,
                                     }
                                     service.classifier.learn(confirmed_expense)
-                                except Exception:
+                                except QT_ERRORS:
                                     pass
                         except OverBudgetError as _obe:
                             try:
@@ -519,10 +520,10 @@ class BankAccountPage(BasePage):
                                         allow_over_budget=True,
                                     )
                                     from_dialog.append(updated)
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                             continue
-                        except Exception as _apply_err:
+                        except QT_ERRORS as _apply_err:
                             try:
                                 from ..qt import QMessageBox
                                 QMessageBox.warning(
@@ -530,13 +531,13 @@ class BankAccountPage(BasePage):
                                     "לא ניתן להוסיף הוצאה",
                                     str(_apply_err),
                                 )
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                             continue
 
         try:
             imported_batch = service.pop_imported_for_last_csv()
-        except Exception:
+        except QT_ERRORS:
             imported_batch = []
 
         all_movement_ids = {m.id for m in imported_batch}
@@ -550,19 +551,19 @@ class BankAccountPage(BasePage):
         if all_movements:
             try:
                 total_amount = float(sum(m.amount for m in all_movements))
-            except Exception:
+            except QT_ERRORS:
                 total_amount = 0.0
 
             movement_ids: list[str] = []
             for m in all_movements:
                 try:
                     movement_ids.append(m.id)
-                except Exception:
+                except QT_ERRORS:
                     continue
 
             try:
                 file_name = Path(file_path).name
-            except Exception:
+            except QT_ERRORS:
                 file_name = file_path
 
             try:
@@ -580,7 +581,7 @@ class BankAccountPage(BasePage):
                     action=action_obj,
                 )
                 self._history_provider.add_action(history_entry)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         try:
@@ -591,19 +592,19 @@ class BankAccountPage(BasePage):
                 try:
                     history = self._history_provider.list_history()
                     history_table.set_history(history)
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self._accounts = service.recalculate_account_balances(self._accounts)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self._save_and_refresh_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def on_route_activated(self) -> None:
@@ -612,7 +613,7 @@ class BankAccountPage(BasePage):
         if svc is not None:
             try:
                 self._accounts = svc.load_accounts()
-            except Exception:
+            except QT_ERRORS:
                 pass
         # Always recompute balances (especially budget/"סיבוס") in case movements
         # changed while on another workspace/view.
@@ -623,11 +624,11 @@ class BankAccountPage(BasePage):
                         self._accounts
                     )
                 )
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._save_and_refresh_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _open_sibus_expenses_dialog(self, account: BudgetAccount) -> None:
@@ -636,7 +637,7 @@ class BankAccountPage(BasePage):
             return
         try:
             categories = svc.list_categories(is_income=False)
-        except Exception:
+        except QT_ERRORS:
             categories = []
 
         dlg = SibusExpensesDialog(
@@ -658,11 +659,11 @@ class BankAccountPage(BasePage):
             return
         try:
             income_categories = svc.list_categories(is_income=True)
-        except Exception:
+        except QT_ERRORS:
             income_categories = []
         try:
             outcome_categories = svc.list_categories(is_income=False)
-        except Exception:
+        except QT_ERRORS:
             outcome_categories = []
 
         dlg = AccountMovementsDialog(

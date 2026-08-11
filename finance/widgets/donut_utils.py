@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..qt import QColor
+from ..utils.safe import QT_ERRORS
 
 # Shared pastel categorical palette for the donut/pie charts (expense mix).
 PASTEL_HEX = [
@@ -19,5 +20,5 @@ def qcolor_to_hex(c: QColor) -> str:
     """``QColor`` → ``#rrggbb`` (falls back to black on error)."""
     try:
         return f"#{c.red():02x}{c.green():02x}{c.blue():02x}"
-    except Exception:
+    except QT_ERRORS:
         return "#000000"

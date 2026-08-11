@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Optional
 
 from ..qt import QWidget, QVBoxLayout, QPushButton, QSizePolicy, Qt
+from ..utils.safe import QT_ERRORS
 
 
 class BankMovementActions(QWidget):
@@ -16,7 +17,7 @@ class BankMovementActions(QWidget):
         self.setObjectName("SidebarActions")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout = QVBoxLayout(self)
@@ -29,7 +30,7 @@ class BankMovementActions(QWidget):
             self._income_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         if on_add_income is not None:
             self._income_btn.clicked.connect(on_add_income)
@@ -40,7 +41,7 @@ class BankMovementActions(QWidget):
             self._outcome_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         if on_add_outcome is not None:
             self._outcome_btn.clicked.connect(on_add_outcome)

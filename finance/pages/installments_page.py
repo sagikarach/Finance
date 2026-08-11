@@ -35,6 +35,7 @@ from .base_page import BasePage
 
 
 from ..utils.formatting import fmt_money
+from ..utils.safe import QT_ERRORS
 
 
 def _fmt_money(value: float) -> str:
@@ -54,11 +55,11 @@ class InstallmentPlanDialog(QDialog):
         self.setModal(True)
         try:
             self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._plan: Optional[InstallmentPlan] = plan
@@ -93,7 +94,7 @@ class InstallmentPlanDialog(QDialog):
                     name = str(getattr(a, "name", "") or "").strip()
                     if name:
                         account_names.append(name)
-            except Exception:
+            except QT_ERRORS:
                 continue
         account_names = sorted(set(account_names))
         self._account.addItems(account_names)
@@ -105,7 +106,7 @@ class InstallmentPlanDialog(QDialog):
         setup_calendar_popup(self._start_date)
         try:
             self._start_date.setDisplayFormat("yyyy-MM-dd")
-        except Exception:
+        except QT_ERRORS:
             pass
         root.addWidget(QLabel("תאריך התחלה", self))
         root.addWidget(self._start_date)
@@ -142,7 +143,7 @@ class InstallmentPlanDialog(QDialog):
         if p is None:
             try:
                 self._start_date.setDate(QDate.currentDate())
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._payments_count.setValue(1)
             self._archived.setChecked(False)
@@ -154,10 +155,10 @@ class InstallmentPlanDialog(QDialog):
         try:
             dt = parse_iso_date(str(p.start_date or ""))
             self._start_date.setDate(QDate(dt.year, dt.month, dt.day))
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._start_date.setDate(QDate.currentDate())
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._payments_count.setValue(max(1, int(p.payments_count)))
         self._original_amount.setText(str(float(p.original_amount)))
@@ -171,13 +172,13 @@ class InstallmentPlanDialog(QDialog):
         start_date = ""
         try:
             start_date = self._start_date.date().toString("yyyy-MM-dd")
-        except Exception:
+        except QT_ERRORS:
             start_date = ""
         try:
             original_amount = float(
                 str(self._original_amount.text() or "").strip() or 0.0
             )
-        except Exception:
+        except QT_ERRORS:
             original_amount = 0.0
         archived = bool(self._archived.isChecked())
 
@@ -264,7 +265,7 @@ class InstallmentsPage(BasePage):
         root = QWidget(self)
         try:
             root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         content_col.addWidget(root, 1)
 
@@ -284,7 +285,7 @@ class InstallmentsPage(BasePage):
         hero.setObjectName("ContentPanel")
         try:
             hero.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         hero_l = QVBoxLayout(hero)
         hero_l.setContentsMargins(24, 22, 24, 22)
@@ -335,7 +336,7 @@ class InstallmentsPage(BasePage):
             self._selector.setSizePolicy(
                 QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         actions_l.addWidget(self._selector, 0)
 
@@ -351,7 +352,7 @@ class InstallmentsPage(BasePage):
         try:
             from ..utils.icons import apply_icon
             apply_icon(self._edit_btn, "edit", size=18, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             self._edit_btn.setText("✎")
         self._edit_btn.setToolTip("עריכת תכנית")
         self._edit_btn.clicked.connect(self._on_edit_clicked)
@@ -389,7 +390,7 @@ class InstallmentsPage(BasePage):
             self._prog_bar.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         pwl.addWidget(self._prog_bar)
 
@@ -421,7 +422,7 @@ class InstallmentsPage(BasePage):
             try:
                 card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
                 card.setAutoFillBackground(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
             cl = QVBoxLayout(card)
             cl.setContentsMargins(16, 16, 16, 16)
@@ -450,7 +451,7 @@ class InstallmentsPage(BasePage):
             table_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         table_card_l = QVBoxLayout(table_card)
         table_card_l.setContentsMargins(20, 18, 20, 18)
@@ -473,7 +474,7 @@ class InstallmentsPage(BasePage):
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
             self._table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             header = self._table.horizontalHeader()
@@ -483,7 +484,7 @@ class InstallmentsPage(BasePage):
             vheader = self._table.verticalHeader()
             if vheader is not None:
                 vheader.setVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         table_card_l.addWidget(self._table, 1)
         return table_card
@@ -491,7 +492,7 @@ class InstallmentsPage(BasePage):
     def _reload(self) -> None:
         try:
             self._plans = self._service.list_plans()
-        except Exception:
+        except QT_ERRORS:
             self._plans = []
         if self._selected_plan_id and not any(
             p.id == self._selected_plan_id for p in self._plans
@@ -657,12 +658,12 @@ class InstallmentsPage(BasePage):
             date_item = QTableWidgetItem(self._format_date_he(str(m.date)) or str(m.date))
             try:
                 amt = float(getattr(m, "amount", 0.0))
-            except Exception:
+            except QT_ERRORS:
                 amt = 0.0
             amt_item = QTableWidgetItem(format_currency(amt, use_compact=True))
             try:
                 amt_item.setForeground(QColor("#d66a4e" if amt < 0 else "#2f9e68"))
-            except Exception:
+            except QT_ERRORS:
                 pass
             cat_item = QTableWidgetItem(str(m.category or ""))
             desc_item = QTableWidgetItem(str(m.description or ""))
@@ -670,7 +671,7 @@ class InstallmentsPage(BasePage):
                 try:
                     it.setData(Qt.ItemDataRole.UserRole, str(m.id))
                     it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 self._table.setItem(row, col, it)
 
@@ -686,7 +687,7 @@ class InstallmentsPage(BasePage):
                 "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
             ]
             return f"{d.day} ב{months[d.month - 1]} {d.year}"
-        except Exception:
+        except QT_ERRORS:
             return str(raw)
 
     def _on_plan_selected(self, plan_id: str) -> None:
@@ -749,7 +750,7 @@ class InstallmentsPage(BasePage):
             mid = item.data(Qt.ItemDataRole.UserRole)
             mid = str(mid or "").strip()
             return mid if mid else None
-        except Exception:
+        except QT_ERRORS:
             return None
 
     def _on_exclude_selected_row(self) -> None:

@@ -23,6 +23,7 @@ from ..qt import (
 from ..utils.formatting import format_currency
 from ..models.charts import catmull_rom_spline_samples
 from .savings_history_chart import ShadowChartView
+from ..utils.safe import QT_ERRORS
 
 
 class CategoryTrendsChart(QWidget):
@@ -68,11 +69,11 @@ class CategoryTrendsChart(QWidget):
         try:
             QtWidgets = importlib.import_module("PySide6.QtWidgets")
             QStackedLayoutCls = getattr(QtWidgets, "QStackedLayout", None)
-        except Exception:
+        except QT_ERRORS:
             try:
                 QtWidgets = importlib.import_module("PyQt6.QtWidgets")
                 QStackedLayoutCls = getattr(QtWidgets, "QStackedLayout", None)
-            except Exception:
+            except QT_ERRORS:
                 QStackedLayoutCls = None
 
         if QStackedLayoutCls is None:
@@ -83,12 +84,12 @@ class CategoryTrendsChart(QWidget):
         stack.setContentsMargins(0, 0, 0, 0)
         try:
             stack.setStackingMode(QStackedLayoutCls.StackingMode.StackAll)
-        except Exception:
+        except QT_ERRORS:
             stack_all = getattr(QStackedLayoutCls, "StackAll", None)
             if stack_all is not None:
                 try:
                     stack.setStackingMode(stack_all)
-                except Exception:
+                except QT_ERRORS:
                     pass
         self._view_stack = stack
 
@@ -101,15 +102,15 @@ class CategoryTrendsChart(QWidget):
                     self._view_stack.removeWidget(old_view)
                 else:
                     self._layout.removeWidget(old_view)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 old_view.deleteLater()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 cast(Any, new_view).setGraphicsEffect(None)
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
 
@@ -124,7 +125,7 @@ class CategoryTrendsChart(QWidget):
             QGraphicsOpacityEffectCls = getattr(
                 QtWidgets, "QGraphicsOpacityEffect", None
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 QtCore = importlib.import_module("PyQt6.QtCore")
                 QtWidgets = importlib.import_module("PyQt6.QtWidgets")
@@ -133,7 +134,7 @@ class CategoryTrendsChart(QWidget):
                 QGraphicsOpacityEffectCls = getattr(
                     QtWidgets, "QGraphicsOpacityEffect", None
                 )
-            except Exception:
+            except QT_ERRORS:
                 return
         if (
             QPropertyAnimationCls is None
@@ -147,13 +148,13 @@ class CategoryTrendsChart(QWidget):
         try:
             old_view.setGraphicsEffect(old_eff)
             new_view.setGraphicsEffect(new_eff)
-        except Exception:
+        except QT_ERRORS:
             return
 
         try:
             old_eff.setOpacity(1.0)
             new_eff.setOpacity(0.0)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         fade_out = QPropertyAnimationCls(old_eff, b"opacity", old_view)
@@ -161,27 +162,27 @@ class CategoryTrendsChart(QWidget):
         for anim, start, end in ((fade_out, 1.0, 0.0), (fade_in, 0.0, 1.0)):
             try:
                 anim.setDuration(220)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 anim.setStartValue(start)
                 anim.setEndValue(end)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 curve = None
                 try:
                     curve = QEasingCurveCls.Type.InOutCubic
-                except Exception:
+                except QT_ERRORS:
                     curve = getattr(QEasingCurveCls, "InOutCubic", None)
                 if curve is not None:
                     anim.setEasingCurve(curve)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     curve = getattr(QEasingCurveCls, "InOutCubic", None)
                     if curve is not None:
                         anim.setEasingCurve(curve)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         def _cleanup() -> None:
@@ -190,30 +191,30 @@ class CategoryTrendsChart(QWidget):
                     self._view_stack.removeWidget(old_view)
                 else:
                     self._layout.removeWidget(old_view)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 old_view.deleteLater()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 new_eff.setOpacity(1.0)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 cast(Any, new_view).setGraphicsEffect(None)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         try:
             fade_out.finished.connect(_cleanup)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             fade_in.start()
             fade_out.start()
-        except Exception:
+        except QT_ERRORS:
             _cleanup()
 
     def set_transition_enabled(self, enabled: bool) -> None:
@@ -227,7 +228,7 @@ class CategoryTrendsChart(QWidget):
                 self._view_stack.addWidget(view)
                 try:
                     self._view_stack.setCurrentWidget(view)
-                except Exception:
+                except QT_ERRORS:
                     pass
             else:
                 self._layout.addWidget(view, 1)
@@ -236,16 +237,16 @@ class CategoryTrendsChart(QWidget):
         if self._view_stack is not None:
             try:
                 self._view_stack.addWidget(view)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 self._view_stack.setCurrentWidget(view)
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             try:
                 idx = self._layout.indexOf(old_view)
-            except Exception:
+            except QT_ERRORS:
                 idx = -1
 
             try:
@@ -253,13 +254,13 @@ class CategoryTrendsChart(QWidget):
                     self._layout.insertWidget(idx, view, 1)
                 else:
                     self._layout.addWidget(view, 1)
-            except Exception:
+            except QT_ERRORS:
                 self._layout.addWidget(view, 1)
 
         self._chart_view = view
         try:
             view.raise_()
-        except Exception:
+        except QT_ERRORS:
             pass
         self._animate_swap(old_view=old_view, new_view=view)
 
@@ -283,12 +284,12 @@ class CategoryTrendsChart(QWidget):
                     key = key[len(inc) :]
                 elif exp and key.startswith(exp):
                     key = key[len(exp) :]
-            except Exception:
+            except QT_ERRORS:
                 pass
             h = zlib.crc32(str(key).encode("utf-8")) & 0xFFFFFFFF
             hue = int(h % 360)
             return QColor.fromHsl(hue, 180, 140)
-        except Exception:
+        except QT_ERRORS:
             return QColor("#2563eb")
 
     def set_empty_state(self, text: str) -> None:
@@ -302,11 +303,11 @@ class CategoryTrendsChart(QWidget):
         chart.setBackgroundRoundness(0)
         try:
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setPlotAreaBackgroundVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         view = ShadowChartView(
             chart,
@@ -321,25 +322,25 @@ class CategoryTrendsChart(QWidget):
             hint = None
             try:
                 hint = QPainter.RenderHint.Antialiasing
-            except Exception:
+            except QT_ERRORS:
                 hint = getattr(QPainter, "Antialiasing", None)
             if hint is not None:
                 view.setRenderHint(hint, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             frame_no = None
             try:
                 frame_no = QFrame.Shape.NoFrame
-            except Exception:
+            except QT_ERRORS:
                 frame_no = getattr(QFrame, "NoFrame", None)
             if frame_no is not None:
                 view.setFrameShape(frame_no)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._replace_chart_view(view)
 
@@ -409,11 +410,11 @@ class CategoryTrendsChart(QWidget):
         chart.setBackgroundRoundness(0)
         try:
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setPlotAreaBackgroundVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         n = len(month_labels)
@@ -428,7 +429,7 @@ class CategoryTrendsChart(QWidget):
             series.setName(category)
             try:
                 series.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             base_values = [float(v) for v in values[:n]]
@@ -447,15 +448,15 @@ class CategoryTrendsChart(QWidget):
                 pen.setColor(base_color)
                 try:
                     pen.setWidthF(2.0)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 series.setPen(pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             shadow_specs.append((series, base_color))
@@ -468,7 +469,7 @@ class CategoryTrendsChart(QWidget):
         try:
             axis_x.setGridLineVisible(False)
             axis_x.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         axis_y = QValueAxis()
@@ -476,7 +477,7 @@ class CategoryTrendsChart(QWidget):
         try:
             axis_y.setGridLineVisible(False)
             axis_y.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         top, tick = self._nice_y_axis(max_val)
         axis_y.setRange(0.0, top)
@@ -484,14 +485,14 @@ class CategoryTrendsChart(QWidget):
             tick_dynamic = None
             try:
                 tick_dynamic = QValueAxis.TickType.TicksDynamic
-            except Exception:
+            except QT_ERRORS:
                 tick_dynamic = getattr(QValueAxis, "TicksDynamic", None)
             if tick_dynamic is not None and hasattr(axis_y, "setTickType"):
                 axis_y.setTickType(tick_dynamic)
             if hasattr(axis_y, "setTickAnchor"):
                 axis_y.setTickAnchor(0.0)
             axis_y.setTickInterval(tick)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         label_color = QColor("#0f172a")
@@ -501,12 +502,12 @@ class CategoryTrendsChart(QWidget):
                 theme = str(app.property("theme") or "light")
                 if theme == "dark":
                     label_color = QColor("#ffffff")
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             axis_x.setLabelsBrush(label_color)
             axis_y.setLabelsBrush(label_color)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
@@ -516,7 +517,7 @@ class CategoryTrendsChart(QWidget):
             try:
                 s_obj.attachAxis(axis_x)
                 s_obj.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         view = ShadowChartView(
@@ -533,25 +534,25 @@ class CategoryTrendsChart(QWidget):
             hint = None
             try:
                 hint = QPainter.RenderHint.Antialiasing
-            except Exception:
+            except QT_ERRORS:
                 hint = getattr(QPainter, "Antialiasing", None)
             if hint is not None:
                 view.setRenderHint(hint, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             frame_no = None
             try:
                 frame_no = QFrame.Shape.NoFrame
-            except Exception:
+            except QT_ERRORS:
                 frame_no = getattr(QFrame, "NoFrame", None)
             if frame_no is not None:
                 view.setFrameShape(frame_no)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._replace_chart_view(view)
 
@@ -653,11 +654,11 @@ class CategoryTrendsChart(QWidget):
         chart.setBackgroundRoundness(0)
         try:
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setPlotAreaBackgroundVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         n = len(month_labels)
@@ -685,7 +686,7 @@ class CategoryTrendsChart(QWidget):
                 series.setName(series_name)
                 try:
                     series.setPointsVisible(False)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
                 base_values: List[float] = []
@@ -714,15 +715,15 @@ class CategoryTrendsChart(QWidget):
                     pen.setColor(base_color)
                     try:
                         pen.setWidthF(2.0)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     try:
                         pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                         pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     series.setPen(pen)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
                 shadow_specs.append((series, base_color))
@@ -782,7 +783,7 @@ class CategoryTrendsChart(QWidget):
                     proj_series.setName(proj_name)
                     try:
                         proj_series.setPointsVisible(False)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                     base_color = self._color_for_series_name(f"{name_prefix}{category}")
@@ -791,19 +792,19 @@ class CategoryTrendsChart(QWidget):
                         pen.setColor(base_color)
                         try:
                             pen.setWidthF(2.5)
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         try:
                             pen.setStyle(Qt.PenStyle.DashLine)
-                        except Exception:
+                        except QT_ERRORS:
                             try:
                                 dash = getattr(Qt.PenStyle, "DashLine", None) or getattr(Qt, "DashLine", None)
                                 if dash is not None:
                                     pen.setStyle(dash)
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                         proj_series.setPen(pen)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                     x_offset = float(n - 1)
@@ -835,12 +836,12 @@ class CategoryTrendsChart(QWidget):
             axis_x.append(label, float(i))
         try:
             axis_x.setRange(0.0, float(len(combined_labels) - 1))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             axis_x.setGridLineVisible(False)
             axis_x.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         axis_y = QValueAxis()
@@ -848,7 +849,7 @@ class CategoryTrendsChart(QWidget):
         try:
             axis_y.setGridLineVisible(False)
             axis_y.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         top, tick = self._nice_y_axis(max_val)
@@ -860,7 +861,7 @@ class CategoryTrendsChart(QWidget):
             sep = QLineSeries()
             try:
                 sep.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             sep.append(float(n - 1), float(bottom))
             sep.append(float(n - 1), float(top))
@@ -869,28 +870,28 @@ class CategoryTrendsChart(QWidget):
                 sep_pen.setColor(QColor("#f59e0b"))
                 try:
                     sep_pen.setWidthF(1.5)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     sep_pen.setStyle(Qt.PenStyle.DashLine)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 sep.setPen(sep_pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             chart.addSeries(sep)
         try:
             tick_dynamic = None
             try:
                 tick_dynamic = QValueAxis.TickType.TicksDynamic
-            except Exception:
+            except QT_ERRORS:
                 tick_dynamic = getattr(QValueAxis, "TicksDynamic", None)
             if tick_dynamic is not None and hasattr(axis_y, "setTickType"):
                 axis_y.setTickType(tick_dynamic)
             if hasattr(axis_y, "setTickAnchor"):
                 axis_y.setTickAnchor(0.0)
             axis_y.setTickInterval(tick)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         label_color = QColor("#0f172a")
@@ -900,12 +901,12 @@ class CategoryTrendsChart(QWidget):
                 theme = str(app.property("theme") or "light")
                 if theme == "dark":
                     label_color = QColor("#ffffff")
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             axis_x.setLabelsBrush(label_color)
             axis_y.setLabelsBrush(label_color)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
@@ -915,7 +916,7 @@ class CategoryTrendsChart(QWidget):
             try:
                 s_obj.attachAxis(axis_x)
                 s_obj.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         view = ShadowChartView(
@@ -933,24 +934,24 @@ class CategoryTrendsChart(QWidget):
             hint = None
             try:
                 hint = QPainter.RenderHint.Antialiasing
-            except Exception:
+            except QT_ERRORS:
                 hint = getattr(QPainter, "Antialiasing", None)
             if hint is not None:
                 view.setRenderHint(hint, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             frame_no = None
             try:
                 frame_no = QFrame.Shape.NoFrame
-            except Exception:
+            except QT_ERRORS:
                 frame_no = getattr(QFrame, "NoFrame", None)
             if frame_no is not None:
                 view.setFrameShape(frame_no)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._replace_chart_view(view)

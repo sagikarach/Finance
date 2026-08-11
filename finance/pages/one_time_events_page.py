@@ -30,6 +30,7 @@ from ..widgets.one_time_event_pie_chart import OneTimeEventPieChart
 from ..widgets.one_time_event_stat_cards import OneTimeEventStatCards
 from ..widgets.one_time_events_selector import OneTimeEventsSelector
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class OneTimeEventsPage(BasePage):
@@ -104,7 +105,7 @@ class OneTimeEventsPage(BasePage):
         root = QWidget(self)
         try:
             root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout = QHBoxLayout(root)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -137,7 +138,7 @@ class OneTimeEventsPage(BasePage):
         hero.setObjectName("ContentPanel")
         try:
             hero.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         hero_l = QVBoxLayout(hero)
         hero_l.setContentsMargins(24, 22, 24, 22)
@@ -192,7 +193,7 @@ class OneTimeEventsPage(BasePage):
         try:
             from ..utils.icons import apply_icon
             apply_icon(self._assign_btn, "plus", size=18, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             self._assign_btn.setText("＋")
         self._assign_btn.setToolTip("שיוך תנועות לאירוע")
         self._assign_btn.clicked.connect(self._open_assign_dialog)
@@ -203,7 +204,7 @@ class OneTimeEventsPage(BasePage):
         try:
             from ..utils.icons import apply_icon
             apply_icon(self._edit_btn, "edit", size=18, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             self._edit_btn.setText("✎")
         self._edit_btn.setToolTip("עריכת אירוע")
         self._edit_btn.clicked.connect(self._open_edit_selected_event)
@@ -239,7 +240,7 @@ class OneTimeEventsPage(BasePage):
             self._budget_bar.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         bwl.addWidget(self._budget_bar)
 
@@ -276,7 +277,7 @@ class OneTimeEventsPage(BasePage):
         line_card.setObjectName("ContentPanel")
         try:
             line_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         line_card_l = QVBoxLayout(line_card)
         line_card_l.setContentsMargins(20, 18, 20, 18)
@@ -292,7 +293,7 @@ class OneTimeEventsPage(BasePage):
         pie_card.setObjectName("ContentPanel")
         try:
             pie_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         pie_card_l = QVBoxLayout(pie_card)
         pie_card_l.setContentsMargins(20, 18, 20, 18)
@@ -307,7 +308,7 @@ class OneTimeEventsPage(BasePage):
             lbl.setObjectName("Subtitle")
             try:
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            except Exception:
+            except QT_ERRORS:
                 pass
             pie_card_l.addWidget(lbl, 1)
         else:
@@ -316,7 +317,7 @@ class OneTimeEventsPage(BasePage):
             self._pie = OneTimeEventPieChart(pie_card)
             try:
                 self._pie.setMinimumWidth(150)
-            except Exception:
+            except QT_ERRORS:
                 pass
             donut_row.addWidget(self._pie, 0)
 
@@ -423,7 +424,7 @@ class OneTimeEventsPage(BasePage):
                 try:
                     amt = float(getattr(m, "amount", 0.0))
                     date_iso = str(getattr(m, "date", "") or "")
-                except Exception:
+                except QT_ERRORS:
                     continue
                 if amt < 0 and date_iso:
                     pts.append(ExpensePoint(date_iso=date_iso, amount=abs(amt)))
@@ -548,7 +549,7 @@ class OneTimeEventsPage(BasePage):
             try:
                 from datetime import datetime
                 return datetime.strptime(str(s)[:10], "%Y-%m-%d")
-            except Exception:
+            except QT_ERRORS:
                 return None
 
         d1, d2 = parse(start), parse(end)
@@ -591,7 +592,7 @@ class OneTimeEventsPage(BasePage):
             self._selected_event_id = updated.id
             self._refresh()
             self._render_selected_event()
-        except Exception:
+        except QT_ERRORS:
             return
 
     def _open_assign_dialog(self) -> None:
@@ -603,7 +604,7 @@ class OneTimeEventsPage(BasePage):
                 service=self._service, event=event, parent=None
             )
             dlg.exec()
-        except Exception:
+        except QT_ERRORS:
             return
         self._refresh()
         self._render_selected_event()
@@ -627,7 +628,7 @@ class OneTimeEventsPage(BasePage):
             self._selected_event_id = created.id
             self._refresh()
             self._render_selected_event()
-        except Exception:
+        except QT_ERRORS:
             return
 
     def _on_delete_event(self) -> None:
@@ -642,7 +643,7 @@ class OneTimeEventsPage(BasePage):
             )
             if ans != QMessageBox.StandardButton.Yes:
                 return
-        except Exception:
+        except QT_ERRORS:
             pass
         self._service.delete_event(self._selected_event_id)
         self._selected_event_id = None

@@ -19,6 +19,7 @@ from ..widgets.yearly_balance_chart import YearlyBalanceChart
 from ..widgets.time_range_bar import TimeRangeBar
 from ..widgets.chart_utils import future_month_labels
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class AutoStatCard(QWidget):
@@ -27,18 +28,18 @@ class AutoStatCard(QWidget):
         self.setObjectName("Sidebar")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setMinimumHeight(100)
             self.setMinimumWidth(90)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         v = QVBoxLayout(self)
@@ -49,14 +50,14 @@ class AutoStatCard(QWidget):
         self._title.setObjectName("Subtitle")
         try:
             self._title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._value = QLabel("", self)
         self._value.setObjectName("StatValueLarge")
         try:
             self._value.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         v.addStretch(1)
@@ -88,13 +89,13 @@ class AutoStatCard(QWidget):
             f = self._title.font()
             f.setPixelSize(int(title_px))
             self._title.setFont(f)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             f = self._value.font()
             f.setPixelSize(int(value_px))
             self._value.setFont(f)
-        except Exception:
+        except QT_ERRORS:
             pass
 
 
@@ -138,7 +139,7 @@ class YearlyOverviewPage(BasePage):
         layout.setSpacing(16)
         try:
             container.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         # ── stat cards row ────────────────────────────────────────────────
@@ -157,7 +158,7 @@ class YearlyOverviewPage(BasePage):
             income_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             expense_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             net_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._income_value = income_card.value_label()
@@ -173,7 +174,7 @@ class YearlyOverviewPage(BasePage):
         chart_card.setObjectName("ContentPanel")
         try:
             chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart_layout = QVBoxLayout(chart_card)
         chart_layout.setContentsMargins(20, 18, 20, 18)
@@ -205,7 +206,7 @@ class YearlyOverviewPage(BasePage):
             self._one_time_checkbox.setMinimumWidth(
                 self._one_time_checkbox.sizeHint().width()
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         controls_layout.addWidget(self._one_time_checkbox)
 

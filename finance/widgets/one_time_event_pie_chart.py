@@ -21,6 +21,7 @@ from ..qt import (
     charts_available,
 )
 from ..utils.formatting import format_currency
+from ..utils.safe import QT_ERRORS
 
 
 class OneTimeEventPieChart(QWidget):
@@ -38,24 +39,24 @@ class OneTimeEventPieChart(QWidget):
         self._view = QChartView(self)
         try:
             self._view.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        except Exception:
+        except QT_ERRORS:
             try:
                 hint = getattr(QPainter, "Antialiasing", None)
                 if hint is not None:
                     self._view.setRenderHint(hint, True)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._view.setFrameShape(QFrame.Shape.NoFrame)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._view.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         lay.addWidget(self._view, 1)
@@ -69,7 +70,7 @@ class OneTimeEventPieChart(QWidget):
             chart.setPlotAreaBackgroundVisible(False)
             chart.setTitle("")
             chart.setMargins(QMarginsF(0, 0, 0, 0))
-        except Exception:
+        except QT_ERRORS:
             pass
         self._view.setChart(chart)
 
@@ -80,19 +81,19 @@ class OneTimeEventPieChart(QWidget):
         series = QPieSeries()
         try:
             series.setLabelsVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             series.setHoleSize(0.34)
             series.setPieSize(0.98)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if not by_category_expense:
             slice_ = series.append("אין נתונים", 1.0)
             try:
                 slice_.setLabelVisible(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             items = list(by_category_expense.items())
@@ -102,7 +103,7 @@ class OneTimeEventPieChart(QWidget):
                 s = series.append(cat, float(amount))
                 try:
                     s.setBrush(QColor(palette[idx % len(palette)]))
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     s.hovered.connect(
@@ -113,69 +114,69 @@ class OneTimeEventPieChart(QWidget):
                             series, sl, state, label, val
                         )
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         chart = QChart()
         chart.addSeries(series)
         try:
             chart.legend().setVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
-        except Exception:
+        except QT_ERRORS:
             try:
                 chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             alignment = Qt.AlignmentFlag.AlignBottom
-        except Exception:
+        except QT_ERRORS:
             alignment = getattr(Qt, "AlignBottom", None)
         try:
             if alignment is not None:
                 chart.legend().setAlignment(alignment)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.legend().setContentsMargins(0, 0, 0, 0)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setMargins(QMarginsF(0, 0, 0, 0))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             legend = chart.legend()
             try:
                 legend.setBackgroundVisible(False)
                 legend.setBorderColor(Qt.GlobalColor.transparent)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 legend.setMarkerShape(QLegend.MarkerShape.MarkerShapeRectangle)
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setTitle("")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setBackgroundVisible(False)
             chart.setPlotAreaBackgroundVisible(False)
             try:
                 chart.setBackgroundPen(Qt.PenStyle.NoPen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 if hasattr(series, "setLabelsColor"):
                     series.setLabelsColor(QColor("#111827"))
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._view.setChart(chart)
@@ -202,5 +203,5 @@ class OneTimeEventPieChart(QWidget):
                 QToolTip.showText(QCursor.pos(), html, self._view)
             else:
                 QToolTip.hideText()
-        except Exception:
+        except QT_ERRORS:
             pass

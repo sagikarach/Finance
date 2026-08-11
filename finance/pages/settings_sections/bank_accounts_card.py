@@ -23,6 +23,7 @@ from ...models.accounts import BankAccount, BudgetAccount, MoneyAccount, MoneySn
 from ...models.accounts_service import AccountsService
 from ...models.bank_movement_service import BankMovementService
 from ...models.bank_settings import BankSettingsRowInput
+from ...utils.safe import QT_ERRORS
 
 
 class BankAccountsCard(QWidget):
@@ -39,14 +40,14 @@ class BankAccountsCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._provider = provider
         self._accounts_service = accounts_service
@@ -64,7 +65,7 @@ class BankAccountsCard(QWidget):
         title_label = QLabel("ניהול חשבונות בנק", self)
         try:
             title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title_label)
         layout.addSpacing(8)
@@ -81,7 +82,7 @@ class BankAccountsCard(QWidget):
                         bank_accounts[acc.name] = acc
                     elif isinstance(acc, BudgetAccount) and acc.name == "סיבוס":
                         existing_budget = acc
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         account_widgets: Dict[str, Dict[str, Any]] = {}
@@ -109,14 +110,14 @@ class BankAccountsCard(QWidget):
             amount_edit = QLineEdit(account_row)
             try:
                 amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     amount_edit.setLayoutDirection(Qt.RightToLeft)
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 amount_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
             if account:
                 amount_edit.setText(f"{baseline_amount:.2f}")
@@ -172,14 +173,14 @@ class BankAccountsCard(QWidget):
         budget_amount_edit = QLineEdit(budget_inputs)
         try:
             budget_amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 budget_amount_edit.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             budget_amount_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             if (
@@ -189,7 +190,7 @@ class BankAccountsCard(QWidget):
                 budget_amount_edit.setText(
                     f"{float(existing_budget.monthly_budget):.2f}"
                 )
-        except Exception:
+        except QT_ERRORS:
             pass
         budget_amount_edit.setPlaceholderText("0.00")
 
@@ -204,7 +205,7 @@ class BankAccountsCard(QWidget):
             if reset_day_val > 28:
                 reset_day_val = 28
             reset_day_combo.setCurrentIndex(reset_day_val - 1)
-        except Exception:
+        except QT_ERRORS:
             reset_day_combo.setCurrentIndex(0)
 
         inputs_l.addWidget(budget_amount_lbl)
@@ -250,20 +251,20 @@ class BankAccountsCard(QWidget):
                         if isinstance(a, BudgetAccount) and a.name == "סיבוס":
                             continue
                         out_accounts.append(a)
-                except Exception:
+                except QT_ERRORS:
                     out_accounts = list(merged_accounts)
 
                 if budget_active.isChecked():
                     try:
                         mb = float(budget_amount_edit.text().strip().replace(",", ""))
-                    except Exception:
+                    except QT_ERRORS:
                         mb = 0.0
                     if mb < 0:
                         mb = 0.0
                     rd = reset_day_combo.currentData()
                     try:
                         rd_i = int(rd if rd is not None else 1)
-                    except Exception:
+                    except QT_ERRORS:
                         rd_i = 1
                     if rd_i < 1:
                         rd_i = 1
@@ -275,15 +276,15 @@ class BankAccountsCard(QWidget):
                     if existing_budget is not None:
                         try:
                             hist = list(existing_budget.history)
-                        except Exception:
+                        except QT_ERRORS:
                             hist = []
                         try:
                             last_period = str(existing_budget.last_reset_period or "")
-                        except Exception:
+                        except QT_ERRORS:
                             last_period = ""
                         try:
                             cur_total = float(existing_budget.total_amount)
-                        except Exception:
+                        except QT_ERRORS:
                             cur_total = float(mb)
                     if cur_total > float(mb):
                         cur_total = float(mb)
@@ -295,7 +296,7 @@ class BankAccountsCard(QWidget):
                                     amount=float(cur_total),
                                 )
                             ]
-                        except Exception:
+                        except QT_ERRORS:
                             hist = []
                     out_accounts.append(
                         BudgetAccount(
@@ -321,15 +322,15 @@ class BankAccountsCard(QWidget):
                         )
                         out_accounts = mv_svc.recalculate_account_balances(out_accounts)
                         self._accounts_service.save_all(out_accounts)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
-                except Exception:
+                except QT_ERRORS:
                     pass
 
                 latest_accounts = []
                 try:
                     latest_accounts = self._provider.list_accounts()
-                except Exception:
+                except QT_ERRORS:
                     latest_accounts = []
 
                 def update_sidebar() -> None:
@@ -338,12 +339,12 @@ class BankAccountsCard(QWidget):
                     ):
                         try:
                             self._sidebar.update_accounts(latest_accounts)
-                        except Exception:
+                        except QT_ERRORS:
                             pass
 
                 try:
                     QTimer.singleShot(50, update_sidebar)
-                except Exception:
+                except QT_ERRORS:
                     update_sidebar()
 
                 saved_bank_by_name = {
@@ -363,7 +364,7 @@ class BankAccountsCard(QWidget):
                             ba = float(
                                 getattr(saved_account, "baseline_amount", 0.0) or 0.0
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             ba = 0.0
                         if saved_account.active:
                             amount_edit.setText(f"{ba:.2f}")
@@ -372,18 +373,18 @@ class BankAccountsCard(QWidget):
                 try:
                     if self._on_after_save is not None:
                         self._on_after_save()
-                except Exception:
+                except QT_ERRORS:
                     pass
 
                 try:
                     QToolTip.showText(QCursor.pos(), "חשבונות הבנק נשמרו")
-                except Exception:
+                except QT_ERRORS:
                     pass
 
-            except Exception as e:
+            except QT_ERRORS as e:
                 try:
                     QToolTip.showText(QCursor.pos(), f"שגיאה בשמירה: {str(e)}")
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         save_button.clicked.connect(on_save_bank_accounts)
@@ -393,5 +394,5 @@ class BankAccountsCard(QWidget):
                 0,
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
             )
-        except Exception:
+        except QT_ERRORS:
             layout.addWidget(save_button)

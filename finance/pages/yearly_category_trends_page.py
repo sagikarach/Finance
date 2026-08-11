@@ -19,6 +19,7 @@ from ..widgets.category_trends_chart import CategoryTrendsChart
 from ..widgets.time_range_bar import TimeRangeBar
 from ..widgets.chart_utils import future_month_labels
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class YearlyCategoryTrendsPage(BasePage):
@@ -83,7 +84,7 @@ class YearlyCategoryTrendsPage(BasePage):
         top_controls.setObjectName("TrendsControlsBar")
         try:
             top_controls.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         top_controls_layout = QHBoxLayout(top_controls)
         top_controls_layout.setContentsMargins(0, 0, 0, 0)
@@ -97,7 +98,7 @@ class YearlyCategoryTrendsPage(BasePage):
         filters_box = QWidget(container)
         try:
             filters_box.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         filters_box_layout = QHBoxLayout(filters_box)
         filters_box_layout.setContentsMargins(0, 0, 0, 0)
@@ -128,16 +129,16 @@ class YearlyCategoryTrendsPage(BasePage):
         def _fix_min_width(w: QWidget) -> None:
             try:
                 w.ensurePolished()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 w.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 hint = w.sizeHint()
                 w.setMinimumWidth(int(hint.width()) + 2)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         def _fix_checkbox_min_width(cb: QCheckBox) -> None:
@@ -147,10 +148,10 @@ class YearlyCategoryTrendsPage(BasePage):
                 text = cb.text() or ""
                 try:
                     text_w = int(fm.horizontalAdvance(text))
-                except Exception:
+                except QT_ERRORS:
                     text_w = int(len(text) * 10)
                 cb.setMinimumWidth(text_w + 18 + 12 + 8)
-            except Exception:
+            except QT_ERRORS:
                 _fix_min_width(cb)
 
         for w in (
@@ -168,7 +169,7 @@ class YearlyCategoryTrendsPage(BasePage):
         try:
             divider.setFixedWidth(3)
             divider.setFixedHeight(22)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         filters_box_layout.addWidget(show_label, 0, Qt.AlignmentFlag.AlignRight)
@@ -196,7 +197,7 @@ class YearlyCategoryTrendsPage(BasePage):
         chart_card.setObjectName("ContentPanel")
         try:
             chart_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart_layout = QVBoxLayout(chart_card)
         chart_layout.setContentsMargins(16, 16, 16, 16)
@@ -213,18 +214,18 @@ class YearlyCategoryTrendsPage(BasePage):
                 setter = getattr(self._combined_chart, "set_transition_enabled", None)
                 if callable(setter):
                     setter(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._refresh()
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             if self._combined_chart is not None:
                 setter = getattr(self._combined_chart, "set_transition_enabled", None)
                 if callable(setter):
                     setter(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     # ------------------------------------------------------------------ range
@@ -321,7 +322,7 @@ class YearlyCategoryTrendsPage(BasePage):
                 self._type_one_time = bool(self._one_time_cb.isChecked())
             if self._yearly_cb is not None:
                 self._type_yearly = bool(self._yearly_cb.isChecked())
-        except Exception:
+        except QT_ERRORS:
             pass
         self._refresh()
 
@@ -339,16 +340,16 @@ class YearlyCategoryTrendsPage(BasePage):
                 setter = getattr(self._combined_chart, "set_transition_enabled", None)
                 if callable(setter):
                     setter(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._refresh()
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             if self._combined_chart is not None:
                 setter = getattr(self._combined_chart, "set_transition_enabled", None)
                 if callable(setter):
                     setter(True)
-        except Exception:
+        except QT_ERRORS:
             pass

@@ -16,6 +16,7 @@ from ..qt import (
 )
 from ..models.one_time_event import OneTimeEvent, OneTimeEventStatus
 from .dialog_utils import create_standard_buttons_row, setup_standard_rtl_dialog, setup_calendar_popup
+from ..utils.safe import QT_ERRORS
 
 
 class OneTimeEventEditDialog(QDialog):
@@ -44,7 +45,7 @@ class OneTimeEventEditDialog(QDialog):
         header.setObjectName("Subtitle")
         try:
             header.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(header)
 
@@ -55,7 +56,7 @@ class OneTimeEventEditDialog(QDialog):
         self._name_error.setObjectName("Subtitle")
         try:
             self._name_error.setObjectName("ErrorLabel")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._name_error.setVisible(False)
 
@@ -97,18 +98,18 @@ class OneTimeEventEditDialog(QDialog):
             setup_calendar_popup(self._start)
             self._end.setCalendarPopup(True)
             setup_calendar_popup(self._end)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if event.start_date:
             try:
                 self._start.setDate(QDate.fromString(event.start_date, "yyyy-MM-dd"))
-            except Exception:
+            except QT_ERRORS:
                 pass
         if event.end_date:
             try:
                 self._end.setDate(QDate.fromString(event.end_date, "yyyy-MM-dd"))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         dates_row = QHBoxLayout()
@@ -148,7 +149,7 @@ class OneTimeEventEditDialog(QDialog):
             self._name_error.setVisible(True)
             try:
                 self._name.setFocus()
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
         if not name:
@@ -156,7 +157,7 @@ class OneTimeEventEditDialog(QDialog):
         budget = self._event.budget
         try:
             budget = float((self._budget.text() or "").strip() or 0.0)
-        except Exception:
+        except QT_ERRORS:
             budget = self._event.budget
         if budget < 0:
             QMessageBox.warning(self, "שגיאה", "התקציב לא יכול להיות שלילי.")
@@ -180,7 +181,7 @@ class OneTimeEventEditDialog(QDialog):
                         "תאריך הסיום חייב להיות לאחר תאריך ההתחלה.",
                     )
                     return
-            except Exception:
+            except QT_ERRORS:
                 start_date = self._event.start_date
                 end_date = self._event.end_date
 

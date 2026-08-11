@@ -18,6 +18,7 @@ from ..models.bank_movement import BankMovement
 from ..models.one_time_event import OneTimeEvent
 from ..models.one_time_events_service import OneTimeEventsService
 from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl
+from ..utils.safe import QT_ERRORS
 
 
 class OneTimeEventAssignDialog(QDialog):
@@ -47,7 +48,7 @@ class OneTimeEventAssignDialog(QDialog):
         header.setObjectName("HeaderTitle")
         try:
             header.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(header)
 
@@ -125,7 +126,7 @@ class OneTimeEventAssignDialog(QDialog):
             )
         try:
             table.resizeColumnsToContents()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _selected_movement_id(
@@ -133,7 +134,7 @@ class OneTimeEventAssignDialog(QDialog):
     ) -> Optional[str]:
         try:
             row = table.currentRow()
-        except Exception:
+        except QT_ERRORS:
             return None
         if row < 0 or row >= len(items):
             return None
@@ -147,7 +148,7 @@ class OneTimeEventAssignDialog(QDialog):
             return
         try:
             self._service.assign_movement(movement_id, self._event.id)
-        except Exception as _e:
+        except QT_ERRORS as _e:
             QMessageBox.warning(self, "שגיאה", f"לא ניתן לשייך את התנועה: {_e}")
             return
         self.refresh()
@@ -158,7 +159,7 @@ class OneTimeEventAssignDialog(QDialog):
             return
         try:
             self._service.assign_movement(movement_id, None)
-        except Exception as _e:
+        except QT_ERRORS as _e:
             QMessageBox.warning(self, "שגיאה", f"לא ניתן לבטל את השיוך: {_e}")
             return
         self.refresh()

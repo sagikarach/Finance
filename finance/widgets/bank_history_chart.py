@@ -32,6 +32,7 @@ from .savings_history_chart import (
     _label_step_for,
 )
 from .time_range_bar import TimeRangeBar
+from ..utils.safe import QT_ERRORS
 
 
 def _build_x_axis_labeled(
@@ -47,7 +48,7 @@ def _build_x_axis_labeled(
     try:
         axis.setGridLineVisible(False)
         axis.setMinorGridLineVisible(False)
-    except Exception:
+    except QT_ERRORS:
         pass
     return axis
 
@@ -75,7 +76,7 @@ class BankHistoryChartCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._chart: Optional[QChart] = None
@@ -109,7 +110,7 @@ class BankHistoryChartCard(QWidget):
         chart = QChart()
         try:
             chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart.legend().setVisible(False)
         chart.setBackgroundRoundness(0)
@@ -226,7 +227,7 @@ class BankHistoryChartCard(QWidget):
         series.setName(self._series_name)
         try:
             series.setPointsVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         _apply_line_pen(series, self._series_color)
         for x_val, y_val in catmull_rom_spline_samples(visible_vals):
@@ -237,7 +238,7 @@ class BankHistoryChartCard(QWidget):
         try:
             axis_x.setLabelsBrush(lc)
             axis_y.setLabelsBrush(lc)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
         self._chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
@@ -245,7 +246,7 @@ class BankHistoryChartCard(QWidget):
             try:
                 s.attachAxis(axis_x)
                 s.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self._chart_view._shadows = [(series, self._series_color)]
@@ -305,7 +306,7 @@ class BankHistoryChartCard(QWidget):
         series.setName(self._series_name)
         try:
             series.setPointsVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         _apply_line_pen(series, self._series_color)
         for x_val, y_val in catmull_rom_spline_samples(visible_bv):
@@ -316,7 +317,7 @@ class BankHistoryChartCard(QWidget):
         try:
             axis_x.setLabelsBrush(lc)
             axis_y.setLabelsBrush(lc)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
         self._chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
@@ -324,7 +325,7 @@ class BankHistoryChartCard(QWidget):
             try:
                 s.attachAxis(axis_x)
                 s.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         # month_keys for tooltip (pad with dummy for start/today)
@@ -343,14 +344,14 @@ class BankHistoryChartCard(QWidget):
             return
         try:
             self._chart.removeAllSeries()
-        except Exception:
+        except QT_ERRORS:
             for s in list(self._chart.series()):
                 try:
                     self._chart.removeSeries(s)
-                except Exception:
+                except QT_ERRORS:
                     pass
         for ax in list(self._chart.axes()):
             try:
                 self._chart.removeAxis(ax)
-            except Exception:
+            except QT_ERRORS:
                 pass

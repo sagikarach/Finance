@@ -78,7 +78,7 @@ class _DetailTile(QFrame):
         try:
             self.setCursor(Qt.CursorShape.PointingHandCursor)
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         row = QHBoxLayout(self)
         row.setContentsMargins(16, 14, 16, 14)
@@ -113,6 +113,7 @@ from ..utils.formatting import fmt_money as _fmt_money
 
 
 from ..utils.formatting import parse_float as _parse_float
+from ..utils.safe import QT_ERRORS
 
 
 class FundingSourceDialog(QDialog):
@@ -130,7 +131,7 @@ class FundingSourceDialog(QDialog):
         self.setModal(True)
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._accounts = accounts
         self._source = source
@@ -197,7 +198,7 @@ class FundingSourceDialog(QDialog):
         self._name.setText(str(s.name or ""))
         try:
             self._kind.setCurrentText(str(getattr(s.kind, "value", s.kind)))
-        except Exception:
+        except QT_ERRORS:
             pass
         if s.amount:
             self._amount.setText(f"{float(s.amount):.0f}")
@@ -244,7 +245,7 @@ class FundingSourceDialog(QDialog):
     def _on_save(self) -> None:
         try:
             kind = FundingKind(str(self._kind.currentText()))
-        except Exception:
+        except QT_ERRORS:
             kind = FundingKind.FUTURE
         account_name = ""
         saving_name = ""
@@ -292,7 +293,7 @@ class CostItemDialog(QDialog):
         self.setModal(True)
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._cost = cost
         self._show_renewal = show_renewal
@@ -374,7 +375,7 @@ class CostItemDialog(QDialog):
         renewal = 0
         try:
             renewal = int(self._renewal.currentData() or 0)
-        except Exception:
+        except QT_ERRORS:
             renewal = 0
         self._cost = CostItem(
             name=name,
@@ -415,7 +416,7 @@ class AssetDetailPage(BasePage):
     def _load_accounts(self) -> List[MoneyAccount]:
         try:
             return list(self._accounts_service.load_accounts() or [])
-        except Exception:
+        except QT_ERRORS:
             return list(self._accounts or [])
 
     def on_route_activated(self) -> None:
@@ -432,7 +433,7 @@ class AssetDetailPage(BasePage):
     def _selected_asset(self) -> Optional[Mortgage]:
         try:
             sel = str(self._app_context.get("selected_mortgage_id") or "").strip()
-        except Exception:
+        except QT_ERRORS:
             sel = ""
         if not sel:
             return None
@@ -447,7 +448,7 @@ class AssetDetailPage(BasePage):
         root = QWidget(self)
         try:
             root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         content_col.addWidget(root, 1)
         lay = QVBoxLayout(root)
@@ -473,7 +474,7 @@ class AssetDetailPage(BasePage):
             from ..utils.icons import apply_icon
 
             apply_icon(back_btn, "arrow_right", size=20, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             back_btn.setText("→")
         back_btn.setToolTip("חזרה לרשימת הנכסים")
         if self._navigate is not None:
@@ -491,7 +492,7 @@ class AssetDetailPage(BasePage):
             from ..utils.icons import apply_icon
 
             apply_icon(edit_btn, "edit", size=20, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             edit_btn.setText("✎")
         if m.kind == AssetKind.CAR:
             edit_btn.setToolTip("ערוך פרטי רכב")
@@ -668,7 +669,7 @@ class AssetDetailPage(BasePage):
             income_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         il = QVBoxLayout(income_card)
         il.setContentsMargins(16, 16, 16, 16)
@@ -708,7 +709,7 @@ class AssetDetailPage(BasePage):
             if hh2 is not None:
                 hh2.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
                 hh2.setObjectName("ActionHistoryHeader")
-        except Exception:
+        except QT_ERRORS:
             pass
         income_table.doubleClicked.connect(self._on_edit_funding)
         self._funding_table = income_table
@@ -785,15 +786,15 @@ class AssetDetailPage(BasePage):
         setup_calendar_popup(d)
         try:
             d.setDisplayFormat("yyyy-MM-dd")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             dt = parse_iso_date(str(value_iso or ""))
             d.setDate(QDate(dt.year, dt.month, dt.day))
-        except Exception:
+        except QT_ERRORS:
             try:
                 d.setDate(QDate.currentDate())
-            except Exception:
+            except QT_ERRORS:
                 pass
         layout.addWidget(d)
         return d
@@ -847,7 +848,7 @@ class AssetDetailPage(BasePage):
         panel.setObjectName("ContentPanel")
         try:
             panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         pl = QVBoxLayout(panel)
         pl.setContentsMargins(22, 20, 22, 20)
@@ -878,7 +879,7 @@ class AssetDetailPage(BasePage):
             try:
                 bar.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
                 bar.setFixedHeight(16)
-            except Exception:
+            except QT_ERRORS:
                 pass
             bar.setValue(int(round(retained * 100)))
             pl.addWidget(bar)
@@ -891,7 +892,7 @@ class AssetDetailPage(BasePage):
         card = QWidget(parent)
         try:
             card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         if tone == "green":
             bg, lbl_c, num_c, dot, foot_c = "#eaf5ef", "#5b7a68", "#2f9e68", "#2f9e68", "#5b7a68"
@@ -987,7 +988,7 @@ class AssetDetailPage(BasePage):
     def _distinct_categories(self):
         try:
             movements = self._service.list_movements()
-        except Exception:
+        except QT_ERRORS:
             return ["רכב"]
         seen = {}
         for mv in movements:
@@ -1011,7 +1012,7 @@ class AssetDetailPage(BasePage):
         try:
             dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             dlg.setModal(True)
-        except Exception:
+        except QT_ERRORS:
             pass
         root = QVBoxLayout(dlg)
         root.setContentsMargins(24, 20, 24, 20)
@@ -1033,7 +1034,7 @@ class AssetDetailPage(BasePage):
             try:
                 import webbrowser
                 webbrowser.open("https://carlistprice.mot.gov.il/")
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         open_btn.clicked.connect(_open_site)
@@ -1068,7 +1069,7 @@ class AssetDetailPage(BasePage):
         try:
             dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             dlg.setModal(True)
-        except Exception:
+        except QT_ERRORS:
             pass
         root = QVBoxLayout(dlg)
         root.setContentsMargins(24, 20, 24, 20)
@@ -1105,7 +1106,7 @@ class AssetDetailPage(BasePage):
             p = _parse_float(price.text()) or 0.0
             try:
                 purchase = date.date().toString("yyyy-MM-dd")
-            except Exception:
+            except QT_ERRORS:
                 purchase = m.start_date
             self._car_persist(
                 replace(
@@ -1130,7 +1131,7 @@ class AssetDetailPage(BasePage):
         try:
             dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             dlg.resize(760, 520)
-        except Exception:
+        except QT_ERRORS:
             pass
         outer = QVBoxLayout(dlg)
         outer.setContentsMargins(16, 16, 16, 16)
@@ -1277,7 +1278,7 @@ class AssetDetailPage(BasePage):
         panel.setObjectName("ContentPanel")
         try:
             panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         pl = QVBoxLayout(panel)
         pl.setContentsMargins(22, 20, 22, 20)
@@ -1300,7 +1301,7 @@ class AssetDetailPage(BasePage):
         try:
             bar.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             bar.setFixedHeight(16)
-        except Exception:
+        except QT_ERRORS:
             pass
         bar.setValue(int(round(max(0.0, min(1.0, eq_frac)) * 100)))
         pl.addWidget(bar)
@@ -1354,7 +1355,7 @@ class AssetDetailPage(BasePage):
         panel.setObjectName("ContentPanel")
         try:
             panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         pl = QVBoxLayout(panel)
         pl.setContentsMargins(22, 20, 22, 20)
@@ -1479,7 +1480,7 @@ class AssetDetailPage(BasePage):
         try:
             dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             dlg.resize(840, 620)
-        except Exception:
+        except QT_ERRORS:
             pass
         outer = QVBoxLayout(dlg)
         outer.setContentsMargins(16, 16, 16, 16)
@@ -1532,7 +1533,7 @@ class AssetDetailPage(BasePage):
             card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         cl = QVBoxLayout(card)
         cl.setContentsMargins(16, 16, 16, 16)
@@ -1567,7 +1568,7 @@ class AssetDetailPage(BasePage):
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
                 hh.setObjectName("ActionHistoryHeader")
-        except Exception:
+        except QT_ERRORS:
             pass
         cl.addWidget(table, 1)
         return card, table
@@ -1742,7 +1743,7 @@ class AssetDetailPage(BasePage):
         try:
             if isinstance(self._app_context, dict):
                 self._app_context["selected_mortgage_id"] = str(m.id)
-        except Exception:
+        except QT_ERRORS:
             pass
         if self._navigate is not None:
             self._navigate("mortgage")

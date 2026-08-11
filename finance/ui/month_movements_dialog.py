@@ -21,6 +21,7 @@ from ..qt import (
     QWidget,
 )
 from .dialog_utils import setup_standard_rtl_dialog, make_table_danger_button, FullCellDelegate
+from ..utils.safe import QT_ERRORS
 
 
 class MonthMovementsDialog(QDialog):
@@ -59,11 +60,11 @@ class MonthMovementsDialog(QDialog):
             self.setMinimumSize(1100, 700)
             self.resize(1280, 780)
             self.setSizeGripEnabled(True)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setMinimumWidth(1100)
                 self.setMinimumHeight(700)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         # Header: ← / → arrows flanking the month title to step between months.
@@ -74,7 +75,7 @@ class MonthMovementsDialog(QDialog):
             app = QApplication.instance()
             if app is not None:
                 is_dark = str(app.property("theme") or "light") == "dark"
-        except Exception:
+        except QT_ERRORS:
             is_dark = False
 
         header_row = QHBoxLayout()
@@ -100,11 +101,11 @@ class MonthMovementsDialog(QDialog):
                 apply_icon(b, icon, size=20, is_dark=is_dark)
                 if b.icon().isNull():
                     b.setText(fallback)
-            except Exception:
+            except QT_ERRORS:
                 b.setText(fallback)
             try:
                 b.setCursor(Qt.CursorShape.PointingHandCursor)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._prev_btn.clicked.connect(lambda: self._shift_month(-1))
         self._next_btn.clicked.connect(lambda: self._shift_month(1))
@@ -113,7 +114,7 @@ class MonthMovementsDialog(QDialog):
         self._title_label.setObjectName("HeaderTitle")
         try:
             self._title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         header_row.addWidget(self._next_btn, 0)
@@ -142,7 +143,7 @@ class MonthMovementsDialog(QDialog):
             try:
                 btn.setMinimumHeight(34)
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._expense_toggle.clicked.connect(
             lambda: self._set_view(show_income=False)
@@ -206,7 +207,7 @@ class MonthMovementsDialog(QDialog):
         panel.setObjectName("AssetTablePanel")
         try:
             panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         col = QVBoxLayout(panel)
         col.setContentsMargins(12, 12, 12, 12)
@@ -236,7 +237,7 @@ class MonthMovementsDialog(QDialog):
             t.setAlternatingRowColors(False)
             t.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
             t.setEditTriggers(QTableWidget.EditTrigger.DoubleClicked)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             header = t.horizontalHeader()
@@ -245,7 +246,7 @@ class MonthMovementsDialog(QDialog):
                 try:
                     rtc = QHeaderView.ResizeMode.ResizeToContents
                     stretch = QHeaderView.ResizeMode.Stretch
-                except Exception:
+                except QT_ERRORS:
                     rtc = QHeaderView.ResizeToContents
                     stretch = QHeaderView.Stretch
 
@@ -262,7 +263,7 @@ class MonthMovementsDialog(QDialog):
                 header.setSectionResizeMode(5, stretch)  # description
                 header.setSectionResizeMode(6, fixed)  # מחק
                 t.setColumnWidth(6, 80)
-        except Exception:
+        except QT_ERRORS:
             pass
         t.setItemDelegateForColumn(6, FullCellDelegate(t))
         return t
@@ -274,10 +275,10 @@ class MonthMovementsDialog(QDialog):
             combo.setSizeAdjustPolicy(
                 QComboBox.SizeAdjustPolicy.AdjustToContents
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 combo.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _fit_combo_columns(self, table: QTableWidget) -> None:
@@ -299,19 +300,19 @@ class MonthMovementsDialog(QDialog):
                     text = hdr.text() if hdr is not None else ""
                     width = table.fontMetrics().horizontalAdvance(text)
                 table.setColumnWidth(col, int(width) + 24)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _list_categories(self, is_income: bool) -> List[str]:
         try:
             return self._movement_service.list_categories(is_income)
-        except Exception:
+        except QT_ERRORS:
             return []
 
     def _load(self) -> None:
         try:
             all_movements = list(self._movement_service.list_movements())
-        except Exception:
+        except QT_ERRORS:
             all_movements = []
 
         in_month: List[BankMovement] = []
@@ -320,7 +321,7 @@ class MonthMovementsDialog(QDialog):
                 dt = parse_iso_date(m.date)
                 if dt.year == self._year and dt.month == self._month:
                     in_month.append(m)
-            except Exception:
+            except QT_ERRORS:
                 continue
 
         in_month.sort(key=lambda m: parse_iso_date(m.date), reverse=True)
@@ -351,14 +352,14 @@ class MonthMovementsDialog(QDialog):
 
         try:
             align = Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-        except Exception:
+        except QT_ERRORS:
             align = None
 
         for row, m in enumerate(movements):
             date_item = QTableWidgetItem(str(m.date))
             try:
                 date_item.setData(Qt.ItemDataRole.UserRole, m.id)
-            except Exception:
+            except QT_ERRORS:
                 pass
             acct_item = QTableWidgetItem(str(m.account_name))
             amount_item = QTableWidgetItem(str(m.amount))
@@ -367,7 +368,7 @@ class MonthMovementsDialog(QDialog):
             for it in (date_item, acct_item, amount_item):
                 try:
                     it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 if align is not None:
@@ -375,7 +376,7 @@ class MonthMovementsDialog(QDialog):
                     acct_item.setTextAlignment(align)
                     amount_item.setTextAlignment(align)
                     desc_item.setTextAlignment(align)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             cat_combo = QComboBox(table)
@@ -417,7 +418,7 @@ class MonthMovementsDialog(QDialog):
         # reload (e.g. stepping months via the arrows).
         try:
             table.resizeRowsToContents()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _read_row(self, table: QTableWidget, row: int) -> Tuple[str, str]:
@@ -427,13 +428,13 @@ class MonthMovementsDialog(QDialog):
             w = table.cellWidget(row, 3)
             if isinstance(w, QComboBox):
                 cat = w.currentText().strip()
-        except Exception:
+        except QT_ERRORS:
             cat = ""
         try:
             item = table.item(row, 5)
             if item is not None:
                 desc = item.text().strip()
-        except Exception:
+        except QT_ERRORS:
             desc = ""
         return cat, desc
 
@@ -443,14 +444,14 @@ class MonthMovementsDialog(QDialog):
             if isinstance(w, QComboBox):
                 txt = w.currentText().strip()
                 return MovementType(txt)
-        except Exception:
+        except QT_ERRORS:
             return None
         return None
 
     def _on_save(self) -> None:
         try:
             all_movements = list(self._movement_service.list_movements())
-        except Exception:
+        except QT_ERRORS:
             all_movements = []
 
         by_id: Dict[str, BankMovement] = {m.id: m for m in all_movements}
@@ -467,7 +468,7 @@ class MonthMovementsDialog(QDialog):
                     movement_id = None
                     try:
                         movement_id = date_item.data(Qt.ItemDataRole.UserRole)
-                    except Exception:
+                    except QT_ERRORS:
                         movement_id = None
                     if not isinstance(movement_id, str) or not movement_id:
                         continue
@@ -489,7 +490,7 @@ class MonthMovementsDialog(QDialog):
                         or new_m.type != m.type
                     ):
                         changed.append(new_m)
-                except Exception:
+                except QT_ERRORS:
                     continue
 
         apply_updates(self._income_table)
@@ -500,18 +501,18 @@ class MonthMovementsDialog(QDialog):
             self._movement_service.save_movements(
                 updated, changed_movements=changed or None
             )
-        except Exception as _e:
+        except QT_ERRORS as _e:
             try:
                 from ..qt import QMessageBox
                 QMessageBox.warning(self, "שגיאה בשמירה", f"השמירה נכשלה: {_e}")
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
 
         if self._on_saved is not None:
             try:
                 self._on_saved()
-            except Exception:
+            except QT_ERRORS:
                 pass
         self.accept()
 
@@ -539,23 +540,23 @@ class MonthMovementsDialog(QDialog):
             del_btn.clicked.connect(dlg.accept)
             if not dlg.exec():
                 return
-        except Exception:
+        except QT_ERRORS:
             return
 
         if self._on_delete_movement is not None:
             try:
                 self._on_delete_movement(movement_id)
-            except Exception:
+            except QT_ERRORS:
                 return
         else:
             return
 
         try:
             self._load()
-        except Exception:
+        except QT_ERRORS:
             pass
         if self._on_saved is not None:
             try:
                 self._on_saved()
-            except Exception:
+            except QT_ERRORS:
                 pass

@@ -13,6 +13,7 @@ from ..qt import (
     QWidget,
     Qt,
 )
+from ..utils.safe import QT_ERRORS
 
 
 MonthKey = Tuple[int, int]
@@ -40,7 +41,7 @@ class _ArrowButton(QPushButton):
         try:
             self.setFixedSize(30, 30)
             self.setCursor(Qt.CursorShape.PointingHandCursor)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def paintEvent(self, event) -> None:  # noqa: N802
@@ -54,7 +55,7 @@ class _ArrowButton(QPushButton):
             try:
                 pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                 pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            except Exception:
+            except QT_ERRORS:
                 pass
             p.setPen(pen)
             cx, cy = self.width() / 2.0, self.height() / 2.0
@@ -65,7 +66,7 @@ class _ArrowButton(QPushButton):
             p.drawLine(QPointF(base_x, cy - arm), QPointF(tip_x, cy))
             p.drawLine(QPointF(tip_x, cy), QPointF(base_x, cy + arm))
             p.end()
-        except Exception:
+        except QT_ERRORS:
             pass
 
 
@@ -88,7 +89,7 @@ class MonthPickerWidget(QWidget):
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             self.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         self.setStyleSheet(
             "QWidget#MonthPicker{background:#ffffff;border:1px solid #ecece2;"
@@ -113,7 +114,7 @@ class MonthPickerWidget(QWidget):
         try:
             self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._label.setMinimumWidth(118)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout.addWidget(self._left_btn)

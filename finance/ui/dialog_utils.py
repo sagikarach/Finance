@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt, QComboBox, QWidget, QStyledItemDelegate
+from ..utils.safe import QT_ERRORS
 
 try:
     from PySide6.QtWidgets import QCalendarWidget as _BaseCalendar
@@ -51,7 +52,7 @@ try:
             painter.drawText(rect, align, str(date.day()))
             painter.restore()
 
-except Exception:
+except QT_ERRORS:
     _LTRCalendarWidget = None  # type: ignore[assignment,misc]
 
 
@@ -75,15 +76,15 @@ def setup_standard_rtl_dialog(
 
     try:
         dialog.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-    except Exception:
+    except QT_ERRORS:
         pass
 
     try:
         dialog.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-    except Exception:
+    except QT_ERRORS:
         try:
             dialog.setLayoutDirection(Qt.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     layout = QVBoxLayout(dialog)
@@ -106,7 +107,7 @@ def create_standard_buttons_row(
 
     try:
         primary_btn.setDefault(True)
-    except Exception:
+    except QT_ERRORS:
         pass
 
     buttons_row.addWidget(cancel_btn)
@@ -124,7 +125,7 @@ def setup_calendar_popup(date_edit: "QWidget") -> None:
 
     try:
         from PySide6.QtWidgets import QWidget as _QWidget
-    except Exception:
+    except QT_ERRORS:
         _QWidget = QWidget  # type: ignore[assignment]
 
     if _LTRCalendarWidget is not None:
@@ -132,16 +133,16 @@ def setup_calendar_popup(date_edit: "QWidget") -> None:
             custom_cal = _LTRCalendarWidget()
             custom_cal.setLayoutDirection(ltr)
             date_edit.setCalendarWidget(custom_cal)  # type: ignore[attr-defined]
-        except Exception:
+        except QT_ERRORS:
             pass
     try:
         date_edit.setLayoutDirection(ltr)
         for child in date_edit.findChildren(_QWidget):
             try:
                 child.setLayoutDirection(ltr)
-            except Exception:
+            except QT_ERRORS:
                 pass
-    except Exception:
+    except QT_ERRORS:
         pass
 
     try:
@@ -151,17 +152,17 @@ def setup_calendar_popup(date_edit: "QWidget") -> None:
         try:
             from PySide6.QtWidgets import QCalendarWidget as _QCal
             cal.setVerticalHeaderFormat(_QCal.VerticalHeaderFormat.NoVerticalHeader)
-        except Exception:
+        except QT_ERRORS:
             try:
                 cal.setVerticalHeaderFormat(0)  # 0 = NoVerticalHeader
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         try:
             cal.setMinimumSize(280, 220)
-        except Exception:
+        except QT_ERRORS:
             pass
-    except Exception:
+    except QT_ERRORS:
         pass
 
 
@@ -218,33 +219,33 @@ def unwrap_rtl(text: str) -> str:
 def apply_rtl_alignment(combo: QComboBox) -> None:
     try:
         model = combo.model()
-    except Exception:
+    except QT_ERRORS:
         return
 
     try:
         align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-    except Exception:
+    except QT_ERRORS:
         try:
             align = Qt.AlignRight
-        except Exception:
+        except QT_ERRORS:
             return
 
     try:
         role = Qt.ItemDataRole.TextAlignmentRole
-    except Exception:
+    except QT_ERRORS:
         try:
             role = Qt.TextAlignmentRole
-        except Exception:
+        except QT_ERRORS:
             return
 
     try:
         row_count = model.rowCount()
-    except Exception:
+    except QT_ERRORS:
         return
 
     for row in range(row_count):
         try:
             index = model.index(row, 0)
             model.setData(index, align, role)
-        except Exception:
+        except QT_ERRORS:
             continue

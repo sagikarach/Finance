@@ -18,6 +18,7 @@ from ..widgets.monthly_cashflow_chart import MonthlyCashflowChart
 from ..widgets.action_history_table import ActionHistoryTable
 from ..utils.formatting import format_currency
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class HomePage(BasePage):
@@ -64,7 +65,7 @@ class HomePage(BasePage):
         try:
             yr = YearlyReportService(self._bank_movement_provider)
             window = yr.get_window_nets(6, include_one_time=False)
-        except Exception:
+        except QT_ERRORS:
             window = []
         labels = [lbl for lbl, _ in window]
         nets = [n for _, n in window]
@@ -73,7 +74,7 @@ class HomePage(BasePage):
         # ── net worth of assets (non-liquid), folded into the headline total ──
         try:
             assets_net = MortgageService().total_assets_net()
-        except Exception:
+        except QT_ERRORS:
             assets_net = 0.0
 
         # ── top row: three stat cards ──
@@ -106,7 +107,7 @@ class HomePage(BasePage):
         bars = MonthlyCashflowChart(parent_widget)
         try:
             bars.set_data(nets, labels)
-        except Exception:
+        except QT_ERRORS:
             pass
         bars_panel = self._chart_panel(parent_widget, "תזרים חודשי", bars)
 
@@ -129,7 +130,7 @@ class HomePage(BasePage):
         activity_panel.setObjectName("ContentPanel")
         try:
             activity_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         activity_layout = QVBoxLayout(activity_panel)
         activity_layout.setContentsMargins(6, 6, 6, 8)
@@ -137,12 +138,12 @@ class HomePage(BasePage):
 
         try:
             history = self._history_provider.list_history()
-        except Exception:
+        except QT_ERRORS:
             history = []
         categories = []
         try:
             categories = self._bank_movement_service.list_categories(is_income=False)
-        except Exception:
+        except QT_ERRORS:
             categories = []
 
         def on_saved() -> None:
@@ -152,9 +153,9 @@ class HomePage(BasePage):
                 if self._accounts_service is not None:
                     try:
                         self._accounts = self._accounts_service.load_accounts()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         history_table = ActionHistoryTable(

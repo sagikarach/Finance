@@ -5,6 +5,7 @@ from typing import List, Optional
 from ..qt import QDialog, QHBoxLayout, QLabel, QComboBox, QWidget, Qt
 from .dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..models.accounts import SavingsAccount
+from ..utils.safe import QT_ERRORS
 
 
 class DeleteSavingsAccountDialog(QDialog):
@@ -21,7 +22,7 @@ class DeleteSavingsAccountDialog(QDialog):
         self.setModal(True)
         try:
             self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout = setup_standard_rtl_dialog(self)
@@ -31,17 +32,17 @@ class DeleteSavingsAccountDialog(QDialog):
         account_label.setMinimumWidth(100)
         try:
             account_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._account_combo = QComboBox(self)
         self._account_combo.setObjectName("DialogAccountCombo")
         try:
             self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._account_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for account in accounts:
             self._account_combo.addItem(account.name, account)
@@ -61,16 +62,16 @@ class DeleteSavingsAccountDialog(QDialog):
         self._message_label.setWordWrap(True)
         try:
             self._message_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._message_label.setAlignment(
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._message_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._update_message()
 

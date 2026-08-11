@@ -15,6 +15,7 @@ from ..qt import (
     QWidget,
     Qt,
 )
+from ..utils.safe import QT_ERRORS
 
 
 class MovementsTableCard(QWidget):
@@ -23,7 +24,7 @@ class MovementsTableCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout = QVBoxLayout(self)
@@ -36,7 +37,7 @@ class MovementsTableCard(QWidget):
             self._title.setAlignment(
                 Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(self._title, 0)
 
@@ -52,44 +53,44 @@ class MovementsTableCard(QWidget):
         self._table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
         try:
             self._table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._table.setShowGrid(False)
             self._table.setGridStyle(Qt.PenStyle.NoPen)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._table.setShowGrid(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.setWordWrap(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._table.setHorizontalScrollBarPolicy(
                 Qt.ScrollBarPolicy.ScrollBarAlwaysOn
             )
             self._table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             rtl = getattr(Qt, "RightToLeft", None)
             if rtl is not None:
                 try:
                     self._table.setLayoutDirection(rtl)
-                except Exception:
+                except QT_ERRORS:
                     pass
         try:
             self._table.setFrameShape(QFrame.Shape.NoFrame)
-        except Exception:
+        except QT_ERRORS:
             no_frame = getattr(QFrame, "NoFrame", None)
             if no_frame is not None:
                 try:
                     self._table.setFrameShape(no_frame)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         self._apply_header_settings()
@@ -109,7 +110,7 @@ class MovementsTableCard(QWidget):
                 category_str = str(movement.category or "")
                 account_str = str(movement.account_name or "")
                 desc_str = str(movement.description or "")
-            except Exception:
+            except QT_ERRORS:
                 continue
             date_item = QTableWidgetItem(date_str)
             amount_item = QTableWidgetItem(format_currency(display_amount))
@@ -122,7 +123,7 @@ class MovementsTableCard(QWidget):
                     amount_item.setForeground(Qt.GlobalColor.darkGreen)
                 else:
                     amount_item.setForeground(Qt.GlobalColor.darkRed)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             self._table.setItem(row, 0, date_item)
@@ -138,12 +139,12 @@ class MovementsTableCard(QWidget):
                 header.setDefaultAlignment(
                     Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
                 )
-            except Exception:
+            except QT_ERRORS:
                 align_center = getattr(Qt, "AlignCenter", None)
                 if align_center is not None:
                     try:
                         header.setDefaultAlignment(align_center)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
             for i in range(self._table.columnCount()):
@@ -155,12 +156,12 @@ class MovementsTableCard(QWidget):
                         Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
                     )
                     header_item.setTextAlignment(alignment_int)
-                except Exception:
+                except QT_ERRORS:
                     align_center = getattr(Qt, "AlignCenter", None)
                     if align_center is not None:
                         try:
                             header_item.setTextAlignment(int(align_center))
-                        except Exception:
+                        except QT_ERRORS:
                             pass
 
             header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
@@ -169,7 +170,7 @@ class MovementsTableCard(QWidget):
             header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
             header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
             header.setStretchLastSection(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _apply_stylesheet(self) -> None:
@@ -179,7 +180,7 @@ class MovementsTableCard(QWidget):
                 app = QApplication.instance()
                 if app is not None:
                     is_dark = str(app.property("theme") or "light") == "dark"
-            except Exception:
+            except QT_ERRORS:
                 is_dark = False
 
             handle = "#1e3a5f" if is_dark else "#93c5fd"
@@ -260,5 +261,5 @@ class MovementsTableCard(QWidget):
                 "__HANDLE_HOVER__", handle_hover
             )
             self._table.setStyleSheet(qss)
-        except Exception:
+        except QT_ERRORS:
             pass

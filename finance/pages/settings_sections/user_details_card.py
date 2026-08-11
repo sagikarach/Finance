@@ -19,6 +19,7 @@ from ...models.user import UserProfile
 from ...data.user_profile_store import UserProfileStore
 from ...models.firebase_session import FirebaseSessionStore
 from ...models.firebase_workspace_profiles import FirebaseWorkspaceProfilesStore
+from ...utils.safe import QT_ERRORS
 
 
 class UserDetailsCard(QWidget):
@@ -41,14 +42,14 @@ class UserDetailsCard(QWidget):
         self._password_row_widget: Optional[QWidget] = None
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._build()
 
@@ -60,7 +61,7 @@ class UserDetailsCard(QWidget):
         title_label = QLabel("פרטי משתמש", self)
         try:
             title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title_label)
 
@@ -88,21 +89,21 @@ class UserDetailsCard(QWidget):
         self._password_edit = password_edit
         try:
             password_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 password_edit.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             password_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        except Exception:
+        except QT_ERRORS:
             try:
                 password_edit.setEchoMode(QLineEdit.Password)
-            except Exception:
+            except QT_ERRORS:
                 pass
         if getattr(self._user, "password", None):
             password_edit.setText(self._user.password or "")
@@ -133,11 +134,11 @@ class UserDetailsCard(QWidget):
                     else QLineEdit.EchoMode.Password
                 )
                 password_edit.setEchoMode(mode)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     mode = QLineEdit.Normal if checked else QLineEdit.Password
                     password_edit.setEchoMode(mode)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         eye_button.toggled.connect(on_toggle_show_password)
@@ -162,20 +163,20 @@ class UserDetailsCard(QWidget):
             self._user.full_name = name_edit.text() or self._user.full_name
             try:
                 self._user.lock_enabled = lock_checkbox.isChecked()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 self._user.password = (
                     password_edit.text() if self._user.lock_enabled else None
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 self._user_store.save(self._user)
-            except Exception as _save_err:
+            except QT_ERRORS as _save_err:
                 try:
                     QToolTip.showText(QCursor.pos(), f"שגיאה בשמירה: {_save_err}")
-                except Exception:
+                except QT_ERRORS:
                     pass
                 return
             # If we're inside a Firebase workspace and that workspace has a saved profile,
@@ -183,7 +184,7 @@ class UserDetailsCard(QWidget):
             # to the global user profile.
             try:
                 wid = str(FirebaseSessionStore().load().workspace_id or "").strip()
-            except Exception:
+            except QT_ERRORS:
                 wid = ""
             if wid:
                 try:
@@ -191,16 +192,16 @@ class UserDetailsCard(QWidget):
                         workspace_id=wid,
                         display_name=str(self._user.full_name or "").strip(),
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 if self._on_profile_saved is not None:
                     self._on_profile_saved()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 QToolTip.showText(QCursor.pos(), "ההגדרות נשמרו")
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         save_button.clicked.connect(on_save_clicked)
@@ -211,5 +212,5 @@ class UserDetailsCard(QWidget):
                 0,
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
             )
-        except Exception:
+        except QT_ERRORS:
             layout.addWidget(save_button)

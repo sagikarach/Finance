@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from ..qt import QLabel, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget, Qt
+from ..utils.safe import QT_ERRORS
 
 
 class OneTimeEventStatCards(QWidget):
@@ -26,7 +27,7 @@ class OneTimeEventStatCards(QWidget):
         for lbl in (self._budget, self._remaining, self._expenses, self._income):
             try:
                 lbl.setText("")
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def set_values(
@@ -34,19 +35,19 @@ class OneTimeEventStatCards(QWidget):
     ) -> None:
         try:
             self._budget.setText(budget)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._remaining.setText(remaining)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._expenses.setText(expenses)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._income.setText(income)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     @staticmethod
@@ -58,7 +59,7 @@ class OneTimeEventStatCards(QWidget):
         try:
             card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             card.setAutoFillBackground(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout = QVBoxLayout(card)
@@ -67,12 +68,12 @@ class OneTimeEventStatCards(QWidget):
 
         try:
             card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             card.setMinimumHeight(64)
             card.setMaximumHeight(98)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         title_label = QLabel(title, card)

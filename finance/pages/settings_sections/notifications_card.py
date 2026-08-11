@@ -12,6 +12,7 @@ from ...qt import (
     Qt,
 )
 from ...models.notifications import RuleType
+from ...utils.safe import QT_ERRORS
 
 
 class NotificationsCard(QWidget):
@@ -26,14 +27,14 @@ class NotificationsCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._svc = notifications_service
         self._on_refreshed = on_refreshed
@@ -47,20 +48,20 @@ class NotificationsCard(QWidget):
         title_label = QLabel("התראות", self)
         try:
             title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title_label)
         layout.addSpacing(8)
 
         try:
             self._svc.ensure_defaults()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         master_cb = QCheckBox("הפעל התראות", self)
         try:
             master_cb.setChecked(bool(self._svc.is_enabled()))
-        except Exception:
+        except QT_ERRORS:
             master_cb.setChecked(True)
         layout.addWidget(master_cb)
         layout.addSpacing(6)
@@ -75,7 +76,7 @@ class NotificationsCard(QWidget):
         rules = []
         try:
             rules = self._svc.list_rules()
-        except Exception:
+        except QT_ERRORS:
             rules = []
 
         rule_checkboxes: dict[str, QCheckBox] = {}
@@ -95,7 +96,7 @@ class NotificationsCard(QWidget):
                         if self._on_refreshed is not None:
                             self._on_refreshed()
                         QToolTip.showText(QCursor.pos(), "הגדרות התראות נשמרו")
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                 return _handler
@@ -114,7 +115,7 @@ class NotificationsCard(QWidget):
                 if self._on_refreshed is not None:
                     self._on_refreshed()
                 QToolTip.showText(QCursor.pos(), "הגדרות התראות נשמרו")
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         master_cb.toggled.connect(on_master_toggled)

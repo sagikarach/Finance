@@ -18,6 +18,7 @@ from ..qt import (
     Qt,
 )
 from ..utils.formatting import format_currency
+from ..utils.safe import QT_ERRORS
 
 
 class SeparatorItemDelegate(QStyledItemDelegate):
@@ -49,23 +50,23 @@ class SeparatorItemDelegate(QStyledItemDelegate):
                         try:
                             full_rect.setLeft(0)
                             full_rect.setWidth(viewport_width)
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         y = full_rect.bottom()
                         painter.save()
                         try:
                             try:
                                 painter.setClipping(False)
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                             painter.setPen(pen)
                             painter.drawLine(full_rect.left(), y, full_rect.right(), y)
                         finally:
                             painter.restore()
-        except Exception:
+        except QT_ERRORS:
             try:
                 super().paint(painter, option, index)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
 
@@ -75,7 +76,7 @@ class YearlyMonthsTableCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout = QVBoxLayout(self)
@@ -95,82 +96,82 @@ class YearlyMonthsTableCard(QWidget):
         )
         try:
             self._table.horizontalHeader().setObjectName("YearlyMonthsHeader")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._table.verticalHeader().setVisible(False)
         try:
             self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        except Exception:
+        except QT_ERRORS:
             try:
                 fallback = getattr(QTableWidget, "NoEditTriggers", None)
                 if fallback is not None:
                     self._table.setEditTriggers(cast(Any, fallback))
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
-        except Exception:
+        except QT_ERRORS:
             try:
                 fallback = getattr(QTableWidget, "NoSelection", None)
                 if fallback is not None:
                     self._table.setSelectionMode(cast(Any, fallback))
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        except Exception:
+        except QT_ERRORS:
             try:
                 fallback = getattr(QTableWidget, "SelectRows", None)
                 if fallback is not None:
                     self._table.setSelectionBehavior(cast(Any, fallback))
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        except Exception:
+        except QT_ERRORS:
             try:
                 fallback = getattr(Qt, "NoFocus", None)
                 if fallback is not None:
                     self._table.setFocusPolicy(cast(Any, fallback))
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.setShowGrid(False)
             self._table.setGridStyle(Qt.PenStyle.NoPen)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._table.setShowGrid(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.setWordWrap(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._table.setHorizontalScrollBarPolicy(
                 Qt.ScrollBarPolicy.ScrollBarAsNeeded
             )
             self._table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        except Exception:
+        except QT_ERRORS:
             try:
                 fallback = getattr(Qt, "ScrollBarAsNeeded", None)
                 if fallback is not None:
                     self._table.setHorizontalScrollBarPolicy(cast(Any, fallback))
                     self._table.setVerticalScrollBarPolicy(cast(Any, fallback))
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._table.setFrameShape(QFrame.Shape.NoFrame)
-        except Exception:
+        except QT_ERRORS:
             try:
                 fallback = getattr(QFrame, "NoFrame", None)
                 if fallback is not None:
                     self._table.setFrameShape(cast(Any, fallback))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self._apply_header_settings()
@@ -182,7 +183,7 @@ class YearlyMonthsTableCard(QWidget):
         try:
             self._delegate = SeparatorItemDelegate(self._table, self._separator_rows)
             self._table.setItemDelegate(self._delegate)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout.addWidget(self._table, 1)
@@ -228,18 +229,18 @@ class YearlyMonthsTableCard(QWidget):
                 month_item.setTextAlignment(
                     int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 font = month_item.font()
                 font.setPointSize(int(font.pointSize() * 1.6))
                 month_item.setFont(font)
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._table.setItem(row_idx, 0, month_item)
             try:
                 self._table.setSpan(row_idx, 0, 3, 1)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             if overall_balance < 0:
@@ -252,25 +253,25 @@ class YearlyMonthsTableCard(QWidget):
                 net_item.setTextAlignment(
                     int(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 if overall_balance >= 0:
                     net_item.setForeground(Qt.GlobalColor.darkGreen)
                 else:
                     net_item.setForeground(Qt.GlobalColor.darkRed)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 font = net_item.font()
                 font.setPointSize(int(font.pointSize() * 1.6))
                 net_item.setFont(font)
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._table.setItem(row_idx, 3, net_item)
             try:
                 self._table.setSpan(row_idx, 3, 3, 1)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             for type_idx, (type_name, (income_attr, expense_attr)) in enumerate(
@@ -298,7 +299,7 @@ class YearlyMonthsTableCard(QWidget):
                                 | Qt.AlignmentFlag.AlignVCenter
                             )
                         )
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     self._table.setItem(row_idx, c + 1, it)
 
@@ -310,14 +311,14 @@ class YearlyMonthsTableCard(QWidget):
         if self._delegate is not None:
             try:
                 self._delegate._separator_rows = self._separator_rows.copy()
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._table.viewport().update()
             self._table.viewport().repaint()
             self._table.update()
             self._table.repaint()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _apply_header_settings(self) -> None:
@@ -327,7 +328,7 @@ class YearlyMonthsTableCard(QWidget):
                 header.setDefaultAlignment(
                     Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             for i in range(self._table.columnCount()):
@@ -341,7 +342,7 @@ class YearlyMonthsTableCard(QWidget):
                             | Qt.AlignmentFlag.AlignVCenter
                         )
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
                 if i == 0 or i == 3:
                     try:
@@ -350,42 +351,42 @@ class YearlyMonthsTableCard(QWidget):
                             existing_font = item.font()
                             if existing_font is not None:
                                 font = existing_font
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         try:
                             base_size = font.pointSize()
                             if base_size <= 0:
                                 base_size = 12
                             font.setPointSize(int(base_size * 1.6))
-                        except Exception:
+                        except QT_ERRORS:
                             try:
                                 font.setPointSize(19)
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                         item.setFont(font)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
             try:
                 fixed_mode = QHeaderView.ResizeMode.Fixed
                 header.setSectionResizeMode(0, fixed_mode)
                 header.resizeSection(0, 140)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 stretch_mode = QHeaderView.ResizeMode.Stretch
                 header.setSectionResizeMode(1, stretch_mode)
                 header.setSectionResizeMode(2, stretch_mode)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 fixed_mode = QHeaderView.ResizeMode.Fixed
                 header.setSectionResizeMode(3, fixed_mode)
                 header.resizeSection(3, 120)
-            except Exception:
+            except QT_ERRORS:
                 pass
             header.setStretchLastSection(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _apply_stylesheet(self) -> None:
@@ -442,7 +443,7 @@ class YearlyMonthsTableCard(QWidget):
                         QScrollBar::up-arrow, QScrollBar::down-arrow {{ background: none; border: none; width: 0px; height: 0px; }}
                         """
                     )
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             try:
@@ -458,7 +459,7 @@ class YearlyMonthsTableCard(QWidget):
                         QScrollBar::left-arrow, QScrollBar::right-arrow {{ background: none; border: none; width: 0px; height: 0px; }}
                         """
                     )
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass

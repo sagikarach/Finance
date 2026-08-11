@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Tuple
 
 from ..qt import QApplication, QColor
+from ..utils.safe import QT_ERRORS
 
 _HEB_MONTHS = ["ינו", "פבר", "מרץ", "אפר", "מאי", "יוני",
                "יול", "אוג", "ספט", "אוק", "נוב", "דצמ"]
@@ -24,7 +25,7 @@ def label_color() -> QColor:
         try:
             if str(app.property("theme") or "light") == "dark":
                 color = QColor("#ffffff")
-        except Exception:
+        except QT_ERRORS:
             pass
     return color
 

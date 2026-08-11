@@ -38,12 +38,13 @@ from ..ui.bank_movement_dialog import BankMovementDialog
 from ..ui.notifications_dialog import NotificationsDialog
 from ..styles.theme import load_default_stylesheet, load_dark_stylesheet
 from ..models.notifications_service import NotificationsService
+from ..utils.safe import QT_ERRORS
 
 
 class BasePage(QWidget):
     try:
         _sync_finished = Signal(int, str)
-    except Exception:
+    except QT_ERRORS:
         _sync_finished = None
     _GLOBAL_SYNCING: bool = False
 
@@ -86,7 +87,7 @@ class BasePage(QWidget):
         try:
             classifier = SimilarityBasedClassifier()
             classifier.initialize()
-        except Exception:
+        except QT_ERRORS:
             classifier = None
         self._bank_movement_service: BankMovementService = BankMovementService(
             self._bank_movement_provider,
@@ -108,14 +109,14 @@ class BasePage(QWidget):
                 and "_balances_dirty" not in self._app_context
             ):
                 self._app_context["_balances_dirty"] = "1"
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._build_ui()
         try:
             if self._sync_finished is not None:
                 self._sync_finished.connect(self._on_sync_finished)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _build_ui(self) -> None:
@@ -134,7 +135,7 @@ class BasePage(QWidget):
             header_container.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         main_col.addWidget(header_container, 0)
 
@@ -153,7 +154,7 @@ class BasePage(QWidget):
             value = self._app_context.get("selected_savings_account")
             if isinstance(value, str) and value:
                 selected_name = value
-        except Exception:
+        except QT_ERRORS:
             selected_name = None
 
         self._sidebar = Sidebar(
@@ -172,7 +173,7 @@ class BasePage(QWidget):
             self._sidebar.setSizePolicy(
                 QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         sidebar_container = QWidget(self)
@@ -195,7 +196,7 @@ class BasePage(QWidget):
 
         try:
             self._refresh_sync_button_state()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _build_header(self) -> QWidget:
@@ -203,7 +204,7 @@ class BasePage(QWidget):
         header_container.setObjectName("Sidebar")
         try:
             header_container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         header_layout = QHBoxLayout(header_container)
@@ -214,14 +215,14 @@ class BasePage(QWidget):
         for btn in left_buttons:
             try:
                 self._style_header_button(btn)
-            except Exception:
+            except QT_ERRORS:
                 pass
             header_layout.addWidget(btn)
 
         bell_wrap = QWidget(header_container)
         try:
             bell_wrap.setFixedSize(44, 44)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._bell_btn = QToolButton(bell_wrap)
@@ -230,27 +231,27 @@ class BasePage(QWidget):
         try:
             from ..utils.icons import apply_icon
             apply_icon(self._bell_btn, "bell", size=20, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             self._bell_btn.setText("🔔")
         self._bell_btn.clicked.connect(self._open_notifications)
         try:
             self._bell_btn.setFixedSize(44, 44)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._bell_btn.setStyleSheet("padding: 0px;")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._bell_btn.setAutoRaise(True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             bell_layout = QHBoxLayout(bell_wrap)
             bell_layout.setContentsMargins(0, 0, 0, 0)
             bell_layout.setSpacing(0)
             bell_layout.addWidget(self._bell_btn, 0, Qt.AlignmentFlag.AlignCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._bell_badge = QLabel(bell_wrap)
@@ -260,16 +261,16 @@ class BasePage(QWidget):
             self._bell_badge.setAttribute(
                 Qt.WidgetAttribute.WA_TransparentForMouseEvents, True
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._bell_badge.setVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._bell_badge.adjustSize()
             self._bell_badge.move(30, -2)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         header_layout.addWidget(bell_wrap)
@@ -277,7 +278,7 @@ class BasePage(QWidget):
         sync_wrap = QWidget(header_container)
         try:
             sync_wrap.setFixedSize(44, 44)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._sync_btn = QToolButton(sync_wrap)
         self._sync_btn.setObjectName("HeaderIconButton")
@@ -286,26 +287,26 @@ class BasePage(QWidget):
         self._sync_btn.clicked.connect(self._on_sync_clicked)
         try:
             self._sync_btn.setFixedSize(44, 44)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._sync_btn.setStyleSheet("padding: 0px;")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._sync_btn.setAutoRaise(True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             wrap_layout = QHBoxLayout(sync_wrap)
             wrap_layout.setContentsMargins(0, 0, 0, 0)
             wrap_layout.setSpacing(0)
             wrap_layout.addWidget(self._sync_btn, 0, Qt.AlignmentFlag.AlignCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._update_sync_icon()
-        except Exception:
+        except QT_ERRORS:
             pass
         header_layout.addWidget(sync_wrap)
 
@@ -326,7 +327,7 @@ class BasePage(QWidget):
         try:
             if self._sidebar is not None:
                 self._sidebar.refresh_profile()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _refresh_sync_button_state(self) -> None:
@@ -336,7 +337,7 @@ class BasePage(QWidget):
         global_syncing = False
         try:
             global_syncing = bool(BasePage._GLOBAL_SYNCING)
-        except Exception:
+        except QT_ERRORS:
             global_syncing = False
 
         if self._sync_in_progress or global_syncing:
@@ -346,23 +347,23 @@ class BasePage(QWidget):
                 try:
                     from ..utils.icons import apply_icon
                     apply_icon(btn, "hourglass", size=20, is_dark=self._is_dark_theme())
-                except Exception:
+                except QT_ERRORS:
                     btn.setIcon(QIcon())
                     btn.setText("⏳")
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
         try:
             self._update_sync_icon()
-        except Exception:
+        except QT_ERRORS:
             try:
                 from ..utils.icons import apply_icon
                 apply_icon(btn, "refresh", size=20, is_dark=self._is_dark_theme())
-            except Exception:
+            except QT_ERRORS:
                 try:
                     btn.setIcon(QIcon())
                     btn.setText("🔄")
-                except Exception:
+                except QT_ERRORS:
                     pass
         try:
             from ..models.firebase_session import FirebaseSessionStore
@@ -375,10 +376,10 @@ class BasePage(QWidget):
             btn.setToolTip(
                 "סנכרן עכשיו" if ok else "התחבר ל-Firebase ובחר Workspace בהגדרות"
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 btn.setEnabled(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _on_sync_clicked(self) -> None:
@@ -397,21 +398,21 @@ class BasePage(QWidget):
                     msg.setText("כדי לסנכרן צריך להתחבר ל-Firebase ולבחור Workspace בהגדרות")
                     msg.setIcon(QMessageBox.Icon.Information)
                     msg.exec()
-                except Exception:
+                except QT_ERRORS:
                     try:
                         QToolTip.showText(
                             QCursor.pos(),
                             "כדי לסנכרן צריך להתחבר ל-Firebase ולבחור Workspace בהגדרות",
                         )
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                 return
-        except Exception:
+        except QT_ERRORS:
             return
 
         try:
             BasePage._GLOBAL_SYNCING = True
-        except Exception:
+        except QT_ERRORS:
             pass
         self._sync_in_progress = True
         try:
@@ -419,14 +420,14 @@ class BasePage(QWidget):
                 self._sync_btn.setEnabled(False)
                 try:
                     self._update_sync_icon()
-                except Exception:
+                except QT_ERRORS:
                     try:
                         from ..utils.icons import apply_icon
                         apply_icon(self._sync_btn, "hourglass", size=20, is_dark=self._is_dark_theme())
-                    except Exception:
+                    except QT_ERRORS:
                         self._sync_btn.setText("⏳")
                 self._sync_btn.setToolTip("מסנכרן...")
-        except Exception:
+        except QT_ERRORS:
             pass
 
         def _run() -> None:
@@ -438,47 +439,47 @@ class BasePage(QWidget):
                 )
 
                 pulled, _ = FirebaseMovementsSyncService().sync_now(allow_push=True)
-            except Exception as e:
+            except QT_ERRORS as e:
                 err = str(e)
             try:
                 if self._sync_finished is not None:
                     self._sync_finished.emit(int(pulled), str(err or ""))
                     return
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 _pulled = int(pulled)
                 _err = str(err or "")
                 from ..qt import QTimer
                 QTimer.singleShot(0, self, lambda: self._on_sync_finished(_pulled, _err))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         try:
             import threading
 
             threading.Thread(target=_run, daemon=True).start()
-        except Exception:
+        except QT_ERRORS:
             _run()
 
     def _on_sync_finished(self, pulled: int, err: str) -> None:
         self._sync_in_progress = False
         try:
             BasePage._GLOBAL_SYNCING = False
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._update_sync_icon()
-        except Exception:
+        except QT_ERRORS:
             try:
                 if self._sync_btn is not None:
                     from ..utils.icons import apply_icon
                     apply_icon(self._sync_btn, "refresh", size=20, is_dark=self._is_dark_theme())
-            except Exception:
+            except QT_ERRORS:
                 try:
                     if self._sync_btn is not None:
                         self._sync_btn.setText("🔄")
-                except Exception:
+                except QT_ERRORS:
                     pass
         self._refresh_sync_button_state()
 
@@ -486,10 +487,10 @@ class BasePage(QWidget):
             try:
                 if isinstance(self._app_context, dict):
                     self._app_context["_balances_dirty"] = "1"
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._load_and_refresh_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -500,14 +501,14 @@ class BasePage(QWidget):
             if cls is not None:
                 try:
                     movements = self._bank_movement_service.list_movements()
-                except Exception:
+                except QT_ERRORS:
                     movements = []
                 trainer.rebuild_training_file(movements=movements, classifier=cls)
                 try:
                     cls.reload()
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -515,33 +516,33 @@ class BasePage(QWidget):
             if history_table is not None:
                 try:
                     history = self._history_provider.list_history()
-                except Exception:
+                except QT_ERRORS:
                     history = []
                 try:
                     history_table.set_history(history)
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self._refresh_notifications_badge()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if err:
             try:
                 QToolTip.showText(QCursor.pos(), f"שגיאת סנכרון: {err}")
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             try:
                 QToolTip.showText(QCursor.pos(), f"סונכרן בהצלחה ({int(pulled)})")
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self.on_route_activated()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _open_notifications(self) -> None:
@@ -551,10 +552,10 @@ class BasePage(QWidget):
                 dlg.setWindowTitle("התראות")
                 try:
                     dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-                except Exception:
+                except QT_ERRORS:
                     try:
                         dlg.setLayoutDirection(Qt.RightToLeft)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                 layout = QVBoxLayout(dlg)
                 layout.setContentsMargins(24, 20, 24, 20)
@@ -563,7 +564,7 @@ class BasePage(QWidget):
                 msg = QLabel("ההתראות כבויות. ניתן להפעיל אותן בעמוד ההגדרות.", dlg)
                 try:
                     msg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 layout.addWidget(msg)
 
@@ -571,17 +572,17 @@ class BasePage(QWidget):
                 close_btn.clicked.connect(dlg.accept)
                 try:
                     layout.addWidget(close_btn, 0, Qt.AlignmentFlag.AlignHCenter)
-                except Exception:
+                except QT_ERRORS:
                     layout.addWidget(close_btn)
 
                 dlg.exec()
                 return
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             dlg = NotificationsDialog(service=self._notifications_service, parent=None)
             dlg.exec()
-        except Exception:
+        except QT_ERRORS:
             return
         self._refresh_notifications_badge()
 
@@ -607,10 +608,10 @@ class BasePage(QWidget):
                             w = max(16, int(self._bell_badge.sizeHint().width()) + 10)
                         self._bell_badge.setFixedSize(w, 16)
                         self._bell_badge.move(36 - w + 2, -2)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     self._bell_badge.setVisible(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _make_nav_icon_button(
@@ -624,7 +625,7 @@ class BasePage(QWidget):
             from ..utils.icons import apply_icon
 
             apply_icon(btn, icon, size=20, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             btn.setText(fallback)
         btn.setToolTip(tooltip)
         navigate = self._navigate
@@ -645,7 +646,7 @@ class BasePage(QWidget):
         panel.setObjectName("ContentPanel")
         try:
             panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         lay = QVBoxLayout(panel)
         lay.setContentsMargins(18, 14, 18, 14)
@@ -678,7 +679,7 @@ class BasePage(QWidget):
             )
             card.setMinimumHeight(min_height)
             card.setMaximumHeight(150)
-        except Exception:
+        except QT_ERRORS:
             pass
         lay = QVBoxLayout(card)
         lay.setContentsMargins(20, 16, 20, 16)
@@ -695,7 +696,7 @@ class BasePage(QWidget):
             s.setObjectName("StatSubtle")
             try:
                 s.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            except Exception:
+            except QT_ERRORS:
                 pass
             lay.addWidget(s, 0, Qt.AlignmentFlag.AlignHCenter)
         lay.addStretch(1)
@@ -737,7 +738,7 @@ class BasePage(QWidget):
         try:
             if self._accounts_service is not None:
                 self._accounts = list(self._accounts_service.load_accounts() or [])
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -747,7 +748,7 @@ class BasePage(QWidget):
                 if isinstance(acc, (BankAccount, BudgetAccount))
                 and bool(getattr(acc, "active", False))
             ]
-        except Exception:
+        except QT_ERRORS:
             bank_accounts = []
 
         categories: list[str] = []
@@ -757,7 +758,7 @@ class BasePage(QWidget):
                 categories = provider.list_categories_for_type(is_income)
             else:
                 categories = provider.list_categories()
-        except Exception:
+        except QT_ERRORS:
             categories = []
 
         on_category_added = None
@@ -769,7 +770,7 @@ class BasePage(QWidget):
                 ) -> None:
                     try:
                         _prov.add_category_for_type(name, _is_income)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     try:
                         from ..models.firebase_movements_sync import (
@@ -777,13 +778,13 @@ class BasePage(QWidget):
                         )
 
                         FirebaseMovementsSyncService().sync_categories_only()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                 on_category_added = _on_cat_added
             elif hasattr(provider, "add_category"):
                 on_category_added = getattr(provider, "add_category")
-        except Exception:
+        except QT_ERRORS:
             on_category_added = None
 
         dialog = BankMovementDialog(
@@ -812,7 +813,7 @@ class BasePage(QWidget):
                 try:
                     if isinstance(self._app_context, dict):
                         self._app_context["_balances_dirty"] = "1"
-                except Exception:
+                except QT_ERRORS:
                     pass
             except OverBudgetError as obe:
                 # Ask user whether to proceed despite exceeding the budget.
@@ -837,17 +838,17 @@ class BasePage(QWidget):
                     try:
                         if isinstance(self._app_context, dict):
                             self._app_context["_balances_dirty"] = "1"
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                 except OverBudgetError:
                     return
-                except Exception:
+                except QT_ERRORS:
                     return
-            except Exception as e:
+            except QT_ERRORS as e:
                 try:
                     from ..qt import QMessageBox
                     QMessageBox.warning(None, "לא ניתן להוסיף הוצאה", str(e))
-                except Exception:
+                except QT_ERRORS:
                     pass
                 return
 
@@ -858,13 +859,13 @@ class BasePage(QWidget):
             ):
                 try:
                     history = self._history_provider.list_history()
-                except Exception:
+                except QT_ERRORS:
                     history = []
                 try:
                     history_table.set_history(history)
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._save_and_refresh_accounts()
@@ -873,7 +874,7 @@ class BasePage(QWidget):
         if self._accounts_service is not None:
             try:
                 self._accounts = self._accounts_service.load_accounts()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         try:
@@ -883,7 +884,7 @@ class BasePage(QWidget):
                     dirty = (
                         str(self._app_context.get("_balances_dirty", "1") or "1") != "0"
                     )
-            except Exception:
+            except QT_ERRORS:
                 dirty = True
 
             if (
@@ -899,15 +900,15 @@ class BasePage(QWidget):
                 try:
                     if isinstance(self._app_context, dict):
                         self._app_context["_balances_dirty"] = "0"
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
                 self._sidebar.update_accounts(self._accounts)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _save_and_refresh_accounts(self) -> None:
@@ -918,13 +919,13 @@ class BasePage(QWidget):
                     self._provider, history_provider=self._history_provider
                 )
                 self._accounts_service = svc
-            except Exception:
+            except QT_ERRORS:
                 svc = None
 
         if svc is not None:
             try:
                 self._accounts = svc.save_preserving_bank_baselines(self._accounts)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self._load_and_refresh_accounts()
@@ -944,15 +945,15 @@ class BasePage(QWidget):
         theme_btn.setCheckable(True)
         try:
             theme_btn.setFixedSize(44, 44)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             theme_btn.setStyleSheet("padding: 0px;")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             theme_btn.setAutoRaise(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         app = QApplication.instance()
@@ -960,7 +961,7 @@ class BasePage(QWidget):
         if app is not None:
             try:
                 current_theme = str(app.property("theme") or "light")
-            except Exception:
+            except QT_ERRORS:
                 current_theme = "light"
         is_dark = current_theme == "dark"
         theme_btn.setChecked(is_dark)
@@ -968,7 +969,7 @@ class BasePage(QWidget):
         try:
             from ..utils.icons import apply_icon
             apply_icon(theme_btn, "moon" if is_dark else "sun", size=20, is_dark=is_dark)
-        except Exception:
+        except QT_ERRORS:
             theme_btn.setText("🌙" if is_dark else "☀")
 
         def on_theme_toggled(checked: bool) -> None:
@@ -986,7 +987,7 @@ class BasePage(QWidget):
                     try:
                         from ..utils.icons import apply_icon
                         apply_icon(theme_btn, "moon", size=20, is_dark=True)
-                    except Exception:
+                    except QT_ERRORS:
                         theme_btn.setText("🌙")
                 else:
                     setter = getattr(app_, "setProperty", None)
@@ -998,13 +999,13 @@ class BasePage(QWidget):
                     try:
                         from ..utils.icons import apply_icon
                         apply_icon(theme_btn, "sun", size=20, is_dark=False)
-                    except Exception:
+                    except QT_ERRORS:
                         theme_btn.setText("☀")
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 self._on_theme_changed(checked)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         theme_btn.toggled.connect(on_theme_toggled)
@@ -1013,24 +1014,24 @@ class BasePage(QWidget):
     def _style_header_button(self, btn: QToolButton) -> None:
         try:
             current = str(btn.objectName() or "")
-        except Exception:
+        except QT_ERRORS:
             current = ""
         if current in ("", "IconButton", "SyncHeaderButton"):
             try:
                 btn.setObjectName("HeaderIconButton")
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             btn.setFixedSize(44, 44)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             btn.setStyleSheet("padding: 0px;")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             btn.setAutoRaise(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _is_dark_theme(self) -> bool:
@@ -1039,7 +1040,7 @@ class BasePage(QWidget):
         if app is not None:
             try:
                 theme = str(app.property("theme") or "light")
-            except Exception:
+            except QT_ERRORS:
                 theme = "light"
         return theme == "dark"
 
@@ -1054,10 +1055,10 @@ class BasePage(QWidget):
                 apply_icon(btn, "hourglass", size=20, is_dark=is_dark)
             else:
                 apply_icon(btn, "refresh", size=20, is_dark=is_dark)
-        except Exception:
+        except QT_ERRORS:
             try:
                 btn.setIcon(QIcon())
-            except Exception:
+            except QT_ERRORS:
                 pass
             btn.setText("⏳" if self._sync_in_progress else "🔄")
 
@@ -1070,9 +1071,9 @@ class BasePage(QWidget):
                 try:
                     if btn.property("svg_icon"):
                         refresh_icon(btn, is_dark)
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _on_theme_changed(self, is_dark: bool) -> None:
@@ -1081,47 +1082,47 @@ class BasePage(QWidget):
             try:
                 from ..utils.icons import apply_icon
                 apply_icon(self._theme_btn, "moon" if is_dark else "sun", size=20, is_dark=is_dark)
-            except Exception:
+            except QT_ERRORS:
                 self._theme_btn.setText("🌙" if is_dark else "☀")
         try:
             self._refresh_all_svg_icons(is_dark)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self._update_sync_icon()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         # Update password "eye" icons globally (Settings page may not be active / may not receive callbacks).
         try:
             self._update_password_eye_icons(is_dark)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._sidebar is not None:
             if hasattr(self._sidebar, "_update_button_width"):
                 try:
                     QTimer.singleShot(100, self._sidebar, self._sidebar._update_button_width)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             if hasattr(self._sidebar, "_savings_section"):
                 try:
                     self._sidebar._savings_section.refresh_theme()
-                except Exception:
+                except QT_ERRORS:
                     pass
             if hasattr(self._sidebar, "_bank_section"):
                 try:
                     self._sidebar._bank_section.refresh_theme()
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         try:
             history_table = self._find_history_table()
             if history_table is not None and hasattr(history_table, "_update_table"):
                 history_table._update_table()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _update_password_eye_icons(self, is_dark: bool) -> None:
@@ -1138,7 +1139,7 @@ class BasePage(QWidget):
                     f"Finance/data/assets/icons/{name}.png",
                 )
             )
-        except Exception:
+        except QT_ERRORS:
             icon_path = None
 
         top = self.window()
@@ -1146,7 +1147,7 @@ class BasePage(QWidget):
             top = self
         try:
             buttons = top.findChildren(QToolButton)
-        except Exception:
+        except QT_ERRORS:
             buttons = []
 
         if not buttons:
@@ -1156,14 +1157,14 @@ class BasePage(QWidget):
             try:
                 if str(btn.objectName() or "") != "PasswordEye":
                     continue
-            except Exception:
+            except QT_ERRORS:
                 continue
 
             if icon_path is None:
                 try:
                     btn.setIcon(QIcon())
                     btn.setText("👁")
-                except Exception:
+                except QT_ERRORS:
                     pass
                 continue
 
@@ -1180,17 +1181,17 @@ class BasePage(QWidget):
                         Qt.TransformationMode.SmoothTransformation,
                     )
                     btn.setIconSize(QSize(24, 24))
-                except Exception:
+                except QT_ERRORS:
                     scaled = pixmap.scaled(24, 24)
                 btn.setIcon(QIcon(scaled))
                 btn.setText("")
                 btn.update()
                 btn.repaint()
-            except Exception:
+            except QT_ERRORS:
                 try:
                     btn.setIcon(QIcon())
                     btn.setText("👁")
-                except Exception:
+                except QT_ERRORS:
                     pass
 
     def showEvent(self, event) -> None:
@@ -1201,7 +1202,7 @@ class BasePage(QWidget):
             if app is not None:
                 try:
                     current_theme = str(app.property("theme") or "light")
-                except Exception:
+                except QT_ERRORS:
                     current_theme = "light"
             is_dark = current_theme == "dark"
             self._theme_btn.blockSignals(True)
@@ -1209,18 +1210,18 @@ class BasePage(QWidget):
             try:
                 from ..utils.icons import apply_icon
                 apply_icon(self._theme_btn, "moon" if is_dark else "sun", size=20, is_dark=is_dark)
-            except Exception:
+            except QT_ERRORS:
                 self._theme_btn.setText("🌙" if is_dark else "☀")
             self._theme_btn.blockSignals(False)
             try:
                 self._update_password_eye_icons(is_dark)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         # Ensure sync button reflects any in-progress sync when the page becomes visible.
         try:
             self._refresh_sync_button_state()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _build_content(self, main_col: QVBoxLayout) -> None:
@@ -1240,17 +1241,17 @@ class BasePage(QWidget):
     def set_selected_savings_account(self, account_name: str) -> None:
         try:
             self._app_context["selected_savings_account"] = account_name
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def set_selected_bank_account(self, account_name: str) -> None:
         try:
             self._app_context["selected_bank_account"] = account_name
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def set_selected_asset(self, asset_id: str) -> None:
         try:
             self._app_context["selected_mortgage_id"] = str(asset_id)
-        except Exception:
+        except QT_ERRORS:
             pass

@@ -24,17 +24,18 @@ from ..models.firebase_workspace_profiles import (
     WorkspaceProfile,
 )
 from ..models.keychain_passwords import get_password, set_password
+from ..utils.safe import QT_ERRORS
 
 
 def _refresh_current_route(parent: Optional[QWidget]) -> None:
     try:
         win = parent.window() if parent is not None else None
-    except Exception:
+    except QT_ERRORS:
         win = None
     if win is None:
         try:
             win = QApplication.activeWindow()
-        except Exception:
+        except QT_ERRORS:
             win = None
     if win is None:
         return
@@ -53,10 +54,10 @@ def _refresh_current_route(parent: Optional[QWidget]) -> None:
             reset_fn = getattr(router, "reset", None)
             if callable(reset_fn):
                 reset_fn()
-        except Exception:
+        except QT_ERRORS:
             pass
         nav(route)
-    except Exception:
+    except QT_ERRORS:
         return
 
 
@@ -67,18 +68,18 @@ def run_pull_sync_with_progress(
     progress.setWindowTitle("מסנכרן…")
     try:
         progress.setModal(True)
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         progress.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         progress.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-    except Exception:
+    except QT_ERRORS:
         try:
             progress.setLayoutDirection(Qt.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     pl = QVBoxLayout(progress)
@@ -90,7 +91,7 @@ def run_pull_sync_with_progress(
     bar = QProgressBar(progress)
     try:
         bar.setRange(0, 0)
-    except Exception:
+    except QT_ERRORS:
         pass
     pl.addWidget(bar)
 
@@ -101,7 +102,7 @@ def run_pull_sync_with_progress(
             pulled, _ = FirebaseMovementsSyncService().sync_now(allow_push=False)
             done["finished"] = True
             done["pulled"] = int(pulled)
-        except Exception as e:
+        except QT_ERRORS as e:
             done["finished"] = True
             done["err"] = str(e)
 
@@ -109,7 +110,7 @@ def run_pull_sync_with_progress(
         import threading
 
         threading.Thread(target=_worker, daemon=True).start()
-    except Exception:
+    except QT_ERRORS:
         _worker()
 
     def _poll() -> None:
@@ -117,10 +118,10 @@ def run_pull_sync_with_progress(
             err = str(done.get("err") or "").strip()
             try:
                 progress.accept()
-            except Exception:
+            except QT_ERRORS:
                 try:
                     progress.close()
-                except Exception:
+                except QT_ERRORS:
                     pass
             if err:
                 try:
@@ -130,30 +131,30 @@ def run_pull_sync_with_progress(
                         "שגיאת סנכרון",
                         f"החשבון הוחלף, אך הסנכרון נכשל:\n{err}\n\nהנתונים עשויים להיות חלקיים.",
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 _refresh_current_route(parent)
-            except Exception:
+            except QT_ERRORS:
                 pass
             if on_done is not None:
                 try:
                     _ctx = parent if parent is not None else progress
                     QTimer.singleShot(0, _ctx, on_done)
-                except Exception:
+                except QT_ERRORS:
                     try:
                         on_done()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
             return
         try:
             QTimer.singleShot(120, _poll)
-        except Exception:
+        except QT_ERRORS:
             _poll()
 
     try:
         QTimer.singleShot(120, _poll)
-    except Exception:
+    except QT_ERRORS:
         pass
     progress.exec()
 
@@ -171,18 +172,18 @@ def open_firebase_account_dialog(
     dlg.setWindowTitle("פרטי חשבון")
     try:
         dlg.setModal(True)
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-    except Exception:
+    except QT_ERRORS:
         try:
             dlg.setLayoutDirection(Qt.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     lay = QVBoxLayout(dlg)
@@ -193,7 +194,7 @@ def open_firebase_account_dialog(
     header.setObjectName("HeaderTitle")
     try:
         header.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-    except Exception:
+    except QT_ERRORS:
         pass
     lay.addWidget(header)
 
@@ -207,10 +208,10 @@ def open_firebase_account_dialog(
         edit.setObjectName("SettingsInput")
         try:
             edit.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 edit.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         row.addWidget(lbl, 0)
         row.addWidget(edit, 1)
@@ -221,10 +222,10 @@ def open_firebase_account_dialog(
     pw_row, password_edit = _make_row("סיסמה:")
     try:
         password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-    except Exception:
+    except QT_ERRORS:
         try:
             password_edit.setEchoMode(QLineEdit.Password)
-        except Exception:
+        except QT_ERRORS:
             pass
     ws_row, workspace_edit = _make_row("Workspace:")
 
@@ -256,7 +257,7 @@ def open_firebase_account_dialog(
                 pw = get_password(account=acct)
                 if pw:
                     password_edit.setText(pw)
-        except Exception:
+        except QT_ERRORS:
             pass
     else:
         email_edit.setText(str(prefill_email or ""))
@@ -268,7 +269,7 @@ def open_firebase_account_dialog(
     connect_btn.setObjectName("SaveButton")
     try:
         connect_btn.setDefault(True)
-    except Exception:
+    except QT_ERRORS:
         pass
     cancel_btn = QPushButton("ביטול", dlg)
     btns.addWidget(connect_btn)
@@ -285,7 +286,7 @@ def open_firebase_account_dialog(
             status.setText(text)
             status.setMinimumHeight(40)
             status.show()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def do_connect() -> None:
@@ -309,7 +310,7 @@ def open_firebase_account_dialog(
         _set_status("מתחבר…")
         try:
             QApplication.processEvents()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -318,7 +319,7 @@ def open_firebase_account_dialog(
                 password=pw,
                 workspace_id=wid,
             )
-        except Exception as e:
+        except QT_ERRORS as e:
             _set_status(f"שגיאת התחברות: {str(e)}")
             return
 
@@ -344,19 +345,19 @@ def open_firebase_account_dialog(
                     remember_password=remember,
                     keychain_account=keychain_account if remember else "",
                 )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             FirebaseMovementsSyncService().ensure_user_local_file(str(wid or ""))
-        except Exception:
+        except QT_ERRORS:
             pass
 
         run_pull_sync_with_progress(parent=parent)
         result["ok"] = True
         try:
             dlg.accept()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     connect_btn.clicked.connect(do_connect)
@@ -380,18 +381,18 @@ def open_firebase_password_prompt(
     dlg.setWindowTitle("התחברות")
     try:
         dlg.setModal(True)
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-    except Exception:
+    except QT_ERRORS:
         try:
             dlg.setLayoutDirection(Qt.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     lay = QVBoxLayout(dlg)
@@ -402,7 +403,7 @@ def open_firebase_password_prompt(
     header.setObjectName("HeaderTitle")
     try:
         header.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-    except Exception:
+    except QT_ERRORS:
         pass
     lay.addWidget(header)
 
@@ -412,7 +413,7 @@ def open_firebase_password_prompt(
     info.setWordWrap(True)
     try:
         info.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-    except Exception:
+    except QT_ERRORS:
         pass
     lay.addWidget(info)
 
@@ -424,17 +425,17 @@ def open_firebase_password_prompt(
     pw.setObjectName("SettingsInput")
     try:
         pw.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-    except Exception:
+    except QT_ERRORS:
         try:
             pw.setLayoutDirection(Qt.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             pass
     try:
         pw.setEchoMode(QLineEdit.EchoMode.Password)
-    except Exception:
+    except QT_ERRORS:
         try:
             pw.setEchoMode(QLineEdit.Password)
-        except Exception:
+        except QT_ERRORS:
             pass
     pw_row.addWidget(pw_lbl, 0)
     pw_row.addWidget(pw, 1)
@@ -456,7 +457,7 @@ def open_firebase_password_prompt(
     connect_btn.setObjectName("SaveButton")
     try:
         connect_btn.setDefault(True)
-    except Exception:
+    except QT_ERRORS:
         pass
     cancel_btn = QPushButton("ביטול", dlg)
     btns.addWidget(connect_btn)
@@ -472,7 +473,7 @@ def open_firebase_password_prompt(
         try:
             status.setText(text)
             status.show()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _do_connect() -> None:
@@ -490,7 +491,7 @@ def open_firebase_password_prompt(
         _set_status("מתחבר…")
         try:
             QApplication.processEvents()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -499,7 +500,7 @@ def open_firebase_password_prompt(
                 password=password,
                 workspace_id=wid,
             )
-        except Exception as e:
+        except QT_ERRORS as e:
             _set_status(f"שגיאת התחברות: {str(e)}")
             return
 
@@ -518,19 +519,19 @@ def open_firebase_password_prompt(
                 profiles_store.touch(
                     name=str(getattr(profile, "name", "") or "").strip() or email
                 )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             FirebaseMovementsSyncService().ensure_user_local_file(str(wid or ""))
-        except Exception:
+        except QT_ERRORS:
             pass
 
         run_pull_sync_with_progress(parent=parent)
         result["ok"] = True
         try:
             dlg.accept()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     connect_btn.clicked.connect(_do_connect)

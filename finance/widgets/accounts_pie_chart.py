@@ -26,6 +26,7 @@ from ..qt import (
     QToolTip,
     QCursor,
 )
+from ..utils.safe import QT_ERRORS
 
 
 class AccountsPieChart(QWidget):
@@ -55,7 +56,7 @@ class AccountsPieChart(QWidget):
                 self.setSizePolicy(
                     QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 self._chart_view.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -71,9 +72,9 @@ class AccountsPieChart(QWidget):
                     self._chart_view.setAttribute(
                         Qt.WidgetAttribute.WA_TranslucentBackground, True
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._layout.addWidget(self._chart_view)
             self._render_chart()
@@ -106,7 +107,7 @@ class AccountsPieChart(QWidget):
         if app is not None:
             try:
                 return str(app.property("theme") or "light") == "dark"
-            except Exception:
+            except QT_ERRORS:
                 return False
         return False
 
@@ -114,12 +115,12 @@ class AccountsPieChart(QWidget):
         series = QPieSeries()
         try:
             series.setLabelsVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             series.setHoleSize(0.42)
             series.setPieSize(0.92)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         # פלטת פסטל קטגורית (תואמת לעיצוב המובייל) — צבע נבדל לכל חשבון,
@@ -146,7 +147,7 @@ class AccountsPieChart(QWidget):
         for name, value in self._extra_slices:
             try:
                 entries.append((str(name), max(float(value), 0.0)))
-            except Exception:
+            except QT_ERRORS:
                 continue
         entries = [(n, v) for (n, v) in entries if v > 0.0]
         total = sum(v for _, v in entries)
@@ -154,7 +155,7 @@ class AccountsPieChart(QWidget):
             slice_ = series.append("אין נתונים", 1.0)
             try:
                 slice_.setLabelVisible(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             entries.sort(key=lambda item: item[1], reverse=True)
@@ -162,7 +163,7 @@ class AccountsPieChart(QWidget):
                 s = series.append(name, value)
                 try:
                     s.setProperty("baseLabel", name)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     s.hovered.connect(
@@ -170,7 +171,7 @@ class AccountsPieChart(QWidget):
                             ser, sl, state
                         )
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         chart = QChart()
@@ -187,16 +188,16 @@ class AccountsPieChart(QWidget):
                     s.setBrush(pastel[idx % len(pastel)])
                 s.setBorderColor(gap_color)  # רווח דק בצבע הפאנל
                 s.setBorderWidth(2)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         chart.legend().setVisible(False)
         try:
             chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
-        except Exception:
+        except QT_ERRORS:
             try:
                 chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             alignment = Qt.AlignmentFlag.AlignBottom
@@ -205,28 +206,28 @@ class AccountsPieChart(QWidget):
         chart.legend().setAlignment(alignment)
         try:
             chart.legend().setContentsMargins(0, 0, 0, 0)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setMargins(QMarginsF(0, 0, 0, 0))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             legend = chart.legend()
             try:
                 legend.setBackgroundVisible(False)
                 legend.setBorderColor(Qt.GlobalColor.transparent)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 legend.setMarkerShape(QLegend.MarkerShape.MarkerShapeRectangle)
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setTitle("")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             # תוויות/מקרא צבועים לפי ערכת הנושא (לבן־בהיר בכהה, כהה בבהיר).
@@ -235,7 +236,7 @@ class AccountsPieChart(QWidget):
             if _app is not None:
                 try:
                     is_dark = str(_app.property("theme") or "light") == "dark"
-                except Exception:
+                except QT_ERRORS:
                     is_dark = False
             text_color = QColor("#e2e8f0" if is_dark else "#0f172a")
             chart.setTitleBrush(text_color)
@@ -244,16 +245,16 @@ class AccountsPieChart(QWidget):
             chart.setPlotAreaBackgroundVisible(False)
             try:
                 chart.setBackgroundPen(Qt.PenStyle.NoPen)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     chart.setBackgroundPen(Qt.NoPen)
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 series.setLabelsColor(text_color)
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -264,9 +265,9 @@ class AccountsPieChart(QWidget):
                 try:
                     base = sl.property("baseLabel") or sl.label()
                     mk.setLabel(str(base))
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._chart_view.setChart(chart)
@@ -286,7 +287,7 @@ class AccountsPieChart(QWidget):
                     slice_obj.setExploded(True)
                     if hasattr(slice_obj, "setExplodeDistanceFactor"):
                         slice_obj.setExplodeDistanceFactor(0.08)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     name = slice_obj.property("baseLabel") or ""
@@ -301,28 +302,28 @@ class AccountsPieChart(QWidget):
                     </div>
                     """
                     QToolTip.showText(QCursor.pos(), html, self._chart_view)
-                except Exception:
+                except QT_ERRORS:
                     pass
             else:
                 try:
                     slice_obj.setLabelVisible(False)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     slice_obj.setExploded(False)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     QToolTip.hideText()
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 marker = self._slice_to_marker.get(slice_obj)
                 if marker:
                     base = slice_obj.property("baseLabel") or slice_obj.label()
                     marker.setLabel(str(base))
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass
 

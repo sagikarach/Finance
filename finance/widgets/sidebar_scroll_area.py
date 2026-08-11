@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable
 
 from ..qt import QApplication, QFrame, QScrollArea, QTimer, QVBoxLayout, QWidget, Qt
+from ..utils.safe import QT_ERRORS
 
 
 class SidebarScrollArea:
@@ -23,7 +24,7 @@ class SidebarScrollArea:
         sb = self.scroll.verticalScrollBar()
         try:
             sb.rangeChanged.connect(lambda _a, _b: self.sync_scrollbar_visual_state())
-        except Exception:
+        except QT_ERRORS:
             pass
         self.sync_scrollbar_visual_state()
 
@@ -32,7 +33,7 @@ class SidebarScrollArea:
     ) -> None:
         try:
             QTimer.singleShot(delay_ms, apply_style)
-        except Exception:
+        except QT_ERRORS:
             apply_style()
 
     def sync_scrollbar_visual_state(self) -> None:
@@ -44,7 +45,7 @@ class SidebarScrollArea:
             st.unpolish(sb)
             st.polish(sb)
             sb.update()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def apply_scrollbar_style(self) -> None:
@@ -53,7 +54,7 @@ class SidebarScrollArea:
             app = QApplication.instance()
             if app is not None:
                 is_dark = str(app.property("theme") or "light") == "dark"
-        except Exception:
+        except QT_ERRORS:
             is_dark = False
 
         handle = "#3f3d36" if is_dark else "#d8d4c4"
@@ -101,5 +102,5 @@ class SidebarScrollArea:
                 }}
                 """
             )
-        except Exception:
+        except QT_ERRORS:
             pass

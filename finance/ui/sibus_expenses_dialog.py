@@ -21,6 +21,7 @@ from ..qt import (
     QWidget,
 )
 from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button, FullCellDelegate
+from ..utils.safe import QT_ERRORS
 
 
 class SibusExpensesDialog(QDialog):
@@ -56,7 +57,7 @@ class SibusExpensesDialog(QDialog):
         title.setObjectName("HeaderTitle")
         try:
             title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title)
 
@@ -73,7 +74,7 @@ class SibusExpensesDialog(QDialog):
         self._table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
         try:
             self._table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             hh = self._table.horizontalHeader()
@@ -87,7 +88,7 @@ class SibusExpensesDialog(QDialog):
             self._table.setColumnWidth(2, 130)
             self._table.setColumnWidth(3, 110)
             self._table.setColumnWidth(5, 80)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._table.setItemDelegateForColumn(5, FullCellDelegate(self._table))
         layout.addWidget(self._table, 1)
@@ -117,7 +118,7 @@ class SibusExpensesDialog(QDialog):
     def refresh(self) -> None:
         try:
             all_movements = list(self._movement_service.list_movements())
-        except Exception:
+        except QT_ERRORS:
             all_movements = []
 
         expenses: List[BankMovement] = []
@@ -129,13 +130,13 @@ class SibusExpensesDialog(QDialog):
                     continue
                 if float(m.amount) >= 0:
                     continue
-            except Exception:
+            except QT_ERRORS:
                 continue
             expenses.append(m)
 
         try:
             expenses.sort(key=lambda m: parse_iso_date(str(m.date)), reverse=True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._table.setRowCount(len(expenses))
@@ -148,7 +149,7 @@ class SibusExpensesDialog(QDialog):
 
         try:
             align = Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-        except Exception:
+        except QT_ERRORS:
             align = None
 
         for row, m in enumerate(expenses):
@@ -159,14 +160,14 @@ class SibusExpensesDialog(QDialog):
             # Store movement id for save/delete operations.
             try:
                 date_item.setData(Qt.ItemDataRole.UserRole, m.id)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             # date + amount are read-only
             for it in (date_item, amount_item):
                 try:
                     it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             try:
@@ -174,7 +175,7 @@ class SibusExpensesDialog(QDialog):
                     date_item.setTextAlignment(align)
                     amount_item.setTextAlignment(align)
                     desc_item.setTextAlignment(align)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             cat_combo = QComboBox(self._table)
@@ -207,7 +208,7 @@ class SibusExpensesDialog(QDialog):
 
         try:
             self._table.resizeRowsToContents()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _read_row(self, row: int) -> Tuple[str, MovementType, Optional[str]]:
@@ -223,7 +224,7 @@ class SibusExpensesDialog(QDialog):
             type_str = type_widget.currentText()
             try:
                 mtype = MovementType(type_str)
-            except Exception:
+            except QT_ERRORS:
                 if "חודש" in type_str:
                     mtype = MovementType.MONTHLY
                 elif "שנת" in type_str:
@@ -236,7 +237,7 @@ class SibusExpensesDialog(QDialog):
         if desc_item is not None:
             try:
                 desc_raw = unwrap_rtl(desc_item.text() or "")
-            except Exception:
+            except QT_ERRORS:
                 desc_raw = desc_item.text() or ""
         desc = str(desc_raw or "").strip() or None
         return category, mtype, desc
@@ -244,7 +245,7 @@ class SibusExpensesDialog(QDialog):
     def _on_save(self) -> None:
         try:
             all_movements = list(self._movement_service.list_movements())
-        except Exception:
+        except QT_ERRORS:
             all_movements = []
 
         by_id: Dict[str, BankMovement] = {m.id: m for m in all_movements}
@@ -256,7 +257,7 @@ class SibusExpensesDialog(QDialog):
                 continue
             try:
                 movement_id = date_item.data(Qt.ItemDataRole.UserRole)
-            except Exception:
+            except QT_ERRORS:
                 movement_id = None
             if not isinstance(movement_id, str) or not movement_id:
                 continue
@@ -287,18 +288,18 @@ class SibusExpensesDialog(QDialog):
         updated = list(by_id.values())
         try:
             self._movement_service.save_movements(updated, changed_movements=changed)
-        except Exception as _e:
+        except QT_ERRORS as _e:
             try:
                 from ..qt import QMessageBox
                 QMessageBox.warning(self, "שגיאה בשמירה", f"השמירה נכשלה: {_e}")
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
 
         if self._on_changed is not None:
             try:
                 self._on_changed()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self.accept()
@@ -306,7 +307,7 @@ class SibusExpensesDialog(QDialog):
     def _on_delete(self, movement_id: str) -> None:
         try:
             accounts = list(self._accounts_getter() or [])
-        except Exception:
+        except QT_ERRORS:
             accounts = []
 
         try:
@@ -316,13 +317,13 @@ class SibusExpensesDialog(QDialog):
                 record_history=True,
             )
             self._accounts_setter(list(new_accounts))
-        except Exception:
+        except QT_ERRORS:
             return
 
         if self._on_changed is not None:
             try:
                 self._on_changed()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self.refresh()

@@ -13,6 +13,7 @@ from .collapsible_section import CollapsibleButtonList
 from .sidebar_scroll_area import SidebarScrollArea
 from .sidebar_state import SidebarState
 from .sidebar_controller import SidebarController
+from ..utils.safe import QT_ERRORS
 
 
 class Sidebar(QWidget):
@@ -78,21 +79,21 @@ class Sidebar(QWidget):
                     layout.insertWidget(idx_bank, self._bank_section)
                 else:
                     layout.addWidget(self._bank_section)
-            except Exception:
+            except QT_ERRORS:
                 layout.addWidget(self._bank_section)
             try:
                 layout.removeWidget(bank_container)
                 bank_container.setVisible(False)
                 bank_container.setParent(None)
                 bank_container.deleteLater()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 bank_btn = getattr(self._navigation, "get_bank_button", lambda: None)()
                 if bank_btn is not None:
                     bank_btn.setVisible(False)
                     bank_btn.setEnabled(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             layout.addWidget(self._bank_section)
@@ -104,14 +105,14 @@ class Sidebar(QWidget):
                     layout.insertWidget(idx_sav, self._savings_section)
                 else:
                     layout.addWidget(self._savings_section)
-            except Exception:
+            except QT_ERRORS:
                 layout.addWidget(self._savings_section)
             try:
                 layout.removeWidget(savings_container)
                 savings_container.setVisible(False)
                 savings_container.setParent(None)
                 savings_container.deleteLater()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 savings_btn = getattr(
@@ -120,7 +121,7 @@ class Sidebar(QWidget):
                 if savings_btn is not None:
                     savings_btn.setVisible(False)
                     savings_btn.setEnabled(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             layout.addWidget(self._savings_section)
@@ -142,7 +143,7 @@ class Sidebar(QWidget):
                         ("פירוט שנה", lambda: nav("yearly_data")),
                     ]
                 )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         yearly_container = (
@@ -157,14 +158,14 @@ class Sidebar(QWidget):
                     layout.insertWidget(idx_yearly, self._yearly_summary_section)
                 else:
                     layout.addWidget(self._yearly_summary_section)
-            except Exception:
+            except QT_ERRORS:
                 layout.addWidget(self._yearly_summary_section)
             try:
                 layout.removeWidget(yearly_container)
                 yearly_container.setVisible(False)
                 yearly_container.setParent(None)
                 yearly_container.deleteLater()
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 yearly_btn = getattr(
@@ -173,7 +174,7 @@ class Sidebar(QWidget):
                 if yearly_btn is not None:
                     yearly_btn.setVisible(False)
                     yearly_btn.setEnabled(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             layout.addWidget(self._yearly_summary_section)
@@ -201,34 +202,34 @@ class Sidebar(QWidget):
         self._controller.update_route(current_route)
         try:
             QTimer.singleShot(0, self._update_button_width)
-        except Exception:
+        except QT_ERRORS:
             self._update_button_width()
 
     def _setup_sidebar(self) -> None:
         self.setObjectName("Sidebar")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def resizeEvent(self, event) -> None:
         try:
             super().resizeEvent(event)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._controller.on_resize()
 
     def showEvent(self, event) -> None:
         try:
             super().showEvent(event)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._controller.on_show()
 
     def changeEvent(self, event) -> None:
         try:
             super().changeEvent(event)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._controller.on_style_change(event)
 

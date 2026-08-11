@@ -28,6 +28,21 @@ PARSE_ERRORS: tuple[type[Exception], ...] = (
     IndexError,
 )
 
+# Exceptions a Qt widget call realistically raises: a wrapped C++ object already
+# deleted (RuntimeError), a missing/None widget (AttributeError), a bad argument
+# (TypeError/ValueError), or a stale index/key. Catch these at the Qt boundary so
+# a truly unexpected error (SystemExit, MemoryError, KeyboardInterrupt) still
+# propagates instead of vanishing.
+QT_ERRORS: tuple[type[Exception], ...] = (
+    RuntimeError,
+    AttributeError,
+    TypeError,
+    ValueError,
+    KeyError,
+    IndexError,
+    OSError,
+)
+
 
 @contextmanager
 def swallow(

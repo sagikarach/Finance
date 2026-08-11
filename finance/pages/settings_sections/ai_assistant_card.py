@@ -10,6 +10,7 @@ from ...qt import (
     QWidget,
 )
 from ...models.gemini_classifier import get_gemini_api_key, has_gemini_api_key, set_gemini_api_key
+from ...utils.safe import QT_ERRORS
 
 
 class AiAssistantCard(QWidget):
@@ -20,14 +21,14 @@ class AiAssistantCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._build()
 
@@ -39,7 +40,7 @@ class AiAssistantCard(QWidget):
         title = QLabel("עוזר AI (Gemini)", self)
         try:
             title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title)
         layout.addSpacing(4)

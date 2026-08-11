@@ -13,6 +13,7 @@ from ...models.firebase_session import FirebaseSessionStore
 from ...models.firebase_workspace_profiles import FirebaseWorkspaceProfilesStore
 from ...ui.firebase_account_dialogs import open_firebase_account_dialog
 from ...models.workspace_local_cache_reset import reset_workspace_local_cache
+from ...utils.safe import QT_ERRORS
 
 
 class FirebaseSyncCard(QWidget):
@@ -21,14 +22,14 @@ class FirebaseSyncCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._store = store
         self._build()
@@ -41,7 +42,7 @@ class FirebaseSyncCard(QWidget):
         title = QLabel("שיתוף וסנכרון", self)
         try:
             title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title)
         layout.addSpacing(8)
@@ -61,7 +62,7 @@ class FirebaseSyncCard(QWidget):
                 ):
                     current_name = str(getattr(p, "name", "") or "").strip()
                     break
-        except Exception:
+        except QT_ERRORS:
             current_name = ""
 
         def _row(label: str, value: str) -> None:
@@ -98,7 +99,7 @@ class FirebaseSyncCard(QWidget):
         reset_btn.setObjectName("SecondaryButton")
         try:
             reset_btn.setToolTip("מוחק קבצי מטמון מקומיים עבור ה-Workspace הנוכחי")
-        except Exception:
+        except QT_ERRORS:
             pass
         danger_row.addWidget(reset_btn)
         danger_row.addStretch(1)
@@ -108,7 +109,7 @@ class FirebaseSyncCard(QWidget):
             parent = None
             try:
                 parent = self.window()
-            except Exception:
+            except QT_ERRORS:
                 parent = None
             prof = None
             try:
@@ -119,7 +120,7 @@ class FirebaseSyncCard(QWidget):
                     ):
                         prof = p
                         break
-            except Exception:
+            except QT_ERRORS:
                 prof = None
             open_firebase_account_dialog(
                 parent=parent,
@@ -139,25 +140,25 @@ class FirebaseSyncCard(QWidget):
             parent = None
             try:
                 parent = self.window()
-            except Exception:
+            except QT_ERRORS:
                 parent = None
 
             dlg = QDialog(parent)
             dlg.setWindowTitle("איפוס נתונים מקומיים")
             try:
                 dlg.setModal(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 dlg.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 dlg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     dlg.setLayoutDirection(Qt.RightToLeft)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             lambda_layout = QVBoxLayout(dlg)
@@ -189,7 +190,7 @@ class FirebaseSyncCard(QWidget):
 
             try:
                 reset_workspace_local_cache(workspace_id=wid)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             try:
@@ -204,7 +205,7 @@ class FirebaseSyncCard(QWidget):
                     ):
                         route = router.current_route() or "home"
                         router.navigate(route)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         reset_btn.clicked.connect(_confirm_and_reset)

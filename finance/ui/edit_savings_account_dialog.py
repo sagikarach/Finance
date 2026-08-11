@@ -19,6 +19,7 @@ from ..models.savings_dialogs import (
     SavingsAccountValidationContext,
     validate_savings_account_form,
 )
+from ..utils.safe import QT_ERRORS
 
 
 class EditSavingsAccountDialog(QDialog):
@@ -37,7 +38,7 @@ class EditSavingsAccountDialog(QDialog):
         self.setModal(True)
         try:
             self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout = setup_standard_rtl_dialog(self)
@@ -47,17 +48,17 @@ class EditSavingsAccountDialog(QDialog):
         account_label.setMinimumWidth(100)
         try:
             account_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._account_combo = QComboBox(self)
         self._account_combo.setObjectName("DialogAccountCombo")
         try:
             self._account_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._account_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for account in accounts:
             self._account_combo.addItem(account.name, account)
@@ -82,11 +83,11 @@ class EditSavingsAccountDialog(QDialog):
         self._name_edit = QLineEdit(self)
         try:
             self._name_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._name_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         if self._selected_account:
             self._name_edit.setText(self._selected_account.name)
@@ -97,10 +98,10 @@ class EditSavingsAccountDialog(QDialog):
         self._is_liquid_checkbox = QCheckBox("נזיל", self)
         try:
             self._is_liquid_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         if self._selected_account:
             self._is_liquid_checkbox.setChecked(self._selected_account.is_liquid)
@@ -112,19 +113,19 @@ class EditSavingsAccountDialog(QDialog):
         self._error_label.setMaximumHeight(60)
         try:
             self._error_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._error_label.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._error_label.setAlignment(
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._error_label.hide()
 

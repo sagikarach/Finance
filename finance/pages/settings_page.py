@@ -30,6 +30,7 @@ from .settings_sections import (
 )
 from ..utils.defaults import load_defaults
 from ..utils.updater import check_version_only, download_and_install_update, install_app_to_applications
+from ..utils.safe import QT_ERRORS
 
 
 class SettingsPage(BasePage):
@@ -63,7 +64,7 @@ class SettingsPage(BasePage):
         try:
             from ..utils.icons import apply_icon
             apply_icon(back_btn, "arrow_left", size=20, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             back_btn.setText("←")
         back_btn.setToolTip("חזרה")
         if self._navigate is not None:
@@ -87,7 +88,7 @@ class SettingsPage(BasePage):
         # from local caches that were just pulled from Firebase.
         try:
             self._accounts = self._provider.list_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             defaults = load_defaults()
@@ -97,17 +98,17 @@ class SettingsPage(BasePage):
             self._user = self._user_store.load(
                 default_full_name=default_name, accounts=self._accounts
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             if self._content_col is not None:
                 self._build_content(self._content_col)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             if self._sidebar is not None:
                 self._sidebar.refresh_profile()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _build_content(self, main_col: Any) -> None:
@@ -117,7 +118,7 @@ class SettingsPage(BasePage):
             try:
                 if self._sidebar is not None:
                     self._sidebar.refresh_profile()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self._user_card = UserDetailsCard(
@@ -130,7 +131,7 @@ class SettingsPage(BasePage):
         def on_accounts_saved() -> None:
             try:
                 self._accounts = self._provider.list_accounts()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         bank_accounts_card = BankAccountsCard(
@@ -151,10 +152,10 @@ class SettingsPage(BasePage):
         container = QWidget(self)
         try:
             container.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 container.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         container_l = QHBoxLayout(container)
@@ -165,14 +166,14 @@ class SettingsPage(BasePage):
         menu.setObjectName("SettingsMenu")
         try:
             menu.setFixedWidth(210)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             menu.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 menu.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         menu.addItem("כללי")
@@ -187,10 +188,10 @@ class SettingsPage(BasePage):
             page = QWidget(stack)
             try:
                 page.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     page.setLayoutDirection(Qt.RightToLeft)
-                except Exception:
+                except QT_ERRORS:
                     pass
             lay = QVBoxLayout(page)
             lay.setContentsMargins(0, 0, 0, 0)
@@ -231,7 +232,7 @@ class SettingsPage(BasePage):
                 def _on_deadline() -> None:
                     try:
                         progress.close()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     QMessageBox.warning(container, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
                 _deadline.timeout.connect(_on_deadline)
@@ -243,17 +244,17 @@ class SettingsPage(BasePage):
                     is_newer, latest, zip_url_sig, error = False, "", None, None
                     try:
                         is_newer, latest, zip_url_sig, error = check_version_only()
-                    except Exception as exc:
+                    except QT_ERRORS as exc:
                         error = str(exc)
 
                     def _after_check() -> None:
                         try:
                             _deadline.stop()
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         try:
                             progress.close()
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         if error:
                             QMessageBox.warning(container, "עדכון", f"בדיקת עדכון נכשלה:\n{error}")
@@ -286,7 +287,7 @@ class SettingsPage(BasePage):
                     try:
                         from ..qt import QApplication
                         QTimer.singleShot(0, QApplication.instance(), _after_check)
-                    except Exception:
+                    except QT_ERRORS:
                         _after_check()
 
                 def _start_download(version: str, zip_url_sig: str) -> None:
@@ -303,7 +304,7 @@ class SettingsPage(BasePage):
                         def _after_dl() -> None:
                             try:
                                 dl_progress.close()
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                             if dl_err or app_path is None:
                                 QMessageBox.warning(
@@ -337,28 +338,28 @@ class SettingsPage(BasePage):
                             try:
                                 import subprocess
                                 subprocess.Popen(["open", "-n", "/Applications/Finance.app"])
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                             try:
                                 from ..qt import QApplication
                                 QApplication.quit()
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
 
                         try:
                             from ..qt import QApplication
                             QTimer.singleShot(0, QApplication.instance(), _after_dl)
-                        except Exception:
+                        except QT_ERRORS:
                             _after_dl()
 
                     try:
                         threading.Thread(target=_dl_worker, daemon=True).start()
-                    except Exception:
+                    except QT_ERRORS:
                         _dl_worker()
 
                 try:
                     threading.Thread(target=_check_worker, daemon=True).start()
-                except Exception:
+                except QT_ERRORS:
                     _check_worker()
 
             update_btn.clicked.connect(_do_check)
@@ -377,7 +378,7 @@ class SettingsPage(BasePage):
         def _save_selected(idx: int) -> None:
             try:
                 self._app_context["settings_section"] = str(int(idx))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         menu.currentRowChanged.connect(stack.setCurrentIndex)
@@ -386,13 +387,13 @@ class SettingsPage(BasePage):
         initial = 0
         try:
             initial = int(str(self._app_context.get("settings_section", "0") or "0"))
-        except Exception:
+        except QT_ERRORS:
             initial = 0
         if initial < 0 or initial >= stack.count():
             initial = 0
         try:
             menu.setCurrentRow(initial)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         container_l.addWidget(menu, 0)

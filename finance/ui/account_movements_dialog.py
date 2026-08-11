@@ -21,6 +21,7 @@ from ..qt import (
     QWidget,
 )
 from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button, FullCellDelegate
+from ..utils.safe import QT_ERRORS
 
 
 class AccountMovementsDialog(QDialog):
@@ -58,7 +59,7 @@ class AccountMovementsDialog(QDialog):
         title.setObjectName("HeaderTitle")
         try:
             title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title)
 
@@ -86,12 +87,12 @@ class AccountMovementsDialog(QDialog):
             self._table.setColumnWidth(3, 130)
             self._table.setColumnWidth(4, 110)
             self._table.setColumnWidth(6, 80)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._table.setItemDelegateForColumn(6, FullCellDelegate(self._table))
         try:
             self._table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(self._table, 1)
 
@@ -120,7 +121,7 @@ class AccountMovementsDialog(QDialog):
     def refresh(self) -> None:
         try:
             all_movements = list(self._movement_service.list_movements())
-        except Exception:
+        except QT_ERRORS:
             all_movements = []
 
         movements: List[BankMovement] = []
@@ -130,13 +131,13 @@ class AccountMovementsDialog(QDialog):
                     continue
                 if bool(getattr(m, "deleted", False)):
                     continue
-            except Exception:
+            except QT_ERRORS:
                 continue
             movements.append(m)
 
         try:
             movements.sort(key=lambda m: parse_iso_date(str(m.date)), reverse=True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._table.setRowCount(len(movements))
@@ -149,14 +150,14 @@ class AccountMovementsDialog(QDialog):
 
         try:
             align = Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-        except Exception:
+        except QT_ERRORS:
             align = None
 
         for row, m in enumerate(movements):
             is_income = False
             try:
                 is_income = float(m.amount) > 0
-            except Exception:
+            except QT_ERRORS:
                 is_income = False
 
             date_item = QTableWidgetItem(str(m.date))
@@ -166,13 +167,13 @@ class AccountMovementsDialog(QDialog):
 
             try:
                 date_item.setData(Qt.ItemDataRole.UserRole, m.id)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             for it in (date_item, amount_item, direction_item):
                 try:
                     it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             try:
@@ -181,7 +182,7 @@ class AccountMovementsDialog(QDialog):
                     amount_item.setTextAlignment(align)
                     direction_item.setTextAlignment(align)
                     desc_item.setTextAlignment(align)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             cat_combo = QComboBox(self._table)
@@ -216,7 +217,7 @@ class AccountMovementsDialog(QDialog):
 
         try:
             self._table.resizeRowsToContents()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _read_row(self, row: int) -> Tuple[str, MovementType, Optional[str]]:
@@ -232,7 +233,7 @@ class AccountMovementsDialog(QDialog):
             type_str = type_widget.currentText()
             try:
                 mtype = MovementType(type_str)
-            except Exception:
+            except QT_ERRORS:
                 if "חודש" in type_str:
                     mtype = MovementType.MONTHLY
                 elif "שנת" in type_str:
@@ -245,7 +246,7 @@ class AccountMovementsDialog(QDialog):
         if desc_item is not None:
             try:
                 desc_raw = unwrap_rtl(desc_item.text() or "")
-            except Exception:
+            except QT_ERRORS:
                 desc_raw = desc_item.text() or ""
         desc = str(desc_raw or "").strip() or None
         return category, mtype, desc
@@ -253,7 +254,7 @@ class AccountMovementsDialog(QDialog):
     def _on_save(self) -> None:
         try:
             all_movements = list(self._movement_service.list_movements())
-        except Exception:
+        except QT_ERRORS:
             all_movements = []
 
         by_id: Dict[str, BankMovement] = {m.id: m for m in all_movements}
@@ -265,7 +266,7 @@ class AccountMovementsDialog(QDialog):
                 continue
             try:
                 movement_id = date_item.data(Qt.ItemDataRole.UserRole)
-            except Exception:
+            except QT_ERRORS:
                 movement_id = None
             if not isinstance(movement_id, str) or not movement_id:
                 continue
@@ -296,18 +297,18 @@ class AccountMovementsDialog(QDialog):
         updated = list(by_id.values())
         try:
             self._movement_service.save_movements(updated, changed_movements=changed)
-        except Exception as _e:
+        except QT_ERRORS as _e:
             try:
                 from ..qt import QMessageBox
                 QMessageBox.warning(self, "שגיאה בשמירה", f"השמירה נכשלה: {_e}")
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
 
         if self._on_changed is not None:
             try:
                 self._on_changed()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self.accept()
@@ -315,7 +316,7 @@ class AccountMovementsDialog(QDialog):
     def _on_delete(self, movement_id: str) -> None:
         try:
             accounts = list(self._accounts_getter() or [])
-        except Exception:
+        except QT_ERRORS:
             accounts = []
 
         try:
@@ -325,13 +326,13 @@ class AccountMovementsDialog(QDialog):
                 record_history=True,
             )
             self._accounts_setter(list(new_accounts))
-        except Exception:
+        except QT_ERRORS:
             return
 
         if self._on_changed is not None:
             try:
                 self._on_changed()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self.refresh()

@@ -22,6 +22,7 @@ from .dialog_utils import (
 from .bank_movement_dialog import NewCategoryDialog
 from ..models.bank_movement import BankMovement, MovementType
 from ..models.classified_expense import ClassifiedExpense
+from ..utils.safe import QT_ERRORS
 
 
 class BatchOutcomeReviewDialog(QDialog):
@@ -71,7 +72,7 @@ class BatchOutcomeReviewDialog(QDialog):
             expense_container.setObjectName("ContentPanel")
             try:
                 expense_container.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            except Exception:
+            except QT_ERRORS:
                 pass
             expense_layout = QVBoxLayout(expense_container)
             expense_layout.setSpacing(8)
@@ -152,10 +153,10 @@ class BatchOutcomeReviewDialog(QDialog):
 
             try:
                 category_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     category_combo.setLayoutDirection(Qt.RightToLeft)
-                except Exception:
+                except QT_ERRORS:
                     pass
             if suggested_cat and suggested_cat in self._categories:
                 idx_cat = self._categories.index(suggested_cat)
@@ -184,10 +185,10 @@ class BatchOutcomeReviewDialog(QDialog):
 
             try:
                 type_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     type_combo.setLayoutDirection(Qt.RightToLeft)
-                except Exception:
+                except QT_ERRORS:
                     pass
             for mt in MovementType:
                 type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
@@ -223,7 +224,7 @@ class BatchOutcomeReviewDialog(QDialog):
                             "קטגוריה חסרה",
                             f"שורה {idx + 1}: יש לבחור קטגוריה לפני השמירה.",
                         )
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     return
             for idx, classified_expense in enumerate(self._expenses):
@@ -240,7 +241,7 @@ class BatchOutcomeReviewDialog(QDialog):
                     elif isinstance(type_str, str):
                         try:
                             movement_type = MovementType(type_str)
-                        except Exception:
+                        except QT_ERRORS:
                             for mt in MovementType:
                                 if mt.value == type_str:
                                     movement_type = mt
@@ -254,7 +255,7 @@ class BatchOutcomeReviewDialog(QDialog):
                                     movement_type=movement_type,
                                 )
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             pass
             for idx, res in enumerate(self._results):
                 if res is None:
@@ -265,7 +266,7 @@ class BatchOutcomeReviewDialog(QDialog):
                             "שגיאה",
                             f"שורה {idx + 1}: לא ניתן היה לשמור את הנתונים. בדוק קטגוריה וסוג.",
                         )
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                     return
             self.accept()
@@ -283,7 +284,7 @@ class BatchOutcomeReviewDialog(QDialog):
         try:
             combo = self._category_combos[expense_idx]
             data = combo.itemData(combo_idx)
-        except Exception:
+        except QT_ERRORS:
             return
 
         if data != self._add_category_sentinel:
@@ -307,10 +308,10 @@ class BatchOutcomeReviewDialog(QDialog):
                 if self._on_category_added is not None:
                     try:
                         self._on_category_added(name)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                 combo.setCurrentIndex(insert_index)
-        except Exception:
+        except QT_ERRORS:
             return
 
     def get_results(self) -> List[Optional[BankMovement]]:

@@ -34,6 +34,7 @@ from ..utils.formatting import fmt_money as _fmt_money
 
 
 from ..utils.formatting import parse_float as _parse_float
+from ..utils.safe import QT_ERRORS
 
 
 # מזהה החשבון הקבוע לנכסי רכישה (תואם למסך המשכנתא).
@@ -54,7 +55,7 @@ class AssetDialog(QDialog):
         self.setModal(True)
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._asset = asset
@@ -92,7 +93,7 @@ class AssetDialog(QDialog):
         try:
             self._date.setDisplayFormat("yyyy-MM-dd")
             self._date.setDate(QDate.currentDate())
-        except Exception:
+        except QT_ERRORS:
             pass
         root.addWidget(self._date_label)
         root.addWidget(self._date)
@@ -135,7 +136,7 @@ class AssetDialog(QDialog):
         self._name.setText(str(a.name or ""))
         try:
             self._kind.setCurrentText(str(getattr(a.kind, "value", a.kind)))
-        except Exception:
+        except QT_ERRORS:
             pass
         # סוג נעול בעריכה — לא ממירים רכישה <-> אחר.
         self._kind.setEnabled(False)
@@ -144,7 +145,7 @@ class AssetDialog(QDialog):
         try:
             dt = parse_iso_date(str(getattr(a, "start_date", "") or ""))
             self._date.setDate(QDate(dt.year, dt.month, dt.day))
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _on_save(self) -> None:
@@ -154,7 +155,7 @@ class AssetDialog(QDialog):
             return
         try:
             kind = AssetKind(str(self._kind.currentText()))
-        except Exception:
+        except QT_ERRORS:
             kind = AssetKind.PURCHASE
         value = _parse_float(self._value.text()) or 0.0
 
@@ -172,7 +173,7 @@ class AssetDialog(QDialog):
             if kind == AssetKind.CAR:
                 try:
                     purchase = self._date.date().toString("yyyy-MM-dd")
-                except Exception:
+                except QT_ERRORS:
                     purchase = ""
                 self._asset = replace(self._asset, start_date=purchase)
         self.accept()
@@ -196,7 +197,7 @@ class SellDialog(QDialog):
         self.setModal(True)
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._price: Optional[float] = None
@@ -223,7 +224,7 @@ class SellDialog(QDialog):
             from datetime import date
 
             self._date_edit.setText(date.today().isoformat())
-        except Exception:
+        except QT_ERRORS:
             pass
         root.addWidget(QLabel("תאריך מכירה", self))
         root.addWidget(self._date_edit)
@@ -273,7 +274,7 @@ class AssetsPage(BasePage):
         root = QWidget(self)
         try:
             root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         content_col.addWidget(root, 1)
 
@@ -296,7 +297,7 @@ class AssetsPage(BasePage):
             try:
                 card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
                 card.setAutoFillBackground(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
             cl = QVBoxLayout(card)
             cl.setContentsMargins(16, 16, 16, 16)
@@ -315,7 +316,7 @@ class AssetsPage(BasePage):
         header_card.setObjectName("Sidebar")
         try:
             header_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         header_row = QHBoxLayout(header_card)
         header_row.setContentsMargins(16, 12, 16, 12)
@@ -362,7 +363,7 @@ class AssetsPage(BasePage):
             table_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         table_card_l = QVBoxLayout(table_card)
         table_card_l.setContentsMargins(16, 16, 16, 16)
@@ -382,7 +383,7 @@ class AssetsPage(BasePage):
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
                 hh.setObjectName("ActionHistoryHeader")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._table.doubleClicked.connect(self._on_open_selected)
         table_card_l.addWidget(self._table, 1)
@@ -412,13 +413,13 @@ class AssetsPage(BasePage):
         for key, lbl in self._summary_labels.items():
             try:
                 lbl.setText(values.get(key, "—"))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _reload(self) -> None:
         try:
             self._assets = self._service.list_mortgages()
-        except Exception:
+        except QT_ERRORS:
             self._assets = []
         self._update_summary()
         if self._table is None:
@@ -437,7 +438,7 @@ class AssetsPage(BasePage):
             name_item = QTableWidgetItem(str(a.name))
             try:
                 name_item.setData(Qt.ItemDataRole.UserRole, str(a.id))
-            except Exception:
+            except QT_ERRORS:
                 pass
             items = [
                 name_item,
@@ -451,7 +452,7 @@ class AssetsPage(BasePage):
                         from ..qt import QColor
 
                         item.setForeground(QColor("#94a3b8"))
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                 self._table.setItem(row, col, item)
 
@@ -477,7 +478,7 @@ class AssetsPage(BasePage):
         try:
             if isinstance(self._app_context, dict):
                 self._app_context["selected_mortgage_id"] = str(asset.id)
-        except Exception:
+        except QT_ERRORS:
             pass
         if self._navigate is not None:
             self._navigate("asset")

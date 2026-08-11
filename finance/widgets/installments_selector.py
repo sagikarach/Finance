@@ -14,6 +14,7 @@ from ..qt import (
     QWidget,
     QWidgetAction,
 )
+from ..utils.safe import QT_ERRORS
 
 
 class InstallmentsSelector(QWidget):
@@ -43,37 +44,37 @@ class InstallmentsSelector(QWidget):
         self._btn.setText("בחר תכנית  ▾")
         try:
             self._btn.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             mode = None
             try:
                 mode = QToolButton.ToolButtonPopupMode.InstantPopup
-            except Exception:
+            except QT_ERRORS:
                 try:
                     mode = getattr(QToolButton, "InstantPopup", None)
-                except Exception:
+                except QT_ERRORS:
                     mode = None
             if mode is not None:
                 self._btn.setPopupMode(mode)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._btn.setSizePolicy(
                 QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._menu = QMenu(self)
         try:
             self._menu.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._apply_menu_style()
         try:
             self._btn.setMenu(self._menu)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         lay.addWidget(self._btn, 1)
@@ -92,7 +93,7 @@ class InstallmentsSelector(QWidget):
     def set_enabled_actions(self, enabled: bool) -> None:
         try:
             self._btn.setEnabled(bool(enabled))
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _apply_menu_style(self) -> None:
@@ -102,7 +103,7 @@ class InstallmentsSelector(QWidget):
             if app is not None:
                 try:
                     theme = str(app.property("theme") or "light")
-                except Exception:
+                except QT_ERRORS:
                     theme = "light"
 
             is_dark = theme == "dark"
@@ -144,7 +145,7 @@ class InstallmentsSelector(QWidget):
                 }}
                 """
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _update_button_text(self) -> None:
@@ -155,13 +156,13 @@ class InstallmentsSelector(QWidget):
                 break
         try:
             self._btn.setText(f"{name}  ▾")
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _rebuild_menu(self) -> None:
         try:
             self._menu.clear()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         def add_center_row(
@@ -177,7 +178,7 @@ class InstallmentsSelector(QWidget):
             row.setObjectName("EventMenuRow")
             try:
                 row.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
             row_l = QHBoxLayout(row)
             row_l.setContentsMargins(10, 6, 10, 6)
@@ -190,14 +191,14 @@ class InstallmentsSelector(QWidget):
                 name.setAlignment(
                     Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             icon = QLabel(icon_text, row)
             try:
                 icon.setAlignment(
                     Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             icon.setFixedWidth(14)
 
@@ -211,7 +212,7 @@ class InstallmentsSelector(QWidget):
             if not enabled:
                 try:
                     row.setEnabled(False)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 return
 
@@ -224,7 +225,7 @@ class InstallmentsSelector(QWidget):
                 row.setObjectName("EventMenuRow")
                 try:
                     row.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 row_l = QHBoxLayout(row)
                 row_l.setContentsMargins(10, 6, 10, 6)
@@ -237,14 +238,14 @@ class InstallmentsSelector(QWidget):
                     name.setAlignment(
                         Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
                 right = QLabel("✓" if plan.id == self._selected_plan_id else "", row)
                 try:
                     right.setAlignment(
                         Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
                 right.setFixedWidth(14)
 
@@ -266,12 +267,12 @@ class InstallmentsSelector(QWidget):
                     return _cb
 
                 setattr(row, "mousePressEvent", lambda _evt, cb=make_cb(plan.id): cb())
-            except Exception:
+            except QT_ERRORS:
                 continue
 
         try:
             self._menu.addSeparator()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._on_add_plan is not None:
@@ -282,7 +283,7 @@ class InstallmentsSelector(QWidget):
                     on_click=self._on_add_plan,
                     enabled=True,
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         if self._on_delete_plan is not None:
@@ -293,5 +294,5 @@ class InstallmentsSelector(QWidget):
                     on_click=self._on_delete_plan,
                     enabled=bool(self._selected_plan_id),
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass

@@ -25,6 +25,7 @@ from ..utils.app_paths import migrate_legacy_accounts_data
 from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_movements_sync import FirebaseMovementsSyncService
 from ..utils.updater import check_version_only, download_and_install_update, install_app_to_applications
+from ..utils.safe import QT_ERRORS
 
 
 class MainWindow(QMainWindow):
@@ -32,7 +33,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         try:
             migrate_legacy_accounts_data()
-        except Exception:
+        except QT_ERRORS:
             pass
         self.setWindowTitle("Finance")
         self.resize(1024, 720)
@@ -49,17 +50,17 @@ class MainWindow(QMainWindow):
         else:
             try:
                 self.setMenuBar(None)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self.router.navigate("home")
         self._startup_pull_sync_started = False
         try:
             QTimer.singleShot(250, self._maybe_start_startup_pull_sync)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._maybe_start_startup_pull_sync()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _maybe_start_startup_pull_sync(self) -> None:
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow):
             wid = str(getattr(s, "workspace_id", "") or "").strip()
             if not (bool(getattr(s, "is_logged_in", False)) and wid):
                 return
-        except Exception:
+        except QT_ERRORS:
             return
 
         # Mark syncing globally so any active BasePage shows the hourglass icon.
@@ -80,38 +81,38 @@ class MainWindow(QMainWindow):
             from ..pages.base_page import BasePage
             BasePage._GLOBAL_SYNCING = True
             self._startup_sync_update_current_page_btn(syncing=True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         def _worker() -> None:
             try:
                 FirebaseMovementsSyncService().sync_now(allow_push=False)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             def _ui_refresh() -> None:
                 try:
                     from ..pages.base_page import BasePage
                     BasePage._GLOBAL_SYNCING = False
-                except Exception:
+                except QT_ERRORS:
                     pass
                 self._startup_sync_update_current_page_btn(syncing=False)
                 try:
                     if isinstance(self._app_context, dict):
                         self._app_context["_balances_dirty"] = "1"
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     current = self.router.current_route() or "home"
                     self.router.navigate(current)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             QTimer.singleShot(0, self, _ui_refresh)
 
         try:
             threading.Thread(target=_worker, daemon=True).start()
-        except Exception:
+        except QT_ERRORS:
             _worker()
 
     def _startup_sync_update_current_page_btn(self, *, syncing: bool) -> None:
@@ -130,16 +131,16 @@ class MainWindow(QMainWindow):
                     if page._sync_btn is not None:
                         page._sync_btn.setEnabled(False)
                         page._sync_btn.setToolTip("מסנכרן...")
-                except Exception:
+                except QT_ERRORS:
                     pass
             else:
                 try:
                     page._sync_in_progress = False
                     page._update_sync_icon()
                     page._refresh_sync_button_state()
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _register_pages(self) -> None:
@@ -306,7 +307,7 @@ class MainWindow(QMainWindow):
         def _on_deadline() -> None:
             try:
                 progress.close()
-            except Exception:
+            except QT_ERRORS:
                 pass
             QMessageBox.warning(self, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
         _deadline.timeout.connect(_on_deadline)
@@ -318,17 +319,17 @@ class MainWindow(QMainWindow):
             is_newer, latest, zip_url_sig, error = False, "", None, None
             try:
                 is_newer, latest, zip_url_sig, error = check_version_only()
-            except Exception as exc:
+            except QT_ERRORS as exc:
                 error = str(exc)
 
             def _after_check() -> None:
                 try:
                     _deadline.stop()
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     progress.close()
-                except Exception:
+                except QT_ERRORS:
                     pass
 
                 if error:
@@ -372,7 +373,7 @@ class MainWindow(QMainWindow):
 
         try:
             threading.Thread(target=_check_worker, daemon=True).start()
-        except Exception:
+        except QT_ERRORS:
             _check_worker()
 
     def _download_and_install_update(self, version: str, zip_url_sig: str) -> None:
@@ -392,7 +393,7 @@ class MainWindow(QMainWindow):
             def _after_dl() -> None:
                 try:
                     progress.close()
-                except Exception:
+                except QT_ERRORS:
                     pass
 
                 if error or app_path is None:
@@ -433,17 +434,17 @@ class MainWindow(QMainWindow):
                 )
                 try:
                     subprocess.Popen(["open", "-n", "/Applications/Finance.app"])
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     from ..qt import QApplication
                     QApplication.quit()
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             QTimer.singleShot(0, self, _after_dl)
 
         try:
             threading.Thread(target=_dl_worker, daemon=True).start()
-        except Exception:
+        except QT_ERRORS:
             _dl_worker()

@@ -28,6 +28,7 @@ from ..models.mortgage_math import (
     outstanding_projection,
     track_end_milestones,
 )
+from ..utils.safe import QT_ERRORS
 
 if charts_available:
     from ..qt import (
@@ -54,20 +55,20 @@ class _MilestoneChartView(QChartView if charts_available else object):  # type: 
         self._series = series
         try:
             self.update()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def drawForeground(self, painter: "QPainter", rect) -> None:  # noqa: N802
         try:
             super().drawForeground(painter, rect)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart = self.chart()
         if chart is None or self._series is None or not self._milestones:
             return
         try:
             plot = chart.plotArea()
-        except Exception:
+        except QT_ERRORS:
             return
 
         is_dark = False
@@ -75,7 +76,7 @@ class _MilestoneChartView(QChartView if charts_available else object):  # type: 
         if app is not None:
             try:
                 is_dark = str(app.property("theme") or "light") == "dark"
-            except Exception:
+            except QT_ERRORS:
                 is_dark = False
         text_color = QColor("#e2e8f0" if is_dark else "#334155")
         chip = QColor(17, 24, 39, 205) if is_dark else QColor(255, 255, 255, 215)
@@ -94,7 +95,7 @@ class _MilestoneChartView(QChartView if charts_available else object):  # type: 
                 x = chart.mapToPosition(
                     QPointF(float(period), 0.0), self._series
                 ).x()
-            except Exception:
+            except QT_ERRORS:
                 continue
             if x < plot.left() - 1 or x > plot.right() + 1:
                 continue
@@ -153,7 +154,7 @@ class MortgageBalanceChart(QWidget):
             self._placeholder = QLabel("גרפים אינם זמינים בסביבה זו", self)
             try:
                 self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            except Exception:
+            except QT_ERRORS:
                 pass
             layout.addWidget(self._placeholder)
             return
@@ -161,14 +162,14 @@ class MortgageBalanceChart(QWidget):
         chart = QChart()
         try:
             chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.legend().setVisible(False)
             chart.setBackgroundRoundness(0)
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
             chart.setPlotAreaBackgroundVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._chart = chart
 
@@ -177,7 +178,7 @@ class MortgageBalanceChart(QWidget):
             chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
             chart_view.setFrameShape(QFrame.Shape.NoFrame)
             chart_view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._chart_view = chart_view
         layout.addWidget(chart_view, 1)
@@ -197,16 +198,16 @@ class MortgageBalanceChart(QWidget):
         # נקה סדרות וצירים קיימים.
         try:
             self._chart.removeAllSeries()
-        except Exception:
+        except QT_ERRORS:
             for s in list(self._chart.series()):
                 try:
                     self._chart.removeSeries(s)
-                except Exception:
+                except QT_ERRORS:
                     pass
         for ax in list(self._chart.axes()):
             try:
                 self._chart.removeAxis(ax)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         if mortgage is None or not mortgage.tracks:
@@ -234,7 +235,7 @@ class MortgageBalanceChart(QWidget):
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
             series.setPen(pen)
-        except Exception:
+        except QT_ERRORS:
             pass
         for i, v in enumerate(values):
             series.append(float(i), float(v))
@@ -248,13 +249,13 @@ class MortgageBalanceChart(QWidget):
             if i % step == 0 or i == n - 1:
                 try:
                     axis_x.append(f"{month:02d}/{year % 100:02d}", float(i))
-                except Exception:
+                except QT_ERRORS:
                     pass
         try:
             axis_x.setRange(0.0, float(max(1, n - 1)))
             axis_x.setGridLineVisible(False)
             axis_x.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         axis_y = QValueAxis()
@@ -265,14 +266,14 @@ class MortgageBalanceChart(QWidget):
             axis_y.setTickInterval(max(1000.0, top / 5.0))
             axis_y.setGridLineVisible(False)
             axis_y.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         lc = _label_color()
         try:
             axis_x.setLabelsColor(lc)
             axis_y.setLabelsColor(lc)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -280,7 +281,7 @@ class MortgageBalanceChart(QWidget):
             self._chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
             series.attachAxis(axis_x)
             series.attachAxis(axis_y)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         # קו אנכי מקווקו במיקום "היום" (אם בתוך טווח הזמן).
@@ -293,7 +294,7 @@ class MortgageBalanceChart(QWidget):
                 pen.setWidthF(1.5)
                 pen.setStyle(Qt.PenStyle.DashLine)
                 today_series.setPen(pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             today_series.append(float(elapsed), 0.0)
             today_series.append(float(elapsed), float(max_val))
@@ -301,7 +302,7 @@ class MortgageBalanceChart(QWidget):
             try:
                 today_series.attachAxis(axis_x)
                 today_series.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         # אבני-דרך: מסלולים שנגמרים מאוחדים לפי חודש; מציירים ידנית ב-
@@ -328,5 +329,5 @@ class MortgageBalanceChart(QWidget):
         for ax in list(self._chart.axes()):
             try:
                 ax.setLabelsColor(lc)
-            except Exception:
+            except QT_ERRORS:
                 pass

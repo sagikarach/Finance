@@ -21,6 +21,7 @@ from ..qt import (
 from ..models.charts import catmull_rom_spline_samples
 from ..utils.formatting import format_currency
 from .savings_history_chart import ShadowChartView
+from ..utils.safe import QT_ERRORS
 
 
 class YearlyBalanceChart(QWidget):
@@ -102,7 +103,7 @@ class YearlyBalanceChart(QWidget):
             s = QLineSeries()
             try:
                 s.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             for x_val, y_val in points:
                 s.append(float(x_val), float(y_val))
@@ -111,15 +112,15 @@ class YearlyBalanceChart(QWidget):
                 pen.setColor(color)
                 try:
                     pen.setWidthF(2.0)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 s.setPen(pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             chart.addSeries(s)
             shadow_specs.append((s, QColor(color)))
@@ -132,11 +133,11 @@ class YearlyBalanceChart(QWidget):
         hit_series = QLineSeries()
         try:
             hit_series.setName("")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             hit_series.setPointsVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         for i, y in enumerate(base_values):
             hit_series.append(float(i), float(y))
@@ -145,10 +146,10 @@ class YearlyBalanceChart(QWidget):
             pen.setColor(QColor(0, 0, 0, 0))
             try:
                 pen.setWidthF(0.1)
-            except Exception:
+            except QT_ERRORS:
                 pass
             hit_series.setPen(pen)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart.addSeries(hit_series)
 
@@ -168,26 +169,26 @@ class YearlyBalanceChart(QWidget):
             proj_series = QLineSeries()
             try:
                 proj_series.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 pen = proj_series.pen()
                 pen.setColor(QColor("#f59e0b"))
                 try:
                     pen.setWidthF(2.5)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     pen.setStyle(Qt.PenStyle.DashLine)
-                except Exception:
+                except QT_ERRORS:
                     try:
                         dash = getattr(Qt.PenStyle, "DashLine", None) or getattr(Qt, "DashLine", None)
                         if dash is not None:
                             pen.setStyle(dash)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
                 proj_series.setPen(pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             x_offset = float(n - 1)
             for x_val, y_val in _crs(all_proj):
@@ -206,12 +207,12 @@ class YearlyBalanceChart(QWidget):
             axis_x.append(label, float(i))
         try:
             axis_x.setRange(0.0, float(total_n - 1))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             axis_x.setGridLineVisible(False)
             axis_x.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         axis_y = QValueAxis()
@@ -219,7 +220,7 @@ class YearlyBalanceChart(QWidget):
         try:
             axis_y.setGridLineVisible(False)
             axis_y.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         y_min = min(base_values) if base_values else 0.0
@@ -234,7 +235,7 @@ class YearlyBalanceChart(QWidget):
             sep = QLineSeries()
             try:
                 sep.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             sep.append(float(n - 1), y0_min)
             sep.append(float(n - 1), y0_max)
@@ -243,27 +244,27 @@ class YearlyBalanceChart(QWidget):
                 sep_pen.setColor(QColor("#f59e0b"))
                 try:
                     sep_pen.setWidthF(1.5)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     sep_pen.setStyle(Qt.PenStyle.DashLine)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 sep.setPen(sep_pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             chart.addSeries(sep)
         try:
             axis_y.setTickType(QValueAxis.TickType.TicksDynamic)
             try:
                 axis_y.setTickAnchor(0.0)
-            except Exception:
+            except QT_ERRORS:
                 pass
             axis_y.setTickInterval(tick)
-        except Exception:
+        except QT_ERRORS:
             try:
                 axis_y.setTickCount(max(2, int((y0_max - y0_min) / max(1.0, tick)) + 1))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         label_color = QColor("#0f172a")
@@ -273,29 +274,29 @@ class YearlyBalanceChart(QWidget):
                 theme = str(app.property("theme") or "light")
                 if theme == "dark":
                     label_color = QColor("#ffffff")
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             axis_x.setLabelsBrush(label_color)
             axis_y.setLabelsBrush(label_color)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             f = QFont()
             f.setPixelSize(11)
             axis_x.setLabelsFont(f)
             axis_y.setLabelsFont(f)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         zero_line = QLineSeries()
         try:
             zero_line.setName("")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             zero_line.setPointsVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         zero_line.append(0.0, 0.0)
         zero_line.append(float(total_n - 1), 0.0)
@@ -308,21 +309,21 @@ class YearlyBalanceChart(QWidget):
             if not is_dark:
                 try:
                     zero_col.setAlpha(140)
-                except Exception:
+                except QT_ERRORS:
                     pass
             pen0 = zero_line.pen()
             pen0.setColor(zero_col)
             try:
                 pen0.setWidthF(1.2)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 pen0.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                 pen0.setCapStyle(Qt.PenCapStyle.RoundCap)
-            except Exception:
+            except QT_ERRORS:
                 pass
             zero_line.setPen(pen0)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart.addSeries(zero_line)
 
@@ -334,20 +335,20 @@ class YearlyBalanceChart(QWidget):
                     chart.setAxisX(axis_x, s_obj)
                 else:
                     s_obj.attachAxis(axis_x)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     s_obj.attachAxis(axis_x)
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 if hasattr(chart, "setAxisY"):
                     chart.setAxisY(axis_y, s_obj)
                 else:
                     s_obj.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     s_obj.attachAxis(axis_y)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         month_keys: List[tuple[int, int]] = [(0, i + 1) for i in range(total_n)]
@@ -367,25 +368,25 @@ class YearlyBalanceChart(QWidget):
             hint = None
             try:
                 hint = QPainter.RenderHint.Antialiasing
-            except Exception:
+            except QT_ERRORS:
                 hint = getattr(QPainter, "Antialiasing", None)
             if hint is not None:
                 view.setRenderHint(hint, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             frame_no = None
             try:
                 frame_no = QFrame.Shape.NoFrame
-            except Exception:
+            except QT_ERRORS:
                 frame_no = getattr(QFrame, "NoFrame", None)
             if frame_no is not None:
                 view.setFrameShape(frame_no)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._view is not None:
@@ -393,7 +394,7 @@ class YearlyBalanceChart(QWidget):
                 self._layout.removeWidget(self._view)
                 self._view.setParent(None)
                 self._view.deleteLater()
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._view = view
         self._layout.addWidget(view, 1)

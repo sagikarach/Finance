@@ -12,6 +12,7 @@ from ..qt import (
     Qt,
 )
 from ..utils.password_hash import verify_password
+from ..utils.safe import QT_ERRORS
 
 
 class LockDialog(QDialog):
@@ -25,7 +26,7 @@ class LockDialog(QDialog):
         self.setModal(True)
         try:
             self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout = QVBoxLayout(self)
@@ -36,34 +37,34 @@ class LockDialog(QDialog):
         title.setObjectName("HeaderTitle")
         try:
             title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         password_edit = QLineEdit(self)
         try:
             password_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 password_edit.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             password_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             password_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        except Exception:
+        except QT_ERRORS:
             try:
                 password_edit.setEchoMode(QLineEdit.Password)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         error_label = QLabel("", self)
         error_label.setObjectName("ErrorLabel")
         try:
             error_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         buttons_row = QHBoxLayout()
@@ -98,5 +99,5 @@ class LockDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         try:
             password_edit.returnPressed.connect(try_unlock)
-        except Exception:
+        except QT_ERRORS:
             pass

@@ -12,6 +12,7 @@ from ..qt import (
     Qt,
     QApplication,
 )
+from ..utils.safe import QT_ERRORS
 
 
 class _NoAutoToggleButton(QPushButton):
@@ -54,14 +55,14 @@ class CollapsibleButtonList(QWidget):
             self._toggle_btn.setSizePolicy(
                 QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             from ..utils.icons import make_icon
             from ..qt import QSize
             self._toggle_btn.setIcon(make_icon("chevron_down", size=14))
             self._toggle_btn.setIconSize(QSize(14, 14))
-        except Exception:
+        except QT_ERRORS:
             self._toggle_btn.setText("▼")
 
         self._title_btn = _NoAutoToggleButton(title, self._header)
@@ -73,7 +74,7 @@ class CollapsibleButtonList(QWidget):
             self._title_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         header_layout.addWidget(self._toggle_btn)
@@ -83,7 +84,7 @@ class CollapsibleButtonList(QWidget):
         self._content.setObjectName("SidebarSavingsList")
         try:
             self._content.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._content_layout = QVBoxLayout(self._content)
@@ -132,7 +133,7 @@ class CollapsibleButtonList(QWidget):
             if parent_layout is not None and isinstance(parent_layout, QVBoxLayout):
                 try:
                     idx_current = parent_layout.indexOf(self)
-                except Exception:
+                except QT_ERRORS:
                     idx_current = -1
                 if idx_current == -1:
                     try:
@@ -142,7 +143,7 @@ class CollapsibleButtonList(QWidget):
                         if parent is not None:
                             parent.updateGeometry()
                             parent.update()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
         self._apply_visibility()
@@ -153,7 +154,7 @@ class CollapsibleButtonList(QWidget):
                 self.update()
                 self._content.updateGeometry()
                 self._content.update()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def clear_content(self) -> None:
@@ -167,7 +168,7 @@ class CollapsibleButtonList(QWidget):
     def add_widget(self, widget: QWidget) -> None:
         try:
             widget.setParent(self._content)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._content_layout.addWidget(widget)
         if not self._batching_items:
@@ -190,7 +191,7 @@ class CollapsibleButtonList(QWidget):
                 QSizePolicy.Policy.Expanding,
                 QSizePolicy.Policy.Preferred,
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         right_arrow = QLabel("", row)
@@ -254,18 +255,18 @@ class CollapsibleButtonList(QWidget):
             if parent_layout is not None:
                 parent_layout.invalidate()
                 parent_layout.activate()
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.updateGeometry()
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             if parent is not None:
                 parent.updateGeometry()
                 parent.update()
                 parent.repaint()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _apply_visibility(self) -> None:
@@ -282,7 +283,7 @@ class CollapsibleButtonList(QWidget):
             self._toggle_btn.setIcon(make_icon(icon_name, size=14))
             self._toggle_btn.setIconSize(QSize(14, 14))
             self._toggle_btn.setText("")
-        except Exception:
+        except QT_ERRORS:
             self._toggle_btn.setText("▲" if show_content else "▼")
 
         self._title_btn.setChecked(bool(self._expanded or self._active))
@@ -294,7 +295,7 @@ class CollapsibleButtonList(QWidget):
             st.unpolish(self._title_btn)
             st.polish(self._title_btn)
             self._title_btn.update()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         header_visible = not self._header.isHidden()
@@ -305,7 +306,7 @@ class CollapsibleButtonList(QWidget):
                 try:
                     self._header.setMinimumHeight(0)
                     self._header.setMaximumHeight(16777215)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 self.show()
                 self._apply_pressed_style()
@@ -319,7 +320,7 @@ class CollapsibleButtonList(QWidget):
                 try:
                     self._header.setMinimumHeight(h)
                     self._header.setMaximumHeight(h)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 self._apply_collapsed_style()
                 self.show()
@@ -331,7 +332,7 @@ class CollapsibleButtonList(QWidget):
                 if parent_layout is not None and isinstance(parent_layout, QVBoxLayout):
                     try:
                         idx_current = parent_layout.indexOf(self)
-                    except Exception:
+                    except QT_ERRORS:
                         idx_current = -1
                     if idx_current == -1:
                         insert_at = (
@@ -347,7 +348,7 @@ class CollapsibleButtonList(QWidget):
                                 parent.updateGeometry()
                                 parent.update()
                                 parent.repaint()
-                        except Exception:
+                        except QT_ERRORS:
                             pass
 
                 self.setMinimumHeight(0)
@@ -360,7 +361,7 @@ class CollapsibleButtonList(QWidget):
                 if parent_layout is not None and isinstance(parent_layout, QVBoxLayout):
                     try:
                         idx_current = parent_layout.indexOf(self)
-                    except Exception:
+                    except QT_ERRORS:
                         idx_current = -1
                     if idx_current >= 0:
                         self._layout_index = idx_current
@@ -372,7 +373,7 @@ class CollapsibleButtonList(QWidget):
                                 parent.updateGeometry()
                                 parent.update()
                                 parent.repaint()
-                        except Exception:
+                        except QT_ERRORS:
                             pass
 
                 self._apply_collapsed_style()
@@ -386,7 +387,7 @@ class CollapsibleButtonList(QWidget):
     def _has_content(self) -> bool:
         try:
             return self._content_layout.count() > 0
-        except Exception:
+        except QT_ERRORS:
             return bool(self._items)
 
     def _on_header_clicked(self) -> None:
@@ -422,7 +423,7 @@ class CollapsibleButtonList(QWidget):
         )
         try:
             self.setStyleSheet("")
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _apply_collapsed_style(self) -> None:
@@ -443,5 +444,5 @@ class CollapsibleButtonList(QWidget):
         )
         try:
             self.setStyleSheet("")
-        except Exception:
+        except QT_ERRORS:
             pass

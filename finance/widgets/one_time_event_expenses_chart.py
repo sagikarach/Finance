@@ -25,6 +25,7 @@ from ..qt import (
 from ..utils.formatting import format_currency
 from .savings_history_chart import ShadowChartView
 from .time_range_bar import TimeRangeBar
+from ..utils.safe import QT_ERRORS
 
 
 @dataclass(frozen=True)
@@ -74,12 +75,12 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         series = QLineSeries()
         try:
             series.setName("הוצאות")
-        except Exception:
+        except QT_ERRORS:
             pass
         for idx, cum in enumerate(values):
             try:
                 series.append(float(idx), float(cum))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         # Store full data for range filtering
@@ -91,35 +92,35 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
             pen = QPen(line_color)
             pen.setWidthF(3.0)
             series.setPen(pen)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         chart = QChart()
         chart.addSeries(series)
         try:
             chart.legend().setVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setMargins(QMarginsF(0, 0, 0, 0))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setBackgroundVisible(False)
             chart.setPlotAreaBackgroundVisible(False)
             chart.setTitle("")
-        except Exception:
+        except QT_ERRORS:
             pass
 
         axis_x = QCategoryAxis()
         try:
             axis_x.setGridLineVisible(False)
             axis_x.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             axis_x.setLabelsPosition(QCategoryAxis.AxisLabelsPositionOnValue)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         n = len(values)
@@ -135,29 +136,29 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
             if 0 <= i < len(labels):
                 try:
                     axis_x.append(str(labels[i]), float(i))
-                except Exception:
+                except QT_ERRORS:
                     pass
         try:
             axis_x.setRange(0.0, float(max(0, n - 1)))
-        except Exception:
+        except QT_ERRORS:
             pass
 
         axis_y = QValueAxis()
         try:
             axis_y.setLabelFormat("%.0f")
-        except Exception:
+        except QT_ERRORS:
             pass
         max_val = max(values) if values else 0.0
         top, tick = self._nice_y_axis(max_val)
         axis_y.setRange(0.0, float(top))
         try:
             axis_y.setTickInterval(float(tick))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             axis_y.setGridLineVisible(False)
             axis_y.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         label_color = QColor("#0f172a")
@@ -167,12 +168,12 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
                 theme = str(app.property("theme") or "light")
                 if theme == "dark":
                     label_color = QColor("#ffffff")
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             axis_x.setLabelsBrush(label_color)
             axis_y.setLabelsBrush(label_color)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
@@ -180,7 +181,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         try:
             series.attachAxis(axis_x)
             series.attachAxis(axis_y)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._axis_x = axis_x
@@ -200,20 +201,20 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         )
         try:
             view.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        except Exception:
+        except QT_ERRORS:
             try:
                 hint = getattr(QPainter, "Antialiasing", None)
                 if hint is not None:
                     view.setRenderHint(hint, True)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             view.setFrameShape(QFrame.Shape.NoFrame)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._view = view
@@ -248,7 +249,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
 
         try:
             self._axis_x.setRange(float(first_idx), float(n - 1))
-        except Exception:
+        except QT_ERRORS:
             pass
 
         visible = self._all_values[first_idx:]
@@ -260,7 +261,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         try:
             self._axis_y.setRange(y_min, float(top))
             self._axis_y.setTickInterval(float(tick))
-        except Exception:
+        except QT_ERRORS:
             pass
 
     @staticmethod
@@ -272,7 +273,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         lbl.setObjectName("Subtitle")
         try:
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         lay.addWidget(lbl, 1)
         return w
@@ -285,7 +286,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
                 if w is not None:
                     w.setParent(None)
                     w.deleteLater()
-        except Exception:
+        except QT_ERRORS:
             pass
         self._view = None
         self._axis_x = None
@@ -298,7 +299,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
     def _nice_y_axis(max_val: float) -> tuple[float, float]:
         try:
             v = float(max_val)
-        except Exception:
+        except QT_ERRORS:
             return 100.0, 25.0
         if v <= 0:
             return 100.0, 25.0

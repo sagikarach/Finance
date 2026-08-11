@@ -23,6 +23,7 @@ from ..widgets.month_picker import MonthPickerWidget, MonthKey
 from ..widgets.movements_table_card import MovementsTableCard
 from ..ui.month_movements_dialog import MonthMovementsDialog
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class MonthlyDataPage(BasePage):
@@ -72,7 +73,7 @@ class MonthlyDataPage(BasePage):
         month_bar = QWidget(self)
         try:
             month_bar.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         month_row = QHBoxLayout(month_bar)
         month_row.setContentsMargins(0, 0, 0, 0)
@@ -87,7 +88,7 @@ class MonthlyDataPage(BasePage):
             edit_btn.setSizePolicy(
                 QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         month_row.addWidget(edit_btn, 0, Qt.AlignmentFlag.AlignLeft)
         month_row.addStretch(1)
@@ -187,23 +188,23 @@ class MonthlyDataPage(BasePage):
             self._accounts = svc.delete_movement(
                 self._accounts, movement_id=movement_id, record_history=True
             )
-        except Exception:
+        except QT_ERRORS:
             return
 
         try:
             if self._accounts_service is not None:
                 self._accounts_service.save_all(self._accounts)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self._load_and_refresh_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self._refresh_report_content()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _refresh_report_content(self) -> None:
@@ -236,7 +237,7 @@ class MonthlyDataPage(BasePage):
                     val = card.findChild(QLabel, "StatValueCard")
                     if val is not None:
                         val.setText(format_currency(0.0))
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
 
@@ -247,20 +248,20 @@ class MonthlyDataPage(BasePage):
             income_val = self._income_card.findChild(QLabel, "StatValueCard")
             if income_val is not None:
                 income_val.setText(format_currency(inc))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             outcome_val = self._outcome_card.findChild(QLabel, "StatValueCard")
             if outcome_val is not None:
                 outcome_val.setText(format_currency(out))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             net_val = self._net_card.findChild(QLabel, "StatValueCard")
             if net_val is not None:
                 sign = "+" if net >= 0 else "−"
                 net_val.setText(f"{sign}{format_currency(abs(net))}")
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._yearly_table.set_movements(
@@ -282,19 +283,19 @@ class MonthlyDataPage(BasePage):
         try:
             card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             card.setAutoFillBackground(True)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 14, 20, 14)
         layout.setSpacing(6)
         try:
             card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             card.setMinimumHeight(84)
             card.setMaximumHeight(112)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         title_label = QLabel(title, card)
@@ -317,7 +318,7 @@ class MonthlyDataPage(BasePage):
                 self._current_year,
                 self._current_month,
             )
-        except Exception:
+        except QT_ERRORS:
             return []
 
     def _on_month_changed(self, month_key: MonthKey) -> None:

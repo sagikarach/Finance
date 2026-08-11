@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 from ..qt import QHBoxLayout, QPushButton, QWidget, Signal
+from ..utils.safe import QT_ERRORS
 
 
 class TimeRangeBar(QWidget):
@@ -65,7 +66,7 @@ class TimeRangeBar(QWidget):
             try:
                 btn.setCheckable(True)
                 btn.setChecked(months == default_months)
-            except Exception:
+            except QT_ERRORS:
                 pass
             btn.clicked.connect(lambda _c, m=months: self._select(m))
             row.addWidget(btn)
@@ -76,14 +77,14 @@ class TimeRangeBar(QWidget):
             # Re-check the button in case Qt unchecked it on click
             try:
                 self._buttons[months].setChecked(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
         self._selected = months
         for m, btn in self._buttons.items():
             try:
                 btn.setChecked(m == months)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self.range_changed.emit(months)
 

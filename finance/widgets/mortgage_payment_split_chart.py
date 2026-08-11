@@ -22,6 +22,7 @@ from ..models.mortgage_math import (
     months_between,
     payment_split_projection,
 )
+from ..utils.safe import QT_ERRORS
 
 if charts_available:
     from ..qt import (
@@ -67,7 +68,7 @@ class MortgagePaymentSplitChart(QWidget):
             self._placeholder = QLabel("גרפים אינם זמינים בסביבה זו", self)
             try:
                 self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            except Exception:
+            except QT_ERRORS:
                 pass
             layout.addWidget(self._placeholder)
             return
@@ -75,7 +76,7 @@ class MortgagePaymentSplitChart(QWidget):
         chart = QChart()
         try:
             chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.legend().setVisible(True)
@@ -83,7 +84,7 @@ class MortgagePaymentSplitChart(QWidget):
             chart.setBackgroundRoundness(0)
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
             chart.setPlotAreaBackgroundVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._chart = chart
 
@@ -92,7 +93,7 @@ class MortgagePaymentSplitChart(QWidget):
             chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
             chart_view.setFrameShape(QFrame.Shape.NoFrame)
             chart_view.setStyleSheet("background: transparent;")
-        except Exception:
+        except QT_ERRORS:
             pass
         self._chart_view = chart_view
         layout.addWidget(chart_view, 1)
@@ -110,16 +111,16 @@ class MortgagePaymentSplitChart(QWidget):
 
         try:
             self._chart.removeAllSeries()
-        except Exception:
+        except QT_ERRORS:
             for s in list(self._chart.series()):
                 try:
                     self._chart.removeSeries(s)
-                except Exception:
+                except QT_ERRORS:
                     pass
         for ax in list(self._chart.axes()):
             try:
                 self._chart.removeAxis(ax)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         if mortgage is None or not mortgage.tracks:
@@ -144,7 +145,7 @@ class MortgagePaymentSplitChart(QWidget):
         try:
             interest_series.setName("ריבית")
             principal_series.setName("קרן")
-        except Exception:
+        except QT_ERRORS:
             pass
         for series, color in (
             (interest_series, _INTEREST_COLOR),
@@ -157,7 +158,7 @@ class MortgagePaymentSplitChart(QWidget):
                 pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
                 pen.setCapStyle(Qt.PenCapStyle.RoundCap)
                 series.setPen(pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for i, p in enumerate(points):
             interest_series.append(float(i), float(p.interest))
@@ -172,13 +173,13 @@ class MortgagePaymentSplitChart(QWidget):
             if i % step == 0 or i == n - 1:
                 try:
                     axis_x.append(f"{month:02d}/{year % 100:02d}", float(i))
-                except Exception:
+                except QT_ERRORS:
                     pass
         try:
             axis_x.setRange(0.0, float(max(1, n - 1)))
             axis_x.setGridLineVisible(False)
             axis_x.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         axis_y = QValueAxis()
@@ -189,14 +190,14 @@ class MortgagePaymentSplitChart(QWidget):
             axis_y.setTickInterval(max(1000.0, top / 5.0))
             axis_y.setGridLineVisible(False)
             axis_y.setMinorGridLineVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         lc = _label_color()
         try:
             axis_x.setLabelsColor(lc)
             axis_y.setLabelsColor(lc)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
@@ -205,7 +206,7 @@ class MortgagePaymentSplitChart(QWidget):
             for series in (interest_series, principal_series):
                 series.attachAxis(axis_x)
                 series.attachAxis(axis_y)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         elapsed = months_between(mortgage.start_date, None)
@@ -218,7 +219,7 @@ class MortgagePaymentSplitChart(QWidget):
                 pen.setWidthF(1.5)
                 pen.setStyle(Qt.PenStyle.DashLine)
                 today_series.setPen(pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             today_series.append(float(elapsed), 0.0)
             today_series.append(float(elapsed), float(max_val))
@@ -226,7 +227,7 @@ class MortgagePaymentSplitChart(QWidget):
             try:
                 today_series.attachAxis(axis_x)
                 today_series.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def refresh_theme(self) -> None:
@@ -236,9 +237,9 @@ class MortgagePaymentSplitChart(QWidget):
         for ax in list(self._chart.axes()):
             try:
                 ax.setLabelsColor(lc)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._chart.legend().setLabelColor(lc)
-        except Exception:
+        except QT_ERRORS:
             pass

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Dict, Optional
 
 from ..qt import QStackedWidget, QWidget
+from ..utils.safe import QT_ERRORS
 
 
 class Router:
@@ -28,14 +29,14 @@ class Router:
         if widget is not None and hasattr(widget, "on_route_activated"):
             try:
                 widget.on_route_activated()
-            except Exception:
+            except QT_ERRORS:
                 pass
         if widget is not None and hasattr(widget, "_sidebar"):
             try:
                 sidebar = getattr(widget, "_sidebar", None)
                 if sidebar is not None and hasattr(sidebar, "update_route"):
                     sidebar.update_route(route_name)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self._stack.setCurrentIndex(index)
@@ -69,13 +70,13 @@ class Router:
                 widget = self._stack.widget(idx)
                 if widget is not None:
                     widgets.append(widget)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for widget in widgets:
             try:
                 self._stack.removeWidget(widget)
                 widget.deleteLater()
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._route_name_to_index.clear()
         self._previous_route = None

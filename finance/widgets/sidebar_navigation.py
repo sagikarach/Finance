@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional, Callable
 
 from ..qt import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSizePolicy, Qt
+from ..utils.safe import QT_ERRORS
 
 
 class SidebarHeaderButton(QPushButton):
@@ -62,7 +63,7 @@ class SidebarNavigation:
             self._dashboard_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._navigate is not None:
@@ -90,7 +91,7 @@ class SidebarNavigation:
             self._bank_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._navigate is not None:
@@ -108,7 +109,7 @@ class SidebarNavigation:
             savings_button_container.setAttribute(
                 Qt.WidgetAttribute.WA_NoSystemBackground, True
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         savings_button_layout = QHBoxLayout(savings_button_container)
@@ -125,7 +126,7 @@ class SidebarNavigation:
             self._savings_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._savings_btn.setMinimumHeight(40)
@@ -150,7 +151,7 @@ class SidebarNavigation:
             self._monthly_data_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._navigate is not None:
@@ -180,7 +181,7 @@ class SidebarNavigation:
             self._one_time_events_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._navigate is not None:
@@ -214,7 +215,7 @@ class SidebarNavigation:
             self._yearly_summary_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._yearly_summary_btn.setMinimumHeight(40)
@@ -239,7 +240,7 @@ class SidebarNavigation:
             self._installments_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._navigate is not None:
@@ -270,7 +271,7 @@ class SidebarNavigation:
             self._mortgage_btn.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._navigate is not None:

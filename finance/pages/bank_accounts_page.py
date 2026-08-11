@@ -17,6 +17,7 @@ from ..models.overview import AccountsOverview
 from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..utils.formatting import format_currency
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class BankAccountsPage(BasePage):
@@ -56,7 +57,7 @@ class BankAccountsPage(BasePage):
         if app is not None:
             try:
                 is_dark = str(app.property("theme") or "light") == "dark"
-            except Exception:
+            except QT_ERRORS:
                 is_dark = False
         self._on_theme_changed(is_dark)
 
@@ -103,7 +104,7 @@ class BankAccountsPage(BasePage):
                 row.setStyleSheet("border-top:1px solid #ecece2;")
                 try:
                     row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-                except Exception:
+                except QT_ERRORS:
                     pass
             lay.addWidget(row)
         lay.addStretch(1)

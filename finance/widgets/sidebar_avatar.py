@@ -29,6 +29,7 @@ from ..ui.firebase_account_dialogs import (
     run_pull_sync_with_progress,
 )
 from .collapsible_section import CollapsibleButtonList
+from ..utils.safe import QT_ERRORS
 
 
 class SidebarAvatar:
@@ -62,7 +63,7 @@ class SidebarAvatar:
             self._avatar_label.setAlignment(
                 Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         # Name row (label + account dropdown arrow)
@@ -76,7 +77,7 @@ class SidebarAvatar:
         self._name_label.setObjectName("UserName")
         try:
             self._name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._firebase_menu_btn = QToolButton(self._name_row)
@@ -87,16 +88,16 @@ class SidebarAvatar:
             self._firebase_menu_btn.setIcon(make_icon("chevron_down", size=14))
             self._firebase_menu_btn.setIconSize(QSize(14, 14))
             self._firebase_menu_btn.setText("")
-        except Exception:
+        except QT_ERRORS:
             self._firebase_menu_btn.setText("▾")
         try:
             self._firebase_menu_btn.setToolTip("החלף חשבון שיתוף")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._firebase_menu_btn.setCheckable(True)
             self._firebase_menu_btn.setChecked(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         name_row_l.addStretch(1)
@@ -136,7 +137,7 @@ class SidebarAvatar:
         lst.set_expanded(bool(new_expanded))
         try:
             btn.setChecked(bool(new_expanded))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             from ..utils.icons import make_icon
@@ -145,7 +146,7 @@ class SidebarAvatar:
             btn.setIcon(make_icon(icon_name, size=14))
             btn.setIconSize(QSize(14, 14))
             btn.setText("")
-        except Exception:
+        except QT_ERRORS:
             btn.setText("▴" if new_expanded else "▾")
 
     def _reload_firebase_accounts_list(self) -> None:
@@ -161,7 +162,7 @@ class SidebarAvatar:
 
         try:
             parent = self._parent.window()
-        except Exception:
+        except QT_ERRORS:
             parent = self._parent
 
         def _force_relogin_to_workspace(*, workspace_id: str, email: str = "") -> None:
@@ -178,7 +179,7 @@ class SidebarAvatar:
                 FirebaseMovementsSyncService().ensure_user_local_file(
                     str(cur.workspace_id or "")
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         def _connect_profile(p: WorkspaceProfile) -> None:
@@ -206,7 +207,7 @@ class SidebarAvatar:
                         self._reload_firebase_accounts_list()
                         self._toggle_firebase_accounts_list()
                         return
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             ok = open_firebase_password_prompt(
@@ -239,7 +240,7 @@ class SidebarAvatar:
         items = []
         try:
             profiles = profiles_store.list_profiles()
-        except Exception:
+        except QT_ERRORS:
             profiles = []
 
         for p in profiles:
@@ -259,7 +260,7 @@ class SidebarAvatar:
         try:
             wid = str(FirebaseSessionStore().load().workspace_id or "").strip()
             return wid
-        except Exception:
+        except QT_ERRORS:
             return ""
 
     def _current_display_name(self) -> str:
@@ -271,7 +272,7 @@ class SidebarAvatar:
             if p is None:
                 return ""
             return str(getattr(p, "display_name", "") or "").strip()
-        except Exception:
+        except QT_ERRORS:
             return ""
 
     def _current_avatar_path(self) -> str:
@@ -284,7 +285,7 @@ class SidebarAvatar:
                 return ""
             ap = str(getattr(p, "avatar_path", "") or "").strip()
             return ap
-        except Exception:
+        except QT_ERRORS:
             return ""
 
     def _apply_current_avatar(self) -> None:
@@ -304,13 +305,13 @@ class SidebarAvatar:
 
             QtWidgets = importlib.import_module("PySide6.QtWidgets")
             QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
-        except Exception:
+        except QT_ERRORS:
             try:
                 import importlib
 
                 QtWidgets = importlib.import_module("PyQt6.QtWidgets")
                 QFileDialogCls = getattr(QtWidgets, "QFileDialog", None)
-            except Exception:
+            except QT_ERRORS:
                 QFileDialogCls = None
         if QFileDialogCls is None:
             return
@@ -332,14 +333,14 @@ class SidebarAvatar:
                         workspace_id=wid,
                         avatar_path=str(avatars_data_dir() / f"user_avatar_{wid}.png"),
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
             return
 
         if self.set_avatar_from_path(file_name, save_as_workspace_avatar=False):
             try:
                 self._store.save(self._user)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def set_avatar_from_path(
@@ -377,7 +378,7 @@ class SidebarAvatar:
                 target_path = avatars_data_dir() / "user_avatar.png"
                 pix.save(str(target_path), "PNG")
                 self._user.avatar_path = str(target_path)
-        except Exception:
+        except QT_ERRORS:
             target_path = src_path
 
         url = Path(str(target_path)).as_posix()
@@ -413,5 +414,5 @@ class SidebarAvatar:
             self._avatar_label.setText(initial)
         try:
             self._reload_firebase_accounts_list()
-        except Exception:
+        except QT_ERRORS:
             pass

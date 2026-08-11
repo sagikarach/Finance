@@ -5,10 +5,11 @@
 #   S110/S112 = bandit: `try ... except: pass` / `except: continue`
 #
 # The BLE/S11x rules ban silent blanket-excepts — the idiom that hid the
-# atomic-write corruption and the shadowed button style. They are enabled only
-# for the pure layers (models/data/utils), where blanket-except-pass is almost
-# never justified; the Qt boundary (widgets/pages/ui) is exempt for now and will
-# be migrated to finance.utils.safe.swallow incrementally.
+# atomic-write corruption and the shadowed button style. Enforced across the
+# whole tree now: pure/logic/IO layers narrow to finance.utils.safe.PARSE_ERRORS
+# (or swallow() for logged best-effort network blocks); the Qt boundary
+# (widgets/pages/ui) narrows to finance.utils.safe.QT_ERRORS. Only the three
+# files below stay exempt (see each note).
 line-length = 100
 extend-exclude = ["**/__pycache__", "build", "dist"]
 
@@ -16,17 +17,7 @@ extend-exclude = ["**/__pycache__", "build", "dist"]
 select = ["F", "E9", "BLE", "S110", "S112"]
 
 [lint.per-file-ignores]
-# Enforced: all of finance/data/ and all of finance/models/. Parse/compute
-# handlers are narrowed to PARSE_ERRORS; best-effort firebase/network blocks use
-# swallow() (broad but logged); a handful of exception-translation handlers keep
-# a documented `# noqa: BLE001`. Remaining layers are exempt and get migrated
-# incrementally — remove a line as it's cleaned.
-# TODO: utils/ next.
-# Qt boundary — defensive catching is more defensible here; migrate last.
-"finance/widgets/*" = ["BLE", "S110", "S112"]
-"finance/pages/*" = ["BLE", "S110", "S112"]
-"finance/ui/*" = ["BLE", "S110", "S112"]
-# app.py wires the Qt app together and keeps a few boundary guards.
+# app.py wires the Qt app + stdio/stderr together; its guards are startup-only.
 "finance/app.py" = ["BLE", "S110", "S112"]
 # qt.py is the PySide import shim — defensive fallbacks are its whole job.
 "finance/qt.py" = ["BLE", "S110", "S112"]

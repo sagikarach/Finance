@@ -14,6 +14,7 @@ from ..qt import (
 from ..models.notifications import Notification, NotificationStatus, NotificationType
 from ..models.notifications_service import NotificationsService
 from .dialog_utils import setup_standard_rtl_dialog, wrap_hebrew_rtl
+from ..utils.safe import QT_ERRORS
 
 
 class NotificationsDialog(QDialog):
@@ -37,7 +38,7 @@ class NotificationsDialog(QDialog):
         header.setObjectName("HeaderTitle")
         try:
             header.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(header)
 
@@ -95,7 +96,7 @@ class NotificationsDialog(QDialog):
                     font.setBold(True)
                     title_item.setFont(font)
                     msg_item.setFont(font)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             self._table.setItem(row, 0, date_item)
@@ -105,13 +106,13 @@ class NotificationsDialog(QDialog):
 
         try:
             self._table.resizeColumnsToContents()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _selected_index(self) -> Optional[int]:
         try:
             row = self._table.currentRow()
-        except Exception:
+        except QT_ERRORS:
             return None
         if row is None or row < 0 or row >= len(self._items):
             return None
@@ -200,7 +201,7 @@ class NotificationsDialog(QDialog):
             try:
                 t = getattr(m, "type", None)
                 t_str = str(getattr(t, "value", t) or "")
-            except Exception:
+            except QT_ERRORS:
                 t_str = ""
             add_line("סוג", t_str)
             add_line("תיאור", str(getattr(m, "description", "") or ""))
@@ -219,11 +220,11 @@ class NotificationsDialog(QDialog):
         if n.type == NotificationType.MISSING_MONTHLY_UPLOAD:
             try:
                 y = int(ctx.get("year", 0) or 0)
-            except Exception:
+            except QT_ERRORS:
                 y = 0
             try:
                 mth = int(ctx.get("month", 0) or 0)
-            except Exception:
+            except QT_ERRORS:
                 mth = 0
             ym = f"{y:04d}-{mth:02d}" if y and mth else ""
 
@@ -252,15 +253,15 @@ class NotificationsDialog(QDialog):
             name = str(ctx.get("event_name", "") or "").strip()
             try:
                 budget = float(ctx.get("budget", 0.0) or 0.0)
-            except Exception:
+            except QT_ERRORS:
                 budget = 0.0
             try:
                 spent = float(ctx.get("spent", 0.0) or 0.0)
-            except Exception:
+            except QT_ERRORS:
                 spent = 0.0
             try:
                 over = float(ctx.get("over", 0.0) or 0.0)
-            except Exception:
+            except QT_ERRORS:
                 over = max(0.0, spent - budget)
 
             dlg = QDialog(self)
@@ -327,12 +328,12 @@ class NotificationsDialog(QDialog):
             return
         try:
             self._table.setCurrentCell(row, 0)
-        except Exception:
+        except QT_ERRORS:
             pass
         opened = False
         try:
             opened = bool(self._open_selected_details())
-        except Exception:
+        except QT_ERRORS:
             opened = False
         if opened:
             return
@@ -341,7 +342,7 @@ class NotificationsDialog(QDialog):
             if n.status == NotificationStatus.UNREAD:
                 self._service.mark_read(n.key)
                 self.refresh()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     @staticmethod

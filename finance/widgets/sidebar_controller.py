@@ -9,6 +9,7 @@ from .collapsible_section import CollapsibleButtonList
 from .sidebar_navigation import SidebarNavigation
 from .sidebar_state import SidebarState
 from .sidebar_scroll_area import SidebarScrollArea
+from ..utils.safe import QT_ERRORS
 
 
 class SidebarController:
@@ -53,7 +54,7 @@ class SidebarController:
         self._accounts = accounts
         try:
             self._widget.setUpdatesEnabled(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._rebuild_bank_items()
@@ -61,17 +62,17 @@ class SidebarController:
             if self._assets_section is not None:
                 try:
                     self._rebuild_asset_items()
-                except Exception:
+                except QT_ERRORS:
                     pass
         finally:
             try:
                 self._widget.setUpdatesEnabled(True)
                 self._widget.update()
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             QTimer.singleShot(10, self._update_button_width)
-        except Exception:
+        except QT_ERRORS:
             self._update_button_width()
 
     def update_route(self, route: Optional[str]) -> None:
@@ -145,7 +146,7 @@ class SidebarController:
                 mortgage_btn.setChecked(is_mortgage)
                 mortgage_btn.setEnabled(not is_mortgage)
                 mortgage_btn.blockSignals(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         self._bank_section.set_active(bool(is_bank_section))
@@ -182,19 +183,19 @@ class SidebarController:
     def on_resize(self) -> None:
         try:
             QTimer.singleShot(10, self._update_button_width)
-        except Exception:
+        except QT_ERRORS:
             self._update_button_width()
 
     def on_show(self) -> None:
         if not getattr(self, "_route_applied_once", False):
             try:
                 self.update_route(self._current_route)
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._route_applied_once = True
         try:
             QTimer.singleShot(10, self._update_button_width)
-        except Exception:
+        except QT_ERRORS:
             self._update_button_width()
 
     def on_style_change(self, event: QEvent) -> None:
@@ -207,14 +208,14 @@ class SidebarController:
                 if self._assets_section is not None:
                     self._assets_section.refresh_theme()
                 QTimer.singleShot(0, self._scroll.apply_scrollbar_style)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _update_button_width(self) -> None:
         try:
             self._widget.updateGeometry()
             self._widget.update()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _clear_page_button_presses(self) -> None:
@@ -272,7 +273,7 @@ class SidebarController:
                 mortgage_btn.setChecked(False)
                 mortgage_btn.setEnabled(True)
                 mortgage_btn.blockSignals(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _on_yearly_clicked(self) -> None:
@@ -387,7 +388,7 @@ class SidebarController:
             from ..models.mortgage_service import MortgageService
 
             assets = MortgageService().list_mortgages()
-        except Exception:
+        except QT_ERRORS:
             assets = []
 
         def make_cb(asset_id: str) -> Callable[[], None]:
@@ -416,7 +417,7 @@ class SidebarController:
         if parent is not None and hasattr(parent, "set_selected_asset"):
             try:
                 parent.set_selected_asset(asset_id)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._navigate("asset")
 
@@ -430,7 +431,7 @@ class SidebarController:
             desired = False
         try:
             section.set_expanded(bool(desired))
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _build_section_state(
@@ -514,7 +515,7 @@ class SidebarController:
         if parent is not None and hasattr(parent, "set_selected_savings_account"):
             try:
                 parent.set_selected_savings_account(account.name)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._navigate("savings_account")
 
@@ -527,6 +528,6 @@ class SidebarController:
         if parent is not None and hasattr(parent, "set_selected_bank_account"):
             try:
                 parent.set_selected_bank_account(account.name)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._navigate("bank_account")

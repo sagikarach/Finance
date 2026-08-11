@@ -15,6 +15,7 @@ from ..qt import (
 from ..widgets.year_picker import YearPickerWidget
 from ..widgets.yearly_months_table_card import YearlyMonthsTableCard
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class YearlySummaryPage(BasePage):
@@ -59,7 +60,7 @@ class YearlySummaryPage(BasePage):
             container.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._available_years = list(self._yearly_service.get_available_years())
@@ -80,7 +81,7 @@ class YearlySummaryPage(BasePage):
         table_card.setObjectName("ContentPanel")
         try:
             table_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         table_layout = QVBoxLayout(table_card)
         table_layout.setContentsMargins(16, 16, 16, 16)

@@ -47,6 +47,7 @@ from ..models.action_history import (
 
 
 from ..utils.formatting import fmt_money
+from ..utils.safe import QT_ERRORS
 
 
 def _fmt_money(amount: float) -> str:
@@ -106,7 +107,7 @@ def _action_body(
             if desc:
                 parts.append(desc)
             return " • ".join(parts) if parts else None
-        except Exception:
+        except QT_ERRORS:
             return None
 
     try:
@@ -277,7 +278,7 @@ def _action_body(
                 if len(fallback_parts) >= 3:
                     break
             return " • ".join(fallback_parts) if fallback_parts else "פרטים"
-    except Exception:
+    except QT_ERRORS:
         return "פרטים"
     return "פרטים"
 
@@ -314,7 +315,7 @@ class ActionHistoryTable(QWidget):
         self.setObjectName("ActionHistoryTable")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._history: List[ActionHistory] = list(history or [])
         self._max_rows = max_rows
@@ -331,40 +332,40 @@ class ActionHistoryTable(QWidget):
         self._list.setObjectName("ActionHistoryListWidget")
         try:
             self._list.setContentsMargins(0, 8, 0, 0)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._list.setViewportMargins(6, 12, 0, 0)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
             self._list.setHorizontalScrollBarPolicy(
                 Qt.ScrollBarPolicy.ScrollBarAsNeeded
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._list.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._list.setSpacing(2)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self._list.itemClicked.connect(self._on_item_clicked)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         layout.addWidget(self._list, 1)
@@ -379,7 +380,7 @@ class ActionHistoryTable(QWidget):
                 app = QApplication.instance()
                 if app is not None:
                     is_dark = str(app.property("theme") or "light") == "dark"
-            except Exception:
+            except QT_ERRORS:
                 is_dark = False
 
             handle = "#3f3d36" if is_dark else "#d8d4c4"
@@ -439,7 +440,7 @@ class ActionHistoryTable(QWidget):
                 "__HANDLE_HOVER__", handle_hover
             )
             self._list.setStyleSheet(qss)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _is_dark_theme(self) -> bool:
@@ -450,22 +451,22 @@ class ActionHistoryTable(QWidget):
             theme_value = app.property("theme")
             if isinstance(theme_value, str):
                 return theme_value.lower() == "dark"
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             palette = app.palette()
             try:
                 window_color = palette.color(QPalette.ColorRole.Window)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     window_color = palette.window().color()
-                except Exception:
+                except QT_ERRORS:
                     return False
             try:
                 return getattr(window_color, "lightness", lambda: 255)() < 128
-            except Exception:
+            except QT_ERRORS:
                 return False
-        except Exception:
+        except QT_ERRORS:
             return False
 
     def set_history(self, history: List[ActionHistory]) -> None:
@@ -490,14 +491,14 @@ class ActionHistoryTable(QWidget):
                 history_provider=self._history_provider,
             )
             dialog.exec()
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def _update_table(self) -> None:
         self._apply_scrollbar_style()
         try:
             self._list.clear()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if not self._history:
@@ -526,7 +527,7 @@ class ActionHistoryTable(QWidget):
                 empty_item.setSizeHint(empty_w.sizeHint())
                 self._list.addItem(empty_item)
                 self._list.setItemWidget(empty_item, empty_w)
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
 
@@ -535,12 +536,12 @@ class ActionHistoryTable(QWidget):
             indexed = list(enumerate(self._history))
             indexed.sort(key=lambda p: (str(p[1].timestamp or ""), p[0]))
             latest_history = [p[1] for p in reversed(indexed)][:max_rows]
-        except Exception:
+        except QT_ERRORS:
             latest_history = list(reversed(list(self._history)))[:max_rows]
         is_dark = False
         try:
             is_dark = self._is_dark_theme()
-        except Exception:
+        except QT_ERRORS:
             is_dark = False
 
         movements_by_id: Dict[str, Any] = {}
@@ -550,7 +551,7 @@ class ActionHistoryTable(QWidget):
                 movements_by_id = {
                     str(getattr(m, "id", "") or "").strip(): m for m in all_moves
                 }
-            except Exception:
+            except QT_ERRORS:
                 movements_by_id = {}
 
         for entry in latest_history:
@@ -565,7 +566,7 @@ class ActionHistoryTable(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, entry)
             try:
                 item.setFlags(Qt.ItemFlag.ItemIsEnabled)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             row_w = _ActionHistoryRow(
@@ -577,12 +578,12 @@ class ActionHistoryTable(QWidget):
             )
             try:
                 item.setSizeHint(QSize(10, 82))
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 self._list.addItem(item)
                 self._list.setItemWidget(item, row_w)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
 
@@ -605,7 +606,7 @@ class _ActionHistoryRow(QWidget):
         self._content_layout: Optional[Any] = None
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         outer = QFrame(self)
@@ -613,7 +614,7 @@ class _ActionHistoryRow(QWidget):
         outer.setObjectName("ActionHistoryCard")
         try:
             outer.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         outer_layout = QHBoxLayout(outer)
@@ -637,7 +638,7 @@ class _ActionHistoryRow(QWidget):
         title_label.setObjectName("ActionHistoryTitle")
         try:
             title_label.setWordWrap(False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         date_label = QLabel(str(date_str or "").strip(), content)
@@ -646,7 +647,7 @@ class _ActionHistoryRow(QWidget):
             date_label.setAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             )
-        except Exception:
+        except QT_ERRORS:
             pass
 
         top_row.addWidget(title_label, 1)
@@ -656,7 +657,7 @@ class _ActionHistoryRow(QWidget):
         body_label.setObjectName("ActionHistoryBody")
         try:
             body_label.setWordWrap(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         content_layout.addLayout(top_row)
@@ -670,17 +671,17 @@ class _ActionHistoryRow(QWidget):
 
         try:
             self.setMinimumHeight(76)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def resizeEvent(self, event) -> None:
         try:
             self._apply_card_style()
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             super().resizeEvent(event)
-        except Exception:
+        except QT_ERRORS:
             return
 
     def _apply_card_style(self) -> None:
@@ -693,7 +694,7 @@ class _ActionHistoryRow(QWidget):
                 app = QApplication.instance()
                 if app is not None:
                     is_dark = str(app.property("theme") or "light") == "dark"
-            except Exception:
+            except QT_ERRORS:
                 is_dark = False
 
             # הכרטיס בעיצוב ה-hero (#1e293b/#334155), והפאנל שמסביבו כהה יותר
@@ -729,5 +730,5 @@ class _ActionHistoryRow(QWidget):
                 self._content_layout.setContentsMargins(
                     int(self._stripe_px + 14), 10, 12, 10
                 )
-        except Exception:
+        except QT_ERRORS:
             return

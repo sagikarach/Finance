@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from ..qt import QWidget, QPainter, QColor, QPen, QFont, Qt, QApplication
 from ..utils.formatting import format_currency
+from ..utils.safe import QT_ERRORS
 
 
 class MonthlyCashflowChart(QWidget):
@@ -20,7 +21,7 @@ class MonthlyCashflowChart(QWidget):
             self.setMinimumHeight(150)
             self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
             self.setMouseTracking(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def set_data(self, values: List[float], labels: List[str]) -> None:
@@ -39,7 +40,7 @@ class MonthlyCashflowChart(QWidget):
     def mouseMoveEvent(self, event) -> None:
         try:
             x = event.position().x()
-        except Exception:
+        except QT_ERRORS:
             x = event.x()
         idx = self._bar_at(x)
         if idx != self._hover:
@@ -59,7 +60,7 @@ class MonthlyCashflowChart(QWidget):
             return False
         try:
             return str(app.property("theme") or "light") == "dark"
-        except Exception:
+        except QT_ERRORS:
             return False
 
     def paintEvent(self, event) -> None:  # noqa: D401
@@ -76,7 +77,7 @@ class MonthlyCashflowChart(QWidget):
         p = QPainter(self)
         try:
             p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         w = int(self.width())

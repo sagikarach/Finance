@@ -63,11 +63,12 @@ from ..utils.formatting import fmt_money as _fmt_money
 def _fmt_rate(value: float) -> str:
     try:
         return f"{float(value):.2f}%"
-    except Exception:
+    except QT_ERRORS:
         return str(value)
 
 
 from ..utils.formatting import parse_float as _parse_float
+from ..utils.safe import QT_ERRORS
 
 
 # ─────────────────────────── single-track editor ───────────────────────────
@@ -85,7 +86,7 @@ class MortgageTrackDialog(QDialog):
         self.setModal(True)
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._track: Optional[MortgageTrack] = track
@@ -173,7 +174,7 @@ class MortgageTrackDialog(QDialog):
         self._name.setText(str(t.name or ""))
         try:
             self._kind.setCurrentText(str(getattr(t.kind, "value", t.kind)))
-        except Exception:
+        except QT_ERRORS:
             pass
         self._principal.setText(str(float(t.principal)))
         self._annual_rate.setText(str(float(t.annual_rate)))
@@ -182,7 +183,7 @@ class MortgageTrackDialog(QDialog):
             self._amortization.setCurrentText(
                 str(getattr(t.amortization, "value", t.amortization))
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         self._cpi_linked.setChecked(bool(t.cpi_linked))
         self._prime_spread.setText(str(float(t.prime_spread)))
@@ -195,7 +196,7 @@ class MortgageTrackDialog(QDialog):
             return
         try:
             kind = TrackKind(str(self._kind.currentText()))
-        except Exception:
+        except QT_ERRORS:
             kind = TrackKind.FIXED_UNLINKED
         principal = _parse_float(self._principal.text())
         if principal is None or principal <= 0:
@@ -205,7 +206,7 @@ class MortgageTrackDialog(QDialog):
         prime_spread = _parse_float(self._prime_spread.text()) or 0.0
         try:
             amortization = AmortizationType(str(self._amortization.currentText()))
-        except Exception:
+        except QT_ERRORS:
             amortization = AmortizationType.SPITZER
 
         existing_id = self._track.id if self._track is not None else None
@@ -243,11 +244,11 @@ class MortgageDialog(QDialog):
         self.setModal(True)
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             self.resize(560, 560)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._mortgage: Optional[Mortgage] = mortgage
@@ -284,7 +285,7 @@ class MortgageDialog(QDialog):
         setup_calendar_popup(self._start_date)
         try:
             self._start_date.setDisplayFormat("yyyy-MM-dd")
-        except Exception:
+        except QT_ERRORS:
             pass
         root.addWidget(QLabel("תאריך התחלה", self))
         root.addWidget(self._start_date)
@@ -324,7 +325,7 @@ class MortgageDialog(QDialog):
             hh = self._tracks_table.horizontalHeader()
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        except Exception:
+        except QT_ERRORS:
             pass
         self._tracks_table.doubleClicked.connect(self._on_edit_track)
         root.addWidget(self._tracks_table, 1)
@@ -350,7 +351,7 @@ class MortgageDialog(QDialog):
         if m is None:
             try:
                 self._start_date.setDate(QDate.currentDate())
-            except Exception:
+            except QT_ERRORS:
                 pass
             return
         self._name.setText(str(m.name or ""))
@@ -358,10 +359,10 @@ class MortgageDialog(QDialog):
         try:
             dt = parse_iso_date(str(m.start_date or ""))
             self._start_date.setDate(QDate(dt.year, dt.month, dt.day))
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._start_date.setDate(QDate.currentDate())
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _refresh_tracks_table(self) -> None:
@@ -381,7 +382,7 @@ class MortgageDialog(QDialog):
     def _selected_track_row(self) -> int:
         try:
             return int(self._tracks_table.currentRow())
-        except Exception:
+        except QT_ERRORS:
             return -1
 
     def _on_add_track(self) -> None:
@@ -423,7 +424,7 @@ class MortgageDialog(QDialog):
         start_date = ""
         try:
             start_date = self._start_date.date().toString("yyyy-MM-dd")
-        except Exception:
+        except QT_ERRORS:
             start_date = ""
 
         prev = self._mortgage
@@ -485,7 +486,7 @@ class MortgageScheduleDialog(QDialog):
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             self.resize(640, 620)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         root = QVBoxLayout(self)
@@ -504,7 +505,7 @@ class MortgageScheduleDialog(QDialog):
             hh = table.horizontalHeader()
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         rows = MortgageLoan(mortgage).combined_schedule()
@@ -538,7 +539,7 @@ class MortgagePaymentsDialog(QDialog):
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             self.resize(620, 560)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._service = service
@@ -563,7 +564,7 @@ class MortgagePaymentsDialog(QDialog):
             hh = self._table.horizontalHeader()
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        except Exception:
+        except QT_ERRORS:
             pass
         root.addWidget(self._table, 1)
 
@@ -614,7 +615,7 @@ class MortgagePaymentsDialog(QDialog):
                     it = self._table.item(row, col)
                     if it is not None:
                         it.setData(Qt.ItemDataRole.UserRole, str(mv.id))
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _selected_movement_id(self) -> Optional[str]:
@@ -627,7 +628,7 @@ class MortgagePaymentsDialog(QDialog):
                 return None
             mid = str(item.data(Qt.ItemDataRole.UserRole) or "").strip()
             return mid or None
-        except Exception:
+        except QT_ERRORS:
             return None
 
     def _on_exclude(self) -> None:
@@ -655,7 +656,7 @@ class HousePurchaseDialog(QDialog):
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             self.resize(620, 680)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._service = service
@@ -700,7 +701,7 @@ class HousePurchaseDialog(QDialog):
         )
         try:
             hint.setWordWrap(True)
-        except Exception:
+        except QT_ERRORS:
             pass
         root.addWidget(hint)
         root.addStretch(1)
@@ -710,7 +711,7 @@ class HousePurchaseDialog(QDialog):
         try:
             self._summary.setWordWrap(True)
             self._summary.setTextFormat(Qt.TextFormat.RichText)
-        except Exception:
+        except QT_ERRORS:
             pass
         root.addWidget(self._summary)
 
@@ -811,7 +812,7 @@ class PrepaymentLinkDialog(QDialog):
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             self.resize(560, 560)
-        except Exception:
+        except QT_ERRORS:
             pass
         linked = set(str(x) for x in (linked_ids or []))
         # הוצאות בלבד (סכום שלילי), מהחדש לישן.
@@ -839,7 +840,7 @@ class PrepaymentLinkDialog(QDialog):
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
                 hh.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        except Exception:
+        except QT_ERRORS:
             pass
         for r, mv in enumerate(self._rows):
             chk = QTableWidgetItem()
@@ -931,7 +932,7 @@ class MortgagePage(BasePage):
             sel = self._app_context.get("selected_mortgage_id")
             if isinstance(sel, str) and sel.strip():
                 self._selected_id = sel.strip()
-        except Exception:
+        except QT_ERRORS:
             pass
         self._reload()
 
@@ -940,7 +941,7 @@ class MortgagePage(BasePage):
         if self._chart is not None:
             try:
                 self._chart.refresh_theme()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _build_content(self, content_col: QVBoxLayout) -> None:
@@ -949,7 +950,7 @@ class MortgagePage(BasePage):
         root = QWidget(self)
         try:
             root.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         content_col.addWidget(root, 1)
 
@@ -967,7 +968,7 @@ class MortgagePage(BasePage):
         header_card.setObjectName("Sidebar")
         try:
             header_card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         header_row = QHBoxLayout(header_card)
         header_row.setContentsMargins(16, 12, 16, 12)
@@ -979,7 +980,7 @@ class MortgagePage(BasePage):
             from ..utils.icons import apply_icon
 
             apply_icon(back_btn, "arrow_right", size=20, is_dark=self._is_dark_theme())
-        except Exception:
+        except QT_ERRORS:
             back_btn.setText("→")
         back_btn.setToolTip("חזרה לעמוד הנכס")
         if self._navigate is not None:
@@ -1009,7 +1010,7 @@ class MortgagePage(BasePage):
             self._more_btn.setPopupMode(
                 QToolButton.ToolButtonPopupMode.InstantPopup
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         more_menu = QMenu(self._more_btn)
         self._schedule_action = more_menu.addAction("📋  לוח סילוקין")
@@ -1039,7 +1040,7 @@ class MortgagePage(BasePage):
             try:
                 card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
                 card.setAutoFillBackground(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
             cl = QVBoxLayout(card)
             cl.setContentsMargins(16, 14, 16, 14)
@@ -1070,7 +1071,7 @@ class MortgagePage(BasePage):
         self._payoff_strip.setObjectName("PayoffStrip")
         try:
             self._payoff_strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         payoff_l = QHBoxLayout(self._payoff_strip)
         payoff_l.setContentsMargins(14, 11, 16, 11)
@@ -1181,7 +1182,7 @@ class MortgagePage(BasePage):
             try:
                 btn.setMinimumHeight(34)
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            except Exception:
+            except QT_ERRORS:
                 pass
             btn.clicked.connect(
                 lambda _checked=False, k=key: self._show_mortgage_tab(k)
@@ -1199,7 +1200,7 @@ class MortgagePage(BasePage):
             table_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         table_card_l = QVBoxLayout(table_card)
         table_card_l.setContentsMargins(16, 16, 16, 16)
@@ -1224,7 +1225,7 @@ class MortgagePage(BasePage):
             if hh is not None:
                 hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
                 hh.setObjectName("ActionHistoryHeader")
-        except Exception:
+        except QT_ERRORS:
             pass
         table_card_l.addWidget(self._table, 1)
         tabs_wrap_l.addWidget(table_card, 1)
@@ -1237,7 +1238,7 @@ class MortgagePage(BasePage):
             chart_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         chart_card_l = QVBoxLayout(chart_card)
         chart_card_l.setContentsMargins(12, 12, 12, 12)
@@ -1254,7 +1255,7 @@ class MortgagePage(BasePage):
             split_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         split_card_l = QVBoxLayout(split_card)
         split_card_l.setContentsMargins(12, 12, 12, 12)
@@ -1271,7 +1272,7 @@ class MortgagePage(BasePage):
             sim_card.setSizePolicy(
                 QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
             )
-        except Exception:
+        except QT_ERRORS:
             pass
         sim_card_l = QVBoxLayout(sim_card)
         sim_card_l.setContentsMargins(20, 20, 20, 20)
@@ -1299,7 +1300,7 @@ class MortgagePage(BasePage):
         try:
             self._sim_result.setWordWrap(True)
             self._sim_result.setTextFormat(Qt.TextFormat.RichText)
-        except Exception:
+        except QT_ERRORS:
             pass
         sim_card_l.addWidget(self._sim_result, 0)
 
@@ -1321,7 +1322,7 @@ class MortgagePage(BasePage):
         self._sim_applied.setObjectName("AssetCaption")
         try:
             self._sim_applied.setWordWrap(True)
-        except Exception:
+        except QT_ERRORS:
             pass
         sim_card_l.addWidget(self._sim_applied, 0)
         sim_card_l.addStretch(1)
@@ -1347,12 +1348,12 @@ class MortgagePage(BasePage):
         for k, card in (self._mort_tab_cards or {}).items():
             try:
                 card.setVisible(k == key)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for k, btn in (self._mort_tab_buttons or {}).items():
             try:
                 btn.setChecked(k == key)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
     def _reload(self) -> None:
@@ -1363,7 +1364,7 @@ class MortgagePage(BasePage):
                 for m in self._service.list_mortgages()
                 if isinstance(build_asset(m), HousePurchase)
             ]
-        except Exception:
+        except QT_ERRORS:
             self._mortgages = []
         if self._selected_id and not any(
             m.id == self._selected_id for m in self._mortgages
@@ -1589,7 +1590,7 @@ class MortgagePage(BasePage):
         try:
             data = self._selector.itemData(index)
             self._selected_id = str(data or "").strip() or None
-        except Exception:
+        except QT_ERRORS:
             self._selected_id = None
         self._refresh_details()
 

@@ -33,6 +33,7 @@ from ..models.charts import (
     latest_snapshots_by_month_with_axis,
 )
 from .time_range_bar import TimeRangeBar
+from ..utils.safe import QT_ERRORS
 
 
 # ─────────────────────────────────────────────────────────────── helpers ──
@@ -45,29 +46,29 @@ def _apply_line_pen(
         pen.setColor(color)
         try:
             pen.setWidthF(2.0)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        except Exception:
+        except QT_ERRORS:
             pass
         if dashed:
             try:
                 pen.setWidthF(2.5)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 pen.setStyle(Qt.PenStyle.DashLine)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     dash = getattr(Qt.PenStyle, "DashLine", None) or getattr(Qt, "DashLine", None)
                     if dash is not None:
                         pen.setStyle(dash)
-                except Exception:
+                except QT_ERRORS:
                     pass
         series.setPen(pen)
-    except Exception:
+    except QT_ERRORS:
         pass
 
 
@@ -87,12 +88,12 @@ def _build_x_axis(
             axis.append(f"{month:02d}/{year % 100:02d}", float(i))
     try:
         axis.setRange(0.0, float(n - 1))
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         axis.setGridLineVisible(False)
         axis.setMinorGridLineVisible(False)
-    except Exception:
+    except QT_ERRORS:
         pass
     return axis
 
@@ -105,12 +106,12 @@ def _build_y_axis(max_val: float, min_val: float = 0.0) -> QValueAxis:
     axis.setRange(bottom, top)
     try:
         axis.setTickInterval(max(1000.0, (top - bottom) / 5.0))
-    except Exception:
+    except QT_ERRORS:
         pass
     try:
         axis.setGridLineVisible(False)
         axis.setMinorGridLineVisible(False)
-    except Exception:
+    except QT_ERRORS:
         pass
     return axis
 
@@ -145,18 +146,18 @@ class ShadowChartView(QChartView):
         self._forecast_start_x: Optional[float] = forecast_start_x
         try:
             self.setMouseTracking(True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def drawForeground(self, painter: QPainter, rect) -> None:
         try:
             super().drawForeground(painter, rect)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             chart = self.chart()
-        except Exception:
+        except QT_ERRORS:
             chart = None
         if chart is None:
             return
@@ -181,9 +182,9 @@ class ShadowChartView(QChartView):
                                 x_min = float(ax.min())
                                 x_max = float(ax.max())
                                 break
-                        except Exception:
+                        except QT_ERRORS:
                             pass
-                except Exception:
+                except QT_ERRORS:
                     pass
                 x_span = x_max - x_min
                 if x_span > 0:
@@ -199,9 +200,9 @@ class ShadowChartView(QChartView):
                             shade_color,
                         )
                         painter.restore()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         if not self._shadows:
@@ -209,17 +210,17 @@ class ShadowChartView(QChartView):
 
         try:
             plot_rect = chart.plotArea()
-        except Exception:
+        except QT_ERRORS:
             plot_rect = rect
         bottom_y = plot_rect.bottom()
 
         for series, base_color in self._shadows:
             try:
                 pts = list(series.points())
-            except Exception:
+            except QT_ERRORS:
                 try:
                     pts = list(series.pointsVector())
-                except Exception:
+                except QT_ERRORS:
                     pts = []
             if len(pts) < 2:
                 continue
@@ -227,7 +228,7 @@ class ShadowChartView(QChartView):
             path = QPainterPath()
             try:
                 first_pos = chart.mapToPosition(pts[0], series)
-            except Exception:
+            except QT_ERRORS:
                 continue
             path.moveTo(first_pos)
             last_pos = first_pos
@@ -240,13 +241,13 @@ class ShadowChartView(QChartView):
                     baseline_y = chart.mapToPosition(
                         QPointF(float(pts[0].x()), float(baseline_val)), series
                     ).y()
-                except Exception:
+                except QT_ERRORS:
                     baseline_y = bottom_y
 
             for pt in pts[1:]:
                 try:
                     pos = chart.mapToPosition(pt, series)
-                except Exception:
+                except QT_ERRORS:
                     continue
                 path.lineTo(pos)
                 last_pos = pos
@@ -259,7 +260,7 @@ class ShadowChartView(QChartView):
                 path.lineTo(QPointF(last_pos.x(), baseline_y))
                 path.lineTo(QPointF(first_pos.x(), baseline_y))
                 path.closeSubpath()
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             gradient = None
@@ -287,36 +288,36 @@ class ShadowChartView(QChartView):
                     c0, c1 = QColor(base_color), QColor(base_color)
                     c0.setAlpha(0); c1.setAlpha(180)
                     gradient.setColorAt(0.0, c0); gradient.setColorAt(1.0, c1)
-            except Exception:
+            except QT_ERRORS:
                 gradient = None
 
             fill = QColor(base_color)
             try:
                 fill.setAlpha(80)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
             painter.save()
             try:
                 painter.setPen(Qt.PenStyle.NoPen)
-            except Exception:
+            except QT_ERRORS:
                 no_pen = getattr(Qt, "NoPen", None)
                 if no_pen is not None:
                     try:
                         painter.setPen(no_pen)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
             painter.setBrush(gradient if gradient is not None else fill)
             try:
                 painter.drawPath(path)
-            except Exception:
+            except QT_ERRORS:
                 pass
             painter.restore()
 
     def mouseMoveEvent(self, event) -> None:
         try:
             super().mouseMoveEvent(event)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if not self._month_keys or not self._tooltip_specs:
@@ -325,21 +326,21 @@ class ShadowChartView(QChartView):
         chart = None
         try:
             chart = self.chart()
-        except Exception:
+        except QT_ERRORS:
             chart = None
         if chart is None:
             return
 
         try:
             pos = event.position()
-        except Exception:
+        except QT_ERRORS:
             pos = event.pos()
 
         try:
             base_series = self._tooltip_specs[0][0]
             value_pt = chart.mapToValue(pos, base_series)
             x_val = value_pt.x()
-        except Exception:
+        except QT_ERRORS:
             return
 
         idx = int(round(x_val))
@@ -359,7 +360,7 @@ class ShadowChartView(QChartView):
                 continue
             try:
                 series_pos = chart.mapToPosition(QPointF(float(idx), amount_val), series)
-            except Exception:
+            except QT_ERRORS:
                 continue
             dx = float(series_pos.x() - pos.x())
             dy = float(series_pos.y() - pos.y())
@@ -381,13 +382,13 @@ class ShadowChartView(QChartView):
 
         try:
             QToolTip.showText(QCursor.pos(), f"{best_name}\n{month_label}: {self._format_amount(best_amount)}", self)
-        except Exception:
+        except QT_ERRORS:
             pass
 
     def mousePressEvent(self, event) -> None:
         try:
             super().mousePressEvent(event)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._on_series_clicked is None or not self._month_keys or not self._tooltip_specs:
@@ -396,14 +397,14 @@ class ShadowChartView(QChartView):
         chart = None
         try:
             chart = self.chart()
-        except Exception:
+        except QT_ERRORS:
             return
         if chart is None:
             return
 
         try:
             pos = event.position()
-        except Exception:
+        except QT_ERRORS:
             pos = event.pos()
 
         best_name: Optional[str] = None
@@ -413,15 +414,15 @@ class ShadowChartView(QChartView):
             pts = []
             try:
                 pts = list(series.points())
-            except Exception:
+            except QT_ERRORS:
                 try:
                     pts = list(series.pointsVector())
-                except Exception:
+                except QT_ERRORS:
                     pts = []
             for pt in pts:
                 try:
                     sp = chart.mapToPosition(pt, series)
-                except Exception:
+                except QT_ERRORS:
                     continue
                 dx = float(sp.x() - pos.x())
                 dy = float(sp.y() - pos.y())
@@ -436,7 +437,7 @@ class ShadowChartView(QChartView):
             return
         try:
             self._on_series_clicked(best_name)
-        except Exception:
+        except QT_ERRORS:
             pass
 
 
@@ -465,7 +466,7 @@ class SavingsHistoryChartCard(QWidget):
         self.setObjectName("ContentPanel")
         try:
             self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._chart: Optional[QChart] = None
@@ -505,7 +506,7 @@ class SavingsHistoryChartCard(QWidget):
                     if k not in axis_seen:
                         axis_seen.add(k)
                         axis_keys.append(k)
-            except Exception:
+            except QT_ERRORS:
                 latest_by_saving[str(getattr(s, "name", "") or "")] = {}
 
         axis_keys.sort()
@@ -527,7 +528,7 @@ class SavingsHistoryChartCard(QWidget):
             try:
                 hue = int((360.0 * idx) / float(total_savings))
                 color = QColor.fromHsl(hue, 180, 140)
-            except Exception:
+            except QT_ERRORS:
                 color = QColor("#2f9e68")
             self._all_series_data.append((str(s.name), list(base_values), color))
 
@@ -535,7 +536,7 @@ class SavingsHistoryChartCard(QWidget):
         chart = QChart()
         try:
             chart.setAnimationOptions(QChart.AnimationOption.NoAnimation)
-        except Exception:
+        except QT_ERRORS:
             pass
         chart.legend().setVisible(False)
         chart.setBackgroundRoundness(0)
@@ -606,16 +607,16 @@ class SavingsHistoryChartCard(QWidget):
         # ── clear old content ────────────────────────────────────────────
         try:
             self._chart.removeAllSeries()
-        except Exception:
+        except QT_ERRORS:
             for s in list(self._chart.series()):
                 try:
                     self._chart.removeSeries(s)
-                except Exception:
+                except QT_ERRORS:
                     pass
         for ax in list(self._chart.axes()):
             try:
                 self._chart.removeAxis(ax)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         # ── rebuild historical series ────────────────────────────────────
@@ -636,7 +637,7 @@ class SavingsHistoryChartCard(QWidget):
             series.setName(name)
             try:
                 series.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             _apply_line_pen(series, color)
             for x_val, y_val in catmull_rom_spline_samples(vals):
@@ -663,12 +664,12 @@ class SavingsHistoryChartCard(QWidget):
             proj_series.setName(f"תחזית: {name}")
             try:
                 proj_series.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             dashed_color = QColor(color)
             try:
                 dashed_color.setAlpha(180)
-            except Exception:
+            except QT_ERRORS:
                 pass
             _apply_line_pen(proj_series, dashed_color, dashed=True)
             # x-offset: projection starts at index (n_vis - 1) in chart space
@@ -689,7 +690,7 @@ class SavingsHistoryChartCard(QWidget):
             sep = QLineSeries()
             try:
                 sep.setPointsVisible(False)
-            except Exception:
+            except QT_ERRORS:
                 pass
             y_top = max_v if max_v > 0 else 1000.0
             sep.append(float(n_vis - 1), 0.0)
@@ -699,14 +700,14 @@ class SavingsHistoryChartCard(QWidget):
                 sep_pen.setColor(QColor("#f59e0b"))
                 try:
                     sep_pen.setWidthF(1.5)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     sep_pen.setStyle(Qt.PenStyle.DashLine)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 sep.setPen(sep_pen)
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._chart.addSeries(sep)
 
@@ -717,7 +718,7 @@ class SavingsHistoryChartCard(QWidget):
         try:
             axis_x.setLabelsBrush(lc)
             axis_y.setLabelsBrush(lc)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
@@ -726,7 +727,7 @@ class SavingsHistoryChartCard(QWidget):
             try:
                 s_obj.attachAxis(axis_x)
                 s_obj.attachAxis(axis_y)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         # ── update chart_view internals ──────────────────────────────────
@@ -737,5 +738,5 @@ class SavingsHistoryChartCard(QWidget):
         self._chart_view._forecast_start_x = float(n_vis - 1) if has_proj else None
         try:
             self._chart_view.update()
-        except Exception:
+        except QT_ERRORS:
             pass

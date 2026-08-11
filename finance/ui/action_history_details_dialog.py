@@ -24,6 +24,7 @@ from ..models.action_history import (
 from ..models.bank_movement import MovementType
 from ..models.bank_movement_service import BankMovementService
 from .dialog_utils import wrap_hebrew_rtl, unwrap_rtl
+from ..utils.safe import QT_ERRORS
 
 
 class ActionHistoryDetailsDialog(QDialog):
@@ -49,15 +50,15 @@ class ActionHistoryDetailsDialog(QDialog):
         self.setModal(True)
         try:
             self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         layout = QVBoxLayout(self)
@@ -71,7 +72,7 @@ class ActionHistoryDetailsDialog(QDialog):
         title_label.setObjectName("HeaderTitle")
         try:
             title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        except Exception:
+        except QT_ERRORS:
             pass
         layout.addWidget(title_label)
 
@@ -140,7 +141,7 @@ class ActionHistoryDetailsDialog(QDialog):
                                     "description": movement.description or "",
                                 }
                             )
-                except Exception:
+                except QT_ERRORS:
                     expenses_data = []
 
             if expenses_data:
@@ -152,16 +153,16 @@ class ActionHistoryDetailsDialog(QDialog):
                 expenses_table.setRowCount(len(expenses_data))
                 try:
                     expenses_table.verticalHeader().setDefaultSectionSize(38)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
                 rtl_direction = None
                 try:
                     rtl_direction = Qt.LayoutDirection.RightToLeft
-                except Exception:
+                except QT_ERRORS:
                     try:
                         rtl_direction = Qt.RightToLeft
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                 if rtl_direction:
@@ -180,10 +181,10 @@ class ActionHistoryDetailsDialog(QDialog):
                     header_view.setDefaultAlignment(
                         Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
                     )
-                except Exception:
+                except QT_ERRORS:
                     try:
                         header_view.setDefaultAlignment(Qt.AlignCenter)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                 for row, exp in enumerate(expenses_data):
@@ -203,7 +204,7 @@ class ActionHistoryDetailsDialog(QDialog):
                                 Qt.AlignmentFlag.AlignCenter
                                 | Qt.AlignmentFlag.AlignVCenter
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             alignment = Qt.AlignCenter
 
                         desc_item.setTextAlignment(alignment)
@@ -233,10 +234,10 @@ class ActionHistoryDetailsDialog(QDialog):
                             category_combo.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             try:
                                 category_combo.setLayoutDirection(Qt.RightToLeft)
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                         expenses_table.setCellWidget(row, 2, category_combo)
 
@@ -264,17 +265,17 @@ class ActionHistoryDetailsDialog(QDialog):
                             type_combo.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             try:
                                 type_combo.setLayoutDirection(Qt.RightToLeft)
-                            except Exception:
+                            except QT_ERRORS:
                                 pass
                         expenses_table.setCellWidget(row, 3, type_combo)
 
                         expenses_table.setItem(row, 0, date_item)
                         expenses_table.setItem(row, 1, amount_item)
                         expenses_table.setItem(row, 4, desc_item)
-                    except Exception:
+                    except QT_ERRORS:
                         continue
 
                 expenses_table.setAlternatingRowColors(True)
@@ -329,7 +330,7 @@ class ActionHistoryDetailsDialog(QDialog):
                             expenses_table.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             pass
 
                         header_view = expenses_table.horizontalHeader()
@@ -338,7 +339,7 @@ class ActionHistoryDetailsDialog(QDialog):
                                 Qt.AlignmentFlag.AlignRight
                                 | Qt.AlignmentFlag.AlignVCenter
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             pass
 
                         row = 0
@@ -368,7 +369,7 @@ class ActionHistoryDetailsDialog(QDialog):
                             category_combo.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         expenses_table.setCellWidget(row, 2, category_combo)
 
@@ -386,7 +387,7 @@ class ActionHistoryDetailsDialog(QDialog):
                             type_combo.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
                             )
-                        except Exception:
+                        except QT_ERRORS:
                             pass
                         expenses_table.setCellWidget(row, 3, type_combo)
 
@@ -402,7 +403,7 @@ class ActionHistoryDetailsDialog(QDialog):
                                         Qt.AlignmentFlag.AlignRight
                                         | Qt.AlignmentFlag.AlignVCenter
                                     )
-                                except Exception:
+                                except QT_ERRORS:
                                     pass
 
                         self._original_expenses = [
@@ -435,7 +436,7 @@ class ActionHistoryDetailsDialog(QDialog):
                         )
 
                         details_layout.addWidget(expenses_table)
-                except Exception:
+                except QT_ERRORS:
                     pass
 
             if not self._expenses_table:
@@ -449,7 +450,7 @@ class ActionHistoryDetailsDialog(QDialog):
                                 f"חשבון: {movement.account_name}", self
                             )
                             details_layout.addWidget(account_label)
-                    except Exception:
+                    except QT_ERRORS:
                         pass
         elif isinstance(action, Action) and is_dataclass(action):
             field_labels = {
@@ -542,7 +543,7 @@ class ActionHistoryDetailsDialog(QDialog):
             return self._categories or []
         try:
             return self._movement_service.list_categories(is_income)
-        except Exception:
+        except QT_ERRORS:
             return self._categories or []
 
     def _on_save_changes(self) -> None:
@@ -585,7 +586,7 @@ class ActionHistoryDetailsDialog(QDialog):
 
                 try:
                     new_type = MovementType(new_type_str)
-                except Exception:
+                except QT_ERRORS:
                     if "חודש" in new_type_str:
                         new_type = MovementType.MONTHLY
                     elif "שנת" in new_type_str:
@@ -620,7 +621,7 @@ class ActionHistoryDetailsDialog(QDialog):
                 if self._on_saved:
                     try:
                         self._on_saved()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                 return
@@ -658,7 +659,7 @@ class ActionHistoryDetailsDialog(QDialog):
 
                 try:
                     new_type = MovementType(new_type_str)
-                except Exception:
+                except QT_ERRORS:
                     if "חודש" in new_type_str:
                         new_type = MovementType.MONTHLY
                     elif "שנת" in new_type_str:
@@ -713,7 +714,7 @@ class ActionHistoryDetailsDialog(QDialog):
                 if self._on_saved:
                     try:
                         self._on_saved()
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
                 from ..qt import QDialog, QVBoxLayout, QLabel, QPushButton
@@ -730,7 +731,7 @@ class ActionHistoryDetailsDialog(QDialog):
                 success_layout.addWidget(success_btn)
                 success_dlg.exec()
 
-        except Exception as e:
+        except QT_ERRORS as e:
             from ..qt import QDialog, QVBoxLayout, QLabel, QPushButton
 
             error_dlg = QDialog(self)

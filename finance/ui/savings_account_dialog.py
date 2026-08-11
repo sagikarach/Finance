@@ -19,6 +19,7 @@ from ..models.savings_dialogs import (
     SavingsAccountValidationContext,
     validate_savings_account_form,
 )
+from ..utils.safe import QT_ERRORS
 
 
 class SavingsAccountDialog(QDialog):
@@ -42,15 +43,15 @@ class SavingsAccountDialog(QDialog):
         self.setModal(True)
         try:
             self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         try:
             self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         layout = QVBoxLayout(self)
@@ -67,14 +68,14 @@ class SavingsAccountDialog(QDialog):
         self._name_edit = QLineEdit(self)
         try:
             self._name_edit.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._name_edit.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._name_edit.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        except Exception:
+        except QT_ERRORS:
             pass
         if account:
             self._name_edit.setText(account.name)
@@ -85,10 +86,10 @@ class SavingsAccountDialog(QDialog):
         self._is_liquid_checkbox = QCheckBox("נזיל", self)
         try:
             self._is_liquid_checkbox.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._is_liquid_checkbox.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         if account:
             self._is_liquid_checkbox.setChecked(account.is_liquid)
@@ -112,19 +113,19 @@ class SavingsAccountDialog(QDialog):
         self._error_label.setMaximumHeight(60)
         try:
             self._error_label.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._error_label.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             self._error_label.setAlignment(
                 Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
             )
-        except Exception:
+        except QT_ERRORS:
             try:
                 self._error_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-            except Exception:
+            except QT_ERRORS:
                 pass
         self._error_label.hide()
 

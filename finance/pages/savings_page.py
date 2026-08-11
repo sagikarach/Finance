@@ -31,6 +31,7 @@ from ..ui.savings_account_dialog import SavingsAccountDialog
 from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons_row
 from ..utils.formatting import format_currency
 from .base_page import BasePage
+from ..utils.safe import QT_ERRORS
 
 
 class SavingsPage(BasePage):
@@ -64,7 +65,7 @@ class SavingsPage(BasePage):
         if app is not None:
             try:
                 is_dark = str(app.property("theme") or "light") == "dark"
-            except Exception:
+            except QT_ERRORS:
                 is_dark = False
 
         self._on_theme_changed(is_dark)
@@ -89,7 +90,7 @@ class SavingsPage(BasePage):
         b = QPushButton(glyph, self)
         try:
             b.setFixedSize(34, 34)
-        except Exception:
+        except QT_ERRORS:
             pass
         color = "#d66a4e" if danger else "#6b6f66"
         border = "#f0d9d2" if danger else "#ecece2"
@@ -106,7 +107,7 @@ class SavingsPage(BasePage):
             row.setObjectName("SavRow")
             try:
                 row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-            except Exception:
+            except QT_ERRORS:
                 pass
             row.setStyleSheet("QWidget#SavRow{border-top:1px solid #ecece2;}")
         rl = QHBoxLayout(row)
@@ -116,7 +117,7 @@ class SavingsPage(BasePage):
         dot = QLabel(row)
         try:
             dot.setFixedSize(12, 12)
-        except Exception:
+        except QT_ERRORS:
             pass
         dot.setStyleSheet(
             f"background:{self._PASTEL[idx % len(self._PASTEL)]};border-radius:4px;"
@@ -198,7 +199,7 @@ class SavingsPage(BasePage):
         donut_panel.setObjectName("ContentPanel")
         try:
             donut_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         dp_lay = QVBoxLayout(donut_panel)
         dp_lay.setContentsMargins(18, 14, 18, 14)
@@ -213,7 +214,7 @@ class SavingsPage(BasePage):
         list_panel.setObjectName("ContentPanel")
         try:
             list_panel.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        except Exception:
+        except QT_ERRORS:
             pass
         lp_lay = QVBoxLayout(list_panel)
         lp_lay.setContentsMargins(18, 14, 18, 14)
@@ -231,7 +232,7 @@ class SavingsPage(BasePage):
             try:
                 b.setMinimumHeight(38)
                 b.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-            except Exception:
+            except QT_ERRORS:
                 pass
         add_btn.clicked.connect(lambda: self._handle_add_account())
         move_btn.clicked.connect(lambda: self._handle_move_between_accounts())
@@ -319,18 +320,18 @@ class SavingsPage(BasePage):
             # Savings changes always push to the remote immediately (not only on
             # an explicit Sync), so the remote can never revert a local change.
             self._accounts_service.save_all(self._accounts, force_remote=True)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             if self._accounts_service is not None:
                 self._accounts = self._accounts_service.load_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
 
         if self._sidebar is not None and hasattr(self._sidebar, "update_accounts"):
             try:
                 self._sidebar.update_accounts(self._accounts)
-            except Exception:
+            except QT_ERRORS:
                 pass
 
         if isinstance(self._content_col, QVBoxLayout):
@@ -365,7 +366,7 @@ class SavingsPage(BasePage):
     def _handle_move_between_accounts(self) -> None:
         try:
             self._accounts = self._provider.list_accounts()
-        except Exception:
+        except QT_ERRORS:
             pass
         if not self._accounts:
             return
@@ -386,10 +387,10 @@ class SavingsPage(BasePage):
         src_combo = QComboBox(dlg)
         try:
             src_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 src_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for label, _, _, _ in endpoints:
             src_combo.addItem(label)
@@ -402,10 +403,10 @@ class SavingsPage(BasePage):
         dst_combo = QComboBox(dlg)
         try:
             dst_combo.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
-        except Exception:
+        except QT_ERRORS:
             try:
                 dst_combo.setLayoutDirection(Qt.LeftToRight)
-            except Exception:
+            except QT_ERRORS:
                 pass
         for label, _, _, _ in endpoints:
             dst_combo.addItem(label)
@@ -418,14 +419,14 @@ class SavingsPage(BasePage):
         amount_edit = QLineEdit(dlg)
         try:
             amount_edit.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        except Exception:
+        except QT_ERRORS:
             try:
                 amount_edit.setLayoutDirection(Qt.RightToLeft)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             amount_edit.setAlignment(Qt.AlignmentFlag.AlignRight)
-        except Exception:
+        except QT_ERRORS:
             pass
         amount_row.addWidget(amount_label, 0)
         amount_row.addWidget(amount_edit, 1)
@@ -467,7 +468,7 @@ class SavingsPage(BasePage):
                         src_balance_label.setText(
                             f"סכום בחסכון זה: {format_currency(s_src.amount)}"
                         )
-                    except Exception:
+                    except QT_ERRORS:
                         pass
             if 0 <= dst_idx < len(endpoints):
                 _, kind, acc_i, s_i = endpoints[dst_idx]
@@ -482,13 +483,13 @@ class SavingsPage(BasePage):
                         dst_balance_label.setText(
                             f"סכום בחסכון זה: {format_currency(s_dst.amount)}"
                         )
-                    except Exception:
+                    except QT_ERRORS:
                         pass
 
         try:
             src_combo.currentIndexChanged.connect(lambda: _update_balances())
             dst_combo.currentIndexChanged.connect(lambda: _update_balances())
-        except Exception:
+        except QT_ERRORS:
             pass
 
         _update_balances()
@@ -513,7 +514,7 @@ class SavingsPage(BasePage):
                 return
             try:
                 amount = float(text)
-            except Exception:
+            except QT_ERRORS:
                 error_label.setText("סכום לא חוקי.")
                 error_label.show()
                 return

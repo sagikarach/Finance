@@ -25,6 +25,7 @@ from ..qt import (
     QPieSlice,
     QFrame,
 )
+from ..utils.safe import QT_ERRORS
 
 
 
@@ -53,7 +54,7 @@ class CategoryPieChart(QWidget):
                 self.setSizePolicy(
                     QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
                 )
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 self._chart_view.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -69,9 +70,9 @@ class CategoryPieChart(QWidget):
                     self._chart_view.setAttribute(
                         Qt.WidgetAttribute.WA_TranslucentBackground, True
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
-            except Exception:
+            except QT_ERRORS:
                 pass
             self._layout.addWidget(self._chart_view)
             self._render_chart()
@@ -113,12 +114,12 @@ class CategoryPieChart(QWidget):
         series = QPieSeries()
         try:
             series.setLabelsVisible(False)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             series.setHoleSize(0.34)
             series.setPieSize(0.98)
-        except Exception:
+        except QT_ERRORS:
             pass
 
         total = sum(b.total_amount for b in filtered_breakdowns)
@@ -126,7 +127,7 @@ class CategoryPieChart(QWidget):
             slice_ = series.append("אין נתונים", 1.0)
             try:
                 slice_.setLabelVisible(True)
-            except Exception:
+            except QT_ERRORS:
                 pass
         else:
             sorted_breakdowns = sorted(
@@ -147,11 +148,11 @@ class CategoryPieChart(QWidget):
                 s = series.append(breakdown.category, breakdown.total_amount)
                 try:
                     s.setProperty("baseLabel", breakdown.category)
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     s.setBrush(QColor(palette[idx % len(palette)]))
-                except Exception:
+                except QT_ERRORS:
                     pass
                 try:
                     s.hovered.connect(
@@ -159,7 +160,7 @@ class CategoryPieChart(QWidget):
                             series, sl, state, br
                         )
                     )
-                except Exception:
+                except QT_ERRORS:
                     pass
 
         chart = QChart()
@@ -167,10 +168,10 @@ class CategoryPieChart(QWidget):
         chart.legend().setVisible(False)
         try:
             chart.setAnimationOptions(QChart.AnimationOption.AllAnimations)
-        except Exception:
+        except QT_ERRORS:
             try:
                 chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
-            except Exception:
+            except QT_ERRORS:
                 pass
         try:
             alignment = Qt.AlignmentFlag.AlignBottom
@@ -179,28 +180,28 @@ class CategoryPieChart(QWidget):
         chart.legend().setAlignment(alignment)
         try:
             chart.legend().setContentsMargins(0, 0, 0, 0)
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setMargins(QMarginsF(0, 0, 0, 0))
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             legend = chart.legend()
             try:
                 legend.setBackgroundVisible(False)
                 legend.setBorderColor(Qt.GlobalColor.transparent)
-            except Exception:
+            except QT_ERRORS:
                 pass
             try:
                 legend.setMarkerShape(QLegend.MarkerShape.MarkerShapeRectangle)
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setTitle("")
-        except Exception:
+        except QT_ERRORS:
             pass
         try:
             chart.setTitleBrush(QColor("#0b1220"))
@@ -209,16 +210,16 @@ class CategoryPieChart(QWidget):
             chart.setPlotAreaBackgroundVisible(False)
             try:
                 chart.setBackgroundPen(Qt.PenStyle.NoPen)
-            except Exception:
+            except QT_ERRORS:
                 try:
                     chart.setBackgroundPen(Qt.NoPen)
-                except Exception:
+                except QT_ERRORS:
                     pass
             try:
                 series.setLabelsColor(QColor("#111827"))
-            except Exception:
+            except QT_ERRORS:
                 pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
         self._chart_view.setChart(chart)
@@ -247,13 +248,13 @@ class CategoryPieChart(QWidget):
                 try:
                     pos = QCursor.pos()
                     QToolTip.showText(pos, html, self._chart_view)
-                except Exception:
+                except QT_ERRORS:
                     return
             else:
                 try:
                     QToolTip.hideText()
-                except Exception:
+                except QT_ERRORS:
                     pass
-        except Exception:
+        except QT_ERRORS:
             pass
 
