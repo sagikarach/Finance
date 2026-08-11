@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from finance.utils.safe import PARSE_ERRORS, best_effort, swallow
+from finance.utils.safe import PARSE_ERRORS, QT_ERRORS, best_effort, swallow
 
 
 def test_swallow_suppresses_named_type():
@@ -56,3 +56,13 @@ def test_best_effort_reraises_unlisted_type():
 def test_parse_errors_covers_common_malformed_data_types():
     for t in (ValueError, TypeError, KeyError, AttributeError, IndexError):
         assert t in PARSE_ERRORS
+
+
+def test_qt_errors_covers_widget_failure_types_but_not_the_fatal_ones():
+    # a deleted C++ object / None widget / bad arg — the routine Qt failures
+    for t in (RuntimeError, AttributeError, TypeError, ValueError):
+        assert t in QT_ERRORS
+    # truly-fatal signals must NOT be caught at the Qt boundary
+    for t in (KeyboardInterrupt, SystemExit, MemoryError):
+        assert t not in QT_ERRORS
+        assert not issubclass(t, QT_ERRORS)

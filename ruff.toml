@@ -23,5 +23,3 @@ select = ["F", "E9", "BLE", "S110", "S112"]
 "finance/qt.py" = ["BLE", "S110", "S112"]
 # icons.py renders SVGs through PySide — part of the Qt boundary.
 "finance/utils/icons.py" = ["BLE", "S110", "S112"]
-# Tests may assert on broad failure paths.
-"tests/*" = ["BLE", "S110", "S112"]
