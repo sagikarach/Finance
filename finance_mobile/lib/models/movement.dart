@@ -16,6 +16,10 @@ class Movement {
   final String? eventId;
   final bool deleted;
   final bool isTransfer; // העברה — not real income/expense
+  // Transfer-only structured "what happened": the two accounts the money moved
+  // between (null for income/expense, or for legacy transfers not yet backfilled).
+  final String? transferFrom;
+  final String? transferTo;
   final int? updatedAtMs;
 
   Movement({
@@ -29,6 +33,8 @@ class Movement {
     this.eventId,
     this.deleted = false,
     this.isTransfer = false,
+    this.transferFrom,
+    this.transferTo,
     this.updatedAtMs,
   });
 
@@ -38,6 +44,15 @@ class Movement {
     if (isTransfer) return MovementKind.transfer;
     return amount >= 0 ? MovementKind.income : MovementKind.expense;
   }
+
+  /// The transfer's source account: the structured field, else inferred from a
+  /// legacy row (this leg's account is the source when money left it).
+  String get transferSource =>
+      transferFrom ?? (amount < 0 ? accountName : '');
+
+  /// The transfer's target account (structured field, else inferred).
+  String get transferTarget =>
+      transferTo ?? (amount >= 0 ? accountName : '');
 
   Map<String, Object?> toFirestore() {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -52,6 +67,8 @@ class Movement {
       'event_id': eventId,
       'deleted': deleted,
       'is_transfer': isTransfer,
+      'transfer_from': transferFrom,
+      'transfer_to': transferTo,
       'source': 'mobile',
       'created_at': FieldValue.serverTimestamp(),
       'updated_at': FieldValue.serverTimestamp(),
@@ -67,10 +84,19 @@ class Movement {
     if (rawMs is int) ms = rawMs;
     if (rawMs is num) ms = rawMs.toInt();
     final category = (data['category'] as String?) ?? '';
-    // A transfer is flagged is_transfer, or falls in the 'העברה' category —
-    // mirror the desktop so cross-platform data classifies the same way.
-    final isTransfer =
-        ((data['is_transfer'] as bool?) ?? false) || category.trim() == 'העברה';
+    String? acct(String key) {
+      final v = data[key];
+      return (v is String && v.trim().isNotEmpty) ? v.trim() : null;
+    }
+
+    final transferFrom = acct('transfer_from');
+    final transferTo = acct('transfer_to');
+    // A transfer is flagged is_transfer, falls in the 'העברה' category, or
+    // carries endpoints — mirror the desktop so both platforms classify the same.
+    final isTransfer = ((data['is_transfer'] as bool?) ?? false) ||
+        category.trim() == 'העברה' ||
+        transferFrom != null ||
+        transferTo != null;
     return Movement(
       id: (data['id'] as String?) ?? '',
       amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
@@ -83,6 +109,8 @@ class Movement {
       eventId: data['event_id'] as String?,
       deleted: (data['deleted'] as bool?) ?? false,
       isTransfer: isTransfer,
+      transferFrom: transferFrom,
+      transferTo: transferTo,
       updatedAtMs: ms,
     );
   }

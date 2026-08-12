@@ -48,7 +48,10 @@ class TxTile extends StatelessWidget {
         : categoryVisual(m.category, income);
     final title = (m.description?.trim().isNotEmpty ?? false)
         ? m.description!.trim()
-        : (m.category.trim().isNotEmpty ? m.category.trim() : 'תנועה');
+        : isTransfer &&
+                (m.transferSource.isNotEmpty || m.transferTarget.isNotEmpty)
+            ? 'העברה מ${m.transferSource} ל${m.transferTarget}'
+            : (m.category.trim().isNotEmpty ? m.category.trim() : 'תנועה');
     final sub = [
       if (m.date.trim().isNotEmpty) m.date.trim(),
       if (m.category.trim().isNotEmpty) m.category.trim(),

@@ -84,6 +84,32 @@ void main() {
       expect(Movement.fromFirestore({'id': 'a', 'amount': -50}).kind,
           MovementKind.expense);
     });
+
+    test('parses structured transfer endpoints and treats them as a transfer', () {
+      final m = Movement.fromFirestore({
+        'id': 'a',
+        'amount': -500,
+        'account_name': 'בנק',
+        'transfer_from': 'בנק',
+        'transfer_to': 'קופה',
+      });
+      expect(m.isTransfer, true); // endpoints imply a transfer
+      expect(m.transferFrom, 'בנק');
+      expect(m.transferTo, 'קופה');
+      expect(m.transferSource, 'בנק');
+      expect(m.transferTarget, 'קופה');
+    });
+
+    test('infers the transfer side for a legacy row without endpoints', () {
+      final out = Movement.fromFirestore(
+          {'id': 'a', 'amount': -500, 'account_name': 'בנק', 'category': 'העברה'});
+      expect(out.transferSource, 'בנק');
+      expect(out.transferTarget, '');
+      final inc = Movement.fromFirestore(
+          {'id': 'b', 'amount': 500, 'account_name': 'בנק', 'category': 'העברה'});
+      expect(inc.transferTarget, 'בנק');
+      expect(inc.transferSource, '');
+    });
   });
 
   group('Movement.toFirestore', () {
