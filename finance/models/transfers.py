@@ -253,6 +253,8 @@ class TransferRequest:
                 type=MovementType.ONE_TIME,
                 is_transfer=True,
                 description=description,
+                transfer_from=src_name,
+                transfer_to=dst_name,
             )
         ]
         if dst_type == "bank":
@@ -265,6 +267,8 @@ class TransferRequest:
                     type=MovementType.ONE_TIME,
                     is_transfer=True,
                     description=description,
+                    transfer_from=src_name,
+                    transfer_to=dst_name,
                 )
             )
         return movements
