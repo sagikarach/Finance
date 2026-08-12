@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/movement.dart';
+import '../models/movement_type.dart';
 import '../services/categories_service.dart';
 import '../services/accounts_meta_service.dart';
 import '../services/bootstrap_service.dart';
@@ -43,12 +44,6 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
   late final MovementsService _movements;
   late final ActionHistoryService _actions;
   final SessionService _session = const SessionService();
-
-  static const _typeLabels = <String, String>{
-    'ONE_TIME': 'חד פעמי',
-    'MONTHLY': 'חודשי',
-    'YEARLY': 'שנתי',
-  };
 
   @override
   void initState() {
@@ -132,13 +127,13 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
     final picked = await showStringPickerBottomSheet(
       context: context,
       title: 'בחירת סוג',
-      items: _typeLabels.values.toList(),
-      selected: _typeLabels[_type] ?? _type,
+      items: MovementType.labels.values.toList(),
+      selected: MovementType.labels[_type] ?? _type,
     );
     if (picked == null || !mounted) return;
-    final reverse = _typeLabels.entries
+    final reverse = MovementType.labels.entries
         .firstWhere((e) => e.value == picked,
-            orElse: () => const MapEntry('ONE_TIME', 'חד פעמי'))
+            orElse: () => const MapEntry(MovementType.oneTime, 'חד פעמי'))
         .key;
     setState(() => _type = reverse);
   }
@@ -446,7 +441,7 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
               _accountName.isEmpty ? 'בחר חשבון' : _accountName, _pickAccount),
           _divider(),
           _fieldRow(Icons.repeat_rounded, 'סוג',
-              _typeLabels[_type] ?? _type, _pickType),
+              MovementType.labels[_type] ?? _type, _pickType),
         ],
       ),
     );

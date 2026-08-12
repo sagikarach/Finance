@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'movement_type.dart';
 
 class Movement {
   final String id;
@@ -57,7 +58,8 @@ class Movement {
       date: (data['date'] as String?) ?? '',
       accountName: (data['account_name'] as String?) ?? '',
       category: (data['category'] as String?) ?? '',
-      type: (data['type'] as String?) ?? 'ONE_TIME',
+      // Desktop stores Hebrew type values, mobile English — canonicalize both.
+      type: MovementType.normalize(data['type']),
       description: data['description'] as String?,
       eventId: data['event_id'] as String?,
       deleted: (data['deleted'] as bool?) ?? false,

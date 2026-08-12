@@ -57,6 +57,12 @@ void main() {
       final m = Movement.fromFirestore({'id': 'a', 'deleted': true});
       expect(m.deleted, true);
     });
+
+    test('normalizes a desktop Hebrew type to the English canon', () {
+      // desktop writes the Hebrew enum value; mobile must read it as MONTHLY
+      final m = Movement.fromFirestore({'id': 'a', 'type': 'חודשי'});
+      expect(m.type, 'MONTHLY');
+    });
   });
 
   group('Movement.toFirestore', () {

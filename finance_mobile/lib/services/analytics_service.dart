@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/movement.dart';
+import '../models/movement_type.dart';
 import 'movements_service.dart';
 
 const List<String> hebMonthsShort = [
@@ -67,13 +68,6 @@ class AnalyticsService {
   AnalyticsService({required this.workspaceId})
       : _movements = MovementsService(workspaceId: workspaceId);
 
-  /// The home charts show only the regular *monthly* recurring flow —
-  /// one-time (חד פעמי) and yearly (שנתי) movements are excluded.
-  static bool _isMonthly(String type) {
-    final t = type.trim();
-    return t == 'MONTHLY' || t == 'חודשי';
-  }
-
   static DateTime? _parse(String s) {
     final t = s.trim();
     if (t.length < 7) return null;
@@ -111,7 +105,7 @@ class AnalyticsService {
     double incomeWindow = 0, expenseWindow = 0;
 
     for (final m in all) {
-      if (!_isMonthly(m.type)) continue; // exclude one-time & yearly
+      if (!MovementType.isMonthly(m.type)) continue; // exclude one-time & yearly
       final dt = _parse(m.date);
       if (dt == null) continue;
       final key = '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
