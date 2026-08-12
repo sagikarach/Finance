@@ -31,6 +31,14 @@ class BankMovementProvider(ABC):
     def add_movement(self, movement: BankMovement) -> None:
         raise NotImplementedError
 
+    # Category listing is part of the provider contract; the JSON provider
+    # overrides these, other providers inherit the empty defaults.
+    def list_categories_for_type(self, is_income: bool) -> List[str]:
+        return []
+
+    def list_categories(self) -> List[str]:
+        return []
+
 
 class JsonFileBankMovementProvider(BankMovementProvider):
     def __init__(self, movements_path: Optional[Union[str, Path]] = None) -> None:

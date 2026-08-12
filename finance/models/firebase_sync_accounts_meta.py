@@ -5,7 +5,7 @@ from typing import List, Optional
 from .firebase_client import FirestoreClient
 from ..data.provider import JsonFileAccountsProvider
 from ..models.accounts_service import AccountsService
-from ..models.accounts import BudgetAccount, MoneySnapshot
+from ..models.accounts import BudgetAccount, MoneyAccount, MoneySnapshot
 from ..utils.safe import PARSE_ERRORS, swallow
 
 
@@ -225,5 +225,6 @@ def pull_accounts_meta_to_local_cache(
             if a.name not in remote_savings_names:
                 savings_accounts.append(a)
 
-        provider.save_bank_accounts(list(bank_accounts) + list(budget_accounts))
+        combined: List[MoneyAccount] = [*bank_accounts, *budget_accounts]
+        provider.save_bank_accounts(combined)
         provider.save_savings_accounts(savings_accounts)

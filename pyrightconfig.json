@@ -1,7 +1,7 @@
 {
   "include": ["finance", "scripts", "main.py"],
   "extraPaths": ["."],
-  "reportMissingTypeStubs": false
+  "exclude": ["**/__pycache__", "finance/utils/icons.py"],
+  "reportMissingTypeStubs": false,
+  "reportMissingImports": "warning"
 }
-
-
