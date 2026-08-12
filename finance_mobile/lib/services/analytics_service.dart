@@ -74,7 +74,7 @@ class AnalyticsService {
     return t == 'MONTHLY' || t == 'חודשי';
   }
 
-  DateTime? _parse(String s) {
+  static DateTime? _parse(String s) {
     final t = s.trim();
     if (t.length < 7) return null;
     try {
@@ -86,8 +86,13 @@ class AnalyticsService {
 
   Future<AnalyticsSummary> compute({Source source = Source.server}) async {
     final all = await _movements.fetch(source: source);
-    final now = DateTime.now();
+    return summarize(all, DateTime.now());
+  }
 
+  /// Pure aggregation core — separated from Firebase so it is unit-testable:
+  /// last-6-months buckets of MONTHLY-type flow, per-month averages over the
+  /// months with activity, and expense-by-category slices.
+  static AnalyticsSummary summarize(List<Movement> all, DateTime now) {
     // Last 6 months (oldest -> newest).
     final buckets = <String, MonthBucket>{};
     final order = <String>[];
