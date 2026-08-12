@@ -1,0 +1,23 @@
+name: Mobile
+
+on: [push, pull_request]
+
+# Static-analysis + test gate for the Flutter app (finance_mobile/), mirroring
+# the desktop core/gui/ruff/types gates. Flutter version is pinned so the
+# required check stays deterministic (bump it deliberately).
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: finance_mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.38.5
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
