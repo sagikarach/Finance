@@ -42,9 +42,13 @@ String fmtCompact(num v) {
   } else {
     body = a.toStringAsFixed(0);
   }
-  // Trim trailing .0 / .00
+  // Trim trailing .0 / .00 while keeping the M/K suffix. Uses ...Mapped because
+  // Dart's replaceFirst treats "$1" as a literal, not a capture-group reference.
   if (body.contains('.')) {
-    body = body.replaceFirst(RegExp(r'\.?0+([MK]?)$'), r'$1');
+    body = body.replaceFirstMapped(
+      RegExp(r'\.?0+([MK]?)$'),
+      (m) => m.group(1) ?? '',
+    );
   }
   return '$neg₪$body';
 }
