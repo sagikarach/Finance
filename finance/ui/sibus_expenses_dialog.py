@@ -5,7 +5,7 @@ from typing import Callable, List, Optional, Tuple, Dict
 
 from ..models.accounts import parse_iso_date
 from ..models.accounts import MoneyAccount
-from ..models.bank_movement import BankMovement, MovementType
+from ..models.bank_movement import BankMovement, MovementType, counts_as_transfer
 from ..models.bank_movement_service import BankMovementService
 from ..qt import (
     QComboBox,
@@ -126,7 +126,7 @@ class SibusExpensesDialog(QDialog):
             try:
                 if str(m.account_name) != self._account_name:
                     continue
-                if bool(getattr(m, "is_transfer", False)):
+                if counts_as_transfer(m):
                     continue
                 if float(m.amount) >= 0:
                     continue

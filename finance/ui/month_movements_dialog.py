@@ -4,7 +4,7 @@ from dataclasses import replace
 from typing import Callable, Dict, List, Optional, Tuple
 
 from ..models.accounts import parse_iso_date
-from ..models.bank_movement import BankMovement, MovementType
+from ..models.bank_movement import BankMovement, MovementType, counts_as_transfer
 from ..models.bank_movement_service import BankMovementService
 from ..qt import (
     QComboBox,
@@ -326,8 +326,11 @@ class MonthMovementsDialog(QDialog):
 
         in_month.sort(key=lambda m: parse_iso_date(m.date), reverse=True)
 
-        incomes = [m for m in in_month if float(m.amount) > 0]
-        expenses = [m for m in in_month if float(m.amount) <= 0]
+        # transfers aren't income/expense — exclude them so this editor matches
+        # the monthly report (which also ignores them)
+        regular = [m for m in in_month if not counts_as_transfer(m)]
+        incomes = [m for m in regular if float(m.amount) > 0]
+        expenses = [m for m in regular if float(m.amount) <= 0]
 
         self._populate_table(self._income_table, incomes, is_income=True)
         self._populate_table(self._expense_table, expenses, is_income=False)
