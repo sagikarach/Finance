@@ -20,6 +20,7 @@ from ..models.action_history import (
     UploadOutcomeFileAction,
     AddIncomeMovementAction,
     AddOutcomeMovementAction,
+    action_title as _action_title,
 )
 from ..models.bank_movement import MovementType
 from ..models.bank_movement_service import BankMovementService
@@ -80,31 +81,8 @@ class ActionHistoryDetailsDialog(QDialog):
 
         date_label = QLabel(f"תאריך: {entry.timestamp}", self)
 
-        action_name_map = {
-            "transfer": "העברת כסף",
-            "add_savings_account": "הוספת חסכון",
-            "edit_savings_account": "עריכת חסכון",
-            "delete_savings_account": "מחיקת חסכון",
-            "add_saving": "הוספת סוג חסכון",
-            "edit_saving": "עריכת סוג חסכון",
-            "delete_saving": "מחיקת סוג חסכון",
-            "activate_bank_account": "הפעלת חשבון",
-            "deactivate_bank_account": "ביטול חשבון",
-            "set_starter_amount": "הגדרת סכום התחלתי",
-            "add_income_movement": "הוספת הכנסה",
-            "add_outcome_movement": "הוספת הוצאה",
-            "delete_movement": "מחיקת תנועה",
-            "add_one_time_event": "יצירת אירוע חד־פעמי",
-            "edit_one_time_event": "עריכת אירוע חד־פעמי",
-            "delete_one_time_event": "מחיקת אירוע חד־פעמי",
-            "assign_movement_to_one_time_event": "שיוך תנועה לאירוע",
-            "unassign_movement_from_one_time_event": "הסרת שיוך תנועה מאירוע",
-            "add_installment_plan": "יצירת תשלומים",
-            "edit_installment_plan": "עריכת תשלומים",
-            "delete_installment_plan": "מחיקת תשלומים",
-        }
         action_key = entry.action.action_name
-        action_title = action_name_map.get(action_key, action_key)
+        action_title = _action_title(action_key)
         type_label = QLabel(f"סוג פעולה: {action_title}", self)
 
         meta_layout.addWidget(date_label)

@@ -17,7 +17,7 @@ from ..qt import (
     QPalette,
     QSize,
 )
-from ..models.action_history import ActionHistory
+from ..models.action_history import ActionHistory, action_title as _action_title
 from ..ui.action_history_details_dialog import ActionHistoryDetailsDialog
 from ..models.bank_movement_service import BankMovementService
 from ..models.action_history import (
@@ -52,37 +52,6 @@ from ..utils.safe import QT_ERRORS
 
 def _fmt_money(amount: float) -> str:
     return fmt_money(amount, 2)
-
-
-_ACTION_TITLE_MAP: dict[str, str] = {
-    "transfer": "העברת כסף",
-    "add_savings_account": "הוספת חסכון",
-    "edit_savings_account": "עריכת חסכון",
-    "delete_savings_account": "מחיקת חסכון",
-    "add_saving": "הוספת סוג חסכון",
-    "edit_saving": "עריכת סוג חסכון",
-    "delete_saving": "מחיקת סוג חסכון",
-    "activate_bank_account": "הפעלת חשבון",
-    "deactivate_bank_account": "ביטול חשבון",
-    "set_starter_amount": "הגדרת סכום התחלתי",
-    "add_income_movement": "הוספת הכנסה",
-    "add_outcome_movement": "הוספת הוצאה",
-    "delete_movement": "מחיקת תנועה",
-    "upload_outcome_file": "ייבוא קובץ הוצאות",
-    "add_one_time_event": "יצירת אירוע חד־פעמי",
-    "edit_one_time_event": "עריכת אירוע חד־פעמי",
-    "delete_one_time_event": "מחיקת אירוע חד־פעמי",
-    "assign_movement_to_one_time_event": "שיוך תנועה לאירוע",
-    "unassign_movement_from_one_time_event": "הסרת שיוך תנועה מאירוע",
-    "add_installment_plan": "יצירת תשלומים",
-    "edit_installment_plan": "עריכת תשלומים",
-    "delete_installment_plan": "מחיקת תשלומים",
-}
-
-
-def _action_title(action_name: str) -> str:
-    key = str(action_name or "").strip()
-    return _ACTION_TITLE_MAP.get(key, key or "פעולה")
 
 
 def _action_body(

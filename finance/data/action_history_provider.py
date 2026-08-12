@@ -46,6 +46,37 @@ from ..utils.safe import PARSE_ERRORS, swallow
 
 _log = get_logger("data")
 
+# The action_name → Action-class registry, module-level so deserialization and
+# the completeness test share one source of truth (a new action type must be
+# registered here to round-trip; a test keeps it in sync with ACTION_TITLES).
+ACTION_CLASSES: Dict[str, type[Action]] = {
+    "transfer": TransferAction,
+    "add_savings_account": AddSavingsAccountAction,
+    "edit_savings_account": EditSavingsAccountAction,
+    "delete_savings_account": DeleteSavingsAccountAction,
+    "add_saving": AddSavingAction,
+    "edit_saving": EditSavingAction,
+    "delete_saving": DeleteSavingAction,
+    "activate_bank_account": ActivateBankAccountAction,
+    "deactivate_bank_account": DeactivateBankAccountAction,
+    "set_starter_amount": SetStarterAmountAction,
+    "add_income_movement": AddIncomeMovementAction,
+    "add_outcome_movement": AddOutcomeMovementAction,
+    "delete_movement": DeleteMovementAction,
+    "upload_outcome_file": UploadOutcomeFileAction,
+    "add_one_time_event": AddOneTimeEventAction,
+    "edit_one_time_event": EditOneTimeEventAction,
+    "delete_one_time_event": DeleteOneTimeEventAction,
+    "assign_movement_to_one_time_event": AssignMovementToOneTimeEventAction,
+    "unassign_movement_from_one_time_event": UnassignMovementFromOneTimeEventAction,
+    "add_installment_plan": AddInstallmentPlanAction,
+    "edit_installment_plan": EditInstallmentPlanAction,
+    "delete_installment_plan": DeleteInstallmentPlanAction,
+    "add_mortgage": AddMortgageAction,
+    "edit_mortgage": EditMortgageAction,
+    "delete_mortgage": DeleteMortgageAction,
+}
+
 
 class ActionHistoryProvider(ABC):
     @abstractmethod
@@ -190,35 +221,7 @@ class JsonFileActionHistoryProvider(ActionHistoryProvider):
         if not action_name:
             action_name = action_data.get("type", "")
 
-        action_class_map: Dict[str, type[Action]] = {
-            "transfer": TransferAction,
-            "add_savings_account": AddSavingsAccountAction,
-            "edit_savings_account": EditSavingsAccountAction,
-            "delete_savings_account": DeleteSavingsAccountAction,
-            "add_saving": AddSavingAction,
-            "edit_saving": EditSavingAction,
-            "delete_saving": DeleteSavingAction,
-            "activate_bank_account": ActivateBankAccountAction,
-            "deactivate_bank_account": DeactivateBankAccountAction,
-            "set_starter_amount": SetStarterAmountAction,
-            "add_income_movement": AddIncomeMovementAction,
-            "add_outcome_movement": AddOutcomeMovementAction,
-            "delete_movement": DeleteMovementAction,
-            "upload_outcome_file": UploadOutcomeFileAction,
-            "add_one_time_event": AddOneTimeEventAction,
-            "edit_one_time_event": EditOneTimeEventAction,
-            "delete_one_time_event": DeleteOneTimeEventAction,
-            "assign_movement_to_one_time_event": AssignMovementToOneTimeEventAction,
-            "unassign_movement_from_one_time_event": UnassignMovementFromOneTimeEventAction,
-            "add_installment_plan": AddInstallmentPlanAction,
-            "edit_installment_plan": EditInstallmentPlanAction,
-            "delete_installment_plan": DeleteInstallmentPlanAction,
-            "add_mortgage": AddMortgageAction,
-            "edit_mortgage": EditMortgageAction,
-            "delete_mortgage": DeleteMortgageAction,
-        }
-
-        action_class = action_class_map.get(action_name)
+        action_class = ACTION_CLASSES.get(action_name)
         if action_class is None:
             return None
 

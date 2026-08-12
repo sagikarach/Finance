@@ -8,6 +8,45 @@ import uuid
 from ..utils.safe import PARSE_ERRORS
 
 
+# Canonical Hebrew title for every action kind. Single source of truth for the
+# action-history views (previously duplicated across two dialogs, which drifted —
+# the mortgage/asset kinds were never added and showed as raw English keys).
+# Kept complete: a test asserts every registered action_name has a title here.
+ACTION_TITLES: dict[str, str] = {
+    "transfer": "העברת כסף",
+    "add_savings_account": "הוספת חסכון",
+    "edit_savings_account": "עריכת חסכון",
+    "delete_savings_account": "מחיקת חסכון",
+    "add_saving": "הוספת סוג חסכון",
+    "edit_saving": "עריכת סוג חסכון",
+    "delete_saving": "מחיקת סוג חסכון",
+    "activate_bank_account": "הפעלת חשבון",
+    "deactivate_bank_account": "ביטול חשבון",
+    "set_starter_amount": "הגדרת סכום התחלתי",
+    "add_income_movement": "הוספת הכנסה",
+    "add_outcome_movement": "הוספת הוצאה",
+    "delete_movement": "מחיקת תנועה",
+    "upload_outcome_file": "ייבוא קובץ הוצאות",
+    "add_one_time_event": "יצירת אירוע חד־פעמי",
+    "edit_one_time_event": "עריכת אירוע חד־פעמי",
+    "delete_one_time_event": "מחיקת אירוע חד־פעמי",
+    "assign_movement_to_one_time_event": "שיוך תנועה לאירוע",
+    "unassign_movement_from_one_time_event": "הסרת שיוך תנועה מאירוע",
+    "add_installment_plan": "יצירת תשלומים",
+    "edit_installment_plan": "עריכת תשלומים",
+    "delete_installment_plan": "מחיקת תשלומים",
+    "add_mortgage": "הוספת נכס",
+    "edit_mortgage": "עריכת נכס",
+    "delete_mortgage": "מחיקת נכס",
+}
+
+
+def action_title(action_name: object) -> str:
+    """Hebrew title for an action_name, falling back to the raw key (never blank)."""
+    key = str(action_name or "").strip()
+    return ACTION_TITLES.get(key, key or "פעולה")
+
+
 @dataclass(frozen=True)
 class Action(ABC):
     action_name: str = field(default="")
