@@ -5,7 +5,7 @@ from typing import Callable, List, Optional, Tuple, Dict
 
 from ..models.accounts import parse_iso_date
 from ..models.accounts import MoneyAccount
-from ..models.bank_movement import BankMovement, MovementType
+from ..models.bank_movement import BankMovement, MovementKind, MovementType
 from ..models.bank_movement_service import BankMovementService
 from ..qt import (
     QComboBox,
@@ -160,9 +160,19 @@ class AccountMovementsDialog(QDialog):
             except QT_ERRORS:
                 is_income = False
 
+            try:
+                kind = m.kind
+            except QT_ERRORS:
+                kind = MovementKind.INCOME if is_income else MovementKind.EXPENSE
+            direction = {
+                MovementKind.INCOME: "הכנסה",
+                MovementKind.EXPENSE: "הוצאה",
+                MovementKind.TRANSFER: "העברה",
+            }.get(kind, "הכנסה" if is_income else "הוצאה")
+
             date_item = QTableWidgetItem(str(m.date))
             amount_item = QTableWidgetItem(str(abs(float(m.amount))))
-            direction_item = QTableWidgetItem("הכנסה" if is_income else "הוצאה")
+            direction_item = QTableWidgetItem(direction)
             desc_item = QTableWidgetItem(m.description or "")
 
             try:
