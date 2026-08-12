@@ -105,6 +105,7 @@ class AnalyticsService {
     double incomeWindow = 0, expenseWindow = 0;
 
     for (final m in all) {
+      if (m.isTransfer) continue; // העברה is not real income/expense
       if (!MovementType.isMonthly(m.type)) continue; // exclude one-time & yearly
       final dt = _parse(m.date);
       if (dt == null) continue;

@@ -63,6 +63,27 @@ void main() {
       final m = Movement.fromFirestore({'id': 'a', 'type': 'חודשי'});
       expect(m.type, 'MONTHLY');
     });
+
+    test('flags a transfer from is_transfer', () {
+      final m = Movement.fromFirestore(
+          {'id': 'a', 'amount': -100, 'is_transfer': true});
+      expect(m.isTransfer, true);
+      expect(m.kind, MovementKind.transfer);
+    });
+
+    test('treats the העברה category as a transfer even without the flag', () {
+      final m =
+          Movement.fromFirestore({'id': 'a', 'amount': -100, 'category': 'העברה'});
+      expect(m.isTransfer, true);
+      expect(m.kind, MovementKind.transfer);
+    });
+
+    test('classifies income/expense by sign when not a transfer', () {
+      expect(Movement.fromFirestore({'id': 'a', 'amount': 50}).kind,
+          MovementKind.income);
+      expect(Movement.fromFirestore({'id': 'a', 'amount': -50}).kind,
+          MovementKind.expense);
+    });
   });
 
   group('Movement.toFirestore', () {

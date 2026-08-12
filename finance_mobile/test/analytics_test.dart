@@ -71,6 +71,25 @@ void main() {
     expect(s.recent.first.date, '2026-06-01');
   });
 
+  test('excludes transfers from income/expense', () {
+    final withTransfer = <Movement>[
+      _mv(1000, '2026-02-10', category: 'משכורת'), // real monthly income
+      Movement(
+        id: 't',
+        amount: -5000,
+        date: '2026-02-15',
+        accountName: 'בנק',
+        category: 'העברה',
+        type: 'MONTHLY',
+        isTransfer: true,
+      ),
+    ];
+    final r = AnalyticsService.summarize(withTransfer, now);
+    expect(r.avgMonthlyIncome, 1000); // one month of data → ÷1
+    expect(r.avgMonthlyExpense, 0); // the transfer is NOT an expense
+    expect(r.avgByCategory, isEmpty); // and NOT a category slice
+  });
+
   test('empty input yields zeroed averages and 6 empty buckets', () {
     final e = AnalyticsService.summarize(<Movement>[], now);
     expect(e.months.length, 6);

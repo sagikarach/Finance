@@ -40,8 +40,12 @@ class TxTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = movement;
-    final income = m.amount >= 0;
-    final v = categoryVisual(m.category, income);
+    final kind = m.kind;
+    final isTransfer = kind == MovementKind.transfer;
+    final income = kind == MovementKind.income;
+    final v = isTransfer
+        ? (icon: Icons.swap_horiz_rounded, color: AppColors.muted)
+        : categoryVisual(m.category, income);
     final title = (m.description?.trim().isNotEmpty ?? false)
         ? m.description!.trim()
         : (m.category.trim().isNotEmpty ? m.category.trim() : 'תנועה');
@@ -102,7 +106,9 @@ class TxTile extends StatelessWidget {
             fmtSigned(m.amount, decimals: false, symbolLeft: true),
             textDirection: TextDirection.ltr,
             style: TextStyle(
-              color: income ? AppColors.green : AppColors.clay,
+              color: isTransfer
+                  ? AppColors.muted
+                  : (income ? AppColors.green : AppColors.clay),
               fontWeight: FontWeight.w800,
               fontSize: 14.5,
             ),
