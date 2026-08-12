@@ -13,6 +13,7 @@ from ..data.bank_movement_provider import (
     JsonFileBankMovementProvider,
 )
 from ..utils.safe import PARSE_ERRORS
+from ..models.bank_movement import counts_as_transfer
 
 
 def _month_key(date_str: object) -> str:
@@ -71,9 +72,7 @@ class UserGradeService:
 
         for mv in movements:
             try:
-                if bool(getattr(mv, "is_transfer", False)):
-                    continue
-                if str(getattr(mv, "category", "") or "").strip() == "העברה":
+                if counts_as_transfer(mv):
                     continue
             except PARSE_ERRORS:
                 pass

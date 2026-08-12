@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, List
 
 from .accounts import parse_iso_date
+from .bank_movement import counts_as_transfer
 from ..utils.safe import PARSE_ERRORS
 
 
@@ -24,7 +25,6 @@ def movements_for_month(
         for m in movements
         if m.type == movement_type
         and _in_month(m.date, year, month)
-        and not bool(getattr(m, "is_transfer", False))
-        and str(getattr(m, "category", "") or "").strip() != "העברה"
+        and not counts_as_transfer(m)
     ]
     return sorted(filtered, key=lambda x: parse_iso_date(x.date), reverse=True)

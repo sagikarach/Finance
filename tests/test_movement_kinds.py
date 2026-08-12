@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from finance.models.bank_movement import (
     BankMovement,
     ExpenseMovement,
@@ -6,6 +8,7 @@ from finance.models.bank_movement import (
     MovementType,
     TransferMovement,
     build_movement,
+    counts_as_transfer,
     deserialize_bank_movement,
 )
 
@@ -76,6 +79,17 @@ def test_deserialize_reads_transfer_endpoints():
     assert m is not None
     assert m.transfer_from == "בנק" and m.transfer_to == "קופה"
     assert m.kind == MovementKind.TRANSFER
+
+
+def test_counts_as_transfer_helper_handles_all_signals_and_duck_types():
+    # the reporting consumers pass duck-typed objects; the one helper must work
+    assert counts_as_transfer(SimpleNamespace(is_transfer=True))
+    assert counts_as_transfer(SimpleNamespace(category="העברה"))  # category-only!
+    assert counts_as_transfer(SimpleNamespace(transfer_from="בנק"))
+    assert not counts_as_transfer(SimpleNamespace(category="מזון", amount=-10))
+    # and on a real record
+    assert counts_as_transfer(_bm(-10, category="העברה"))
+    assert not counts_as_transfer(_bm(-10, category="מזון"))
 
 
 def test_transfer_creation_populates_both_endpoints():

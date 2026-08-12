@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Iterable, List, Optional
 import re
 from ..utils.safe import PARSE_ERRORS
+from .bank_movement import counts_as_transfer
 
 
 @dataclass(frozen=True)
@@ -179,7 +180,7 @@ class BudgetAccount(MoneyAccount):
         cur_key = current_budget_period_end_key(reset_day)
         spent = 0.0
         for m in ledger.movements_for(self.name):
-            if bool(getattr(m, "is_transfer", False)):
+            if counts_as_transfer(m):
                 continue
             amt = float(getattr(m, "amount", 0.0) or 0.0)
             if amt >= 0:

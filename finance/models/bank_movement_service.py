@@ -22,7 +22,7 @@ from .action_history import (
     generate_action_id,
     get_current_timestamp,
 )
-from .bank_movement import BankMovement, MovementType
+from .bank_movement import BankMovement, MovementType, counts_as_transfer
 from .budget_period import budget_period_end_key, current_budget_period_end_key
 from .classified_expense import ClassifiedExpense
 from .csv_expense_parser import CsvExpenseParser
@@ -157,7 +157,7 @@ class BankMovementService:
                         != str(getattr(target_acc, "name", "") or "").strip()
                     ):
                         continue
-                    if bool(getattr(m, "is_transfer", False)):
+                    if counts_as_transfer(m):
                         continue
                     a = float(getattr(m, "amount", 0.0) or 0.0)
                     if a >= 0:

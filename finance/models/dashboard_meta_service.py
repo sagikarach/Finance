@@ -14,6 +14,7 @@ from ..models.accounts_service import AccountsService
 from ..models.overview import AccountsOverview
 from ..models.dashboard_meta import DashboardMeta
 from ..utils.safe import PARSE_ERRORS
+from ..models.bank_movement import counts_as_transfer
 
 
 def _month_key(y: int, m: int) -> str:
@@ -58,7 +59,7 @@ class DashboardMetaService:
             except PARSE_ERRORS:
                 pass
             try:
-                if bool(getattr(m, "is_transfer", False)):
+                if counts_as_transfer(m):
                     continue
             except PARSE_ERRORS:
                 pass

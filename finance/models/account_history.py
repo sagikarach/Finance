@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, List, Optional, Tuple
 
 from .accounts import parse_iso_date
+from .bank_movement import counts_as_transfer
 from .budget_period import budget_period_end_key, next_month
 from ..utils.safe import PARSE_ERRORS
 
@@ -109,7 +110,7 @@ def budget_spend_by_period(account: Any, movements: List[Any]) -> BudgetSpend:
         for m in (movements or [])
         if m.account_name == acc_name
         and float(getattr(m, "amount", 0.0) or 0.0) < 0.0
-        and not bool(getattr(m, "is_transfer", False))
+        and not counts_as_transfer(m)
     ]
     reset_day = max(1, min(28, int(getattr(account, "reset_day", 1) or 1)))
     by_period: dict[MonthKey, float] = {}

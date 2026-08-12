@@ -28,6 +28,18 @@ def generate_movement_id() -> str:
     return str(uuid.uuid4())
 
 
+def counts_as_transfer(movement: Any) -> bool:
+    """Whether a movement is a transfer (flagged ``is_transfer``, categorised
+    "העברה", or carrying transfer endpoints) — and so excluded from income/expense
+    reports. The single place this is decided; works on any object exposing the
+    fields, including duck-typed test doubles."""
+    if bool(getattr(movement, "is_transfer", False)):
+        return True
+    if getattr(movement, "transfer_from", None) or getattr(movement, "transfer_to", None):
+        return True
+    return str(getattr(movement, "category", "") or "").strip() == "העברה"
+
+
 def parse_movement_type(raw: object) -> "MovementType":
     """Coerce a raw type string into a MovementType, tolerating case/format
     variants (MONTHLY/monthly, ONE_TIME/onetime, …). Defaults to ONE_TIME."""
@@ -120,13 +132,8 @@ class BankMovement:
 
     @property
     def counts_as_transfer(self) -> bool:
-        """True if this movement is a transfer (flagged, categorised "העברה", or
-        carrying transfer endpoints) — excluded from income/expense reports."""
-        if bool(self.is_transfer):
-            return True
-        if self.transfer_from or self.transfer_to:
-            return True
-        return str(self.category or "").strip() == "העברה"
+        """True if this movement is a transfer — see :func:`counts_as_transfer`."""
+        return counts_as_transfer(self)
 
     @property
     def kind(self) -> MovementKind:
