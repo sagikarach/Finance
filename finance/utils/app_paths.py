@@ -59,6 +59,16 @@ def _dir_is_empty(p: Path) -> bool:
 
 
 def app_data_dir() -> Path:
+    # A throwaway sandbox: point every data path (accounts, movements, the
+    # Firebase session, profile, sync state) at FINANCE_DATA_DIR so you can test
+    # against isolated, disposable data — the app starts logged-out and fresh, and
+    # touches nothing real. Skips the legacy-name migration on purpose.
+    override = str(os.environ.get("FINANCE_DATA_DIR", "") or "").strip()
+    if override:
+        sandbox = Path(override).expanduser()
+        sandbox.mkdir(parents=True, exist_ok=True)
+        return sandbox
+
     p = _compute_user_data_dir(app_name=APP_NAME, app_author=APP_AUTHOR)
     old_name = _old_misspelled_name(APP_NAME)
     old_author = _old_misspelled_name(APP_AUTHOR)
