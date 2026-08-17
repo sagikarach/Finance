@@ -374,9 +374,10 @@ class BankAccountPage(BasePage):
         try:
             file_path, _ = QFileDialogCls.getOpenFileName(
                 self,
-                "ייבוא הוצאות מקובץ CSV",
+                "ייבוא הוצאות מקובץ",
                 "",
-                "CSV Files (*.csv);;All Files (*)",
+                "קבצי הוצאות (*.csv *.xlsx *.xls);;"
+                "CSV (*.csv);;Excel (*.xlsx *.xls);;All Files (*)",
             )
         except QT_ERRORS:
             return

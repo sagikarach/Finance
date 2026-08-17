@@ -523,8 +523,11 @@ class BankMovementService:
             return accounts
 
         try:
-            csv_text = path.read_text(encoding="utf-8-sig")
-        except PARSE_ERRORS:
+            from .spreadsheet_reader import file_to_csv_text
+
+            csv_text = file_to_csv_text(path)
+        except (OSError, ValueError, ImportError):
+            # unreadable file, or the Excel reader (openpyxl/xlrd) isn't installed
             return accounts
 
         expenses = self.csv_parser.parse(csv_text)

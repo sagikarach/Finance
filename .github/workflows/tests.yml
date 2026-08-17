@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install core deps
-        run: pip install pytest platformdirs PyNaCl certifi
+        run: pip install pytest platformdirs PyNaCl certifi openpyxl xlrd
       - name: Run test suite
         run: python -m pytest -q
 

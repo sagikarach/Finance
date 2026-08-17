@@ -3,3 +3,7 @@ platformdirs>=4.0
 PyNaCl>=1.5
 
 certifi
+
+# Expense-import readers: openpyxl for .xlsx, xlrd for legacy .xls
+openpyxl>=3.1
+xlrd>=2.0
