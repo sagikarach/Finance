@@ -45,6 +45,7 @@ from ..models.mortgage_math import (
     MortgageAssumptions,
     assumptions_sensitivity,
     early_payoff_savings,
+    effective_annual_rate,
     months_after,
     purchase_summary,
 )
@@ -374,7 +375,14 @@ class MortgageDialog(QDialog):
                 row, 1, QTableWidgetItem(str(getattr(t.kind, "value", t.kind)))
             )
             tbl.setItem(row, 2, QTableWidgetItem(_fmt_money(t.principal)))
-            tbl.setItem(row, 3, QTableWidgetItem(_fmt_rate(t.annual_rate)))
+            # effective rate — prime + spread for a prime track (annual_rate is 0)
+            tbl.setItem(
+                row,
+                3,
+                QTableWidgetItem(
+                    _fmt_rate(effective_annual_rate(t, DEFAULT_ASSUMPTIONS))
+                ),
+            )
             tbl.setItem(row, 4, QTableWidgetItem(str(int(t.term_months))))
         total = sum(float(t.principal) for t in self._tracks)
         self._total_label.setText(f"סך הקרן: {_fmt_money(total)} ₪")
@@ -1552,7 +1560,7 @@ class MortgagePage(BasePage):
             self._table.setItem(row, 0, QTableWidgetItem(tr.name))
             self._table.setItem(row, 1, QTableWidgetItem(tr.kind))
             self._table.setItem(row, 2, QTableWidgetItem(_fmt_money(tr.principal)))
-            self._table.setItem(row, 3, QTableWidgetItem(_fmt_rate(tr.annual_rate)))
+            self._table.setItem(row, 3, QTableWidgetItem(_fmt_rate(tr.effective_rate)))
             self._table.setItem(row, 4, QTableWidgetItem(_fmt_money(tr.first_payment)))
             self._table.setItem(
                 row, 5, QTableWidgetItem(_fmt_money(tr.outstanding_now))

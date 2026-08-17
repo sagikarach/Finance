@@ -191,6 +191,35 @@ def test_matched_totals_sums_abs_amounts() -> None:
     assert mt.total_in == 200_000.0
 
 
+def test_prime_track_status_reports_effective_rate_not_zero() -> None:
+    from finance.models.asset import MortgageLoan
+    from finance.models.mortgage_math import MortgageAssumptions
+
+    m = Mortgage(
+        name="דירה",
+        kind=AssetKind.PURCHASE,
+        property_price=1_000_000.0,
+        start_date="2025-01-01",
+        tracks=[
+            MortgageTrack(
+                name="פריים",
+                kind=TrackKind.PRIME,
+                principal=500_000.0,
+                annual_rate=0.0,  # prime tracks carry no fixed rate
+                prime_spread=-0.5,  # P − 0.5%
+                term_months=240,
+                amortization=AmortizationType.SPITZER,
+            )
+        ],
+    )
+    st = MortgageLoan(m).status(
+        assumptions=MortgageAssumptions(prime_rate=6.0, cpi_annual=0.0), prepaid=0.0
+    )
+    row = st.tracks[0]
+    assert row.annual_rate == 0.0  # the raw field — what looked like "no interest"
+    assert _approx(row.effective_rate, 5.5)  # prime 6 + spread −0.5 = what's charged
+
+
 def _run_all() -> int:
     funcs = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failures = 0

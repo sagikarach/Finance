@@ -30,6 +30,7 @@ from .mortgage_math import (
     MortgageAssumptions,
     cost_paid_amount,
     early_payoff_savings,
+    effective_annual_rate,
     months_after,
     months_between,
     mortgage_outstanding,
@@ -45,7 +46,8 @@ class TrackStatusRow:
     name: str
     kind: str
     principal: float
-    annual_rate: float
+    annual_rate: float  # the track's own fixed rate (0 for a prime track)
+    effective_rate: float  # what's actually charged — prime + spread for prime
     first_payment: float
     outstanding_now: float
 
@@ -145,6 +147,7 @@ class MortgageLoan:
                     kind=str(getattr(t.kind, "value", t.kind)),
                     principal=float(t.principal),
                     annual_rate=float(t.annual_rate),
+                    effective_rate=float(effective_annual_rate(t, assumptions)),
                     first_payment=float(sched[0].payment),
                     outstanding_now=float(out_now),
                 )
