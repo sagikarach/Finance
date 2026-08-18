@@ -200,6 +200,31 @@ class BankAccountPage(BasePage):
                 pass
             buttons_row.addWidget(import_btn, 0, Qt.AlignmentFlag.AlignLeft)
 
+            drive_btn = QPushButton("ייבוא מ‑Drive", top_card)
+            drive_btn.setObjectName("AddButton")
+            drive_btn.setStyleSheet(pill_style)
+            try:
+                if not bool(getattr(target, "active", False)):
+                    drive_btn.setEnabled(False)
+                    drive_btn.setToolTip(
+                        "החשבון אינו פעיל. הפעל אותו בהגדרות כדי לייבא."
+                    )
+            except QT_ERRORS:
+                pass
+            try:
+                drive_btn.clicked.connect(
+                    lambda _=None, acc=target: self._on_import_drive(acc)
+                )
+            except QT_ERRORS:
+                pass
+            try:
+                drive_btn.setSizePolicy(
+                    QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+                )
+            except QT_ERRORS:
+                pass
+            buttons_row.addWidget(drive_btn, 0, Qt.AlignmentFlag.AlignLeft)
+
         buttons_col = QVBoxLayout()
         buttons_col.setSpacing(0)
         buttons_col.addStretch(1)
@@ -388,15 +413,24 @@ class BankAccountPage(BasePage):
         service = getattr(self, "_bank_movement_service", None)
         if service is None:
             return
-
-        from_dialog: List = []
-
         try:
             self._accounts = service.import_outcome_csv(
                 self._accounts, account.name, file_path
             )
         except QT_ERRORS:
             return
+        self._apply_imported_expenses(account, Path(file_path).name)
+
+    def _apply_imported_expenses(self, account: BankAccount, source_name: str) -> None:
+        """Shared review/apply/history/save tail for both the file and Drive
+        importers. Assumes the import call already ran, leaving pending reviews
+        and the imported batch queued in the service."""
+        service = getattr(self, "_bank_movement_service", None)
+        if service is None:
+            return
+
+        from_dialog: List = []
+
         try:
             pending = service.pop_pending_reviews()
         except QT_ERRORS:
@@ -562,10 +596,7 @@ class BankAccountPage(BasePage):
                 except QT_ERRORS:
                     continue
 
-            try:
-                file_name = Path(file_path).name
-            except QT_ERRORS:
-                file_name = file_path
+            file_name = source_name
 
             try:
                 action_obj = UploadOutcomeFileAction(
@@ -605,6 +636,87 @@ class BankAccountPage(BasePage):
 
         try:
             self._save_and_refresh_accounts()
+        except QT_ERRORS:
+            pass
+
+    def _on_import_drive(self, account: BankAccount) -> None:
+        """Import bank-statement files a Gmail rule dropped into the configured
+        Drive folder: pull each, run the normal review/apply flow, then trash it
+        on Drive so it isn't imported again."""
+        try:
+            if not bool(getattr(account, "active", False)):
+                return
+        except QT_ERRORS:
+            return
+
+        from ..models.google_drive_auth import GoogleDriveAuth
+        from ..models.google_drive_client import DriveError, GoogleDriveClient
+        from ..models.drive_inbox import DriveInboxService, DriveInboxState
+
+        auth = GoogleDriveAuth()
+        state = DriveInboxState.load()
+
+        # Not set up yet → open the settings/sign-in dialog, then re-check.
+        if not (auth.is_configured() and auth.is_signed_in() and state.folder_id):
+            try:
+                from ..ui.google_drive_settings_dialog import (
+                    GoogleDriveSettingsDialog,
+                )
+
+                GoogleDriveSettingsDialog(parent=self).exec()
+            except QT_ERRORS:
+                return
+            auth = GoogleDriveAuth()
+            state = DriveInboxState.load()
+            if not (auth.is_configured() and auth.is_signed_in() and state.folder_id):
+                return
+
+        service = getattr(self, "_bank_movement_service", None)
+        if service is None:
+            return
+
+        drive_errs = (DriveError,) + tuple(QT_ERRORS)
+        inbox = DriveInboxService(
+            client=GoogleDriveClient(token_provider=auth.access_token),
+            state=state,
+        )
+
+        try:
+            pending = inbox.pending_files()
+        except drive_errs as exc:
+            self._notify_drive(f"שגיאת Drive: {exc}")
+            return
+
+        if not pending:
+            self._notify_drive("אין קבצים חדשים לייבוא.")
+            return
+
+        imported = 0
+        for file in pending:
+            try:
+                csv_text = inbox.csv_text_for(file)
+            except drive_errs:
+                continue
+            try:
+                self._accounts = service.import_outcome_csv_text(
+                    self._accounts, account.name, csv_text
+                )
+            except QT_ERRORS:
+                continue
+            self._apply_imported_expenses(account, file.name)
+            try:
+                inbox.complete_import(file)  # trash on Drive + record in ledger
+            except QT_ERRORS:
+                pass
+            imported += 1
+
+        self._notify_drive(f"יובאו {imported} קבצים מ‑Drive.")
+
+    def _notify_drive(self, message: str) -> None:
+        try:
+            from ..qt import QMessageBox
+
+            QMessageBox.information(self, "ייבוא מ‑Drive", message)
         except QT_ERRORS:
             pass
 

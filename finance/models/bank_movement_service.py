@@ -505,6 +505,30 @@ class BankMovementService:
         account_name: str,
         csv_path: Union[str, Path],
     ) -> List[MoneyAccount]:
+        """Import expenses from a file on disk. Thin wrapper over
+        :meth:`import_outcome_csv_text` that reads the file to CSV text first."""
+        if not accounts:
+            return accounts
+        path = Path(csv_path)
+        if not path.exists() or not path.is_file():
+            return accounts
+        try:
+            from .spreadsheet_reader import file_to_csv_text
+
+            csv_text = file_to_csv_text(path)
+        except (OSError, ValueError, ImportError):
+            # unreadable file, or the Excel reader (openpyxl/xlrd) isn't installed
+            return accounts
+        return self.import_outcome_csv_text(accounts, account_name, csv_text)
+
+    def import_outcome_csv_text(
+        self,
+        accounts: List[MoneyAccount],
+        account_name: str,
+        csv_text: str,
+    ) -> List[MoneyAccount]:
+        """Import expenses from already-loaded CSV text (e.g. a Drive download),
+        running the same classify/review pipeline as the file importer."""
         if not accounts:
             return accounts
         self._imported_for_last_csv.clear()
@@ -517,18 +541,6 @@ class BankMovementService:
                 allowed_categories = provider.list_categories()
         except PARSE_ERRORS:
             allowed_categories = []
-
-        path = Path(csv_path)
-        if not path.exists() or not path.is_file():
-            return accounts
-
-        try:
-            from .spreadsheet_reader import file_to_csv_text
-
-            csv_text = file_to_csv_text(path)
-        except (OSError, ValueError, ImportError):
-            # unreadable file, or the Excel reader (openpyxl/xlrd) isn't installed
-            return accounts
 
         expenses = self.csv_parser.parse(csv_text)
 

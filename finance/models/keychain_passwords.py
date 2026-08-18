@@ -7,6 +7,10 @@ from ..utils.safe import PARSE_ERRORS
 
 SERVICE_NAME = "Finance"
 
+# `security` exits non-zero (e.g. 44) when the item isn't found — a normal
+# "no password stored yet" case, not an error to propagate.
+_SECURITY_ERRORS = (subprocess.SubprocessError,) + tuple(PARSE_ERRORS)
+
 
 def _run_security(args: list[str]) -> subprocess.CompletedProcess:
     """
@@ -41,7 +45,7 @@ def get_password(*, account: str, service: str = SERVICE_NAME) -> Optional[str]:
         )
         pw = (res.stdout or "").rstrip("\n")
         return pw if pw else None
-    except PARSE_ERRORS:
+    except _SECURITY_ERRORS:
         return None
 
 
@@ -51,5 +55,5 @@ def delete_password(*, account: str, service: str = SERVICE_NAME) -> None:
         return
     try:
         _run_security(["delete-generic-password", "-a", account, "-s", service])
-    except PARSE_ERRORS:
+    except _SECURITY_ERRORS:
         return
