@@ -3,8 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Iterable, List, Optional
-import re
 from ..utils.safe import PARSE_ERRORS
+# Re-exported for the many callers that import them from ``accounts``; the logic
+# lives in the leaf ``utils.dates`` module to keep the models free of a cycle.
+from ..utils.dates import parse_iso_date, to_iso_date  # noqa: F401
 from .bank_movement import counts_as_transfer
 
 
@@ -12,6 +14,11 @@ from .bank_movement import counts_as_transfer
 class MoneySnapshot:
     date: str
     amount: float
+
+    def __post_init__(self) -> None:
+        # Canonicalize on construction so every stored snapshot date is ISO,
+        # regardless of the source format. Frozen dataclass -> setattr bypass.
+        object.__setattr__(self, "date", to_iso_date(self.date))
 
     def when(self) -> datetime:
         """The snapshot's date parsed to a ``datetime`` (tolerant of formats)."""
@@ -398,75 +405,3 @@ def compute_savings_account_liquid_amount(accounts: Iterable[MoneyAccount]) -> f
     )
 
 
-def parse_iso_date(value: str) -> datetime:
-    s = str(value or "").strip()
-    if not s:
-        return datetime.min
-
-    # Fast path: ISO-like formats.
-    try:
-        return datetime.fromisoformat(s)
-    except PARSE_ERRORS:
-        pass
-    try:
-        return datetime.strptime(s, "%Y-%m-%d")
-    except PARSE_ERRORS:
-        pass
-
-    # Common bank-export formats.
-    try:
-        return datetime.strptime(s, "%d/%m/%Y")
-    except PARSE_ERRORS:
-        pass
-    try:
-        return datetime.strptime(s, "%d.%m.%Y")
-    except PARSE_ERRORS:
-        pass
-    # Dash-separated day-first (e.g. 16-07-2026). Guarded by the fast ISO paths
-    # above, so a real yyyy-mm-dd is never mistaken for this.
-    try:
-        return datetime.strptime(s, "%d-%m-%Y")
-    except PARSE_ERRORS:
-        pass
-
-    # 2-digit year (e.g. 01/01/24, 01.01.24 or 01-01-24)
-    m = re.match(r"^\s*(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2})\s*$", s)
-    if m:
-        try:
-            d = int(m.group(1))
-            mo = int(m.group(2))
-            yy = int(m.group(3))
-            year = 2000 + yy  # assume 20xx for exports
-            return datetime(year, mo, d)
-        except PARSE_ERRORS:
-            return datetime.min
-
-    # Missing year (e.g. 01/01, 01.01 or 01-01) -> assume current year.
-    m2 = re.match(r"^\s*(\d{1,2})[/.\-](\d{1,2})\s*$", s)
-    if m2:
-        try:
-            d = int(m2.group(1))
-            mo = int(m2.group(2))
-            now = datetime.now()
-            return datetime(int(now.year), mo, d)
-        except PARSE_ERRORS:
-            return datetime.min
-
-    return datetime.min
-
-
-def to_iso_date(value: str) -> str:
-    """Normalize a date string to ISO ``YYYY-MM-DD``.
-
-    Reuses :func:`parse_iso_date` so every format the app already tolerates
-    (DD/MM/YYYY, DD.MM.YYYY, 2-digit years, ...) is accepted. Returns the
-    stripped original unchanged if it cannot be parsed, so an unexpected
-    input is never silently discarded.
-    """
-    s = str(value or "").strip()
-    if not s:
-        return ""
-    dt = parse_iso_date(s)
-    if dt == datetime.min:
-        return s
-    return dt.date().isoformat()

@@ -22,6 +22,7 @@ from ..pages.yearly_overview_page import YearlyOverviewPage
 from ..qt import QAction, QMainWindow, QStackedWidget, Qt, QTimer
 from .router import Router
 from ..utils.app_paths import migrate_legacy_accounts_data
+from ..models.date_normalization import migrate_dates_to_iso
 from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_movements_sync import FirebaseMovementsSyncService
 from ..utils.updater import check_version_only, download_and_install_update, install_app_to_applications
@@ -33,6 +34,10 @@ class MainWindow(QMainWindow):
         super().__init__()
         try:
             migrate_legacy_accounts_data()
+        except QT_ERRORS:
+            pass
+        try:
+            migrate_dates_to_iso()
         except QT_ERRORS:
             pass
         self.setWindowTitle("Finance")

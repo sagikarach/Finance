@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/dates.dart';
 import 'movement_type.dart';
 
 /// The kind of money-movement, independent of the recurrence [type]:
@@ -100,7 +101,9 @@ class Movement {
     return Movement(
       id: (data['id'] as String?) ?? '',
       amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
-      date: (data['date'] as String?) ?? '',
+      // Legacy Firebase rows may carry dd/mm/yyyy etc.; normalize so the
+      // in-memory date is always ISO (correct string-sort, valid parsing).
+      date: toIsoDate((data['date'] as String?) ?? ''),
       accountName: (data['account_name'] as String?) ?? '',
       category: category,
       // Desktop stores Hebrew type values, mobile English — canonicalize both.

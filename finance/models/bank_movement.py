@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import Any, Optional
 import uuid
 from ..utils.safe import PARSE_ERRORS
+from ..utils.dates import to_iso_date
 
 
 class MovementType(StrEnum):
@@ -129,6 +130,12 @@ class BankMovement:
     transfer_from: str | None = None
     transfer_to: str | None = None
     id: str = field(default_factory=generate_movement_id)
+
+    def __post_init__(self) -> None:
+        # Canonicalize on construction so every stored movement date is ISO,
+        # whatever the source (manual entry, CSV/Excel import, Firebase pull).
+        # Frozen dataclass -> setattr bypass.
+        object.__setattr__(self, "date", to_iso_date(self.date))
 
     @property
     def counts_as_transfer(self) -> bool:

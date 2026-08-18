@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/movement.dart';
 import '../models/movement_type.dart';
+import '../utils/dates.dart';
 import 'movements_service.dart';
 
 const List<String> hebMonthsShort = [
@@ -68,15 +69,7 @@ class AnalyticsService {
   AnalyticsService({required this.workspaceId})
       : _movements = MovementsService(workspaceId: workspaceId);
 
-  static DateTime? _parse(String s) {
-    final t = s.trim();
-    if (t.length < 7) return null;
-    try {
-      return DateTime.parse(t.length == 7 ? '$t-01' : t);
-    } catch (_) {
-      return null;
-    }
-  }
+  static DateTime? _parse(String s) => parseFlexibleDate(s);
 
   Future<AnalyticsSummary> compute({Source source = Source.server}) async {
     final all = await _movements.fetch(source: source);

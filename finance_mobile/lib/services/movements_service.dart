@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/movement.dart';
+import '../utils/dates.dart';
 import 'movements_cache_store.dart';
 
 class MovementsService {
@@ -20,13 +21,7 @@ class MovementsService {
   }
 
   List<Movement> _sortByDateDesc(List<Movement> items) {
-    DateTime? parse(String s) {
-      try {
-        return DateTime.tryParse(s.trim());
-      } catch (_) {
-        return null;
-      }
-    }
+    DateTime? parse(String s) => parseFlexibleDate(s);
 
     items.sort((a, b) {
       final da = parse(a.date);
