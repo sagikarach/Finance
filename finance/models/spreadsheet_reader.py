@@ -106,10 +106,11 @@ def _xlsx_to_csv_text(data: bytes) -> str:
         wb.close()
 
 
-def _xls_to_csv_text(path: Path) -> str:
+def _xls_to_csv_text(data: bytes) -> str:
     import xlrd  # optional dep
 
-    book = xlrd.open_workbook(str(path))
+    # From bytes (Drive downloads, temp-less), not a path.
+    book = xlrd.open_workbook(file_contents=data)
     sheet = book.sheet_by_index(0)
     rows: list[list[Any]] = []
     for r in range(sheet.nrows):
@@ -136,33 +137,40 @@ def _looks_like_html(head: bytes) -> bool:
     )
 
 
-def file_to_csv_text(path: Path) -> str:
-    """CSV text for any supported expenses file.
+def bytes_to_csv_text(raw: bytes, *, suffix: str = "") -> str:
+    """CSV text for any supported expenses file already read into memory.
 
     Dispatch is by content signature first (so a mislabeled file still loads),
-    falling back to the extension:
+    falling back to *suffix*:
 
     * ZIP magic ``PK\\x03\\x04``            -> .xlsx via openpyxl
     * OLE2 magic ``\\xd0\\xcf\\x11\\xe0``   -> real .xls via xlrd
     * looks like HTML                       -> HTML table(s) (stdlib)
     * otherwise                             -> plain text, tolerant of a UTF-8 BOM
+
+    Shared by the local file importer and the Drive-inbox importer so both go
+    through exactly the same format handling.
     """
-    raw = path.read_bytes()
     head = raw[:512]
 
     if head.startswith(b"PK\x03\x04"):
         return _xlsx_to_csv_text(raw)
     if head.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"):
-        return _xls_to_csv_text(path)
+        return _xls_to_csv_text(raw)
     if _looks_like_html(head):
         return _html_to_csv_text(raw.decode("utf-8", errors="replace"))
 
     # Fall back to the extension for anything the signature didn't catch.
-    suffix = str(path.suffix or "").lower()
-    if suffix == ".xlsx":
+    s = str(suffix or "").lower()
+    if s == ".xlsx":
         return _xlsx_to_csv_text(raw)
-    if suffix == ".xls":
-        return _xls_to_csv_text(path)
+    if s == ".xls":
+        return _xls_to_csv_text(raw)
 
     # .csv / .txt / unknown → plain text, tolerant of a UTF-8 BOM.
     return raw.decode("utf-8-sig", errors="replace")
+
+
+def file_to_csv_text(path: Path) -> str:
+    """CSV text for any supported expenses file on disk (see :func:`bytes_to_csv_text`)."""
+    return bytes_to_csv_text(path.read_bytes(), suffix=path.suffix)
