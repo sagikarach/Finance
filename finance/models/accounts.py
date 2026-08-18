@@ -422,9 +422,15 @@ def parse_iso_date(value: str) -> datetime:
         return datetime.strptime(s, "%d.%m.%Y")
     except PARSE_ERRORS:
         pass
+    # Dash-separated day-first (e.g. 16-07-2026). Guarded by the fast ISO paths
+    # above, so a real yyyy-mm-dd is never mistaken for this.
+    try:
+        return datetime.strptime(s, "%d-%m-%Y")
+    except PARSE_ERRORS:
+        pass
 
-    # 2-digit year (e.g. 01/01/24 or 01.01.24)
-    m = re.match(r"^\s*(\d{1,2})[/.](\d{1,2})[/.](\d{2})\s*$", s)
+    # 2-digit year (e.g. 01/01/24, 01.01.24 or 01-01-24)
+    m = re.match(r"^\s*(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2})\s*$", s)
     if m:
         try:
             d = int(m.group(1))
@@ -435,8 +441,8 @@ def parse_iso_date(value: str) -> datetime:
         except PARSE_ERRORS:
             return datetime.min
 
-    # Missing year (e.g. 01/01 or 01.01) -> assume current year.
-    m2 = re.match(r"^\s*(\d{1,2})[/.](\d{1,2})\s*$", s)
+    # Missing year (e.g. 01/01, 01.01 or 01-01) -> assume current year.
+    m2 = re.match(r"^\s*(\d{1,2})[/.\-](\d{1,2})\s*$", s)
     if m2:
         try:
             d = int(m2.group(1))

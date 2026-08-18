@@ -96,3 +96,22 @@ def test_xlsx_bytes_saved_as_xls_loads_by_content(tmp_path):
     assert [(e.date, e.description, e.amount) for e in expenses] == [
         ("2026-01-05", "סופר", -120.5),
     ]
+
+
+def test_xlsx_with_dash_dates_normalizes_to_iso(tmp_path):
+    # The detailed-export xlsx writes dd-mm-yyyy dates as text; they must land
+    # as ISO so mobile (ISO-only) can read them.
+    openpyxl = pytest.importorskip("openpyxl")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["תאריך עסקה", "שם בית העסק", "קטגוריה", "סכום חיוב"])
+    ws.append(["16-07-2026", "רמי לוי", "מזון", 174.98])
+    ws.append(["29-07-2026", "איקאה", "בית", 139])
+    path = tmp_path / "detailed.xlsx"
+    wb.save(path)
+
+    expenses = CsvExpenseParser().parse(file_to_csv_text(path))
+    assert [(e.date, e.description, e.amount) for e in expenses] == [
+        ("2026-07-16", "רמי לוי", -174.98),
+        ("2026-07-29", "איקאה", -139.0),
+    ]
