@@ -57,6 +57,14 @@ def _held(name="רכב", value=80_000.0, **kw):
     return Mortgage(name=name, kind=AssetKind.OTHER, current_value=value, **kw)
 
 
+def _left_to_pay(m) -> float:
+    """The real balance as of today: every remaining payment (principal +
+    future interest) — what the service counts as debt."""
+    from finance.models.asset import MortgageLoan
+
+    return MortgageLoan(m).status(assumptions=DEFAULT_ASSUMPTIONS).remaining_total
+
+
 def _svc(mortgages):
     return MortgageService(
         mortgages_provider=_FakeMortgageProvider(mortgages),
@@ -69,9 +77,17 @@ def _svc(mortgages):
 def test_total_outstanding_sums_purchases_only() -> None:
     purchase = _purchase()
     svc = _svc([purchase, _held()])
-    expected = mortgage_outstanding(purchase, None, DEFAULT_ASSUMPTIONS)
+    expected = _left_to_pay(purchase)
     assert _approx(svc.total_outstanding(), expected)
-    assert expected > 0  # sanity: the purchase actually has debt
+    # sanity: debt includes future interest, so it exceeds the principal left
+    assert expected > mortgage_outstanding(purchase, None, DEFAULT_ASSUMPTIONS) > 0
+
+
+def test_total_outstanding_historic_date_is_principal() -> None:
+    purchase = _purchase()
+    svc = _svc([purchase, _held()])
+    expected = mortgage_outstanding(purchase, "2026-01-01", DEFAULT_ASSUMPTIONS)
+    assert _approx(svc.total_outstanding(as_of_date="2026-01-01"), expected)
 
 
 # ----- the OOP Asset model ---------------------------------------------------
@@ -245,7 +261,7 @@ def test_assets_summary_aggregates_value_debt_net_count() -> None:
     purchase = _purchase()          # value = property_price 2,000,000; has debt
     held = _held(value=80_000.0)    # value 80,000; no debt
     svc = _svc([purchase, held])
-    outstanding = mortgage_outstanding(purchase, None, DEFAULT_ASSUMPTIONS)
+    outstanding = _left_to_pay(purchase)
     s = svc.assets_summary()
     assert s.count == 2
     assert _approx(s.value, 2_000_000.0 + 80_000.0)
