@@ -96,6 +96,11 @@ class Asset {
   final bool sold;
   final double salePrice;
   final String expenseCategory; // movement category for the car's avg expense
+  /// Remaining mortgage balance computed by the desktop (from the payments
+  /// actually matched by the mortgage's search text). Null on docs written by
+  /// an older desktop — then we fall back to the original principal.
+  final double? outstandingBalance;
+  final String balanceAsOf; // YYYY-MM-DD the desktop computed it
 
   Asset({
     required this.id,
@@ -109,6 +114,8 @@ class Asset {
     required this.sold,
     required this.salePrice,
     required this.expenseCategory,
+    this.outstandingBalance,
+    this.balanceAsOf = '',
   });
 
   /// Kinds mirror the desktop `AssetKind`: נדל״ן (real estate; legacy "רכישה"
@@ -142,9 +149,12 @@ class Asset {
   double get monthlyPayment =>
       tracks.fold(0.0, (acc, t) => acc + t.monthlyPayment);
 
-  /// Rough equity: property value minus the original mortgage principal.
-  /// (An estimate — it doesn't amortize the outstanding balance.)
-  double get equity => value - mortgagePrincipal;
+  /// What is still owed on the mortgage: the desktop-computed balance when
+  /// present, otherwise the original principal.
+  double get mortgageBalance => outstandingBalance ?? mortgagePrincipal;
+
+  /// Equity: property value minus what is still owed on the mortgage.
+  double get equity => value - mortgageBalance;
 
   static Asset fromFirestore(Map<String, dynamic> d) {
     final rawTracks = d['tracks'];
@@ -166,6 +176,10 @@ class Asset {
       sold: _boolOf(d, 'sold'),
       salePrice: _numOf(d, 'sale_price'),
       expenseCategory: _strOf(d, 'expense_category'),
+      outstandingBalance: (d['outstanding_balance'] is num)
+          ? (d['outstanding_balance'] as num).toDouble()
+          : null,
+      balanceAsOf: _strOf(d, 'balance_as_of'),
     );
   }
 }
@@ -201,10 +215,10 @@ class AssetsService {
     return out;
   }
 
-  /// Net worth of the active assets: sum of value minus mortgage principal
-  /// (the non-liquid wealth folded into the home balance). Mirrors the desktop
-  /// `MortgageService.total_assets_net`.
+  /// Net worth of the active assets: sum of value minus the remaining mortgage
+  /// balance (the non-liquid wealth folded into the home balance). Mirrors the
+  /// desktop `MortgageService.total_assets_net`.
   static double netWorth(List<Asset> assets) => assets
       .where((a) => a.isActive)
-      .fold(0.0, (acc, a) => acc + a.value - a.mortgagePrincipal);
+      .fold(0.0, (acc, a) => acc + a.value - a.mortgageBalance);
 }

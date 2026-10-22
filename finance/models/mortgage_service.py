@@ -358,6 +358,25 @@ class MortgageService:
         except PARSE_ERRORS:
             return None
 
+    def balance_snapshot(self, mortgage: Mortgage) -> dict:
+        """יתרת החוב הנוכחית (לפי תשלומים בפועל) כשדות למסמך ב-Firestore — כדי
+        שהמובייל יציג את אותה יתרה בלי לשכפל את חישובי לוח הסילוקין."""
+        from datetime import date
+
+        from .asset import build_asset
+
+        paid = self.paid_payments_count(mortgage)
+        try:
+            outstanding = float(build_asset(mortgage).outstanding_debt(paid_count=paid))
+        except PARSE_ERRORS:
+            outstanding = float(mortgage.original_principal)
+        outstanding = max(0.0, outstanding - self.prepaid_amount(mortgage))
+        return {
+            "outstanding_balance": float(outstanding),
+            "paid_payments": int(paid) if paid is not None else -1,
+            "balance_as_of": date.today().isoformat(),
+        }
+
     def compute_stats(self, mortgage: Mortgage) -> MortgageStats:
         matched = self.match_movements(mortgage)
         total_paid = 0.0

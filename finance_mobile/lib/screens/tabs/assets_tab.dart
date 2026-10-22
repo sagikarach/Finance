@@ -422,7 +422,7 @@ class _AssetsTabState extends State<AssetsTab> {
             thickness: 24,
             segments: [
               DonutSegment(equity, AppColors.green),
-              DonutSegment(a.mortgagePrincipal, AppColors.clay),
+              DonutSegment(a.mortgageBalance, AppColors.clay),
             ],
             center: Column(
               mainAxisSize: MainAxisSize.min,
@@ -432,7 +432,7 @@ class _AssetsTabState extends State<AssetsTab> {
                         color: AppColors.muted,
                         fontSize: 11,
                         fontWeight: FontWeight.w600)),
-                Text(fmtCompact(a.mortgagePrincipal),
+                Text(fmtCompact(a.mortgageBalance),
                     style: const TextStyle(
                         fontSize: 22, fontWeight: FontWeight.w800)),
               ],
@@ -473,7 +473,7 @@ class _AssetsTabState extends State<AssetsTab> {
     return Row(
       children: [
         Expanded(
-            child: _stat('יתרת משכנתא', fmtCompact(a.mortgagePrincipal),
+            child: _stat('יתרת משכנתא', fmtCompact(a.mortgageBalance),
                 AppColors.clay)),
         const SizedBox(width: 12),
         Expanded(

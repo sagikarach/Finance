@@ -69,7 +69,7 @@ Movement document fields:
 
 #### Asset document (`workspaces/{workspaceId}/mortgages/{mortgageId}`)
 The collection is named `mortgages` (historical) but each doc is an **asset**.
-Desktop-only today; documented so a future mobile asset view stays consistent.
+Edited on the desktop; the mobile assets tab reads it (read-only).
 Reconciliation **already works with mobile-created movements** — it matches by
 `description` (and `account_name` where relevant), so no mobile code is required.
 
@@ -104,5 +104,14 @@ Purchase fields (`kind = רכישה`):
   `account_name` + `saving_name` (for חשבון קיים — a bank account or a specific
   sub-saving). The mortgage covers the rest; the "בנק" account covers any
   residual (`property_price + costs − mortgage − funding`), shown negative if short.
+
+Computed by the desktop on every push (read-only for mobile — never write them):
+- `outstanding_balance` (number — remaining mortgage balance, amortized by the
+  number of payments matched via `vendor_query`, minus linked prepayments; 0 for
+  assets without a loan). Missing on docs from older desktops → fall back to the
+  sum of `tracks[].principal`.
+- `paid_payments` (int — matched monthly payments; -1 when no `vendor_query`,
+  i.e. the balance follows the calendar instead)
+- `balance_as_of` (YYYY-MM-DD the balance was computed)
 
 

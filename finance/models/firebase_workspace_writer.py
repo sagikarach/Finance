@@ -17,7 +17,7 @@ from ..models.accounts import (
     BudgetAccount,
     SavingsAccount,
 )
-from ..utils.safe import PARSE_ERRORS
+from ..utils.safe import PARSE_ERRORS, swallow
 from ..utils.logging_setup import get_logger
 _log = get_logger("models")
 
@@ -238,6 +238,14 @@ class FirebaseWorkspaceWriter:
             serialize_track,
         )
 
+        # Computed (not user-edited) balance for the mobile client — read-only
+        # there; refreshed on every push. Best-effort: never block the upsert.
+        balance: dict = {}
+        with swallow(msg="upsert_mortgage"):
+            from .mortgage_service import MortgageService
+
+            balance = MortgageService().balance_snapshot(mortgage)
+
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)
         fs = self._fs(s.project_id)
@@ -245,6 +253,7 @@ class FirebaseWorkspaceWriter:
             document_path=f"workspaces/{wid}/mortgages/{mortgage.id}",
             id_token=s.id_token,
             fields={
+                **balance,
                 "id": mortgage.id,
                 "name": mortgage.name,
                 "account_name": mortgage.account_name,
