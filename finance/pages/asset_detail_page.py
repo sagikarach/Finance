@@ -513,7 +513,9 @@ class AssetDetailPage(BasePage):
         # ── מצב נוכחי: שווי, יתרה, הון עצמי וסטטוס המשכנתא ──
         prepaid = self._service.prepaid_amount(m)
         st = MortgageLoan(m).status(
-            assumptions=DEFAULT_ASSUMPTIONS, prepaid=prepaid
+            assumptions=DEFAULT_ASSUMPTIONS,
+            prepaid=prepaid,
+            paid_count=self._service.paid_payments_count(m),
         )
         value = float(build_asset(m).current_value())
         outstanding = float(st.outstanding)

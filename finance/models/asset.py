@@ -35,6 +35,7 @@ from .mortgage_math import (
     months_between,
     mortgage_outstanding,
     mortgage_total_interest,
+    track_outstanding,
     track_schedule,
 )
 
@@ -96,7 +97,16 @@ class MortgageLoan:
         *,
         as_of_date: Optional[str] = None,
         assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+        paid_count: Optional[int] = None,
     ) -> float:
+        """Remaining principal. ``paid_count`` (when given) is the number of
+        real payments matched from bank movements — it replaces the calendar
+        month count, so the balance drops only by payments actually made."""
+        if paid_count is not None:
+            n = max(0, int(paid_count))
+            return float(
+                sum(track_outstanding(t, n, assumptions) for t in self.record.tracks)
+            )
         return float(mortgage_outstanding(self.record, as_of_date, assumptions))
 
     def total_interest(
@@ -110,15 +120,21 @@ class MortgageLoan:
         as_of_date: Optional[str] = None,
         assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
         prepaid: float = 0.0,
+        paid_count: Optional[int] = None,
     ) -> "LoanStatus":
         """Current snapshot of the loan: headline stats plus a per-track row
         (principal, rate, first payment, outstanding now). ``prepaid`` is the
         total of one-time partial payoffs the caller has linked (from real
-        movements) — it reduces the balance and shortens term/interest. Pure —
-        the page only renders it."""
+        movements) — it reduces the balance and shortens term/interest.
+        ``paid_count`` is the number of monthly payments matched by the
+        mortgage's search text; when given it replaces the calendar month
+        count (payments made, not months passed). Pure — the page only renders
+        it."""
         start = str(self.record.start_date or "").strip()
         dated = bool(months_after(start, 0) is not None)
         elapsed = months_between(start, as_of_date) if dated else 0
+        if paid_count is not None:
+            elapsed = max(0, int(paid_count))
         monthly_now = 0.0
         interest_now = 0.0
         principal_now = 0.0
@@ -153,7 +169,9 @@ class MortgageLoan:
                 )
             )
         principal = float(self.record.original_principal)
-        outstanding = self.outstanding(as_of_date=as_of_date, assumptions=assumptions)
+        outstanding = self.outstanding(
+            as_of_date=as_of_date, assumptions=assumptions, paid_count=paid_count
+        )
         total_interest = self.total_interest(assumptions=assumptions)
         total_months = max((int(t.term_months) for t in self.record.tracks), default=0)
 
@@ -254,6 +272,7 @@ class Asset:
         *,
         as_of_date: Optional[str] = None,
         assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+        paid_count: Optional[int] = None,
     ) -> float:
         return 0.0
 
@@ -317,8 +336,11 @@ class HousePurchase(Asset):
         *,
         as_of_date: Optional[str] = None,
         assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
+        paid_count: Optional[int] = None,
     ) -> float:
-        return self.mortgage.outstanding(as_of_date=as_of_date, assumptions=assumptions)
+        return self.mortgage.outstanding(
+            as_of_date=as_of_date, assumptions=assumptions, paid_count=paid_count
+        )
 
 
 @dataclass(frozen=True)

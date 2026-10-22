@@ -244,7 +244,12 @@ class MortgageService:
                 continue
             try:
                 total += build_asset(m).outstanding_debt(
-                    as_of_date=as_of_date, assumptions=assumptions
+                    as_of_date=as_of_date,
+                    assumptions=assumptions,
+                    # תשלומים בפועל רלוונטיים להיום בלבד, לא לתאריך היסטורי.
+                    paid_count=(
+                        self.paid_payments_count(m) if as_of_date is None else None
+                    ),
                 )
             except PARSE_ERRORS:
                 continue
@@ -340,6 +345,18 @@ class MortgageService:
             total_paid=float(total_paid),
             total_in=float(total_in),
         )
+
+    def paid_payments_count(self, mortgage: Mortgage) -> Optional[int]:
+        """מספר התשלומים החודשיים ששולמו בפועל — תנועות שזוהו לפי טקסט החיפוש
+        של המשכנתא. None כשלא הוגדר טקסט חיפוש (אז היתרה מחושבת לפי לוח השנה)."""
+        if not str(getattr(mortgage, "vendor_query", "") or "").strip():
+            return None
+        if not getattr(mortgage, "tracks", None):
+            return None
+        try:
+            return len(self.match_movements(mortgage))
+        except PARSE_ERRORS:
+            return None
 
     def compute_stats(self, mortgage: Mortgage) -> MortgageStats:
         matched = self.match_movements(mortgage)

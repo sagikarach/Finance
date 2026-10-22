@@ -1461,7 +1461,11 @@ class MortgagePage(BasePage):
         # MortgageLoan.status owns the per-track computation; here we only render.
         # פירעונות חלקיים = סכום התנועות שקושרו (הוצאות חד-פעמיות אמיתיות).
         prepaid = self._service.prepaid_amount(m)
-        st = MortgageLoan(m).status(assumptions=self._assumptions, prepaid=prepaid)
+        st = MortgageLoan(m).status(
+            assumptions=self._assumptions,
+            prepaid=prepaid,
+            paid_count=self._service.paid_payments_count(m),
+        )
 
         if self._hero_outstanding is not None:
             self._hero_outstanding.setText(f"{_fmt_money(st.outstanding)} ₪")
