@@ -427,7 +427,7 @@ class _AssetsTabState extends State<AssetsTab> {
             center: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('משכנתא',
+                const Text('נותר לתשלום',
                     style: TextStyle(
                         color: AppColors.muted,
                         fontSize: 11,
@@ -473,7 +473,7 @@ class _AssetsTabState extends State<AssetsTab> {
     return Row(
       children: [
         Expanded(
-            child: _stat('יתרת משכנתא', fmtCompact(a.mortgageBalance),
+            child: _stat('נותר לתשלום', fmtCompact(a.mortgageBalance),
                 AppColors.clay)),
         const SizedBox(width: 12),
         Expanded(

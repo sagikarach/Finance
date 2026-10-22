@@ -518,7 +518,8 @@ class AssetDetailPage(BasePage):
             paid_count=self._service.paid_payments_count(m),
         )
         value = float(build_asset(m).current_value())
-        outstanding = float(st.outstanding)
+        # היתרה האמיתית = כל התשלומים שנותרו (קרן + ריבית עתידית).
+        outstanding = float(st.remaining_total)
         equity, eq_frac = equity_split(value, outstanding)
 
         two = QHBoxLayout()
@@ -1370,7 +1371,11 @@ class AssetDetailPage(BasePage):
         mini.setSpacing(10)
         mini.addWidget(
             self._mini_stat(
-                panel, "יתרה נוכחית", f"{_fmt_money(st.outstanding)} ₪", green=True
+                panel,
+                "נותר לתשלום",
+                f"{_fmt_money(st.remaining_total)} ₪",
+                sub="כולל ריבית",
+                green=True,
             ),
             1,
         )

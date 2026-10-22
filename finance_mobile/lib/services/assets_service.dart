@@ -96,9 +96,10 @@ class Asset {
   final bool sold;
   final double salePrice;
   final String expenseCategory; // movement category for the car's avg expense
-  /// Remaining mortgage balance computed by the desktop (from the payments
-  /// actually matched by the mortgage's search text). Null on docs written by
-  /// an older desktop — then we fall back to the original principal.
+  /// The real remaining balance computed by the desktop: every payment still
+  /// ahead (principal + future interest), after the payments actually matched
+  /// by the mortgage's search text. Null on docs written by an older desktop —
+  /// then we fall back to the original principal.
   final double? outstandingBalance;
   final String balanceAsOf; // YYYY-MM-DD the desktop computed it
 
@@ -149,8 +150,8 @@ class Asset {
   double get monthlyPayment =>
       tracks.fold(0.0, (acc, t) => acc + t.monthlyPayment);
 
-  /// What is still owed on the mortgage: the desktop-computed balance when
-  /// present, otherwise the original principal.
+  /// What is still left to pay on the mortgage (incl. interest): the
+  /// desktop-computed balance when present, otherwise the original principal.
   double get mortgageBalance => outstandingBalance ?? mortgagePrincipal;
 
   /// Equity: property value minus what is still owed on the mortgage.
@@ -215,8 +216,8 @@ class AssetsService {
     return out;
   }
 
-  /// Net worth of the active assets: sum of value minus the remaining mortgage
-  /// balance (the non-liquid wealth folded into the home balance). Mirrors the
+  /// Net worth of the active assets: sum of value minus what is left to pay on
+  /// the mortgage (the non-liquid wealth folded into the home balance). Mirrors the
   /// desktop `MortgageService.total_assets_net`.
   static double netWorth(List<Asset> assets) => assets
       .where((a) => a.isActive)

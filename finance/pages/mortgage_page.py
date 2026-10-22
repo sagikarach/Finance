@@ -909,6 +909,7 @@ class MortgagePage(BasePage):
         self._mort_tab_cards: dict = {}
         self._mort_tab_buttons: dict = {}
         self._crumb: Optional[QLabel] = None
+        self._hero_remaining: Optional[QLabel] = None
         self._hero_outstanding: Optional[QLabel] = None
         self._hero_payment: Optional[QLabel] = None
         self._hero_payment_sub: Optional[QLabel] = None
@@ -1036,7 +1037,7 @@ class MortgagePage(BasePage):
 
         lay.addWidget(header_card, 0)
 
-        # ───────── שני כרטיסי ליבה: יתרה נוכחית (מודגש) + תשלום חודשי ─────────
+        # ─── כרטיסי ליבה: נותר לתשלום (מודגש) + יתרת קרן + תשלום חודשי ───
         cards_row = QHBoxLayout()
         cards_row.setSpacing(12)
 
@@ -1068,10 +1069,16 @@ class MortgagePage(BasePage):
             cards_row.addWidget(card, 1)
             return v, sub
 
-        self._hero_outstanding, _ = build_hero("יתרה נוכחית", accent=True)
-        self._hero_payment, self._hero_payment_sub = build_hero(
-            "תשלום חודשי", accent=True
+        self._hero_remaining, remaining_sub = build_hero(
+            "נותר לתשלום (כולל ריבית)", accent=True
         )
+        try:
+            remaining_sub.setText("סך כל התשלומים שנותרו — קרן וריבית")
+            remaining_sub.setVisible(True)
+        except QT_ERRORS:
+            pass
+        self._hero_outstanding, _ = build_hero("יתרת קרן")
+        self._hero_payment, self._hero_payment_sub = build_hero("תשלום חודשי")
         lay.addLayout(cards_row, 0)
 
         # ───────── רצועת פירעון חלקי — מוצגת רק כשקושר פירעון ─────────
@@ -1432,6 +1439,7 @@ class MortgagePage(BasePage):
             if self._table is not None:
                 self._table.setRowCount(0)
             for lbl in (
+                self._hero_remaining,
                 self._hero_outstanding,
                 self._hero_payment,
                 self._cap_principal,
@@ -1467,6 +1475,8 @@ class MortgagePage(BasePage):
             paid_count=self._service.paid_payments_count(m),
         )
 
+        if self._hero_remaining is not None:
+            self._hero_remaining.setText(f"{_fmt_money(st.remaining_total)} ₪")
         if self._hero_outstanding is not None:
             self._hero_outstanding.setText(f"{_fmt_money(st.outstanding)} ₪")
         if self._hero_payment is not None:

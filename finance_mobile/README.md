@@ -106,10 +106,12 @@ Purchase fields (`kind = רכישה`):
   residual (`property_price + costs − mortgage − funding`), shown negative if short.
 
 Computed by the desktop on every push (read-only for mobile — never write them):
-- `outstanding_balance` (number — remaining mortgage balance, amortized by the
-  number of payments matched via `vendor_query`, minus linked prepayments; 0 for
-  assets without a loan). Missing on docs from older desktops → fall back to the
-  sum of `tracks[].principal`.
+- `outstanding_balance` (number — the real balance: every payment still ahead,
+  principal + future interest, after the payments matched via `vendor_query`
+  and linked prepayments; 0 for assets without a loan). This is what mobile
+  shows as "נותר לתשלום" and subtracts from net worth. Missing on docs from
+  older desktops → fall back to the sum of `tracks[].principal`.
+- `principal_balance` (number — remaining principal only)
 - `paid_payments` (int — matched monthly payments; -1 when no `vendor_query`,
   i.e. the balance follows the calendar instead)
 - `balance_as_of` (YYYY-MM-DD the balance was computed)

@@ -75,6 +75,8 @@ class LoanStatus:
     dated: bool = False  # קיים תאריך התחלה תקין
     linked_fraction: float = 0.0  # חלק היתרה הצמוד למדד (0..1)
     prepaid: float = 0.0  # סך הפירעונות החלקיים שבוצעו
+    # סך כל התשלומים שנותרו (קרן + ריבית עתידית) — "נותר לתשלום"
+    remaining_total: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -139,6 +141,7 @@ class MortgageLoan:
         interest_now = 0.0
         principal_now = 0.0
         linked_out = 0.0
+        remaining_interest = 0.0
         tracks: List[TrackStatusRow] = []
         for t in self.record.tracks:
             sched = track_schedule(t, assumptions)
@@ -150,6 +153,9 @@ class MortgageLoan:
             if elapsed < len(sched):  # מסלול פעיל — צבור את פירוק התשלום הנוכחי
                 interest_now += float(sched[idx].interest_part)
                 principal_now += float(sched[idx].principal_part)
+            remaining_interest += sum(
+                float(r.interest_part) for r in sched[max(0, elapsed):]
+            )
             out_now = (
                 sched[elapsed - 1].remaining_balance
                 if 0 < elapsed <= len(sched)
@@ -183,6 +189,9 @@ class MortgageLoan:
             if ep is not None:
                 total_months = int(ep.new_months)
                 total_interest = float(ep.new_interest)
+                remaining_interest = max(
+                    0.0, remaining_interest - float(ep.interest_saved)
+                )
 
         pct_paid = (
             max(0.0, min(1.0, (principal - outstanding) / principal))
@@ -209,6 +218,7 @@ class MortgageLoan:
             dated=dated,
             linked_fraction=float(linked_out / outstanding) if outstanding > 0 else 0.0,
             prepaid=prepaid,
+            remaining_total=float(outstanding + remaining_interest),
         )
 
     def combined_schedule(

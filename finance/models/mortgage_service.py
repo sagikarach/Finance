@@ -235,21 +235,20 @@ class MortgageService:
         assumptions: MortgageAssumptions = DEFAULT_ASSUMPTIONS,
         include_archived: bool = False,
     ) -> float:
-        """סך יתרת הקרן על פני כל המשכנתאות הפעילות בתאריך נתון."""
+        """סך החוב על פני כל המשכנתאות הפעילות. להיום — היתרה האמיתית (כל
+        התשלומים שנותרו, כולל ריבית); לתאריך היסטורי — יתרת הקרן לפי לוח השנה."""
         from .asset import build_asset
 
         total = 0.0
         for m in self._mortgages_provider.list_mortgages():
             if not include_archived and bool(getattr(m, "archived", False)):
                 continue
+            if as_of_date is None:
+                total += self.remaining_debt(m)
+                continue
             try:
                 total += build_asset(m).outstanding_debt(
-                    as_of_date=as_of_date,
-                    assumptions=assumptions,
-                    # תשלומים בפועל רלוונטיים להיום בלבד, לא לתאריך היסטורי.
-                    paid_count=(
-                        self.paid_payments_count(m) if as_of_date is None else None
-                    ),
+                    as_of_date=as_of_date, assumptions=assumptions
                 )
             except PARSE_ERRORS:
                 continue
@@ -358,6 +357,24 @@ class MortgageService:
         except PARSE_ERRORS:
             return None
 
+    def remaining_debt(self, mortgage: Mortgage) -> float:
+        """היתרה האמיתית: סך כל התשלומים שנותרו (קרן + ריבית עתידית), לפי
+        התשלומים ששולמו בפועל ובניכוי פירעונות חלקיים. 0 לנכס בלי משכנתא."""
+        from .asset import HousePurchase, build_asset
+
+        asset = build_asset(mortgage)
+        if not isinstance(asset, HousePurchase) or not mortgage.tracks:
+            return 0.0
+        try:
+            st = asset.mortgage.status(
+                assumptions=DEFAULT_ASSUMPTIONS,
+                prepaid=self.prepaid_amount(mortgage),
+                paid_count=self.paid_payments_count(mortgage),
+            )
+        except PARSE_ERRORS:
+            return 0.0
+        return float(st.remaining_total)
+
     def balance_snapshot(self, mortgage: Mortgage) -> dict:
         """יתרת החוב הנוכחית (לפי תשלומים בפועל) כשדות למסמך ב-Firestore — כדי
         שהמובייל יציג את אותה יתרה בלי לשכפל את חישובי לוח הסילוקין."""
@@ -367,12 +384,15 @@ class MortgageService:
 
         paid = self.paid_payments_count(mortgage)
         try:
-            outstanding = float(build_asset(mortgage).outstanding_debt(paid_count=paid))
+            principal = float(build_asset(mortgage).outstanding_debt(paid_count=paid))
         except PARSE_ERRORS:
-            outstanding = float(mortgage.original_principal)
-        outstanding = max(0.0, outstanding - self.prepaid_amount(mortgage))
+            principal = float(mortgage.original_principal)
+        principal = max(0.0, principal - self.prepaid_amount(mortgage))
         return {
-            "outstanding_balance": float(outstanding),
+            # outstanding_balance = היתרה האמיתית (כולל ריבית עתידית) — מה שהמובייל
+            # מציג ומנכה מהשווי; principal_balance = יתרת הקרן בלבד.
+            "outstanding_balance": self.remaining_debt(mortgage),
+            "principal_balance": float(principal),
             "paid_payments": int(paid) if paid is not None else -1,
             "balance_as_of": date.today().isoformat(),
         }
