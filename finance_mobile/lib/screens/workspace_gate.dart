@@ -38,7 +38,21 @@ class _WorkspaceGateState extends State<WorkspaceGate> {
       _error = null;
     });
     try {
-      final wid = await _workspaces.getActiveWorkspaceId();
+      // Nothing for the user to decide: join the share code typed at login,
+      // else reopen the budget this account last used (desktop or mobile),
+      // else create a fresh private budget.
+      final code = WorkspaceFacade.pendingShareCode.trim();
+      WorkspaceFacade.pendingShareCode = '';
+      String? wid;
+      if (code.isNotEmpty) {
+        await _workspaces.joinByCode(code: code, role: 'editor');
+        wid = code.toUpperCase();
+      } else {
+        wid = await _workspaces.getActiveWorkspaceId();
+        if (wid == null || wid.trim().isEmpty) {
+          wid = await _workspaces.createWorkspace();
+        }
+      }
       if (!mounted) return;
       setState(() => _workspaceId = wid);
     } catch (e) {

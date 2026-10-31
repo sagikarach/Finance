@@ -62,7 +62,10 @@ def _refresh_current_route(parent: Optional[QWidget]) -> None:
 
 
 def run_pull_sync_with_progress(
-    *, parent: Optional[QWidget], on_done: Optional[Callable[[], None]] = None
+    *,
+    parent: Optional[QWidget],
+    on_done: Optional[Callable[[], None]] = None,
+    allow_push: bool = False,
 ) -> None:
     progress = QDialog(parent)
     progress.setWindowTitle("מסנכרן…")
@@ -99,7 +102,7 @@ def run_pull_sync_with_progress(
 
     def _worker() -> None:
         try:
-            pulled, _ = FirebaseMovementsSyncService().sync_now(allow_push=False)
+            pulled, _ = FirebaseMovementsSyncService().sync_now(allow_push=allow_push)
             done["finished"] = True
             done["pulled"] = int(pulled)
         except QT_ERRORS as e:

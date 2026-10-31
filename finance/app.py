@@ -77,6 +77,27 @@ def run_app(argv: Optional[list[str]] = None) -> None:
     except Exception:
         pass
 
+    # Login is required: everything is stored per Firebase account, and the
+    # welcome screen sets up the rest automatically (see ui/welcome_dialog.py).
+    try:
+        from .models.firebase_session import FirebaseSessionStore
+
+        _sess = FirebaseSessionStore().load()
+        needs_login = not (_sess.is_logged_in and str(_sess.workspace_id or "").strip())
+    except Exception:
+        needs_login = True
+    if needs_login:
+        from .ui.welcome_dialog import run_welcome
+
+        welcome = run_welcome(None, allow_cancel=False)
+        if welcome is None:
+            sys.exit(0)
+        if welcome.imported_files:
+            # Upload what was typed before signing up into the new budget.
+            from .ui.firebase_account_dialogs import run_pull_sync_with_progress
+
+            run_pull_sync_with_progress(parent=None, allow_push=True)
+
     profile_load_error = False
     try:
         store = UserProfileStore()
