@@ -183,13 +183,17 @@ class UserDetailsCard(QWidget):
             # store a per-workspace display name override. If it's not defined, UI falls back
             # to the global user profile.
             try:
-                wid = str(FirebaseSessionStore().load().workspace_id or "").strip()
+                _sess = FirebaseSessionStore().load()
+                wid = str(_sess.workspace_id or "").strip()
+                email = str(_sess.email or "").strip()
             except QT_ERRORS:
                 wid = ""
+                email = ""
             if wid:
                 try:
                     FirebaseWorkspaceProfilesStore().update_ui_prefs(
                         workspace_id=wid,
+                        email=email,
                         display_name=str(self._user.full_name or "").strip(),
                     )
                 except QT_ERRORS:

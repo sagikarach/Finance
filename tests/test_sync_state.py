@@ -40,7 +40,7 @@ def test_from_dict_rejects_non_dict():
 
 
 def test_load_save_round_trip(tmp_path, monkeypatch):
-    monkeypatch.setattr(ss, "app_data_dir", lambda: tmp_path)
+    monkeypatch.setattr(ss, "account_firebase_dir", lambda: tmp_path)
     assert load_sync_state("ws1").remote_ids == []  # missing → default
     st = _state()
     save_sync_state("ws1", st)
@@ -48,7 +48,7 @@ def test_load_save_round_trip(tmp_path, monkeypatch):
 
 
 def test_add_pending_delete_by_kind(tmp_path, monkeypatch):
-    monkeypatch.setattr(ss, "app_data_dir", lambda: tmp_path)
+    monkeypatch.setattr(ss, "account_firebase_dir", lambda: tmp_path)
     add_pending_delete(key="ws1", kind="movement", item_id="mv9")
     add_pending_delete(key="ws1", kind="installment_plan", item_id="pl3")
     add_pending_delete(key="ws1", kind="mortgage", item_id="mg7")
@@ -59,7 +59,7 @@ def test_add_pending_delete_by_kind(tmp_path, monkeypatch):
 
 
 def test_mark_pending_upsert_mortgage(tmp_path, monkeypatch):
-    monkeypatch.setattr(ss, "app_data_dir", lambda: tmp_path)
+    monkeypatch.setattr(ss, "account_firebase_dir", lambda: tmp_path)
     mark_pending_upsert_mortgage(key="ws1", mortgage_id="mg3")
     mark_pending_upsert_mortgage(key="ws1", mortgage_id="mg3")  # dedups
     assert load_sync_state("ws1").pending_upsert_mortgage_ids == ["mg3"]

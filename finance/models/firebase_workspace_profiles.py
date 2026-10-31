@@ -71,6 +71,15 @@ class WorkspaceProfile:
         )
 
 
+def _profile_matches(p: WorkspaceProfile, *, workspace_id: str, email: str = "") -> bool:
+    if str(getattr(p, "workspace_id", "") or "").strip() != workspace_id:
+        return False
+    e = str(email or "").strip().casefold()
+    if not e:
+        return True
+    return str(getattr(p, "email", "") or "").strip().casefold() == e
+
+
 class FirebaseWorkspaceProfilesStore:
     def __init__(self, path: Optional[Path] = None) -> None:
         self._path = path or _profiles_path()
@@ -189,13 +198,18 @@ class FirebaseWorkspaceProfilesStore:
         if changed:
             self.save_profiles(updated)
 
-    def find_by_workspace_id(self, *, workspace_id: str) -> Optional[WorkspaceProfile]:
+    def find_by_workspace_id(
+        self, *, workspace_id: str, email: str = ""
+    ) -> Optional[WorkspaceProfile]:
+        """The saved profile for ``workspace_id``. Several Firebase accounts may
+        share a workspace, so when ``email`` is given only that account's
+        profile matches."""
         wid = str(workspace_id or "").strip()
         if not wid:
             return None
         for p in self.list_profiles():
             with swallow(msg="find_by_workspace_id"):
-                if str(getattr(p, "workspace_id", "") or "").strip() == wid:
+                if _profile_matches(p, workspace_id=wid, email=email):
                     return p
         return None
 
@@ -203,6 +217,7 @@ class FirebaseWorkspaceProfilesStore:
         self,
         *,
         workspace_id: str,
+        email: str = "",
         display_name: Optional[str] = None,
         avatar_path: Optional[str] = None,
     ) -> None:
@@ -214,7 +229,7 @@ class FirebaseWorkspaceProfilesStore:
         changed = False
         for p in items:
             try:
-                if str(getattr(p, "workspace_id", "") or "").strip() != wid:
+                if not _profile_matches(p, workspace_id=wid, email=email):
                     updated.append(p)
                     continue
             except Exception as exc:  # noqa: BLE001

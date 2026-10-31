@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import json
 
-from ..utils.app_paths import app_data_dir
+from ..utils.app_paths import account_training_dir
 from .bank_movement import BankMovement, MovementType
 from .firebase_session import FirebaseSessionStore
 from .firebase_client import FirestoreClient
@@ -17,9 +17,7 @@ _log = get_logger("models")
 
 
 def _training_dir() -> Path:
-    p = app_data_dir() / "training"
-    p.mkdir(parents=True, exist_ok=True)
-    return p
+    return account_training_dir()
 
 
 def _seed_cache_path(key: str) -> Path:

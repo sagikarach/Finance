@@ -101,9 +101,14 @@ class FirebaseSessionStore:
             )
 
     def save(self, session: FirebaseSession) -> None:
+        # Atomic (temp file + os.replace): the account folder is chosen from
+        # this file on every data access, and other threads (sync) read it
+        # while an account switch writes it. A torn read would look logged-out
+        # and send data to the wrong folder.
+        from ..data.json_io import atomic_write_json
+
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._path.open("w", encoding="utf-8") as f:
-            json.dump(session.to_dict(), f, ensure_ascii=False, indent=2)
+        atomic_write_json(self._path, session.to_dict())
 
     def clear(self) -> None:
         with swallow(msg="clear"):

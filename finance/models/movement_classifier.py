@@ -10,7 +10,7 @@ import tempfile
 import threading
 
 from .bank_movement import BankMovement, MovementType
-from ..utils.app_paths import app_data_dir
+from ..utils.app_paths import account_training_dir
 from .firebase_session import current_firebase_uid, current_firebase_workspace_id
 from ..utils.safe import swallow
 
@@ -341,4 +341,4 @@ class SimilarityBasedClassifier:
 def _default_training_path() -> Path:
     key = (current_firebase_workspace_id() or current_firebase_uid() or "").strip()
     suffix = f"_{key}" if key else ""
-    return app_data_dir() / "training" / f"expenses{suffix}.json"
+    return account_training_dir() / f"expenses{suffix}.json"

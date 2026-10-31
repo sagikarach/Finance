@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// Finance — Firestore security rules.
+//
+// Data model (shared by desktop and mobile):
+//   users/{uid}/...                     private to that Firebase account
+//   workspaces/{wid}                    { version, created_by, updated_at }
+//   workspaces/{wid}/members/{uid}      { role, joined_at } — who may use it
+//   workspaces/{wid}/<anything>/...     movements, meta, events, mortgages, ...
+//
+// Only members of a workspace can read or write its data. An account becomes a
+// member by adding its own members/{uid} doc, which requires knowing the
+// workspace id (the random 12-character "share code") — the same flow as the
+// mobile "join by code". Nobody can list workspaces or members, and collection
+// group queries (e.g. every `movements` collection at once) are denied.
+//
+// Deploy:  firebase deploy --only firestore:rules
+// Test first in the Firebase console → Firestore → Rules → Rules Playground.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(wid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/workspaces/$(wid)/members/$(request.auth.uid));
+    }
+
+    // Per-account private data (legacy movements, categories, active workspace).
+    match /users/{uid}/{document=**} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /workspaces/{wid} {
+      // Existence check for "join by code". Reveals only version/creator uid.
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.created_by == request.auth.uid;
+      // Members may touch the workspace doc but never change who created it.
+      allow update: if isMember(wid)
+        && request.resource.data.get('created_by', null) == resource.data.get('created_by', null);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        // Your own membership (even a missing one, to check), or any member's
+        // if you are a member yourself.
+        allow get: if signedIn() && (memberUid == request.auth.uid || isMember(wid));
+        allow list: if isMember(wid);
+        // You can only add / update / remove yourself.
+        allow create, update, delete: if signedIn() && memberUid == request.auth.uid;
+      }
+
+      // Every other sub-collection: movements, meta, events, installment_plans,
+      // mortgages, notifications, actions, users (per-workspace profiles), ...
+      match /{collection}/{document=**} {
+        allow read, write: if collection != 'members' && isMember(wid);
+      }
+    }
+  }
+}
