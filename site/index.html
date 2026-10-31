@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finance – הורדה</title>
+  <meta name="description" content="הורדת אפליקציית Finance למחשב ולטלפון">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f7fb; --card: #ffffff; --text: #1d2433; --muted: #5d6679;
+      --accent: #4f6bed; --accent-text: #ffffff; --border: #e3e6ef; --tip: #fff8e6; --tip-border: #f1dfa8;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #12151c; --card: #1b2029; --text: #e9ecf3; --muted: #9aa3b5;
+        --accent: #7b8ff5; --accent-text: #0e1220; --border: #2a303c; --tip: #2a2617; --tip-border: #4a4123;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.55;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 { font-size: 2.1rem; margin: 0 0 6px; }
+    header p { color: var(--muted); margin: 0; font-size: 1.05rem; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 22px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .card.suggested { order: -1; border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+    .card h2 { margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; }
+    .badge { font-size: .72rem; background: var(--accent); color: var(--accent-text); border-radius: 99px; padding: 2px 8px; font-weight: 500; }
+    .ver { color: var(--muted); font-size: .9rem; min-height: 1.4em; }
+    .btn {
+      display: inline-block; text-align: center; text-decoration: none; font-weight: 500;
+      background: var(--accent); color: var(--accent-text); border-radius: 10px; padding: 11px 14px;
+    }
+    .btn[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+    details { font-size: .92rem; color: var(--muted); }
+    summary { cursor: pointer; color: var(--text); }
+    details ol { padding-inline-start: 20px; margin: 8px 0 0; }
+    #qr { align-self: center; background: #fff; padding: 8px; border-radius: 8px; display: none; }
+    #qr-note { font-size: .82rem; color: var(--muted); text-align: center; display: none; }
+    .steps { margin-top: 32px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+    .steps h2 { margin: 0 0 8px; font-size: 1.15rem; }
+    .steps ol { margin: 0; padding-inline-start: 20px; }
+    .note { margin-top: 16px; background: var(--tip); border: 1px solid var(--tip-border); border-radius: 12px; padding: 12px 14px; font-size: .92rem; }
+    footer { text-align: center; color: var(--muted); font-size: .85rem; margin-top: 28px; }
+    footer a { color: inherit; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Finance</h1>
+    <p>ניהול התקציב שלך — במחשב ובטלפון, מסונכרן אוטומטית</p>
+  </header>
+
+  <div class="grid">
+    <section class="card" id="card-mac">
+      <h2>Mac</h2>
+      <div class="ver" id="ver-mac">טוען…</div>
+      <a class="btn" id="btn-mac" aria-disabled="true" href="#">הורדה ל-Mac</a>
+      <details>
+        <summary>איך מתקינים?</summary>
+        <ol>
+          <li>פתח את הקובץ <b>Finance-mac.zip</b> שהורד.</li>
+          <li>גרור את <b>Finance</b> לתיקיית <b>Applications</b>.</li>
+          <li>בפתיחה הראשונה: לחיצה ימנית על האפליקציה ← <b>Open</b> ← <b>Open</b>.<br>
+            (אם מופיע "לא ניתן לפתוח": הגדרות מערכת ← פרטיות ואבטחה ← <b>Open Anyway</b>)</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="card" id="card-win">
+      <h2>Windows</h2>
+      <div class="ver" id="ver-win">טוען…</div>
+      <a class="btn" id="btn-win" aria-disabled="true" href="#">הורדה ל-Windows</a>
+      <details>
+        <summary>איך מתקינים?</summary>
+        <ol>
+          <li>חלץ את הקובץ שהורד.</li>
+          <li>הפעל את <b>Finance.exe</b>.</li>
+          <li>אם מופיעה אזהרת SmartScreen: <b>More info</b> ← <b>Run anyway</b>.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="card" id="card-android">
+      <h2>Android</h2>
+      <div class="ver" id="ver-android">טוען…</div>
+      <a class="btn" id="btn-android" aria-disabled="true" href="#">הורדה ל-Android</a>
+      <div id="qr" aria-hidden="true"></div>
+      <div id="qr-note">או סרוק עם הטלפון כדי להוריד</div>
+      <details>
+        <summary>איך מתקינים?</summary>
+        <ol>
+          <li>הורד את הקובץ <b>app-release.apk</b> בטלפון.</li>
+          <li>פתח אותו. אם מתבקש — אשר <b>התקנה ממקורות לא ידועים</b> עבור הדפדפן.</li>
+          <li>לחץ <b>התקן</b>.</li>
+        </ol>
+      </details>
+    </section>
+  </div>
+
+  <section class="steps">
+    <h2>אחרי ההתקנה</h2>
+    <ol>
+      <li>פתח את האפליקציה והזן אימייל וסיסמה.</li>
+      <li>לחץ <b>צור חשבון חדש</b> — התקציב שלך מוכן מיד, בלי שום הגדרה.</li>
+      <li>באפליקציה השנייה (מחשב / טלפון) פשוט <b>התחבר</b> עם אותו אימייל — הנתונים יופיעו שם.</li>
+    </ol>
+    <div class="note">
+      רוצה לנהל תקציב משותף עם בן/בת הזוג? קוד השיתוף נמצא ב<b>הגדרות</b>.
+      בהרשמה הם בוחרים <b>"יש לי קוד שיתוף"</b> ומזינים אותו.
+    </div>
+  </section>
+
+  <footer>
+    כל הגרסאות: <a id="all-releases" href="https://github.com/sagikarach/Finance/releases">GitHub Releases</a>
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var REPO = "sagikarach/Finance";
+  var RELEASES_PAGE = "https://github.com/" + REPO + "/releases";
+
+  // Each app publishes its own GitHub Releases (desktop-v*, mobile-v*), so
+  // "latest" alone would flip between them — pick the newest of each kind.
+  var targets = {
+    mac: { tag: /^desktop-v/, asset: /^Finance-mac\.zip$/i },
+    win: { tag: /^desktop-v/, asset: /(win|windows).*\.(zip|exe)$|\.exe$/i },
+    android: { tag: /^mobile-v/, asset: /\.apk$/i }
+  };
+
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleDateString("he-IL"); } catch (e) { return ""; }
+  }
+
+  function setCard(key, release, asset) {
+    var btn = document.getElementById("btn-" + key);
+    var ver = document.getElementById("ver-" + key);
+    if (release && asset) {
+      btn.href = asset.browser_download_url;
+      btn.removeAttribute("aria-disabled");
+      ver.textContent = "גרסה " + release.tag_name.replace(/^(desktop|mobile)-v/, "") +
+        " · " + fmtDate(release.published_at);
+      if (key === "android") showQr(asset.browser_download_url);
+    } else {
+      btn.href = RELEASES_PAGE;
+      btn.removeAttribute("aria-disabled");
+      btn.textContent = "לכל הגרסאות";
+      ver.textContent = key === "win" ? "עדיין אין גרסה ל-Windows" : "לא נמצאה גרסה";
+    }
+  }
+
+  function showQr(url) {
+    var isPhone = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+    if (isPhone || typeof QRCode === "undefined") return;
+    var box = document.getElementById("qr");
+    box.style.display = "block";
+    document.getElementById("qr-note").style.display = "block";
+    new QRCode(box, { text: url, width: 132, height: 132 });
+  }
+
+  function highlightPlatform() {
+    var ua = navigator.userAgent;
+    var key = /Android/i.test(ua) ? "android" : /Mac/i.test(ua) && !/iPhone|iPad/i.test(ua) ? "mac" : /Win/i.test(ua) ? "win" : "";
+    if (!key) return;
+    var card = document.getElementById("card-" + key);
+    card.classList.add("suggested");
+    var h = card.querySelector("h2");
+    var b = document.createElement("span");
+    b.className = "badge";
+    b.textContent = "מומלץ למכשיר הזה";
+    h.appendChild(b);
+  }
+
+  highlightPlatform();
+
+  fetch("https://api.github.com/repos/" + REPO + "/releases?per_page=40")
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function (releases) {
+      var stable = releases.filter(function (r) { return !r.draft && !r.prerelease; });
+      Object.keys(targets).forEach(function (key) {
+        var t = targets[key], found = null, asset = null;
+        for (var i = 0; i < stable.length && !found; i++) {
+          if (!t.tag.test(stable[i].tag_name)) continue;
+          var a = (stable[i].assets || []).filter(function (x) { return t.asset.test(x.name); })[0];
+          if (a) { found = stable[i]; asset = a; }
+        }
+        setCard(key, found, asset);
+      });
+    })
+    .catch(function () {
+      Object.keys(targets).forEach(function (key) { setCard(key, null, null); });
+    });
+})();
+</script>
+</body>
+</html>

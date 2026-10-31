@@ -7,6 +7,7 @@ rm -rf build dist Finance.spec
 
 python3 -m pip install -r requirements.txt
 python3 -m pip install pyinstaller
+python3 scripts/write_firebase_defaults.py
 
 python3 -m PyInstaller --clean --noconfirm --windowed --name Finance --icon app-icon.icns \
   --add-data "data/assets/icons:data/assets/icons" \
