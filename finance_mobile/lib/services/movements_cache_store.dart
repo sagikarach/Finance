@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/movement.dart';
@@ -7,9 +8,17 @@ import '../models/movement.dart';
 class MovementsCacheStore {
   const MovementsCacheStore();
 
-  static String _movesKey(String workspaceId) => 'movements_cache_v1:$workspaceId';
+  // Keyed by Firebase account *and* workspace: two accounts that share a
+  // workspace (or one that typed another's code) never read each other's cache.
+  static String _scope(String workspaceId) {
+    final uid = (FirebaseAuth.instance.currentUser?.uid ?? '').trim();
+    return '${uid.isEmpty ? '_local' : uid}:$workspaceId';
+  }
+
+  static String _movesKey(String workspaceId) =>
+      'movements_cache_v2:${_scope(workspaceId)}';
   static String _watermarkKey(String workspaceId) =>
-      'movements_cache_watermark_ms_v1:$workspaceId';
+      'movements_cache_watermark_ms_v2:${_scope(workspaceId)}';
 
   Future<List<Movement>> loadMovements({required String workspaceId}) async {
     final prefs = await SharedPreferences.getInstance();

@@ -2,6 +2,10 @@ import 'workspace_service.dart';
 import 'session_service.dart';
 
 class WorkspaceFacade {
+  /// Share code typed on the login screen ("I have a share code"); consumed by
+  /// [WorkspaceGate] right after sign-in.
+  static String pendingShareCode = '';
+
   final WorkspaceService _workspaces;
   final SessionService _session;
 
@@ -22,7 +26,7 @@ class WorkspaceFacade {
     required String code,
     String role = 'editor',
   }) async {
-    final wid = code.trim();
+    final wid = code.trim().toUpperCase();
     if (wid.isEmpty) return;
     final uid = _session.requireUid();
     await _workspaces.validateWorkspaceExists(wid);

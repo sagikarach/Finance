@@ -11,7 +11,7 @@ from ...qt import (
 )
 from ...models.firebase_session import FirebaseSessionStore
 from ...models.firebase_workspace_profiles import FirebaseWorkspaceProfilesStore
-from ...ui.firebase_account_dialogs import open_firebase_account_dialog
+from ...ui.firebase_account_dialogs import run_pull_sync_with_progress
 from ...models.workspace_local_cache_reset import reset_workspace_local_cache
 from ...utils.safe import QT_ERRORS
 
@@ -59,6 +59,8 @@ class FirebaseSyncCard(QWidget):
                 if (
                     str(getattr(p, "workspace_id", "") or "").strip() == wid_now
                     and wid_now
+                    and str(getattr(p, "email", "") or "").strip().casefold()
+                    == email_now.casefold()
                 ):
                     current_name = str(getattr(p, "name", "") or "").strip()
                     break
@@ -80,14 +82,54 @@ class FirebaseSyncCard(QWidget):
 
         _row("חשבון", current_name or (wid_now or "לא נבחר"))
         _row("אימייל", email_now or "—")
-        _row("Workspace", wid_now or "—")
+        if wid_now:
+            # The share code: the only thing needed to share this budget.
+            code_row = QHBoxLayout()
+            code_row.setSpacing(8)
+            code_title = QLabel("קוד שיתוף", self)
+            code_title.setObjectName("StatTitle")
+            code_val = QLabel(wid_now, self)
+            code_val.setObjectName("StatValue")
+            try:
+                code_val.setTextInteractionFlags(
+                    Qt.TextInteractionFlag.TextSelectableByMouse
+                )
+            except QT_ERRORS:
+                pass
+            copy_btn = QPushButton("העתק", self)
+            copy_btn.setObjectName("SecondaryButton")
+
+            def _copy_code() -> None:
+                try:
+                    from ...qt import QApplication
+
+                    cb = QApplication.clipboard()
+                    if cb is not None:
+                        cb.setText(wid_now)
+                    copy_btn.setText("הועתק ✓")
+                except QT_ERRORS:
+                    pass
+
+            copy_btn.clicked.connect(_copy_code)
+            code_row.addWidget(code_title, 0)
+            code_row.addWidget(QLabel("-", self), 0)
+            code_row.addWidget(code_val, 1)
+            code_row.addWidget(copy_btn, 0)
+            layout.addLayout(code_row)
+            hint = QLabel(
+                "רוצה לשתף את התקציב? שלח את הקוד לבן/בת הזוג. "
+                "בהתחברות שלהם יבחרו \"יש לי קוד שיתוף\" ויזינו אותו.",
+                self,
+            )
+            hint.setWordWrap(True)
+            layout.addWidget(hint)
         _row("סטטוס", "מחובר" if logged_in else "לא מחובר")
 
         layout.addSpacing(8)
 
         btn_row = QHBoxLayout()
         btn_row.setSpacing(12)
-        connect_btn = QPushButton("התחבר / ערוך", self)
+        connect_btn = QPushButton("החלף חשבון / הצטרף לתקציב משותף", self)
         connect_btn.setObjectName("SaveButton")
         btn_row.addWidget(connect_btn)
         btn_row.addStretch(1)
@@ -111,25 +153,10 @@ class FirebaseSyncCard(QWidget):
                 parent = self.window()
             except QT_ERRORS:
                 parent = None
-            prof = None
-            try:
-                for p in profiles_store.list_profiles():
-                    if (
-                        str(getattr(p, "workspace_id", "") or "").strip() == wid_now
-                        and wid_now
-                    ):
-                        prof = p
-                        break
-            except QT_ERRORS:
-                prof = None
-            open_firebase_account_dialog(
-                parent=parent,
-                session_store=self._store,
-                profiles_store=profiles_store,
-                profile=prof,
-                prefill_email=email_now,
-                prefill_workspace_id=wid_now,
-            )
+            from ...ui.welcome_dialog import run_welcome
+
+            if run_welcome(parent, allow_cancel=True, prefill_email=email_now) is not None:
+                run_pull_sync_with_progress(parent=parent)
 
         connect_btn.clicked.connect(_open_current_dialog)
 

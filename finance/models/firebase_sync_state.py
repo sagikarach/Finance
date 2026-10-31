@@ -5,16 +5,14 @@ from pathlib import Path
 from typing import List
 import json
 
-from ..utils.app_paths import app_data_dir
+from ..utils.app_paths import account_firebase_dir
 from ..utils.safe import swallow
 from ..utils.logging_setup import get_logger
 _log = get_logger("models")
 
 
 def sync_state_path(key: str) -> Path:
-    p = app_data_dir() / "firebase"
-    p.mkdir(parents=True, exist_ok=True)
-    return p / f"sync_state_{key}.json"
+    return account_firebase_dir() / f"sync_state_{key}.json"
 
 
 @dataclass

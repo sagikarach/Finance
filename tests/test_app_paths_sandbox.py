@@ -5,11 +5,13 @@ def test_finance_data_dir_isolates_every_path(tmp_path, monkeypatch):
     sandbox = tmp_path / "sbx"
     monkeypatch.setenv("FINANCE_DATA_DIR", str(sandbox))
 
-    # the root and everything derived from it live in the sandbox
+    # the root and everything derived from it live in the sandbox; logged out,
+    # account data goes to the anonymous "_local" account folder
+    local = sandbox / "users" / ap.LOCAL_ACCOUNT_DIR
     assert ap.app_data_dir() == sandbox
-    assert ap.accounts_data_dir() == sandbox / "accounts"
-    assert ap.avatars_data_dir() == sandbox / "avatars"
-    assert ap.user_profile_path() == sandbox / "user_profile.json"
+    assert ap.accounts_data_dir() == local / "accounts"
+    assert ap.avatars_data_dir() == local / "avatars"
+    assert ap.user_profile_path() == local / "user_profile.json"
     assert sandbox.exists()
 
 

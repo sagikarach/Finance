@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 import json
@@ -36,6 +38,23 @@ class FirebaseAuthResult:
     id_token: str
     refresh_token: str
     expires_in: int
+
+
+# Local Firebase emulators (firebase emulators:start) — same env vars the
+# official SDKs use. Unset in normal runs, so production URLs are used.
+def _auth_base() -> str:
+    host = os.environ.get("FIREBASE_AUTH_EMULATOR_HOST", "").strip()
+    return f"http://{host}/identitytoolkit.googleapis.com" if host else "https://identitytoolkit.googleapis.com"
+
+
+def _token_base() -> str:
+    host = os.environ.get("FIREBASE_AUTH_EMULATOR_HOST", "").strip()
+    return f"http://{host}/securetoken.googleapis.com" if host else "https://securetoken.googleapis.com"
+
+
+def _firestore_base() -> str:
+    host = os.environ.get("FIRESTORE_EMULATOR_HOST", "").strip()
+    return f"http://{host}" if host else "https://firestore.googleapis.com"
 
 
 def _http_json(
@@ -95,7 +114,7 @@ class FirebaseAuthClient:
 
     def sign_in_with_password(self, *, email: str, password: str) -> FirebaseAuthResult:
         url = (
-            "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
+            f"{_auth_base()}/v1/accounts:signInWithPassword"
             f"?key={urllib.parse.quote(self._api_key)}"
         )
         payload = {
@@ -126,9 +145,50 @@ class FirebaseAuthClient:
             expires_in=expires_in if expires_in > 0 else 3600,
         )
 
+    def sign_up_with_password(self, *, email: str, password: str) -> FirebaseAuthResult:
+        """Create a new Firebase email/password account (and sign it in)."""
+        url = (
+            f"{_auth_base()}/v1/accounts:signUp"
+            f"?key={urllib.parse.quote(self._api_key)}"
+        )
+        payload = {"email": email, "password": password, "returnSecureToken": True}
+        resp = _http_json(
+            method="POST",
+            url=url,
+            headers={"Content-Type": "application/json"},
+            body=json.dumps(payload).encode("utf-8"),
+        )
+        if not isinstance(resp, dict):
+            raise RuntimeError("Invalid auth response")
+        uid = str(resp.get("localId", "") or "")
+        id_token = str(resp.get("idToken", "") or "")
+        refresh_token = str(resp.get("refreshToken", "") or "")
+        expires_in = int(float(resp.get("expiresIn", 0) or 0))
+        if not uid or not id_token or not refresh_token:
+            raise RuntimeError("Sign-up failed")
+        return FirebaseAuthResult(
+            uid=uid,
+            id_token=id_token,
+            refresh_token=refresh_token,
+            expires_in=expires_in if expires_in > 0 else 3600,
+        )
+
+    def send_password_reset_email(self, *, email: str) -> None:
+        url = (
+            f"{_auth_base()}/v1/accounts:sendOobCode"
+            f"?key={urllib.parse.quote(self._api_key)}"
+        )
+        payload = {"requestType": "PASSWORD_RESET", "email": email}
+        _http_json(
+            method="POST",
+            url=url,
+            headers={"Content-Type": "application/json"},
+            body=json.dumps(payload).encode("utf-8"),
+        )
+
     def refresh_id_token(self, *, refresh_token: str) -> Tuple[str, str, int]:
         url = (
-            "https://securetoken.googleapis.com/v1/token"
+            f"{_token_base()}/v1/token"
             f"?key={urllib.parse.quote(self._api_key)}"
         )
         form = urllib.parse.urlencode(
@@ -236,7 +296,7 @@ class FirestoreClient:
         self._project_id = project_id.strip()
 
     def _doc_base(self) -> str:
-        return f"https://firestore.googleapis.com/v1/projects/{self._project_id}/databases/(default)/documents"
+        return f"{_firestore_base()}/v1/projects/{self._project_id}/databases/(default)/documents"
 
     def list_user_movements(
         self, *, uid: str, id_token: str, page_size: int = 1000
@@ -466,6 +526,30 @@ class FirestoreClient:
         body_fields["updated_at_ms"] = now_ms
         doc = {"fields": {k: _fs_value(v) for k, v in body_fields.items()}}
         url = f"{self._doc_base()}/{document_path.lstrip('/')}"
+        _http_json(
+            method="PATCH",
+            url=url,
+            headers={
+                "Authorization": f"Bearer {id_token}",
+                "Content-Type": "application/json",
+            },
+            body=json.dumps(doc).encode("utf-8"),
+        )
+
+    def patch_document_fields(
+        self,
+        *,
+        document_path: str,
+        id_token: str,
+        fields: Dict[str, Any],
+    ) -> None:
+        """Set only ``fields`` on a document (creating it if missing), leaving its
+        other fields untouched — unlike ``upsert_document``, which replaces it."""
+        doc = {"fields": {k: _fs_value(v) for k, v in fields.items()}}
+        mask = "&".join(
+            f"updateMask.fieldPaths={urllib.parse.quote(k)}" for k in fields
+        )
+        url = f"{self._doc_base()}/{document_path.lstrip('/')}?{mask}"
         _http_json(
             method="PATCH",
             url=url,

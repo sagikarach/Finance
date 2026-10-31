@@ -13,7 +13,7 @@ from ..models.bank_movement import BankMovement
 from ..models.firebase_client import FirestoreClient
 from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_session_manager import FirebaseSessionManager
-from ..utils.app_paths import accounts_data_dir, app_data_dir
+from ..utils.app_paths import account_firebase_dir, accounts_data_dir
 from ..models.firebase_sync_state import load_sync_state, save_sync_state
 from ..models.firebase_sync_categories import sync_categories
 from ..models.firebase_sync_pullers import (
@@ -55,34 +55,17 @@ class FirebaseMovementsSyncService:
         self._history_provider = JsonFileActionHistoryProvider()
 
     def ensure_user_local_file(self, key: str) -> None:
+        """Make sure the movements file for ``key`` exists in the current
+        account's folder (empty if new). Old flat-layout data is handed over
+        only by the owner-checked migration in ``utils/app_paths.py``, never
+        copied here — that used to leak the shared ``bank_movements.json``
+        into whichever account opened a new workspace."""
+        key = str(key or "").strip()
+        if not key:
+            return
         dst = accounts_data_dir() / f"bank_movements_{key}.json"
         if dst.exists():
             return
-        src = accounts_data_dir() / "bank_movements.json"
-        try:
-            wid = str(self._session_store.load().workspace_id or "").strip()
-        except Exception as exc:  # noqa: BLE001
-            _log.debug("ensure_user_local_file: %s", exc)
-            wid = ""
-        if wid and str(key or "").strip() == wid:
-            with swallow(msg="ensure_user_local_file"):
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                if src.exists():
-                    dst.write_bytes(src.read_bytes())
-                else:
-                    dst.write_text("[]", encoding="utf-8")
-            return
-        with swallow(msg="ensure_user_local_file"):
-            any_scoped = False
-            for p in accounts_data_dir().glob("bank_movements_*.json"):
-                with swallow(msg="ensure_user_local_file"):
-                    if p.is_file():
-                        any_scoped = True
-                        break
-            if (not any_scoped) and src.exists():
-                with swallow(msg="ensure_user_local_file"):
-                    dst.write_bytes(src.read_bytes())
-                    return
         with swallow(msg="ensure_user_local_file"):
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_text("[]", encoding="utf-8")
@@ -290,6 +273,20 @@ class FirebaseMovementsSyncService:
             state = load_sync_state(key)
 
             fs = FirestoreClient(project_id=session.project_id)
+            if wid:
+                # The Firestore rules only allow workspace members; make sure this
+                # account is one (no-op after the first successful check).
+                from ..models.firebase_workspace_membership import (
+                    ensure_workspace_membership,
+                )
+
+                ensure_workspace_membership(
+                    fs=fs,
+                    project_id=session.project_id,
+                    workspace_id=wid,
+                    uid=uid,
+                    id_token=session.id_token,
+                )
 
             t_push = 0.0
             pushed = 0
@@ -348,8 +345,7 @@ class FirebaseMovementsSyncService:
 
             # Save timings to help diagnose slow syncs
             with swallow(msg="sync_now"):
-                p = app_data_dir() / "firebase"
-                p.mkdir(parents=True, exist_ok=True)
+                p = account_firebase_dir()
                 (p / "last_sync_profile.json").write_text(
                     json.dumps(
                         {

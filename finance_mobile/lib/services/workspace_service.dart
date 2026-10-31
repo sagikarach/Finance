@@ -19,31 +19,39 @@ class WorkspaceService {
     );
   }
 
+  /// Adds [uid] to workspace [wid] (creating the workspace when it doesn't
+  /// exist yet). Order matters for firestore.rules: the member doc is written
+  /// first, because only members may update the workspace doc. An existing
+  /// membership keeps its role, and an existing workspace keeps its creator.
   Future<void> ensureMembership({
     required String uid,
     required String wid,
     required String role,
   }) async {
-    await _db.collection('workspaces').doc(wid).set(
-      <String, Object?>{
+    final wsRef = _db.collection('workspaces').doc(wid);
+    final memberRef = wsRef.collection('members').doc(uid);
+
+    final memberSnap = await memberRef.get();
+    if (!memberSnap.exists) {
+      await memberRef.set(<String, Object?>{
+        'role': role,
+        'joined_at': FieldValue.serverTimestamp(),
+      });
+    }
+
+    final wsSnap = await wsRef.get();
+    if (!wsSnap.exists) {
+      await wsRef.set(<String, Object?>{
         'version': 1,
         'created_by': uid,
         'updated_at': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
-    await _db
-        .collection('workspaces')
-        .doc(wid)
-        .collection('members')
-        .doc(uid)
-        .set(
-      <String, Object?>{
-        'role': role,
-        'joined_at': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    );
+      });
+    } else {
+      await wsRef.set(
+        <String, Object?>{'updated_at': FieldValue.serverTimestamp()},
+        SetOptions(merge: true),
+      );
+    }
   }
 
   Future<void> validateWorkspaceExists(String wid) async {

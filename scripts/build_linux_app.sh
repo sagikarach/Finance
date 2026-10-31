@@ -9,6 +9,7 @@ rm -rf build dist Finance.spec
 
 python3 -m pip install -r requirements.txt
 python3 -m pip install pyinstaller
+python3 scripts/write_firebase_defaults.py
 
 icon_flag=""
 if [[ -f "app-icon.ico" ]]; then

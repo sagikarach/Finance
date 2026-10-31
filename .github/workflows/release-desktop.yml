@@ -26,6 +26,11 @@ on:
 permissions:
   contents: write
 
+env:
+  # Baked into the app by scripts/write_firebase_defaults.py (see that file).
+  FINANCE_FIREBASE_API_KEY: ${{ secrets.FINANCE_FIREBASE_API_KEY }}
+  FINANCE_FIREBASE_PROJECT_ID: ${{ secrets.FINANCE_FIREBASE_PROJECT_ID }}
+
 jobs:
   build-macos:
     if: ${{ github.event.inputs.target_os == 'all' || github.event.inputs.target_os == 'macos' }}

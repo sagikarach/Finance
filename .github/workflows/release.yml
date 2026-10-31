@@ -6,6 +6,11 @@ on:
     tags:
       - "desktop-v*"
 
+env:
+  # Baked into the app by scripts/write_firebase_defaults.py (see that file).
+  FINANCE_FIREBASE_API_KEY: ${{ secrets.FINANCE_FIREBASE_API_KEY }}
+  FINANCE_FIREBASE_PROJECT_ID: ${{ secrets.FINANCE_FIREBASE_PROJECT_ID }}
+
 jobs:
   build-and-release:
     runs-on: macos-latest
@@ -49,6 +54,9 @@ jobs:
           cat finance/__version__.py
 
       # ── 5. Build Finance.app ───────────────────────────────────────────────
+      - name: Write Firebase config
+        run: python3 scripts/write_firebase_defaults.py
+
       - name: Build macOS app
         run: |
           python3 -m PyInstaller --clean --noconfirm --windowed \
@@ -139,3 +147,46 @@ jobs:
           files: |
             dist/Finance-mac.zip
             dist/appcast.json
+
+  # Windows build, attached to the same release after the macOS job has
+  # published it (so a Windows failure never blocks the Mac release).
+  build-windows:
+    needs: build-and-release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Stamp version
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#desktop-v}"
+          echo "__version__ = \"${VERSION}\"" > finance/__version__.py
+
+      - name: Build Windows app
+        shell: bash
+        run: |
+          chmod +x scripts/build_windows_app.sh
+          ./scripts/build_windows_app.sh
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          if (Test-Path "Finance-win.zip") { Move-Item -Force "Finance-win.zip" "dist/Finance-win.zip" }
+          if (-not (Test-Path "dist/Finance-win.zip")) {
+            if (-not (Test-Path "dist/Finance")) { throw "dist/Finance missing after build" }
+            Compress-Archive -Path "dist/Finance/*" -DestinationPath "dist/Finance-win.zip"
+          }
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/Finance-win.zip

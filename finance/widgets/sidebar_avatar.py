@@ -24,7 +24,6 @@ from ..models.firebase_workspace_profiles import (
 )
 from ..models.keychain_passwords import get_password
 from ..ui.firebase_account_dialogs import (
-    open_firebase_account_dialog,
     open_firebase_password_prompt,
     run_pull_sync_with_progress,
 )
@@ -158,7 +157,6 @@ class SidebarAvatar:
         profiles_store = FirebaseWorkspaceProfilesStore()
         s = session_store.load()
         wid_now = str(getattr(s, "workspace_id", "") or "").strip()
-        email_now = str(getattr(s, "email", "") or "").strip()
 
         try:
             parent = self._parent.window()
@@ -221,15 +219,11 @@ class SidebarAvatar:
                 self._toggle_firebase_accounts_list()
 
         def _add_account() -> None:
-            ok = open_firebase_account_dialog(
-                parent=parent,
-                session_store=session_store,
-                profiles_store=profiles_store,
-                profile=None,
-                prefill_email=email_now,
-                prefill_workspace_id=wid_now,
-            )
+            from ..ui.welcome_dialog import run_welcome
+
+            ok = run_welcome(parent, allow_cancel=True) is not None
             if ok:
+                run_pull_sync_with_progress(parent=parent)
                 self._reload_firebase_accounts_list()
                 self._toggle_firebase_accounts_list()
 
@@ -249,12 +243,22 @@ class SidebarAvatar:
                 or str(p.workspace_id or "").strip()
                 or "Workspace"
             )
-            if wid_now and str(p.workspace_id).strip() == wid_now:
+            if (
+                wid_now
+                and str(p.workspace_id).strip() == wid_now
+                and str(p.email or "").strip().casefold() == self._current_email().casefold()
+            ):
                 label = f"✓ {label}"
             items.append((label, _mk_connect_handler(p)))
 
         items.append(("＋ הוסף חשבון…", _add_account))
         lst.set_items(items)
+
+    def _current_email(self) -> str:
+        try:
+            return str(FirebaseSessionStore().load().email or "").strip()
+        except QT_ERRORS:
+            return ""
 
     def _current_workspace_id(self) -> str:
         try:
@@ -268,7 +272,9 @@ class SidebarAvatar:
         if not wid:
             return ""
         try:
-            p = FirebaseWorkspaceProfilesStore().find_by_workspace_id(workspace_id=wid)
+            p = FirebaseWorkspaceProfilesStore().find_by_workspace_id(
+                workspace_id=wid, email=self._current_email()
+            )
             if p is None:
                 return ""
             return str(getattr(p, "display_name", "") or "").strip()
@@ -280,7 +286,9 @@ class SidebarAvatar:
         if not wid:
             return ""
         try:
-            p = FirebaseWorkspaceProfilesStore().find_by_workspace_id(workspace_id=wid)
+            p = FirebaseWorkspaceProfilesStore().find_by_workspace_id(
+                workspace_id=wid, email=self._current_email()
+            )
             if p is None:
                 return ""
             ap = str(getattr(p, "avatar_path", "") or "").strip()
@@ -331,6 +339,7 @@ class SidebarAvatar:
                 try:
                     FirebaseWorkspaceProfilesStore().update_ui_prefs(
                         workspace_id=wid,
+                        email=self._current_email(),
                         avatar_path=str(avatars_data_dir() / f"user_avatar_{wid}.png"),
                     )
                 except QT_ERRORS:

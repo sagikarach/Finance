@@ -11,8 +11,13 @@ cd "$(dirname "$0")/.."
 
 rm -rf build dist Finance.spec
 
-python3 -m pip install -r requirements.txt
-python3 -m pip install pyinstaller
+# GitHub's Windows runners expose `python`, not always `python3`.
+PY=python3
+command -v python3 >/dev/null 2>&1 || PY=python
+
+"$PY" -m pip install -r requirements.txt
+"$PY" -m pip install pyinstaller
+"$PY" scripts/write_firebase_defaults.py
 
 icon_flag=""
 if [[ -f "app-icon.ico" ]]; then
@@ -22,7 +27,7 @@ else
 fi
 
 # Note: on Windows, PyInstaller uses ';' to separate add-data paths.
-python3 -m PyInstaller --clean --noconfirm --windowed --name Finance ${icon_flag} \
+"$PY" -m PyInstaller --clean --noconfirm --windowed --name Finance ${icon_flag} \
   --add-data "data/assets/icons;data/assets/icons" \
   --hidden-import PySide6 --hidden-import shiboken6 \
   --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui \
