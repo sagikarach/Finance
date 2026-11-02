@@ -80,3 +80,68 @@ def _run_all() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(_run_all())
+
+
+# ── הוראת קבע (direct debit) ─────────────────────────────────────────────
+from datetime import date  # noqa: E402
+
+from finance.data.installment_plan_provider import JsonFileInstallmentPlanProvider  # noqa: E402
+from finance.models.installment_plan import KIND_DIRECT_DEBIT  # noqa: E402
+
+
+def _debit(**kw) -> InstallmentPlan:
+    base = dict(
+        name="חוג", account_name="בנק", start_date="2026-01-15",
+        payments_count=6, monthly_amount=250.0, charge_day=10,
+        kind=KIND_DIRECT_DEBIT, original_amount=1500.0,
+    )
+    base.update(kw)
+    return InstallmentPlan(**base)  # type: ignore[arg-type]
+
+
+def test_direct_debit_schedule_same_day_each_month() -> None:
+    sched = _debit().schedule(today=date(2026, 1, 1))
+    # Start is the 15th, charge day the 10th → first charge next month.
+    assert [p.date for p in sched] == [
+        date(2026, 2, 10), date(2026, 3, 10), date(2026, 4, 10),
+        date(2026, 5, 10), date(2026, 6, 10), date(2026, 7, 10),
+    ]
+    assert all(_approx(p.amount, 250.0) for p in sched)
+    assert [p.number for p in sched] == [1, 2, 3, 4, 5, 6]
+
+
+def test_direct_debit_day_31_clamps_to_month_end() -> None:
+    sched = _debit(start_date="2027-01-01", charge_day=31, payments_count=3).schedule()
+    assert [p.date for p in sched] == [date(2027, 1, 31), date(2027, 2, 28), date(2027, 3, 31)]
+
+
+def test_direct_debit_year_rollover() -> None:
+    sched = _debit(start_date="2026-11-10", payments_count=3).schedule()
+    assert [p.date for p in sched] == [date(2026, 11, 10), date(2026, 12, 10), date(2027, 1, 10)]
+
+
+def test_direct_debit_stats_follow_calendar_not_movements() -> None:
+    plan = _debit()
+    # Movements are ignored — a direct debit is counted by its schedule.
+    stats = plan.stats([_pay(-999.0, "2026-02-10", desc="חוג")], today=date(2026, 4, 10))
+    assert stats.paid_count == 3  # Feb, Mar, Apr 10 (inclusive)
+    assert stats.payments_left == 3
+    assert _approx(stats.total_paid, 750.0)
+    assert stats.matched_movements == []
+
+
+def test_installment_plan_has_no_schedule() -> None:
+    plan = InstallmentPlan(name="ספה", vendor_query="רהיטים", start_date="2026-01-01", payments_count=3)
+    assert plan.schedule() == []
+    assert not plan.is_direct_debit
+
+
+def test_direct_debit_round_trips_through_json(tmp_path) -> None:
+    provider = JsonFileInstallmentPlanProvider(tmp_path / "plans.json")
+    provider.upsert_plan(_debit())
+    (loaded,) = provider.list_plans()
+    assert loaded.is_direct_debit
+    assert _approx(loaded.monthly_amount, 250.0)
+    assert loaded.charge_day == 10
+    # Plans saved before this feature have no kind → installments.
+    assert JsonFileInstallmentPlanProvider._deserialize({"name": "x"}).kind == "installments"  # type: ignore[union-attr]

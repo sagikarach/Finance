@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import List, Optional
 
 from ..data.action_history_provider import (
@@ -201,20 +202,10 @@ class InstallmentsService:
         if movement_id in excluded:
             return
         excluded.append(movement_id)
-        self.upsert_plan(
-            InstallmentPlan(
-                id=plan.id,
-                name=plan.name,
-                vendor_query=plan.vendor_query,
-                account_name=plan.account_name,
-                start_date=plan.start_date,
-                payments_count=int(plan.payments_count),
-                original_amount=float(plan.original_amount),
-                excluded_movement_ids=excluded,
-                archived=bool(plan.archived),
-            )
-        )
+        self.upsert_plan(replace(plan, excluded_movement_ids=excluded))
 
     def compute_stats(self, plan: InstallmentPlan) -> InstallmentPlanStats:
         # The plan owns the math; the service just supplies the movements.
+        if plan.is_direct_debit:
+            return plan.stats([])
         return plan.stats(self._movements_provider.list_movements())

@@ -28,7 +28,12 @@ from ..qt import (
 from ..models.accounts import BankAccount, BudgetAccount, MoneyAccount, parse_iso_date
 from ..utils.formatting import format_currency
 from ..ui.dialog_utils import setup_calendar_popup
-from ..models.installment_plan import InstallmentPlan
+from ..models.installment_plan import (
+    KIND_DIRECT_DEBIT,
+    KIND_INSTALLMENTS,
+    InstallmentPlan,
+    normalize_plan_kind,
+)
 from ..models.installments_service import InstallmentsService
 from ..widgets.installments_selector import InstallmentsSelector
 from .base_page import BasePage
@@ -43,11 +48,16 @@ def _fmt_money(value: float) -> str:
 
 
 class InstallmentPlanDialog(QDialog):
+    """Create/edit a payments plan: an installment plan (tracked by matching
+    bank movements) or a direct debit — הוראת קבע — with a fixed monthly
+    amount charged on the same day for a set number of months."""
+
     def __init__(
         self,
         *,
         accounts: List[MoneyAccount],
         plan: Optional[InstallmentPlan] = None,
+        kind: str = KIND_INSTALLMENTS,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
@@ -64,28 +74,39 @@ class InstallmentPlanDialog(QDialog):
 
         self._plan: Optional[InstallmentPlan] = plan
         self._accounts = accounts
+        initial_kind = normalize_plan_kind(plan.kind if plan is not None else kind)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(24, 20, 24, 20)
         root.setSpacing(12)
 
-        title = QLabel("תכנית תשלומים", self)
-        title.setObjectName("HeaderTitle")
-        root.addWidget(title)
+        self._title = QLabel("", self)
+        self._title.setObjectName("HeaderTitle")
+        root.addWidget(self._title)
+
+        self._kind = QComboBox(self)
+        self._kind.addItem("תכנית תשלומים", KIND_INSTALLMENTS)
+        self._kind.addItem("הוראת קבע", KIND_DIRECT_DEBIT)
+        root.addWidget(QLabel("סוג", self))
+        root.addWidget(self._kind)
 
         self._name = QLineEdit(self)
-        self._name.setPlaceholderText("שם (לדוגמה: טלוויזיה)")
         root.addWidget(QLabel("שם", self))
         root.addWidget(self._name)
 
+        # Installment plan only: payments are found by vendor text.
         self._vendor_query = QLineEdit(self)
         self._vendor_query.setPlaceholderText("חיפוש ספק (מופיע בתיאור התנועה)")
-        root.addWidget(QLabel("חיפוש ספק", self))
+        self._vendor_label = QLabel("חיפוש ספק", self)
+        root.addWidget(self._vendor_label)
         root.addWidget(self._vendor_query)
 
         self._account = QComboBox(self)
         self._account.setEditable(False)
-        account_names: List[str] = []
+        # A direct debit always comes from the bank, so its dialog hides this
+        # field and saves the bank account (named "בנק", else the first bank).
+        all_names: List[str] = []
+        bank_names: List[str] = []
         for a in accounts:
             try:
                 if isinstance(a, (BankAccount, BudgetAccount)) and bool(
@@ -93,12 +114,16 @@ class InstallmentPlanDialog(QDialog):
                 ):
                     name = str(getattr(a, "name", "") or "").strip()
                     if name:
-                        account_names.append(name)
+                        all_names.append(name)
+                        if isinstance(a, BankAccount):
+                            bank_names.append(name)
             except QT_ERRORS:
                 continue
-        account_names = sorted(set(account_names))
-        self._account.addItems(account_names)
-        root.addWidget(QLabel("חשבון מקור", self))
+        self._account.addItems(sorted(set(all_names)))
+        banks = sorted(set(bank_names))
+        self._debit_account_name = "בנק" if "בנק" in banks else (banks[0] if banks else "")
+        self._account_label = QLabel("חשבון מקור", self)
+        root.addWidget(self._account_label)
         root.addWidget(self._account)
 
         self._start_date = QDateEdit(self)
@@ -108,19 +133,43 @@ class InstallmentPlanDialog(QDialog):
             self._start_date.setDisplayFormat("yyyy-MM-dd")
         except QT_ERRORS:
             pass
-        root.addWidget(QLabel("תאריך התחלה", self))
+        self._start_label = QLabel("תאריך התחלה", self)
+        root.addWidget(self._start_label)
         root.addWidget(self._start_date)
+
+        # Direct debit only: the fixed monthly charge and its day of month.
+        self._monthly_amount = QLineEdit(self)
+        self._monthly_amount.setPlaceholderText("סכום כל חיוב (לדוגמה: 250)")
+        self._monthly_label = QLabel("סכום חודשי", self)
+        root.addWidget(self._monthly_label)
+        root.addWidget(self._monthly_amount)
+
+        self._charge_day = QSpinBox(self)
+        self._charge_day.setMinimum(1)
+        self._charge_day.setMaximum(31)
+        self._charge_day.setToolTip("בחודש קצר יותר החיוב יורד ביום האחרון של החודש")
+        self._charge_day_label = QLabel("יום החיוב בחודש", self)
+        root.addWidget(self._charge_day_label)
+        root.addWidget(self._charge_day)
 
         self._payments_count = QSpinBox(self)
         self._payments_count.setMinimum(1)
         self._payments_count.setMaximum(240)
-        root.addWidget(QLabel("מספר תשלומים", self))
+        self._count_label = QLabel("מספר תשלומים", self)
+        root.addWidget(self._count_label)
         root.addWidget(self._payments_count)
 
+        # Installment plan only: the total, typed by the user.
         self._original_amount = QLineEdit(self)
         self._original_amount.setPlaceholderText("סכום כולל (לדוגמה: 3500)")
-        root.addWidget(QLabel("סכום מקורי", self))
+        self._original_label = QLabel("סכום מקורי", self)
+        root.addWidget(self._original_label)
         root.addWidget(self._original_amount)
+
+        # Direct debit only: live total = monthly × months.
+        self._total_hint = QLabel("", self)
+        self._total_hint.setObjectName("Subtitle")
+        root.addWidget(self._total_hint)
 
         self._archived = QCheckBox("בארכיון", self)
         root.addWidget(self._archived)
@@ -137,12 +186,71 @@ class InstallmentPlanDialog(QDialog):
         self._cancel_btn.clicked.connect(self.reject)
 
         self._load_initial()
+        try:
+            idx = self._kind.findData(initial_kind)
+            self._kind.setCurrentIndex(max(0, idx))
+        except QT_ERRORS:
+            pass
+        self._apply_kind()
+        self._kind.currentIndexChanged.connect(lambda _i: self._apply_kind())
+        self._monthly_amount.textChanged.connect(lambda _t: self._update_total_hint())
+        self._payments_count.valueChanged.connect(lambda _v: self._update_total_hint())
+
+    def _current_kind(self) -> str:
+        try:
+            return normalize_plan_kind(self._kind.currentData())
+        except QT_ERRORS:
+            return KIND_INSTALLMENTS
+
+    def _apply_kind(self) -> None:
+        dd = self._current_kind() == KIND_DIRECT_DEBIT
+        try:
+            self._title.setText("הוראת קבע" if dd else "תכנית תשלומים")
+            self.setWindowTitle("הוראת קבע" if dd else "תכנית תשלומים")
+            self._name.setPlaceholderText(
+                "שם (לדוגמה: חוג שחייה)" if dd else "שם (לדוגמה: טלוויזיה)"
+            )
+            for w in (self._vendor_label, self._vendor_query,
+                      self._original_label, self._original_amount):
+                w.setVisible(not dd)
+            for w in (self._monthly_label, self._monthly_amount,
+                      self._charge_day_label, self._charge_day, self._total_hint):
+                w.setVisible(dd)
+            self._account_label.setVisible(not dd)
+            self._account.setVisible(not dd)
+            self._count_label.setText("מספר חודשים" if dd else "מספר תשלומים")
+            self._start_label.setText("תאריך החיוב הראשון" if dd else "תאריך התחלה")
+            self.adjustSize()
+        except QT_ERRORS:
+            pass
+        self._update_total_hint()
+
+    def _monthly_value(self) -> Optional[float]:
+        try:
+            return float(str(self._monthly_amount.text() or "").replace(",", "").strip())
+        except (ValueError, TypeError):
+            return None
+
+    def _update_total_hint(self) -> None:
+        monthly = self._monthly_value()
+        try:
+            if monthly is None or monthly <= 0:
+                self._total_hint.setText("")
+                return
+            months = int(self._payments_count.value())
+            self._total_hint.setText(
+                f"סה״כ {format_currency(monthly * months)} · "
+                f"{months} חיובים של {format_currency(monthly)}"
+            )
+        except QT_ERRORS:
+            pass
 
     def _load_initial(self) -> None:
         p = self._plan
         if p is None:
             try:
                 self._start_date.setDate(QDate.currentDate())
+                self._charge_day.setValue(QDate.currentDate().day())
             except QT_ERRORS:
                 pass
             self._payments_count.setValue(1)
@@ -162,12 +270,27 @@ class InstallmentPlanDialog(QDialog):
                 pass
         self._payments_count.setValue(max(1, int(p.payments_count)))
         self._original_amount.setText(str(float(p.original_amount)))
+        if float(p.monthly_amount or 0.0) > 0:
+            self._monthly_amount.setText(f"{float(p.monthly_amount):g}")
+        day = int(p.charge_day or 0)
+        if not 1 <= day <= 31:
+            try:
+                day = self._start_date.date().day()
+            except QT_ERRORS:
+                day = 1
+        self._charge_day.setValue(day)
         self._archived.setChecked(bool(getattr(p, "archived", False)))
 
     def _on_save(self) -> None:
+        kind = self._current_kind()
+        dd = kind == KIND_DIRECT_DEBIT
         name = str(self._name.text() or "").strip()
         vendor_query = str(self._vendor_query.text() or "").strip()
-        account_name = str(self._account.currentText() or "").strip()
+        account_name = (
+            self._debit_account_name
+            if dd
+            else str(self._account.currentText() or "").strip()
+        )
         payments_count = int(self._payments_count.value())
         start_date = ""
         try:
@@ -178,48 +301,57 @@ class InstallmentPlanDialog(QDialog):
             original_amount = float(
                 str(self._original_amount.text() or "").strip() or 0.0
             )
-        except QT_ERRORS:
+        except (ValueError, TypeError):
             original_amount = 0.0
         archived = bool(self._archived.isChecked())
+        monthly_amount = 0.0
+        charge_day = 0
 
         if not name:
             QMessageBox.warning(self, "שגיאה", "שם לא יכול להיות ריק")
             return
-        if not vendor_query:
+        if not dd and not vendor_query:
             QMessageBox.warning(self, "שגיאה", "חיפוש ספק לא יכול להיות ריק")
             return
         if not account_name:
-            QMessageBox.warning(self, "שגיאה", "צריך לבחור חשבון מקור")
+            QMessageBox.warning(
+                self,
+                "שגיאה",
+                "צריך חשבון בנק פעיל כדי ליצור הוראת קבע" if dd else "צריך לבחור חשבון מקור",
+            )
             return
         if payments_count <= 0:
             QMessageBox.warning(self, "שגיאה", "מספר תשלומים חייב להיות גדול מ-0")
             return
-        if original_amount < 0:
+        if dd:
+            monthly = self._monthly_value()
+            if monthly is None or monthly <= 0:
+                QMessageBox.warning(self, "שגיאה", "סכום חודשי חייב להיות מספר גדול מ-0")
+                return
+            monthly_amount = float(monthly)
+            charge_day = int(self._charge_day.value())
+            # The total is derived, so the rest of the app (history, tiles)
+            # can keep reading ``original_amount``.
+            original_amount = round(monthly_amount * payments_count, 2)
+        elif original_amount < 0:
             QMessageBox.warning(self, "שגיאה", "סכום מקורי לא יכול להיות שלילי")
             return
 
-        if self._plan is None:
-            self._plan = InstallmentPlan(
-                name=name,
-                vendor_query=vendor_query,
-                account_name=account_name,
-                start_date=start_date,
-                payments_count=payments_count,
-                original_amount=float(original_amount),
-                archived=archived,
-            )
-        else:
-            self._plan = InstallmentPlan(
-                id=self._plan.id,
-                name=name,
-                vendor_query=vendor_query,
-                account_name=account_name,
-                start_date=start_date,
-                payments_count=payments_count,
-                original_amount=float(original_amount),
-                excluded_movement_ids=list(self._plan.excluded_movement_ids),
-                archived=archived,
-            )
+        prev = self._plan
+        self._plan = InstallmentPlan(
+            **({"id": prev.id} if prev is not None else {}),
+            name=name,
+            vendor_query=vendor_query,
+            account_name=account_name,
+            start_date=start_date,
+            payments_count=payments_count,
+            original_amount=float(original_amount),
+            excluded_movement_ids=list(prev.excluded_movement_ids) if prev else [],
+            archived=archived,
+            kind=kind,
+            monthly_amount=monthly_amount,
+            charge_day=charge_day,
+        )
         self.accept()
 
     def get_plan(self) -> Optional[InstallmentPlan]:
@@ -242,6 +374,8 @@ class InstallmentsPage(BasePage):
         self._card_paid: Optional[QLabel] = None
         self._card_left: Optional[QLabel] = None
         self._card_overpaid: Optional[QLabel] = None
+        self._card_titles: List[QLabel] = []
+        self._table_title: Optional[QLabel] = None
         # hero + progress
         self._name_lbl: Optional[QLabel] = None
         self._acct_badge: Optional[QLabel] = None
@@ -250,6 +384,7 @@ class InstallmentsPage(BasePage):
         self._prog_lead: Optional[QLabel] = None
         self._prog_left: Optional[QLabel] = None
         self._prog_bar: Optional[QProgressBar] = None
+        self._tick_first: Optional[QLabel] = None
         self._tick_last: Optional[QLabel] = None
 
         super().__init__(*args, **kwargs)
@@ -326,6 +461,7 @@ class InstallmentsPage(BasePage):
             actions,
             on_selected=self._on_plan_selected,
             on_add_plan=self._on_add_clicked,
+            on_add_direct_debit=self._on_add_direct_debit_clicked,
             on_delete_plan=self._on_delete_clicked,
         )
         # The hero title already shows the full plan name, so the selector
@@ -398,6 +534,7 @@ class InstallmentsPage(BasePage):
         ticks.setSpacing(8)
         tick_first = QLabel("תשלום 1", self._prog_wrap)
         tick_first.setObjectName("TickLabel")
+        self._tick_first = tick_first
         self._tick_last = QLabel("", self._prog_wrap)
         self._tick_last.setObjectName("TickLabel")
         # RTL: "תשלום 1" at the right (fill origin), last payment at left.
@@ -411,6 +548,7 @@ class InstallmentsPage(BasePage):
 
     # ----------------------------------------------------------------- tiles
     def _build_tiles(self, parent: QWidget) -> QWidget:
+        self._card_titles = []
         tiles = QWidget(parent)
         tiles_l = QHBoxLayout(tiles)
         tiles_l.setContentsMargins(0, 0, 0, 0)
@@ -429,6 +567,7 @@ class InstallmentsPage(BasePage):
             cl.setSpacing(6)
             title = QLabel(title_text, card)
             title.setObjectName("StatTitle")
+            self._card_titles.append(title)
             value = QLabel("", card)
             value.setObjectName("StatValueCard")
             cl.addWidget(title, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -459,6 +598,7 @@ class InstallmentsPage(BasePage):
 
         title = QLabel("התשלומים שנמצאו", table_card)
         title.setObjectName("PanelTitle")
+        self._table_title = title
         table_card_l.addWidget(title)
 
         self._table = QTableWidget(table_card)
@@ -522,7 +662,7 @@ class InstallmentsPage(BasePage):
         if plan is None:
             self._table.setRowCount(0)
             if self._name_lbl is not None:
-                self._name_lbl.setText("אין תכניות תשלומים")
+                self._name_lbl.setText("אין תכניות תשלומים או הוראות קבע")
             if self._acct_badge is not None:
                 self._acct_badge.setText("")
                 self._acct_badge.setVisible(False)
@@ -547,8 +687,12 @@ class InstallmentsPage(BasePage):
 
         if self._edit_btn is not None:
             self._edit_btn.setEnabled(True)
+        dd = plan.is_direct_debit
         if self._exclude_btn is not None:
-            self._exclude_btn.setEnabled(True)
+            # A direct debit is not matched against bank movements.
+            self._exclude_btn.setEnabled(not dd)
+            self._exclude_btn.setVisible(not dd)
+        self._apply_kind_labels(dd)
 
         stats = self._service.compute_stats(plan)
 
@@ -562,11 +706,25 @@ class InstallmentsPage(BasePage):
         start_txt = self._format_date_he(plan.start_date)
         left_n = int(getattr(stats, "payments_left", 0) or 0)
         parts = []
+        if dd:
+            parts.append("הוראת קבע")
+            parts.append(
+                f"{format_currency(float(plan.monthly_amount))} בחודש"
+            )
+            sched = plan.schedule()
+            if sched:
+                parts.append(f"יורד ב-{sched[0].date.day} לכל חודש")
+                start_txt = self._format_date_he(sched[0].date.isoformat())
         if start_txt:
             parts.append(f"החל {start_txt}")
-        parts.append(
-            f"נותרו {left_n} תשלומים" if left_n > 0 else "כל התשלומים בוצעו"
-        )
+        if dd:
+            parts.append(
+                f"נותרו {left_n} חיובים" if left_n > 0 else "כל החיובים בוצעו"
+            )
+        else:
+            parts.append(
+                f"נותרו {left_n} תשלומים" if left_n > 0 else "כל התשלומים בוצעו"
+            )
         if self._meta_lbl is not None:
             self._meta_lbl.setText("  ·  ".join(parts))
             self._meta_lbl.setVisible(bool(parts))
@@ -586,11 +744,66 @@ class InstallmentsPage(BasePage):
             self._card_left.setText(format_currency(remaining, use_compact=True))
         if self._card_overpaid is not None:
             self._card_overpaid.setText(
-                format_currency(float(stats.overpaid), use_compact=True)
+                format_currency(
+                    float(plan.monthly_amount if dd else stats.overpaid),
+                    use_compact=True,
+                )
             )
 
         # ── table ──
-        self._fill_table(stats.matched_movements)
+        if dd:
+            self._fill_schedule_table(plan)
+        else:
+            self._fill_table(stats.matched_movements)
+
+    def _apply_kind_labels(self, dd: bool) -> None:
+        """Tile/table wording differs between installment plans and direct debits."""
+        titles = (
+            ("סכום כולל", "ירד עד כה", "נותר לחיוב", "חיוב חודשי")
+            if dd
+            else ("סכום מקורי", "שולם עד כה", "נותר לתשלום", "חריגה")
+        )
+        for lbl, text in zip(self._card_titles, titles):
+            try:
+                lbl.setText(text)
+            except QT_ERRORS:
+                pass
+        if self._table_title is not None:
+            self._table_title.setText("לוח החיובים" if dd else "התשלומים שנמצאו")
+        if self._table is not None:
+            try:
+                self._table.setHorizontalHeaderLabels(
+                    ["תאריך", "סכום", "חיוב", "סטטוס"]
+                    if dd
+                    else ["תאריך", "סכום", "קטגוריה", "תיאור"]
+                )
+            except QT_ERRORS:
+                pass
+
+    def _fill_schedule_table(self, plan: InstallmentPlan) -> None:
+        if self._table is None:
+            return
+        sched = plan.schedule()
+        total = len(sched)
+        self._table.setRowCount(total)
+        for row, p in enumerate(sched):
+            cells = (
+                QTableWidgetItem(self._format_date_he(p.date.isoformat())),
+                QTableWidgetItem(format_currency(-p.amount, use_compact=True)),
+                QTableWidgetItem(f"{p.number} מתוך {total}"),
+                QTableWidgetItem("ירד" if p.done else "עתידי"),
+            )
+            try:
+                cells[1].setForeground(QColor("#d66a4e"))
+                cells[3].setForeground(QColor("#2f9e68" if p.done else "#8a94a6"))
+            except QT_ERRORS:
+                pass
+            for col, it in enumerate(cells):
+                try:
+                    it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                except QT_ERRORS:
+                    pass
+                self._table.setItem(row, col, it)
 
     # -------------------------------------------------------- refresh helpers
     def _fill_progress(self, plan: InstallmentPlan, stats) -> None:
@@ -606,8 +819,9 @@ class InstallmentsPage(BasePage):
         paid = float(stats.total_paid)
         over = float(stats.overpaid) > 0.0
 
+        noun = ("ירדו", "חיובים") if plan.is_direct_debit else ("שולמו", "תשלומים")
         lead = (
-            f"שולמו <b>{paid_n}</b> מתוך <b>{total_n}</b> תשלומים · "
+            f"{noun[0]} <b>{paid_n}</b> מתוך <b>{total_n}</b> {noun[1]} · "
             f"<b>{int(round(pct * 100))}%</b>"
         )
         if original > 0:
@@ -632,8 +846,14 @@ class InstallmentsPage(BasePage):
                 self._prog_left.setStyleSheet("color:#2f9e68;font-weight:800;")
             else:
                 self._prog_left.setText("")
+        if self._tick_first is not None:
+            self._tick_first.setText(
+                "חיוב 1" if plan.is_direct_debit else "תשלום 1"
+            )
         if self._tick_last is not None:
-            self._tick_last.setText(f"תשלום {total_n}")
+            self._tick_last.setText(
+                f"{'חיוב' if plan.is_direct_debit else 'תשלום'} {total_n}"
+            )
         if self._prog_bar is not None:
             self._prog_bar.setValue(int(round(pct * 100)))
             chunk = (
@@ -694,8 +914,11 @@ class InstallmentsPage(BasePage):
         self._selected_plan_id = str(plan_id or "").strip() or None
         self._refresh_details()
 
-    def _on_add_clicked(self) -> None:
-        dlg = InstallmentPlanDialog(accounts=self._accounts, parent=self)
+    def _on_add_direct_debit_clicked(self) -> None:
+        self._on_add_clicked(kind=KIND_DIRECT_DEBIT)
+
+    def _on_add_clicked(self, kind: str = KIND_INSTALLMENTS) -> None:
+        dlg = InstallmentPlanDialog(accounts=self._accounts, kind=kind, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         plan = dlg.get_plan()

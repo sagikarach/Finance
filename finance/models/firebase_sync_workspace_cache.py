@@ -86,7 +86,7 @@ def pull_installment_plans_to_local_cache(
         return
     with swallow(msg="pull_installment_plans_to_local_cache"):
         from ..data.installment_plan_provider import JsonFileInstallmentPlanProvider
-        from ..models.installment_plan import InstallmentPlan
+        from ..models.installment_plan import InstallmentPlan, normalize_plan_kind
 
         docs_plans = fs.list_collection(
             collection_path=f"workspaces/{workspace_id}/installment_plans",
@@ -125,6 +125,9 @@ def pull_installment_plans_to_local_cache(
                     original_amount=original_amount,
                     excluded_movement_ids=excluded,
                     archived=archived,
+                    kind=normalize_plan_kind(parsed.get("kind")),
+                    monthly_amount=float(parsed.get("monthly_amount") or 0.0),
+                    charge_day=int(parsed.get("charge_day") or 0),
                 )
         provider_plans.save_plans(list(local_plans_by_id.values()))
 
