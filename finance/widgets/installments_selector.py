@@ -24,11 +24,13 @@ class InstallmentsSelector(QWidget):
         *,
         on_selected: Optional[Callable[[str], None]] = None,
         on_add_plan: Optional[Callable[[], None]] = None,
+        on_add_direct_debit: Optional[Callable[[], None]] = None,
         on_delete_plan: Optional[Callable[[], None]] = None,
     ) -> None:
         super().__init__(parent)
         self._on_selected = on_selected
         self._on_add_plan = on_add_plan
+        self._on_add_direct_debit = on_add_direct_debit
         self._on_delete_plan = on_delete_plan
 
         self._plans: List[InstallmentPlan] = []
@@ -218,7 +220,36 @@ class InstallmentsSelector(QWidget):
 
             setattr(row, "mousePressEvent", lambda _evt: on_click())
 
-        for plan in self._plans:
+        installments = [p for p in self._plans if not p.is_direct_debit]
+        debits = [p for p in self._plans if p.is_direct_debit]
+        ordered: List[object] = []
+        if debits:
+            # Section headers only when there is something to tell apart.
+            if installments:
+                ordered.append("תכניות תשלומים")
+                ordered.extend(installments)
+            ordered.append("הוראות קבע")
+            ordered.extend(debits)
+        else:
+            ordered.extend(installments)
+
+        for plan in ordered:
+            if isinstance(plan, str):
+                try:
+                    hdr_action = QWidgetAction(self._menu)
+                    hdr = QLabel(plan, self._menu)
+                    hdr.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    hdr.setStyleSheet(
+                        "font-weight:700;font-size:11px;opacity:0.7;"
+                        "padding:6px 10px 2px 10px;background:transparent;"
+                    )
+                    hdr_action.setDefaultWidget(hdr)
+                    hdr_action.setEnabled(False)
+                    self._menu.addAction(hdr_action)
+                except QT_ERRORS:
+                    pass
+                continue
+            assert isinstance(plan, InstallmentPlan)
             try:
                 wa = QWidgetAction(self._menu)
                 row = QWidget(self._menu)
@@ -281,6 +312,17 @@ class InstallmentsSelector(QWidget):
                     label_text="תכנית חדשה",
                     icon_text="➕",
                     on_click=self._on_add_plan,
+                    enabled=True,
+                )
+            except QT_ERRORS:
+                pass
+
+        if self._on_add_direct_debit is not None:
+            try:
+                add_center_row(
+                    label_text="הוראת קבע חדשה",
+                    icon_text="🔁",
+                    on_click=self._on_add_direct_debit,
                     enabled=True,
                 )
             except QT_ERRORS:

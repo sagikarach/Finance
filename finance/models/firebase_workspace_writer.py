@@ -214,6 +214,12 @@ class FirebaseWorkspaceWriter:
                     getattr(plan, "excluded_movement_ids", []) or []
                 ),
                 "archived": bool(getattr(plan, "archived", False)),
+                "kind": str(plan.kind),
+                "monthly_amount": float(plan.monthly_amount),
+                "charge_day": int(plan.charge_day),
+                "auto_post": bool(plan.auto_post),
+                "category": str(plan.category or ""),
+                "posted_count": int(plan.posted_count),
                 "deleted": False,
             },
         )

@@ -10,7 +10,11 @@ from ..utils.safe import PARSE_ERRORS
 
 _log = get_logger("data")
 
-from ..models.installment_plan import InstallmentPlan, generate_installment_plan_id
+from ..models.installment_plan import (
+    InstallmentPlan,
+    generate_installment_plan_id,
+    normalize_plan_kind,
+)
 
 
 class InstallmentPlanProvider(ABC):
@@ -95,6 +99,12 @@ class JsonFileInstallmentPlanProvider(InstallmentPlanProvider):
                 original_amount=float(item.get("original_amount", 0.0) or 0.0),
                 excluded_movement_ids=excluded,
                 archived=bool(item.get("archived", False)),
+                kind=normalize_plan_kind(item.get("kind")),
+                monthly_amount=float(item.get("monthly_amount", 0.0) or 0.0),
+                charge_day=int(item.get("charge_day", 0) or 0),
+                auto_post=bool(item.get("auto_post", True)),
+                category=str(item.get("category", "") or ""),
+                posted_count=int(item.get("posted_count", 0) or 0),
             )
         except PARSE_ERRORS as exc:
             _log.debug("skipping malformed installment plan: %s", exc)

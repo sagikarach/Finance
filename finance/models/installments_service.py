@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import replace
+from datetime import date
 from typing import List, Optional
 
 from ..data.action_history_provider import (
     ActionHistoryProvider,
     JsonFileActionHistoryProvider,
 )
+from .bank_movement import BankMovement
 from ..data.bank_movement_provider import (
     BankMovementProvider,
     JsonFileBankMovementProvider,
@@ -201,20 +204,69 @@ class InstallmentsService:
         if movement_id in excluded:
             return
         excluded.append(movement_id)
-        self.upsert_plan(
-            InstallmentPlan(
-                id=plan.id,
-                name=plan.name,
-                vendor_query=plan.vendor_query,
-                account_name=plan.account_name,
-                start_date=plan.start_date,
-                payments_count=int(plan.payments_count),
-                original_amount=float(plan.original_amount),
-                excluded_movement_ids=excluded,
-                archived=bool(plan.archived),
-            )
-        )
+        self.upsert_plan(replace(plan, excluded_movement_ids=excluded))
+
+    def post_due_direct_debits(self, today: Optional[date] = None) -> int:
+        """Post every due, not-yet-posted direct debit charge as an expense
+        movement on its account. Returns how many movements were created.
+
+        Idempotent: each charge has a fixed movement id, and the plan's
+        ``posted_count`` advances so a movement the user deleted stays deleted.
+        """
+        try:
+            plans = self._plans_provider.list_plans()
+            existing = self._movements_provider.list_movements()
+        except PARSE_ERRORS:
+            return 0
+        existing_ids = {str(m.id) for m in existing}
+        new_movements: List[BankMovement] = []
+        advanced: List[InstallmentPlan] = []
+        for plan in plans:
+            due = plan.due_movements(today)
+            if not due:
+                continue
+            new_movements.extend(m for m in due if str(m.id) not in existing_ids)
+            last = max(int(m.id.rsplit("-", 1)[-1]) for m in due)
+            advanced.append(replace(plan, posted_count=last))
+        if not new_movements and not advanced:
+            return 0
+
+        if new_movements:
+            self._movements_provider.save_movements(list(existing) + new_movements)
+        for plan in advanced:
+            self._plans_provider.upsert_plan(plan)
+
+        with swallow(msg="firebase sync in post_due_direct_debits"):
+            from ..models.sync_gate import allow_firebase_push
+
+            if allow_firebase_push():
+                from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
+
+                w = FirebaseWorkspaceWriter()
+                for m in new_movements:
+                    with swallow(msg="push direct debit movement"):
+                        w.upsert_movement(m)
+                for plan in advanced:
+                    with swallow(msg="push direct debit plan"):
+                        w.upsert_installment_plan(plan)
+
+        with swallow(msg="history in post_due_direct_debits"):
+            from .action_history import AddOutcomeMovementAction
+
+            for m in new_movements:
+                self._history_provider.add_action(
+                    ActionHistory(
+                        id=generate_action_id(),
+                        timestamp=get_current_timestamp(),
+                        action=AddOutcomeMovementAction(
+                            action_name="add_outcome_movement", movement_id=m.id
+                        ),
+                    )
+                )
+        return len(new_movements)
 
     def compute_stats(self, plan: InstallmentPlan) -> InstallmentPlanStats:
         # The plan owns the math; the service just supplies the movements.
+        if plan.is_direct_debit:
+            return plan.stats([])
         return plan.stats(self._movements_provider.list_movements())
