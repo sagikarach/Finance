@@ -5,12 +5,12 @@ from typing import Any, List
 
 from .mortgage_math import (
     average_monthly,
+    cost_matched_movements,
     cost_monthly_average,
     cost_paid_amount,
     query_paid_amount,
     yearly_cost_cycles,
 )
-from .movement_matching import match_movements
 from ..utils.safe import PARSE_ERRORS
 
 
@@ -121,14 +121,12 @@ class AssetExpenseService:
         category = str(getattr(mortgage, "expense_category", "") or "").strip() or "רכב"
         movements = self._movements()
         yearly_costs = list(getattr(mortgage, "yearly_costs", None) or [])
-        yearly_queries = [
-            q
-            for q in (str(getattr(c, "query", "") or "").strip() for c in yearly_costs)
-            if q
-        ]
+        # Movements counted by a yearly item are left out of the monthly spend.
+        # A movement the user excluded from a yearly item is not that item's,
+        # so it stays in the monthly spend.
         excluded = set()
-        for q in yearly_queries:
-            for mm in match_movements(movements, vendor_query=q):
+        for c in yearly_costs:
+            for mm in cost_matched_movements(c, movements):
                 excluded.add(id(mm))
         selected = [
             mv

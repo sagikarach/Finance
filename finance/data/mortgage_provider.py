@@ -84,6 +84,9 @@ def serialize_cost(item: CostItem) -> Dict[str, Any]:
         "amount": float(item.amount),
         "query": str(getattr(item, "query", "") or ""),
         "renewal_month": int(getattr(item, "renewal_month", 0) or 0),
+        "excluded_movement_ids": [
+            str(x) for x in (getattr(item, "excluded_movement_ids", None) or [])
+        ],
     }
 
 
@@ -96,6 +99,13 @@ def deserialize_cost(item: Any) -> Optional[CostItem]:
             amount=float(item.get("amount", 0.0) or 0.0),
             query=str(item.get("query", "") or ""),
             renewal_month=int(item.get("renewal_month", 0) or 0),
+            excluded_movement_ids=[
+                str(x)
+                for x in (item.get("excluded_movement_ids") or [])
+                if str(x).strip()
+            ]
+            if isinstance(item.get("excluded_movement_ids"), list)
+            else [],
         )
     except PARSE_ERRORS as exc:
         _log.debug("skipping malformed cost item: %s", exc)
