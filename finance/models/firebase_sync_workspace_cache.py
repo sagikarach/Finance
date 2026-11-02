@@ -128,6 +128,14 @@ def pull_installment_plans_to_local_cache(
                     kind=normalize_plan_kind(parsed.get("kind")),
                     monthly_amount=float(parsed.get("monthly_amount") or 0.0),
                     charge_day=int(parsed.get("charge_day") or 0),
+                    auto_post=bool(parsed.get("auto_post", True)),
+                    category=str(parsed.get("category") or ""),
+                    # Never move the posted count backwards (another device
+                    # may have posted more charges than we know of, or fewer).
+                    posted_count=max(
+                        int(parsed.get("posted_count") or 0),
+                        int(getattr(local_plans_by_id.get(pid), "posted_count", 0) or 0),
+                    ),
                 )
         provider_plans.save_plans(list(local_plans_by_id.values()))
 

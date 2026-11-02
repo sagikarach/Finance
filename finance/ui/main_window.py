@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from ..utils.safe import swallow
+
 from typing import Dict
 import sys
 import threading
@@ -27,6 +29,14 @@ from ..models.firebase_session import FirebaseSessionStore
 from ..models.firebase_movements_sync import FirebaseMovementsSyncService
 from ..utils.updater import check_version_only, download_and_install_update, install_app_to_applications
 from ..utils.safe import QT_ERRORS
+
+
+def _post_due_direct_debits() -> None:
+    """Best-effort: post due direct debit charges as bank movements."""
+    with swallow(msg="post due direct debits"):
+        from ..models.installments_service import InstallmentsService
+
+        InstallmentsService().post_due_direct_debits()
 
 
 class MainWindow(QMainWindow):
@@ -77,6 +87,7 @@ class MainWindow(QMainWindow):
             s = FirebaseSessionStore().load()
             wid = str(getattr(s, "workspace_id", "") or "").strip()
             if not (bool(getattr(s, "is_logged_in", False)) and wid):
+                _post_due_direct_debits()
                 return
         except QT_ERRORS:
             return
@@ -94,6 +105,9 @@ class MainWindow(QMainWindow):
                 FirebaseMovementsSyncService().sync_now(allow_push=False)
             except QT_ERRORS:
                 pass
+            # After pulling (so other devices' postings are known), turn due
+            # הוראת קבע charges into bank movements.
+            _post_due_direct_debits()
 
             def _ui_refresh() -> None:
                 try:

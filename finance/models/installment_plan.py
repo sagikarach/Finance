@@ -6,7 +6,7 @@ from datetime import date
 from typing import List, Optional
 import uuid
 
-from .bank_movement import BankMovement
+from .bank_movement import BankMovement, MovementType
 from .movement_matching import match_movements
 from ..utils.safe import PARSE_ERRORS
 
@@ -21,6 +21,13 @@ PLAN_KINDS = (KIND_INSTALLMENTS, KIND_DIRECT_DEBIT)
 
 def generate_installment_plan_id() -> str:
     return str(uuid.uuid4())
+
+
+def direct_debit_movement_id(plan_id: str, number: int) -> str:
+    """Fixed id for charge ``number`` of a direct debit, so posting is
+    idempotent — the same charge is never created twice, even when two
+    devices post it before syncing (same id → same Firestore doc)."""
+    return f"dd-{plan_id}-{int(number)}"
 
 
 def normalize_plan_kind(value: object) -> str:
@@ -68,6 +75,12 @@ class InstallmentPlan:
     kind: str = KIND_INSTALLMENTS
     monthly_amount: float = 0.0  # direct debit: the fixed monthly charge
     charge_day: int = 0  # direct debit: day of month (1-31); 0 = start date's day
+    # Direct debit: post each charge as a real expense movement when due.
+    auto_post: bool = True
+    category: str = ""  # category for the posted movements
+    # How many charges were already posted. Only charges after this are posted,
+    # so a movement the user deleted is not re-created.
+    posted_count: int = 0
 
     @property
     def is_direct_debit(self) -> bool:
@@ -95,6 +108,29 @@ class InstallmentPlan:
         for i in range(count):
             d = _add_months_on_day(start, first_offset + i, day)
             out.append(ScheduledPayment(number=i + 1, date=d, amount=amount, done=d <= today))
+        return out
+
+    def due_movements(self, today: Optional[date] = None) -> List[BankMovement]:
+        """Direct debit charges that are due and not yet posted, as expense
+        movements (MONTHLY) on the plan's account. Empty unless ``auto_post``."""
+        if not self.is_direct_debit or not self.auto_post or self.archived:
+            return []
+        posted = int(self.posted_count or 0)
+        out: List[BankMovement] = []
+        for p in self.schedule(today):
+            if not p.done or p.number <= posted or p.amount <= 0:
+                continue
+            out.append(
+                BankMovement(
+                    amount=-float(p.amount),
+                    date=p.date.isoformat(),
+                    account_name=str(self.account_name or ""),
+                    category=str(self.category or "") or "הוראת קבע",
+                    type=MovementType.MONTHLY,
+                    description=f"{self.name} · הוראת קבע {p.number}/{self.payments_count}",
+                    id=direct_debit_movement_id(self.id, p.number),
+                )
+            )
         return out
 
     def matches(self, movements: List[BankMovement]) -> List[BankMovement]:

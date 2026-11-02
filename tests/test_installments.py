@@ -145,3 +145,64 @@ def test_direct_debit_round_trips_through_json(tmp_path) -> None:
     assert loaded.charge_day == 10
     # Plans saved before this feature have no kind → installments.
     assert JsonFileInstallmentPlanProvider._deserialize({"name": "x"}).kind == "installments"  # type: ignore[union-attr]
+
+
+# ── הוראת קבע → real bank movements ───────────────────────────────────────
+from finance.data.action_history_provider import JsonFileActionHistoryProvider  # noqa: E402
+from finance.data.bank_movement_provider import JsonFileBankMovementProvider  # noqa: E402
+from finance.models.bank_movement import MovementType as _MT  # noqa: E402
+from finance.models.installment_plan import direct_debit_movement_id  # noqa: E402
+from finance.models.installments_service import InstallmentsService  # noqa: E402
+
+
+def _svc(tmp_path, monkeypatch):
+    monkeypatch.setenv("FINANCE_DATA_DIR", str(tmp_path / "sbx"))
+    plans = JsonFileInstallmentPlanProvider(tmp_path / "plans.json")
+    moves = JsonFileBankMovementProvider(tmp_path / "moves.json")
+    svc = InstallmentsService(
+        plans_provider=plans,
+        movements_provider=moves,
+        history_provider=JsonFileActionHistoryProvider(tmp_path / "history.json"),
+    )
+    return svc, plans, moves
+
+
+def test_due_movements_are_monthly_expenses_with_fixed_ids() -> None:
+    plan = _debit(category="חוגים")
+    due = plan.due_movements(today=date(2026, 3, 10))
+    assert [(m.date, m.amount) for m in due] == [("2026-02-10", -250.0), ("2026-03-10", -250.0)]
+    assert all(m.type == _MT.MONTHLY and m.account_name == "בנק" and m.category == "חוגים" for m in due)
+    assert [m.id for m in due] == [direct_debit_movement_id(plan.id, 1), direct_debit_movement_id(plan.id, 2)]
+    assert _debit(auto_post=False).due_movements(today=date(2026, 3, 10)) == []
+    assert _debit(archived=True).due_movements(today=date(2026, 3, 10)) == []
+    assert _debit(posted_count=1).due_movements(today=date(2026, 3, 10))[0].date == "2026-03-10"
+
+
+def test_posting_is_idempotent_and_advances_posted_count(tmp_path, monkeypatch) -> None:
+    svc, plans, moves = _svc(tmp_path, monkeypatch)
+    plans.upsert_plan(_debit())
+    assert svc.post_due_direct_debits(today=date(2026, 3, 10)) == 2
+    assert svc.post_due_direct_debits(today=date(2026, 3, 10)) == 0  # nothing new
+    assert len(moves.list_movements()) == 2
+    assert plans.list_plans()[0].posted_count == 2
+    assert svc.post_due_direct_debits(today=date(2026, 4, 10)) == 1  # next month
+    assert len(moves.list_movements()) == 3
+
+
+def test_deleted_posted_movement_is_not_recreated(tmp_path, monkeypatch) -> None:
+    svc, plans, moves = _svc(tmp_path, monkeypatch)
+    plans.upsert_plan(_debit())
+    svc.post_due_direct_debits(today=date(2026, 3, 10))
+    moves.save_movements(moves.list_movements()[1:])  # user deletes one
+    assert svc.post_due_direct_debits(today=date(2026, 3, 10)) == 0
+    assert len(moves.list_movements()) == 1
+
+
+def test_already_present_charge_is_not_duplicated(tmp_path, monkeypatch) -> None:
+    # Another device posted charge 1 (same fixed id) before we synced.
+    svc, plans, moves = _svc(tmp_path, monkeypatch)
+    plan = _debit()
+    plans.upsert_plan(plan)
+    moves.save_movements(plan.due_movements(today=date(2026, 2, 10)))
+    assert svc.post_due_direct_debits(today=date(2026, 3, 10)) == 1
+    assert len(moves.list_movements()) == 2

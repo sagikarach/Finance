@@ -102,6 +102,9 @@ class JsonFileInstallmentPlanProvider(InstallmentPlanProvider):
                 kind=normalize_plan_kind(item.get("kind")),
                 monthly_amount=float(item.get("monthly_amount", 0.0) or 0.0),
                 charge_day=int(item.get("charge_day", 0) or 0),
+                auto_post=bool(item.get("auto_post", True)),
+                category=str(item.get("category", "") or ""),
+                posted_count=int(item.get("posted_count", 0) or 0),
             )
         except PARSE_ERRORS as exc:
             _log.debug("skipping malformed installment plan: %s", exc)

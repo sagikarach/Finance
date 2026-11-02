@@ -58,6 +58,7 @@ class InstallmentPlanDialog(QDialog):
         accounts: List[MoneyAccount],
         plan: Optional[InstallmentPlan] = None,
         kind: str = KIND_INSTALLMENTS,
+        categories: Optional[List[str]] = None,
         parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
@@ -171,6 +172,25 @@ class InstallmentPlanDialog(QDialog):
         self._total_hint.setObjectName("Subtitle")
         root.addWidget(self._total_hint)
 
+        # Direct debit only: post each charge as a real bank movement.
+        self._auto_post = QCheckBox("צור תנועות בנק אוטומטית בכל חיוב", self)
+        self._auto_post.setChecked(True)
+        self._auto_post.setToolTip(
+            "בתאריך כל חיוב תיווצר הוצאה בחשבון הבנק (כולל חיובים שכבר עברו)"
+        )
+        root.addWidget(self._auto_post)
+        self._category = QComboBox(self)
+        cats = [str(c) for c in (categories or []) if str(c).strip()]
+        self._category.addItems(cats or ["הוראת קבע"])
+        try:
+            self._category.setPlaceholderText("בחר קטגוריה")
+            self._category.setCurrentIndex(-1)  # no guess — the user picks
+        except QT_ERRORS:
+            pass
+        self._category_label = QLabel("קטגוריה לתנועות", self)
+        root.addWidget(self._category_label)
+        root.addWidget(self._category)
+
         self._archived = QCheckBox("בארכיון", self)
         root.addWidget(self._archived)
 
@@ -194,6 +214,7 @@ class InstallmentPlanDialog(QDialog):
         self._apply_kind()
         self._kind.currentIndexChanged.connect(lambda _i: self._apply_kind())
         self._monthly_amount.textChanged.connect(lambda _t: self._update_total_hint())
+        self._auto_post.toggled.connect(lambda _c: self._apply_kind())
         self._payments_count.valueChanged.connect(lambda _v: self._update_total_hint())
 
     def _current_kind(self) -> str:
@@ -214,8 +235,11 @@ class InstallmentPlanDialog(QDialog):
                       self._original_label, self._original_amount):
                 w.setVisible(not dd)
             for w in (self._monthly_label, self._monthly_amount,
-                      self._charge_day_label, self._charge_day, self._total_hint):
+                      self._charge_day_label, self._charge_day, self._total_hint,
+                      self._auto_post):
                 w.setVisible(dd)
+            self._category_label.setVisible(dd and self._auto_post.isChecked())
+            self._category.setVisible(dd and self._auto_post.isChecked())
             self._account_label.setVisible(not dd)
             self._account.setVisible(not dd)
             self._count_label.setText("מספר חודשים" if dd else "מספר תשלומים")
@@ -279,6 +303,11 @@ class InstallmentPlanDialog(QDialog):
             except QT_ERRORS:
                 day = 1
         self._charge_day.setValue(day)
+        self._auto_post.setChecked(bool(getattr(p, "auto_post", True)))
+        if str(p.category or "").strip():
+            if self._category.findText(str(p.category)) < 0:
+                self._category.addItem(str(p.category))
+            self._category.setCurrentText(str(p.category))
         self._archived.setChecked(bool(getattr(p, "archived", False)))
 
     def _on_save(self) -> None:
@@ -330,6 +359,11 @@ class InstallmentPlanDialog(QDialog):
                 return
             monthly_amount = float(monthly)
             charge_day = int(self._charge_day.value())
+            if self._auto_post.isChecked() and not str(
+                self._category.currentText() or ""
+            ).strip():
+                QMessageBox.warning(self, "שגיאה", "צריך לבחור קטגוריה לתנועות הבנק")
+                return
             # The total is derived, so the rest of the app (history, tiles)
             # can keep reading ``original_amount``.
             original_amount = round(monthly_amount * payments_count, 2)
@@ -351,6 +385,9 @@ class InstallmentPlanDialog(QDialog):
             kind=kind,
             monthly_amount=monthly_amount,
             charge_day=charge_day,
+            auto_post=bool(self._auto_post.isChecked()) if dd else False,
+            category=str(self._category.currentText() or "") if dd else "",
+            posted_count=int(prev.posted_count) if prev else 0,
         )
         self.accept()
 
@@ -391,6 +428,7 @@ class InstallmentsPage(BasePage):
 
     def on_route_activated(self) -> None:
         super().on_route_activated()
+        self._post_due_direct_debits()
         self._load_and_refresh_accounts()
         self._reload()
 
@@ -917,14 +955,42 @@ class InstallmentsPage(BasePage):
     def _on_add_direct_debit_clicked(self) -> None:
         self._on_add_clicked(kind=KIND_DIRECT_DEBIT)
 
+    def _expense_categories(self) -> List[str]:
+        try:
+            return list(self._bank_movement_provider.list_categories_for_type(False))
+        except QT_ERRORS:
+            return []
+
+    def _post_due_direct_debits(self) -> None:
+        """Turn due direct debit charges into bank movements, then refresh
+        balances if anything was posted."""
+        try:
+            n = self._service.post_due_direct_debits()
+        except QT_ERRORS:
+            n = 0
+        if n <= 0:
+            return
+        try:
+            if isinstance(self._app_context, dict):
+                self._app_context["_balances_dirty"] = "1"
+            self._load_and_refresh_accounts()
+        except QT_ERRORS:
+            pass
+
     def _on_add_clicked(self, kind: str = KIND_INSTALLMENTS) -> None:
-        dlg = InstallmentPlanDialog(accounts=self._accounts, kind=kind, parent=self)
+        dlg = InstallmentPlanDialog(
+            accounts=self._accounts,
+            kind=kind,
+            categories=self._expense_categories(),
+            parent=self,
+        )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         plan = dlg.get_plan()
         if plan is None:
             return
         self._service.upsert_plan(plan)
+        self._post_due_direct_debits()
         self._selected_plan_id = plan.id
         self._reload()
 
@@ -933,13 +999,19 @@ class InstallmentsPage(BasePage):
         if plan is None:
             QMessageBox.information(self, "עריכה", "בחר תכנית כדי לערוך")
             return
-        dlg = InstallmentPlanDialog(accounts=self._accounts, plan=plan, parent=self)
+        dlg = InstallmentPlanDialog(
+            accounts=self._accounts,
+            plan=plan,
+            categories=self._expense_categories(),
+            parent=self,
+        )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
         updated = dlg.get_plan()
         if updated is None:
             return
         self._service.upsert_plan(updated)
+        self._post_due_direct_debits()
         self._selected_plan_id = updated.id
         self._reload()
 
