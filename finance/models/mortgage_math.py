@@ -244,6 +244,34 @@ class PurchaseSummary:
     ltv_exceeds_75: bool  # התראה: מעל 75% מימון
 
 
+def cost_matched_movements(
+    cost: CostItem,
+    movements: Optional[list] = None,
+    *,
+    include_transfers: bool = False,
+    match_income: bool = False,
+    apply_exclusions: bool = True,
+) -> list:
+    """התנועות התואמות לחיפוש של שורת העלות (``cost.query``), בניכוי התנועות
+    שהמשתמש החריג. ריק אם אין חיפוש. ``apply_exclusions=False`` מחזיר גם את
+    המוחרגות — לתצוגת 'התנועות שנמצאו' שבה אפשר להחזיר אותן."""
+    query = str(getattr(cost, "query", "") or "").strip()
+    if not query or not movements:
+        return []
+    excluded = (
+        list(getattr(cost, "excluded_movement_ids", None) or [])
+        if apply_exclusions
+        else []
+    )
+    return match_movements(
+        movements,
+        vendor_query=query,
+        include_transfers=include_transfers,
+        match_income=match_income,
+        excluded_ids=excluded,
+    )
+
+
 def cost_paid_amount(
     cost: CostItem,
     movements: Optional[list] = None,
@@ -254,16 +282,13 @@ def cost_paid_amount(
     """סכום התנועות התואמות ל-``query`` (0 אם אין שאילתה או התאמה). ברירת המחדל
     היא הוצאות; ``match_income=True`` מחזיר את התנועות הנכנסות (למקורות מימון).
     ``include_transfers`` שימושי להון עצמי (מקדמה משולמת לרוב כהעברה)."""
-    query = str(getattr(cost, "query", "") or "").strip()
-    if query and movements:
-        matched = match_movements(
-            movements,
-            vendor_query=query,
-            include_transfers=include_transfers,
-            match_income=match_income,
-        )
-        return float(sum(abs(float(m.amount)) for m in matched))
-    return 0.0
+    matched = cost_matched_movements(
+        cost,
+        movements,
+        include_transfers=include_transfers,
+        match_income=match_income,
+    )
+    return float(sum(abs(float(m.amount)) for m in matched))
 
 
 def yearly_cost_cycles(
@@ -282,7 +307,7 @@ def yearly_cost_cycles(
     rm = int(getattr(cost, "renewal_month", 0) or 0)
     if rm < 1 or rm > 12:
         rm = 1
-    matched = match_movements(movements, vendor_query=query, include_transfers=False)
+    matched = cost_matched_movements(cost, movements)
     totals: Dict[int, float] = {}
     for m in matched:
         try:
@@ -330,10 +355,7 @@ def cost_monthly_average(
 ) -> float:
     """ממוצע חודשי של ההוצאה לפי חיפוש התנועות (``cost.query``) — נגזר מהתנועות
     התואמות; 0 אם אין שאילתה/התאמה."""
-    query = str(getattr(cost, "query", "") or "").strip()
-    if not query or not movements:
-        return 0.0
-    matched = match_movements(movements, vendor_query=query, include_transfers=False)
+    matched = cost_matched_movements(cost, movements)
     return average_monthly(matched, months=months)[0]
 
 

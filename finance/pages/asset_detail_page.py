@@ -25,6 +25,7 @@ from ..qt import (
     Qt,
     QDate,
     QTimer,
+    QColor,
 )
 from ..models.accounts import (
     MoneyAccount,
@@ -50,6 +51,8 @@ from ..models.asset import (
     funding_breakdown_rows,
 )
 from ..models.mortgage_math import (
+    average_monthly,
+    cost_matched_movements,
     cost_monthly_average,
     equity_split,
     query_paid_amount,
@@ -296,6 +299,7 @@ class CostItemDialog(QDialog):
         except QT_ERRORS:
             pass
         self._cost = cost
+        self._initial_cost = cost
         self._show_renewal = show_renewal
 
         root = QVBoxLayout(self)
@@ -377,16 +381,214 @@ class CostItemDialog(QDialog):
             renewal = int(self._renewal.currentData() or 0)
         except QT_ERRORS:
             renewal = 0
+        prev = getattr(self, "_initial_cost", None)
         self._cost = CostItem(
             name=name,
             amount=_parse_float(self._amount.text()) or 0.0,
             query=query,
             renewal_month=renewal,
+            excluded_movement_ids=list(
+                getattr(prev, "excluded_movement_ids", None) or []
+            ),
         )
         self.accept()
 
     def get_cost(self) -> Optional[CostItem]:
         return self._cost
+
+
+class CostMovementsDialog(QDialog):
+    """The bank movements an expense item's search matched (e.g. every 'ועד
+    בית' charge), with exclude/restore — so a one-off catch-up payment or a
+    look-alike movement doesn't skew the item's average."""
+
+    def __init__(
+        self,
+        *,
+        cost: CostItem,
+        movements: list,
+        yearly: bool = False,
+        parent: Optional[QWidget] = None,
+    ) -> None:
+        super().__init__(parent)
+        self._cost = cost
+        self._yearly = bool(yearly)
+        self._excluded: List[str] = [
+            str(x) for x in (cost.excluded_movement_ids or []) if str(x).strip()
+        ]
+        # Every match, newest first, including excluded ones (shown dimmed).
+        self._all = sorted(
+            cost_matched_movements(cost, movements, apply_exclusions=False),
+            key=lambda mv: str(getattr(mv, "date", "") or ""),
+            reverse=True,
+        )
+        title = f"תנועות · {cost.name or cost.query}"
+        self.setWindowTitle(title)
+        self.setModal(True)
+        try:
+            self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
+            self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            self.resize(720, 520)
+        except QT_ERRORS:
+            pass
+
+        root = QVBoxLayout(self)
+        root.setContentsMargins(20, 18, 20, 18)
+        root.setSpacing(10)
+        head = QLabel(title, self)
+        head.setObjectName("HeaderTitle")
+        root.addWidget(head)
+        sub = QLabel(f"חיפוש: \"{cost.query}\"", self)
+        sub.setObjectName("Subtitle")
+        root.addWidget(sub)
+        self._summary = QLabel("", self)
+        self._summary.setObjectName("Subtitle")
+        self._summary.setWordWrap(True)
+        root.addWidget(self._summary)
+
+        self._table = QTableWidget(self)
+        self._table.setObjectName("ActionHistoryTableWidget")
+        self._table.setColumnCount(4)
+        self._table.setHorizontalHeaderLabels(["תאריך", "סכום", "תיאור", "סטטוס"])
+        self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        try:
+            self._table.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+            hh = self._table.horizontalHeader()
+            if hh is not None:
+                hh.setObjectName("ActionHistoryHeader")
+                hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+            vh = self._table.verticalHeader()
+            if vh is not None:
+                vh.setVisible(False)
+        except QT_ERRORS:
+            pass
+        self._table.doubleClicked.connect(lambda _i: self._toggle_selected())
+        self._table.itemSelectionChanged.connect(self._update_toggle_text)
+        root.addWidget(self._table, 1)
+
+        buttons = QHBoxLayout()
+        self._toggle_btn = QPushButton("החרג תנועה", self)
+        self._toggle_btn.setToolTip("תנועה מוחרגת לא נספרת בממוצע של הפריט")
+        self._toggle_btn.clicked.connect(self._toggle_selected)
+        buttons.addWidget(self._toggle_btn)
+        buttons.addStretch(1)
+        save = QPushButton("שמור", self)
+        cancel = QPushButton("בטל", self)
+        save.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+        buttons.addWidget(save)
+        buttons.addWidget(cancel)
+        root.addLayout(buttons)
+
+        self._fill()
+
+    @staticmethod
+    def _date_he(raw: str) -> str:
+        try:
+            dt = parse_iso_date(str(raw or ""))
+            return f"{dt.day} ב{_MONTH_NAMES[dt.month - 1]} {dt.year}"
+        except QT_ERRORS:
+            return str(raw or "")
+
+    def _included(self) -> list:
+        ex = set(self._excluded)
+        return [mv for mv in self._all if str(getattr(mv, "id", "")) not in ex]
+
+    def _fill(self) -> None:
+        ex = set(self._excluded)
+        self._table.setRowCount(len(self._all))
+        for row, mv in enumerate(self._all):
+            mid = str(getattr(mv, "id", "") or "")
+            is_ex = mid in ex
+            try:
+                amt = float(getattr(mv, "amount", 0.0) or 0.0)
+            except QT_ERRORS:
+                amt = 0.0
+            cells = (
+                QTableWidgetItem(self._date_he(str(getattr(mv, "date", "")))),
+                QTableWidgetItem(f"{_fmt_money(amt)} ₪"),
+                QTableWidgetItem(str(getattr(mv, "description", "") or "")),
+                QTableWidgetItem("הוחרג" if is_ex else "נכלל"),
+            )
+            for col, it in enumerate(cells):
+                try:
+                    it.setData(Qt.ItemDataRole.UserRole, mid)
+                    it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    if is_ex:
+                        it.setForeground(QColor("#9aa3b2"))
+                    elif col == 1:
+                        it.setForeground(QColor("#d66a4e"))
+                    elif col == 3:
+                        it.setForeground(QColor("#2f9e68"))
+                except QT_ERRORS:
+                    pass
+                self._table.setItem(row, col, it)
+        self._update_summary()
+        self._update_toggle_text()
+
+    def _update_summary(self) -> None:
+        inc = self._included()
+        n_ex = len(self._all) - len(inc)
+        total = sum(abs(float(getattr(mv, "amount", 0.0) or 0.0)) for mv in inc)
+        avg, months = average_monthly(inc)
+        parts = [f"{len(inc)} תנועות נכללות", f"סה״כ {_fmt_money(total)} ₪"]
+        if not self._yearly and months:
+            parts.append(f"ממוצע חודשי {_fmt_money(avg)} ₪ ({months} חודשים)")
+        if n_ex:
+            parts.append(f"{n_ex} הוחרגו")
+        if not self._all:
+            parts = ["לא נמצאו תנועות שתואמות את החיפוש"]
+        try:
+            self._summary.setText("  ·  ".join(parts))
+        except QT_ERRORS:
+            pass
+
+    def _selected_row(self) -> int:
+        try:
+            rows = sorted({i.row() for i in self._table.selectedIndexes()})
+            if rows:
+                return rows[0]
+            return int(self._table.currentRow())
+        except QT_ERRORS:
+            return -1
+
+    def _selected_id(self) -> str:
+        try:
+            row = self._selected_row()
+            it = self._table.item(row, 0) if row >= 0 else None
+            return str(it.data(Qt.ItemDataRole.UserRole) or "") if it else ""
+        except QT_ERRORS:
+            return ""
+
+    def _update_toggle_text(self) -> None:
+        mid = self._selected_id()
+        try:
+            self._toggle_btn.setEnabled(bool(mid))
+            self._toggle_btn.setText(
+                "החזר תנועה" if mid and mid in self._excluded else "החרג תנועה"
+            )
+        except QT_ERRORS:
+            pass
+
+    def _toggle_selected(self) -> None:
+        mid = self._selected_id()
+        if not mid:
+            return
+        row = self._selected_row()
+        if mid in self._excluded:
+            self._excluded.remove(mid)
+        else:
+            self._excluded.append(mid)
+        self._fill()
+        try:
+            if 0 <= row < self._table.rowCount():
+                self._table.setCurrentCell(row, 0)
+        except QT_ERRORS:
+            pass
+
+    def get_cost(self) -> CostItem:
+        return replace(self._cost, excluded_movement_ids=list(self._excluded))
 
 
 class AssetDetailPage(BasePage):
@@ -751,12 +953,14 @@ class AssetDetailPage(BasePage):
             self._on_add_monthly_cost,
             self._on_edit_monthly_cost,
             self._on_remove_monthly_cost,
+            self._on_monthly_cost_movements,
         )
         self._monthly_table = monthly_table
         movements = self._service.list_movements()
         monthly_table.setColumnCount(3)
         monthly_table.setHorizontalHeaderLabels(["רכיב", "חיפוש תנועות", "סכום לחודש"])
-        monthly_table.doubleClicked.connect(self._on_edit_monthly_cost)
+        # Double-click shows the matched movements (✎ still edits the item).
+        monthly_table.doubleClicked.connect(self._on_monthly_cost_movements)
         monthly_table.setRowCount(len(self._monthly_costs) + 1)
         m_total = 0.0
         for i, c in enumerate(self._monthly_costs):
@@ -766,7 +970,9 @@ class AssetDetailPage(BasePage):
             amount = cost_monthly_average(c, movements) if query else float(c.amount)
             m_total += amount
             monthly_table.setItem(i, 0, QTableWidgetItem(str(c.name)))
-            monthly_table.setItem(i, 1, QTableWidgetItem(query or "—"))
+            monthly_table.setItem(
+                i, 1, QTableWidgetItem(self._query_cell(c, movements))
+            )
             monthly_table.setItem(i, 2, QTableWidgetItem(_fmt_money(amount)))
         monthly_table.setItem(len(self._monthly_costs), 0, QTableWidgetItem("סה״כ"))
         monthly_table.setItem(
@@ -1169,13 +1375,14 @@ class AssetDetailPage(BasePage):
             self._on_add_yearly_cost,
             self._on_edit_yearly_cost,
             self._on_remove_yearly_cost,
+            self._on_yearly_cost_movements,
         )
         self._yearly_table = table
         table.setColumnCount(4)
         table.setHorizontalHeaderLabels(
             ["רכיב", "חודש חידוש", "המחזור הנוכחי", "המחזור הקודם"]
         )
-        table.doubleClicked.connect(self._on_edit_yearly_cost)
+        table.doubleClicked.connect(self._on_yearly_cost_movements)
         movements = self._service.list_movements()
         costs = self._yearly_costs
         table.setRowCount(len(costs))
@@ -1250,6 +1457,54 @@ class AssetDetailPage(BasePage):
         if cost is not None:
             costs = list(m.yearly_costs)
             costs[idx] = cost
+            self._save_yearly(costs)
+
+    @staticmethod
+    def _query_cell(cost, movements) -> str:
+        """'ועד בית · 10 תנועות' — the search text and how many movements count."""
+        query = str(getattr(cost, "query", "") or "").strip()
+        if not query:
+            return "—"
+        n = len(cost_matched_movements(cost, movements))
+        n_ex = len(getattr(cost, "excluded_movement_ids", None) or [])
+        txt = f"{query} · {n} תנועות"
+        return f"{txt} ({n_ex} הוחרגו)" if n_ex else txt
+
+    def _open_cost_movements(self, cost, *, yearly: bool):
+        """Show ``cost``'s matched movements; return the cost with the user's
+        exclusions, or None if cancelled / nothing to show."""
+        if not str(getattr(cost, "query", "") or "").strip():
+            QMessageBox.information(
+                self,
+                "תנועות",
+                "לפריט הזה אין חיפוש תנועות. ערוך אותו (✎) והוסף מילים מתיאור התנועה בבנק.",
+            )
+            return None
+        dlg = CostMovementsDialog(
+            cost=cost,
+            movements=self._service.list_movements(),
+            yearly=yearly,
+            parent=self,
+        )
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return None
+        updated = dlg.get_cost()
+        if list(updated.excluded_movement_ids) == list(cost.excluded_movement_ids):
+            return None
+        return updated
+
+    def _on_yearly_cost_movements(self, *_args):
+        m = self._selected_asset()
+        if m is None:
+            return
+        idx = self._selected_yearly_index()
+        if idx < 0:
+            QMessageBox.information(self, "תנועות", "בחר פריט")
+            return
+        updated = self._open_cost_movements(m.yearly_costs[idx], yearly=True)
+        if updated is not None:
+            costs = list(m.yearly_costs)
+            costs[idx] = updated
             self._save_yearly(costs)
 
     def _on_remove_yearly_cost(self):
@@ -1530,7 +1785,7 @@ class AssetDetailPage(BasePage):
         self._refresh_details_dialog()
 
     def _panel_with_actions(
-        self, title_text, on_add, on_edit, on_remove
+        self, title_text, on_add, on_edit, on_remove, on_movements=None
     ) -> tuple[QWidget, QTableWidget]:
         """כרטיס עם כותרת + כפתורי הוסף/ערוך/מחק + טבלה — להוספה אחידה."""
         card = QWidget(self)
@@ -1560,6 +1815,12 @@ class AssetDetailPage(BasePage):
         rm_b.setText("🗑")
         rm_b.setToolTip("מחק")
         rm_b.clicked.connect(on_remove)
+        if on_movements is not None:
+            mv_b = QToolButton(card)
+            mv_b.setText("🔍")
+            mv_b.setToolTip("התנועות שנמצאו (אפשר להחריג)")
+            mv_b.clicked.connect(on_movements)
+            header.addWidget(mv_b)
         header.addWidget(add_b)
         header.addWidget(edit_b)
         header.addWidget(rm_b)
@@ -1677,6 +1938,17 @@ class AssetDetailPage(BasePage):
         costs = list(self._monthly_costs)
         costs[idx] = updated
         self._save_monthly(costs)
+
+    def _on_monthly_cost_movements(self, *_args) -> None:
+        idx = self._selected_monthly_index()
+        if idx < 0:
+            QMessageBox.information(self, "עלות חודשית", "בחר עלות")
+            return
+        updated = self._open_cost_movements(self._monthly_costs[idx], yearly=False)
+        if updated is not None:
+            costs = list(self._monthly_costs)
+            costs[idx] = updated
+            self._save_monthly(costs)
 
     def _on_remove_monthly_cost(self) -> None:
         idx = self._selected_monthly_index()

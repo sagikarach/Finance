@@ -101,6 +101,8 @@ class CostItem:
     amount: float = 0.0
     query: str = ""
     renewal_month: int = 0  # 1-12: חודש חידוש שנתי (לעלויות רכב); 0 = לא הוגדר
+    # תנועות שתאמו את ``query`` אך המשתמש החריג (למשל תשלום השלמה חד-פעמי).
+    excluded_movement_ids: List[str] = field(default_factory=list)
 
 
 class FundingKind(StrEnum):
