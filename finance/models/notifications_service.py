@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime, timedelta
-from typing import List, Optional
+from typing import Callable, List, Optional
 import uuid
 
 from ..ui.dialog_utils import unwrap_rtl
@@ -18,6 +19,8 @@ from ..models.bank_movement import BankMovement, MovementType
 from ..data.one_time_event_provider import JsonFileOneTimeEventProvider
 from ..models.one_time_event import OneTimeEvent
 from .notifications import (
+    CLOSED_BY_SYSTEM,
+    CLOSED_BY_USER,
     Notification,
     NotificationRule,
     NotificationSeverity,
@@ -25,8 +28,41 @@ from .notifications import (
     NotificationType,
     RuleType,
 )
-from .gemini_classifier import get_gemini_classifier, has_gemini_api_key
+from ..data.installment_plan_provider import (
+    InstallmentPlanProvider,
+    JsonFileInstallmentPlanProvider,
+)
+from ..data.mortgage_provider import JsonFileMortgageProvider, MortgageProvider
+from ..data.one_time_event_provider import OneTimeEventProvider
+from .movement_matching import match_movements
+from .mortgage_math import cost_matched_movements
+from .mortgage import CostItem
+from .unusual_expense_detector import (
+    DEFAULT_CONFIG,
+    CandidateDecision,
+    UnusualExpenseConfig,
+    YearMonth,
+    decision_context,
+    decision_title,
+    detect_unusual_expenses,
+    format_unusual_expense_message,
+    movement_month,
+    shift_month,
+)
+from ..utils.logging_setup import get_logger
 from ..utils.safe import PARSE_ERRORS, swallow
+
+_log = get_logger("notifications")
+
+# Unusual-expense alerts are keyed ``unexpected_expense:<movement id>``; the
+# duplicate-charge alerts share the type but live under ``…:duplicate:``.
+_UNEXPECTED_PREFIX = "unexpected_expense:"
+_DUPLICATE_INFIX = "duplicate:"
+def _is_unusual_expense_key(key: str) -> bool:
+    key = str(key or "")
+    return key.startswith(_UNEXPECTED_PREFIX) and not key.startswith(
+        _UNEXPECTED_PREFIX + _DUPLICATE_INFIX
+    )
 
 
 def _today_iso() -> str:
@@ -44,11 +80,32 @@ class NotificationsService:
         accounts_provider: Optional[AccountsProvider] = None,
         movement_provider: Optional[BankMovementProvider] = None,
         history_provider: Optional[ActionHistoryProvider] = None,
+        installment_provider: Optional[InstallmentPlanProvider] = None,
+        mortgage_provider: Optional[MortgageProvider] = None,
+        event_provider: Optional[OneTimeEventProvider] = None,
+        unusual_expense_config: Optional[UnusualExpenseConfig] = None,
+        today: Optional[Callable[[], date]] = None,
     ) -> None:
         self._provider = provider or JsonFileNotificationsProvider()
         self._accounts_provider = accounts_provider
         self._movement_provider = movement_provider
         self._history_provider = history_provider
+        # Plan/asset/event providers are resolved lazily so the JSON defaults
+        # always follow the *current* workspace.
+        self._installment_override = installment_provider
+        self._mortgage_override = mortgage_provider
+        self._event_override = event_provider
+        self._unusual_config = unusual_expense_config or DEFAULT_CONFIG
+        self._today: Callable[[], date] = today or date.today
+
+    def _installment_provider(self) -> InstallmentPlanProvider:
+        return self._installment_override or JsonFileInstallmentPlanProvider()
+
+    def _mortgage_provider(self) -> MortgageProvider:
+        return self._mortgage_override or JsonFileMortgageProvider()
+
+    def _event_provider(self) -> OneTimeEventProvider:
+        return self._event_override or JsonFileOneTimeEventProvider()
 
     def ensure_defaults(self) -> None:
         try:
@@ -62,7 +119,7 @@ class NotificationsService:
                 id="unexpected_expense",
                 type=RuleType.UNEXPECTED_EXPENSE,
                 enabled=True,
-                params={"percentile": 0.8},
+                params={},
             ),
             NotificationRule(
                 id="missing_monthly_upload",
@@ -279,7 +336,10 @@ class NotificationsService:
         self._best_effort_push_status(key=key)
 
     def resolve(self, key: str) -> None:
-        self._provider.update_status(key=key, status=NotificationStatus.RESOLVED)
+        """The user marked the alert as handled — never reopened automatically."""
+        self._provider.update_status(
+            key=key, status=NotificationStatus.RESOLVED, closed_by=CLOSED_BY_USER
+        )
         self._best_effort_push_status(key=key)
 
     def _best_effort_push_status(self, *, key: str) -> None:
@@ -359,7 +419,7 @@ class NotificationsService:
     ) -> List[Notification]:
         out: List[Notification] = []
         try:
-            events = JsonFileOneTimeEventProvider().list_events()
+            events = self._event_provider().list_events()
         except PARSE_ERRORS:
             events = []
 
@@ -469,49 +529,35 @@ class NotificationsService:
         movements: List[BankMovement],
         existing_by_key: dict[str, Notification],
     ) -> List[Notification]:
-        percentile = float(rule.params.get("percentile", 0.8))
-        try:
-            percentile = max(0.0, min(1.0, percentile))
-        except PARSE_ERRORS:
-            percentile = 0.8
+        """Duplicate charges + unusual expenses for the previous calendar month."""
+        target_year, target_month = shift_month(
+            (self._today().year, self._today().month), -1
+        )
+        out = self._duplicate_charge_notifications(
+            rule, movements, existing_by_key, target_year, target_month
+        )
+        out.extend(
+            self._unusual_expense_notifications(
+                rule, movements, existing_by_key, (target_year, target_month)
+            )
+        )
+        return out
 
-        today = date.today()
-        if today.month == 1:
-            target_year, target_month = today.year - 1, 12
-        else:
-            target_year, target_month = today.year, today.month - 1
-
-        prev_month_expenses: List[float] = []
-        movement_dt: dict[str, datetime] = {}
-        for m in movements:
-            try:
-                amt = float(getattr(m, "amount", 0.0))
-                if amt >= 0:
-                    continue
-                dt = parse_iso_date(getattr(m, "date", ""))
-                movement_dt[m.id] = dt
-                if dt.year == target_year and dt.month == target_month:
-                    prev_month_expenses.append(abs(amt))
-            except PARSE_ERRORS:
-                continue
-
-        if not prev_month_expenses:
-            return []
-
-        prev_month_expenses.sort()
-        idx = int((len(prev_month_expenses) - 1) * percentile)
-        idx = max(0, min(len(prev_month_expenses) - 1, idx))
-        cutoff_amount = float(prev_month_expenses[idx])
-
-        out: List[Notification] = []
-
+    def _duplicate_charge_notifications(
+        self,
+        rule: NotificationRule,
+        movements: List[BankMovement],
+        existing_by_key: dict[str, Notification],
+        target_year: int,
+        target_month: int,
+    ) -> List[Notification]:
         groups: dict[tuple[str, float, str], List[BankMovement]] = {}
         for m in movements:
             try:
                 amt = float(getattr(m, "amount", 0.0))
                 if amt >= 0:
                     continue
-                dt = movement_dt.get(m.id) or parse_iso_date(getattr(m, "date", ""))
+                dt = parse_iso_date(getattr(m, "date", ""))
                 if dt.year != target_year or dt.month != target_month:
                     continue
                 desc_raw = getattr(m, "description", "") or ""
@@ -521,12 +567,14 @@ class NotificationsService:
             except PARSE_ERRORS:
                 continue
 
+        out: List[Notification] = []
         for (date_str, abs_amt, desc), items in groups.items():
             if len(items) < 2:
                 continue
             safe_desc = desc if desc else "ללא תיאור"
             group_key = (
-                f"unexpected_expense:duplicate:{date_str}:{abs_amt:.2f}:{safe_desc}"
+                f"{_UNEXPECTED_PREFIX}{_DUPLICATE_INFIX}"
+                f"{date_str}:{abs_amt:.2f}:{safe_desc}"
             )
             if group_key in existing_by_key:
                 continue
@@ -550,131 +598,183 @@ class NotificationsService:
                     },
                 )
             )
-
-        candidates: List[BankMovement] = []
-        for m in movements:
-            try:
-                amt = float(getattr(m, "amount", 0.0))
-                if amt >= 0:
-                    continue
-                dt = movement_dt.get(m.id) or parse_iso_date(getattr(m, "date", ""))
-                if dt.year != target_year or dt.month != target_month:
-                    continue
-                if abs(amt) < cutoff_amount:
-                    continue
-                key = f"unexpected_expense:{m.id}"
-                if key in existing_by_key:
-                    continue
-                candidates.append(m)
-            except PARSE_ERRORS:
-                continue
-
-        # Build per-category monthly context for the past 6 months
-        category_context = self._build_category_context(movements, today)
-
-        # Try to filter/enrich with Gemini; fall back to original logic if unavailable
-        ai_results: dict[str, tuple[bool, str]] = {}
-        if candidates and has_gemini_api_key():
-            try:
-                batch = [
-                    {
-                        "movement_id": m.id,
-                        "description": str(getattr(m, "description", "") or ""),
-                        "amount": float(getattr(m, "amount", 0.0)),
-                        "category": str(getattr(m, "category", "") or ""),
-                        "date": str(getattr(m, "date", "") or ""),
-                    }
-                    for m in candidates
-                ]
-                ai_results = get_gemini_classifier().filter_unexpected_expenses(
-                    batch, category_context
-                )
-            except PARSE_ERRORS:
-                ai_results = {}
-
-        for m in candidates:
-            try:
-                abs_amt = abs(float(getattr(m, "amount", 0.0)))
-                key = f"unexpected_expense:{m.id}"
-
-                ai_verdict = ai_results.get(m.id)
-
-                # If Gemini said it's NOT unusual, skip the notification
-                if ai_verdict is not None and not ai_verdict[0]:
-                    continue
-
-                # Use Gemini's reason when available; fall back to the old generic message
-                if ai_verdict is not None and ai_verdict[1]:
-                    msg = ai_verdict[1]
-                else:
-                    msg = f"הוצאה חריגה (טופ {int((1.0 - percentile) * 100)}%) בסכום ₪{abs_amt:.2f}"
-
-                out.append(
-                    Notification(
-                        id=str(uuid.uuid4()),
-                        key=key,
-                        type=NotificationType.UNEXPECTED_EXPENSE,
-                        title="הוצאה חריגה",
-                        message=msg,
-                        severity=NotificationSeverity.WARNING,
-                        created_at=_today_iso(),
-                        source=f"rule:{rule.id}",
-                        context={
-                            "movement_id": m.id,
-                            "date": getattr(m, "date", ""),
-                            "amount": float(getattr(m, "amount", 0.0)),
-                            "percentile": percentile,
-                            "cutoff_amount": cutoff_amount,
-                            "target_year": target_year,
-                            "target_month": target_month,
-                            "ai_filtered": ai_verdict is not None,
-                        },
-                    )
-                )
-            except PARSE_ERRORS:
-                continue
-
         return out
 
-    def _build_category_context(
-        self, movements: List[BankMovement], today: date
-    ) -> str:
-        """Build a concise 6-month per-category spending summary for Gemini context."""
-        from collections import defaultdict
+    # ── unusual expenses (local, conservative detector) ──────────────────
 
-        monthly_by_cat: dict[str, list[float]] = defaultdict(list)
+    def _unusual_expense_notifications(
+        self,
+        rule: NotificationRule,
+        movements: List[BankMovement],
+        existing_by_key: dict[str, Notification],
+        evaluated: YearMonth,
+    ) -> List[Notification]:
+        """Create, update, close and reopen unusual-expense alerts.
 
-        for delta in range(1, 7):
-            y, m = today.year, today.month - delta
-            while m <= 0:
-                m += 12
-                y -= 1
-            key = f"{y}-{m:02d}"
-            cat_totals: dict[str, float] = defaultdict(float)
-            for mv in movements:
-                try:
-                    if not str(getattr(mv, "date", "") or "").startswith(key):
-                        continue
-                    if getattr(mv, "is_transfer", False):
-                        continue
-                    amt = float(getattr(mv, "amount", 0.0))
-                    if amt >= 0:
-                        continue
-                    cat = str(getattr(mv, "category", "") or "שונות")
-                    cat_totals[cat] += abs(amt)
-                except PARSE_ERRORS:
+        * New alerts are created only for the evaluated (previous) month.
+        * Every existing alert that is open — or was closed *automatically* — is
+          re-checked against its own month: open + no longer qualifies → closed
+          automatically (``closed_by=system``); system-closed + qualifies again
+          → the same record is reopened with a fresh explanation.
+        * Alerts closed by the user, or legacy closed records whose reason is
+          unknown, are never touched.
+        * On any detector error nothing is created, closed or reopened — there
+          is deliberately no looser fallback.
+        """
+        try:
+            planned = self._planned_movement_ids(movements)
+            alerts_by_month: dict[YearMonth, dict[str, CandidateDecision]] = {}
+
+            def alerts_for(ym: YearMonth) -> dict[str, CandidateDecision]:
+                if ym not in alerts_by_month:
+                    alerts_by_month[ym] = {
+                        d.movement_id: d
+                        for d in detect_unusual_expenses(
+                            movements,
+                            evaluated_month=ym,
+                            planned_movement_ids=planned,
+                            config=self._unusual_config,
+                        )
+                    }
+                return alerts_by_month[ym]
+
+            alerts_for(evaluated)
+
+            by_id = {str(getattr(m, "id", "") or ""): m for m in movements}
+            to_close: List[str] = []
+            to_refresh: dict[str, CandidateDecision] = {}  # open or reopen
+            for key, n in existing_by_key.items():
+                if not _is_unusual_expense_key(key):
                     continue
-            for cat, total in cat_totals.items():
-                monthly_by_cat[cat].append(total)
+                if n.is_closed and not n.is_system_closed:
+                    continue  # user-handled / legacy: keep the decision
+                movement_id = key[len(_UNEXPECTED_PREFIX):]
+                mv = by_id.get(movement_id)
+                ym = movement_month(mv) if mv is not None else None
+                decision = alerts_for(ym).get(movement_id) if ym is not None else None
+                if decision is not None:
+                    to_refresh[key] = decision
+                elif not n.is_closed:
+                    to_close.append(key)
+        except Exception as exc:  # noqa: BLE001 - detector must never fall back
+            _log.warning(
+                "unusual-expense detector failed; no alert changes: %s",
+                type(exc).__name__,
+            )
+            return []
 
-        lines = []
-        for cat, monthly_vals in sorted(
-            monthly_by_cat.items(), key=lambda x: -sum(x[1])
-        ):
-            avg = sum(monthly_vals) / len(monthly_vals)
-            lines.append(f"  {cat}: ממוצע חודשי {avg:,.0f}₪")
+        for key in to_close:
+            self._provider.update_status(
+                key=key,
+                status=NotificationStatus.RESOLVED,
+                closed_by=CLOSED_BY_SYSTEM,
+            )
+            self._best_effort_push_status(key=key)
 
-        return "\n".join(lines) if lines else "  אין נתונים"
+        out: List[Notification] = []
+        for key, decision in to_refresh.items():
+            existing = existing_by_key[key]
+            message = format_unusual_expense_message(decision)
+            context = decision_context(decision)
+            reopened = existing.is_system_closed
+            if (
+                not reopened
+                and existing.message == message
+                and dict(existing.context) == context
+            ):
+                continue
+            out.append(
+                replace(
+                    existing,
+                    title=decision_title(decision),
+                    message=message,
+                    context=context,
+                    source=f"rule:{rule.id}",
+                    status=NotificationStatus.UNREAD if reopened else existing.status,
+                    closed_by=None if reopened else existing.closed_by,
+                )
+            )
+
+        for decision in alerts_for(evaluated).values():
+            key = f"{_UNEXPECTED_PREFIX}{decision.movement_id}"
+            if key in existing_by_key:
+                continue  # handled above (or a user/legacy closure)
+            out.append(
+                Notification(
+                    id=str(uuid.uuid4()),
+                    key=key,
+                    type=NotificationType.UNEXPECTED_EXPENSE,
+                    title=decision_title(decision),
+                    message=format_unusual_expense_message(decision),
+                    severity=NotificationSeverity.WARNING,
+                    created_at=_today_iso(),
+                    source=f"rule:{rule.id}",
+                    context=decision_context(decision),
+                )
+            )
+        return out
+
+    def _planned_movement_ids(self, movements: List[BankMovement]) -> set[str]:
+        """Ids of movements explicitly tied to something the user planned:
+        installment plans and direct debits, mortgage payments/prepayments,
+        an asset's purchase-price payments and recurring/annual/one-time cost
+        items, and budgeted events.
+        Every link here is one the user configured and can see (and exclude)
+        in the app — nothing is inferred from description text by itself."""
+        planned: set[str] = set()
+
+        plans = list(self._installment_provider().list_plans())
+        for plan in plans:
+            if plan.is_direct_debit:
+                prefix = f"dd-{plan.id}-"
+                planned.update(
+                    str(m.id) for m in movements if str(m.id).startswith(prefix)
+                )
+            else:
+                planned.update(str(m.id) for m in plan.matches(movements))
+
+        for asset in list(self._mortgage_provider().list_mortgages()):
+            planned.update(
+                str(m.id)
+                for m in match_movements(
+                    movements,
+                    vendor_query=asset.vendor_query,
+                    account_name=asset.account_name,
+                    start_date=str(asset.start_date or ""),
+                    excluded_ids=list(asset.excluded_movement_ids or []),
+                )
+            )
+            planned.update(str(x) for x in (asset.prepayment_movement_ids or []))
+            # Payments to the seller, linked by the asset's price search text.
+            price_query = str(getattr(asset, "price_query", "") or "").strip()
+            if price_query:
+                planned.update(
+                    str(m.id)
+                    for m in cost_matched_movements(
+                        CostItem(query=price_query), movements
+                    )
+                )
+            for cost in (
+                list(asset.monthly_costs or [])
+                + list(asset.yearly_costs or [])
+                + list(asset.one_time_costs or [])
+            ):
+                planned.update(
+                    str(m.id) for m in cost_matched_movements(cost, movements)
+                )
+
+        budgeted_events = {
+            str(e.id)
+            for e in self._event_provider().list_events()
+            if float(getattr(e, "budget", 0.0) or 0.0) > 0
+        }
+        if budgeted_events:
+            planned.update(
+                str(m.id)
+                for m in movements
+                if str(getattr(m, "event_id", "") or "") in budgeted_events
+            )
+        return planned
 
     def _rule_missing_monthly_upload(
         self,

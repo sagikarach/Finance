@@ -194,6 +194,7 @@ def pull_notifications_to_local_cache(
             NotificationSeverity,
             NotificationStatus,
             NotificationType,
+            normalize_closed_by,
         )
 
         docs = fs.list_collection(
@@ -215,21 +216,20 @@ def pull_notifications_to_local_cache(
 
                 status = NotificationStatus(str(parsed.get("status") or "unread"))
                 existing = by_key.get(key)
-                if existing is not None and existing.status in (
-                    NotificationStatus.RESOLVED,
-                    NotificationStatus.DISMISSED,
+                # A local closure made by a person (or of unknown origin — legacy
+                # records) always wins. An automatic local closure yields to the
+                # remote copy, which may be reopened or closed by a person.
+                if (
+                    existing is not None
+                    and existing.is_closed
+                    and not existing.is_system_closed
                 ):
                     continue
 
-                # If remote is resolved/dismissed, remove locally and skip.
-                if status in (
-                    NotificationStatus.RESOLVED,
-                    NotificationStatus.DISMISSED,
-                ):
-                    if key in by_key:
-                        by_key.pop(key, None)
-                    continue
-
+                # Remote closed records are kept locally as tombstones (with the
+                # closure reason) rather than dropped: dropping them let the next
+                # local evaluation recreate the alert as a new unread one and push
+                # it over the closed remote copy.
                 notif = Notification(
                     id=nid or key,
                     key=key,
@@ -246,6 +246,10 @@ def pull_notifications_to_local_cache(
                     else None,
                     source=str(parsed.get("source") or "system"),
                     context=dict(parsed.get("context") or {}),
+                    closed_by=normalize_closed_by(parsed.get("closed_by"))
+                    if status
+                    in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED)
+                    else None,
                 )
                 by_key[key] = notif
 

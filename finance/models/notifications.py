@@ -25,6 +25,18 @@ class NotificationStatus(str, Enum):
     RESOLVED = "resolved"
 
 
+# Who closed a RESOLVED/DISMISSED notification. ``None`` means unknown — every
+# record written before this field existed — and is treated like a user
+# decision (never reopened automatically).
+CLOSED_BY_USER = "user"
+CLOSED_BY_SYSTEM = "system"  # the condition stopped holding; may reopen later
+
+
+def normalize_closed_by(value: object) -> Optional[str]:
+    text = str(value or "").strip().lower()
+    return text if text in (CLOSED_BY_USER, CLOSED_BY_SYSTEM) else None
+
+
 class RuleType(str, Enum):
     UNEXPECTED_EXPENSE = "unexpected_expense"
     MISSING_SAVINGS_UPDATE = "missing_savings_update"
@@ -54,3 +66,14 @@ class Notification:
     due_at: Optional[str] = None
     source: str = "system"
     context: Dict[str, Any] = field(default_factory=dict)
+    closed_by: Optional[str] = None  # CLOSED_BY_USER / CLOSED_BY_SYSTEM / None
+
+    @property
+    def is_closed(self) -> bool:
+        return self.status in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED)
+
+    @property
+    def is_system_closed(self) -> bool:
+        """Closed automatically (not by a person) — the only closed state that
+        may be reopened automatically."""
+        return self.is_closed and self.closed_by == CLOSED_BY_SYSTEM
