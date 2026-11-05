@@ -25,6 +25,8 @@ from ..qt import (
     QFrame,
     QToolTip,
     QCursor,
+    QEvent,
+    QTimer,
 )
 from ..utils.safe import QT_ERRORS
 
@@ -43,6 +45,9 @@ class AccountsPieChart(QWidget):
         self._extra_slices: List[tuple] = list(extra_slices or [])
         self._slice_to_marker: dict = {}
         self._was_hidden: bool = False
+        # Theme the chart was last drawn for; slice borders/labels are baked
+        # in at render time, so a theme switch must trigger a re-render.
+        self._rendered_dark: Optional[bool] = None
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(8)
@@ -97,6 +102,25 @@ class AccountsPieChart(QWidget):
         super().hideEvent(event)
         self._was_hidden = True
 
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        try:
+            if event.type() != QEvent.Type.StyleChange or not charts_available:
+                return
+        except QT_ERRORS:
+            return
+        if self._rendered_dark is not None and self._rendered_dark != self._is_dark_theme():
+            # Deferred: StyleChange is delivered mid-restyle.
+            QTimer.singleShot(0, self._rerender_if_theme_changed)
+
+    def _rerender_if_theme_changed(self) -> None:
+        # The widget may have been deleted (page rebuilt) before this ran.
+        try:
+            if self._rendered_dark != self._is_dark_theme():
+                self._render_chart()
+        except RuntimeError:
+            pass
+
     def set_accounts(self, accounts: List[MoneyAccount]) -> None:
         self._accounts = list(accounts)
         if charts_available:
@@ -126,6 +150,7 @@ class AccountsPieChart(QWidget):
         # פלטת פסטל קטגורית (תואמת לעיצוב המובייל) — צבע נבדל לכל חשבון,
         # עם רווח דק בצבע רקע הפאנל בין הפרוסות.
         is_dark = self._is_dark_theme()
+        self._rendered_dark = is_dark
         pastel = [
             QColor("#B9B6F0"),  # lavender
             QColor("#C6D3B4"),  # sage
