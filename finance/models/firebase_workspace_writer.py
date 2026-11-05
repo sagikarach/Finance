@@ -388,6 +388,7 @@ class FirebaseWorkspaceWriter:
                 "due_at": getattr(notif, "due_at", None),
                 "source": str(getattr(notif, "source", "") or "system"),
                 "context": dict(getattr(notif, "context", {}) or {}),
+                "closed_by": getattr(notif, "closed_by", None),
             },
         )
 

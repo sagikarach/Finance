@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import json
@@ -14,6 +14,7 @@ from ..models.notifications import (
     NotificationStatus,
     NotificationType,
     RuleType,
+    normalize_closed_by,
 )
 from ..utils.app_paths import accounts_data_dir
 from ..utils.logging_setup import get_logger
@@ -44,7 +45,15 @@ class NotificationsProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_status(self, *, key: str, status: NotificationStatus) -> None:
+    def update_status(
+        self,
+        *,
+        key: str,
+        status: NotificationStatus,
+        closed_by: Optional[str] = None,
+    ) -> None:
+        """Set ``status``. ``closed_by`` records who closed it (only kept for
+        RESOLVED/DISMISSED; reopening clears it)."""
         raise NotImplementedError
 
     @abstractmethod
@@ -123,24 +132,22 @@ class JsonFileNotificationsProvider(NotificationsProvider):
             updated.append(notif)
         self.save_notifications(updated)
 
-    def update_status(self, *, key: str, status: NotificationStatus) -> None:
+    def update_status(
+        self,
+        *,
+        key: str,
+        status: NotificationStatus,
+        closed_by: Optional[str] = None,
+    ) -> None:
+        closing = status in (NotificationStatus.RESOLVED, NotificationStatus.DISMISSED)
+        new_closed_by = normalize_closed_by(closed_by) if closing else None
         items = self.list_notifications()
         changed = False
         updated: List[Notification] = []
         for n in items:
-            if n.key == key and n.status != status:
-                n = Notification(
-                    id=n.id,
-                    key=n.key,
-                    type=n.type,
-                    title=n.title,
-                    message=n.message,
-                    severity=n.severity,
-                    created_at=n.created_at,
-                    status=status,
-                    due_at=n.due_at,
-                    source=n.source,
-                    context=dict(n.context),
+            if n.key == key and (n.status != status or n.closed_by != new_closed_by):
+                n = replace(
+                    n, status=status, context=dict(n.context), closed_by=new_closed_by
                 )
                 changed = True
             updated.append(n)
@@ -214,6 +221,7 @@ class JsonFileNotificationsProvider(NotificationsProvider):
                 due_at=str(item["due_at"]) if item.get("due_at") is not None else None,
                 source=str(item.get("source", "system")),
                 context=dict(item.get("context", {}) or {}),
+                closed_by=normalize_closed_by(item.get("closed_by")),
             )
         except PARSE_ERRORS as exc:
             _log.debug("skipping malformed notification: %s", exc)
