@@ -253,8 +253,62 @@ def load_cards_light_styles() -> str:
     """
 
 
-def load_cards_dark_styles() -> str:
+def _redesign_card_metrics() -> str:
+    """Size-only rules (font size/weight, padding, heights) for the pastel
+    redesign cards, which are only fully styled in the light theme. Without
+    them the dark theme falls back to the generic 56px ``StatValueLarge`` rule,
+    the dashboard cards' minimum width grows and the main window widens."""
     return """
+    QWidget#DashHeroYellow QLabel#StatTitle { font-size: 14px; font-weight: 700; }
+    QWidget#DashHeroYellow QLabel#StatValueLarge { font-size: 40px; font-weight: 900; }
+    QWidget#DashHeroYellow QLabel#StatSubtle { font-size: 12px; font-weight: 700; }
+    QWidget#DashCard QLabel#StatTitle, QWidget#DashCardGreen QLabel#StatTitle {
+        font-size: 14px; font-weight: 700;
+    }
+    QWidget#DashCard QLabel#StatValueLarge { font-size: 28px; font-weight: 900; }
+    QWidget#DashCardGreen QLabel#StatValueLarge { font-size: 28px; font-weight: 900; }
+    QLabel#PanelSubtitle { font-size: 12px; font-weight: 600; }
+    QLabel#PanelTitle { font-size: 15px; font-weight: 800; }
+    QWidget#MonthIncomeCard QLabel#StatTitle,
+    QWidget#MonthIncomeCard QLabel#Subtitle { font-size: 13px; font-weight: 700; }
+    QWidget#MonthIncomeCard QLabel#StatValueCard,
+    QWidget#MonthIncomeCard QLabel#StatValueLarge { font-size: 26px; font-weight: 900; }
+    QWidget#MonthExpenseCard QLabel#StatTitle,
+    QWidget#MonthExpenseCard QLabel#Subtitle { font-size: 13px; font-weight: 700; }
+    QWidget#MonthExpenseCard QLabel#StatValueCard,
+    QWidget#MonthExpenseCard QLabel#StatValueLarge { font-size: 26px; font-weight: 900; }
+    QWidget#MonthNetCard QLabel#StatTitle,
+    QWidget#MonthNetCard QLabel#Subtitle { font-size: 13px; font-weight: 700; }
+    QWidget#MonthNetCard QLabel#StatValueCard,
+    QWidget#MonthNetCard QLabel#StatValueLarge { font-size: 26px; font-weight: 900; }
+    QWidget#MonthInfoCard QLabel#StatTitle,
+    QWidget#MonthInfoCard QLabel#Subtitle { font-size: 13px; font-weight: 700; }
+    QWidget#MonthInfoCard QLabel#StatValueCard,
+    QWidget#MonthInfoCard QLabel#StatValueLarge { font-size: 26px; font-weight: 900; }
+    QLabel#EventName { font-size: 23px; font-weight: 800; }
+    QLabel#EventBadge { font-size: 12px; font-weight: 800; padding: 4px 12px; }
+    QLabel#PlanBadge { font-size: 12px; font-weight: 800; padding: 4px 12px; }
+    QLabel#MetaDot { font-size: 13px; }
+    QLabel#PayoffIcon { font-size: 17px; }
+    QLabel#PayoffText { font-size: 14px; }
+    QProgressBar#EquityBar { min-height: 16px; max-height: 16px; }
+    QLabel#AllInKey { font-size: 14px; font-weight: 800; }
+    QLabel#AllInSub { font-size: 12px; }
+    QLabel#AllInVal { font-size: 26px; font-weight: 900; }
+    QLabel#TileName { font-size: 15px; font-weight: 800; }
+    QLabel#TileSub { font-size: 12.5px; }
+    QLabel#TileChev { font-size: 18px; }
+    QLabel#BudgetRemain { font-size: 14px; font-weight: 800; }
+    QLabel#TickLabel { font-size: 12px; }
+    QProgressBar#BudgetBar { min-height: 14px; max-height: 14px; }
+    QLabel#LegendName { font-size: 14px; font-weight: 700; }
+    QLabel#LegendVal { font-size: 13px; font-weight: 700; }
+    QToolButton#HeroAddButton { min-width: 38px; min-height: 38px; }
+    """
+
+
+def load_cards_dark_styles() -> str:
+    return _redesign_card_metrics() + """
     QWidget#StatCardGreen, QWidget#StatCardRed,
     QWidget#StatCardPurple, QWidget#StatCardYellow {
         background: #1e293b;
