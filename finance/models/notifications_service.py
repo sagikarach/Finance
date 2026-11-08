@@ -43,9 +43,11 @@ from .unusual_expense_detector import (
     UnusualExpenseConfig,
     YearMonth,
     decision_context,
+    DetectionIndex,
     decision_title,
-    detect_unusual_expenses,
+    evaluate_month,
     format_unusual_expense_message,
+    outcome_counts,
     movement_month,
     shift_month,
 )
@@ -97,6 +99,9 @@ class NotificationsService:
         self._event_override = event_provider
         self._unusual_config = unusual_expense_config or DEFAULT_CONFIG
         self._today: Callable[[], date] = today or date.today
+        # Outcome counts of the last evaluated month (diagnostics: how many
+        # expenses got no statistical decision and why). Counts only.
+        self.last_unusual_outcomes: dict[str, int] = {}
 
     def _installment_provider(self) -> InstallmentPlanProvider:
         return self._installment_override or JsonFileInstallmentPlanProvider()
@@ -623,18 +628,27 @@ class NotificationsService:
         """
         try:
             planned = self._planned_movement_ids(movements)
+            # Parsed once per refresh; every month evaluated below reuses it.
+            index = DetectionIndex(movements)
             alerts_by_month: dict[YearMonth, dict[str, CandidateDecision]] = {}
 
             def alerts_for(ym: YearMonth) -> dict[str, CandidateDecision]:
                 if ym not in alerts_by_month:
-                    alerts_by_month[ym] = {
-                        d.movement_id: d
-                        for d in detect_unusual_expenses(
-                            movements,
-                            evaluated_month=ym,
-                            planned_movement_ids=planned,
-                            config=self._unusual_config,
+                    decisions = evaluate_month(
+                        movements,
+                        evaluated_month=ym,
+                        planned_movement_ids=planned,
+                        config=self._unusual_config,
+                        index=index,
+                    )
+                    if ym == evaluated:
+                        self.last_unusual_outcomes = outcome_counts(decisions)
+                        _log.info(
+                            "unusual-expense outcomes %04d-%02d: %s",
+                            ym[0], ym[1], self.last_unusual_outcomes,
                         )
+                    alerts_by_month[ym] = {
+                        d.movement_id: d for d in decisions if d.is_alert
                     }
                 return alerts_by_month[ym]
 

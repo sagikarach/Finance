@@ -171,6 +171,10 @@ class UnusualExpenseConfig:
     # only). Empty by default: the app has no metadata marking catch-all
     # categories, so which ones mix unrelated spending is a user choice.
     percentile_excluded_categories: FrozenSet[str] = frozenset()
+    # Categories with no statistical comparison at all: expenses whose purpose
+    # is unknown ("טרם סווג") are not a comparable group. Independent checks
+    # (recurring-price increase) still apply to them.
+    unclassified_categories: FrozenSet[str] = frozenset({"טרם סווג"})
     # Category history requirements.
     baseline_months: int = 6
     min_history_transactions: int = 12
@@ -192,6 +196,7 @@ class Outcome(StrEnum):
     RECURRING = "recurring"  # fits an established monthly/weekly payment
     RECURRING_INCREASE = "recurring_increase"  # alert: a recurring charge rose
     INSUFFICIENT_HISTORY = "insufficient_history"
+    UNCLASSIFIED = "unclassified"  # no statistical decision: purpose unknown
     WITHIN_THRESHOLD = "within_threshold"
 
 
@@ -558,95 +563,136 @@ def best_recurrence(
 # ── the detector ──────────────────────────────────────────────────────────
 
 
+@dataclass
+class _Row:
+    movement: Any
+    movement_id: str
+    day: date
+    month: YearMonth
+    amount: Optional[Decimal]  # expense amount, None when not an expense
+    category: str
+    merchant: Tuple[str, str]  # (account key, merchant key); merchant "" = none
+
+
+class DetectionIndex:
+    """Movements parsed once and indexed for repeated month evaluations.
+
+    Building it is one pass over the movements; evaluating a month then reads
+    only that month's rows, the baseline-window months and the candidate's own
+    payee history — never the whole history per transaction. Whether a history
+    row fits an established payment depends only on data before its *own*
+    month, so that answer is cached across evaluated months."""
+
+    def __init__(self, movements: Iterable[Any]) -> None:
+        self.by_month: Dict[YearMonth, List[_Row]] = {}
+        self.by_merchant: Dict[Tuple[str, str], List[_Row]] = {}
+        self._fits_cache: Dict[Tuple[int, str], bool] = {}
+        for m in movements:
+            d = movement_date(m)
+            if d is None:
+                continue
+            row = _Row(
+                movement=m,
+                movement_id=str(getattr(m, "id", "") or ""),
+                day=d,
+                month=(d.year, d.month),
+                amount=expense_amount(m),
+                category=movement_category(m),
+                merchant=(account_key(m), merchant_key(m)),
+            )
+            self.by_month.setdefault(row.month, []).append(row)
+            if row.amount is not None and row.merchant[1]:
+                self.by_merchant.setdefault(row.merchant, []).append(row)
+
+    def prior(self, merchant: Tuple[str, str], before: date) -> List[Tuple[date, Decimal]]:
+        return [
+            (r.day, r.amount)
+            for r in self.by_merchant.get(merchant, [])
+            if r.day < before and r.amount is not None
+        ]
+
+    def fits_established_payment(self, row: _Row, rc: RecurrenceConfig) -> bool:
+        key = (id(rc), row.movement_id or str(id(row.movement)))
+        cached = self._fits_cache.get(key)
+        if cached is None:
+            own_month_start = date(row.day.year, row.day.month, 1)
+            assert row.amount is not None
+            ev = best_recurrence(
+                row.day, row.amount, self.prior(row.merchant, own_month_start), rc,
+                own_month_start,
+            )
+            cached = ev is not None and ev.fits
+            self._fits_cache[key] = cached
+        return cached
+
+
 def evaluate_month(
     movements: Iterable[Any],
     *,
     evaluated_month: YearMonth,
     planned_movement_ids: Optional[Set[str]] = None,
     config: UnusualExpenseConfig = DEFAULT_CONFIG,
+    index: Optional[DetectionIndex] = None,
 ) -> List[CandidateDecision]:
     """One :class:`CandidateDecision` per movement dated in ``evaluated_month``.
 
     ``movements`` must all belong to one workspace (the caller's provider is
     already workspace-scoped). Only data dated before ``evaluated_month`` feeds
     the category baseline and recurrence evidence; planned movements still count
-    as ordinary history."""
+    as ordinary history. Pass a prebuilt ``index`` (over the same movements) to
+    evaluate several months without re-parsing."""
+    idx = index if index is not None else DetectionIndex(movements)
     planned = {str(x) for x in (planned_movement_ids or set())}
     window = baseline_window(evaluated_month, config.baseline_months)
-    window_set = set(window)
     month_start = date(evaluated_month[0], evaluated_month[1], 1)
 
     history: Dict[str, List[Tuple[YearMonth, Decimal]]] = {}
-    history_rows: Dict[str, List[Tuple[Any, date, Decimal]]] = {}
-    prior_by_merchant: Dict[Tuple[str, str], List[Tuple[date, Decimal]]] = {}
-    in_month: List[Any] = []
+    history_rows: Dict[str, List[_Row]] = {}
+    for ym in window:  # window months are all strictly before evaluated_month
+        for r in idx.by_month.get(ym, []):
+            if r.amount is None or not r.category:
+                continue
+            history.setdefault(r.category, []).append((ym, r.amount))
+            history_rows.setdefault(r.category, []).append(r)
+
+    in_month = idx.by_month.get(evaluated_month, [])
     in_month_by_merchant: Dict[Tuple[str, str], List[Tuple[str, date, Decimal]]] = {}
+    for r in in_month:
+        if r.amount is not None and r.merchant[1]:
+            in_month_by_merchant.setdefault(r.merchant, []).append(
+                (r.movement_id, r.day, r.amount)
+            )
 
-    for m in movements:
-        d = movement_date(m)
-        if d is None:
-            continue
-        ym = (d.year, d.month)
-        if ym == evaluated_month:
-            in_month.append(m)
-            amt = expense_amount(m)
-            if amt is not None and merchant_key(m):
-                in_month_by_merchant.setdefault((account_key(m), merchant_key(m)), []).append(
-                    (str(getattr(m, "id", "") or ""), d, amt)
-                )
-            continue
-        if d >= month_start:
-            continue  # future data is never used
-        amount = expense_amount(m)
-        if amount is None:
-            continue
-        category = movement_category(m)
-        if category and ym in window_set:
-            history.setdefault(category, []).append((ym, amount))
-            history_rows.setdefault(category, []).append((m, d, amount))
-        merchant = merchant_key(m)
-        if merchant:
-            prior_by_merchant.setdefault((account_key(m), merchant), []).append((d, amount))
-
-    def is_expected(m: Any, d: date, amount: Decimal) -> bool:
+    def is_expected(r: _Row) -> bool:
         """Planned, or fits a recurring pattern established before its own month."""
-        if str(getattr(m, "id", "") or "") in planned:
+        if r.movement_id in planned:
             return True
-        merchant = merchant_key(m)
-        if not merchant:
+        if not r.merchant[1]:
             return False
-        own_month_start = date(d.year, d.month, 1)
-        prior = [
-            (pd, pa)
-            for pd, pa in prior_by_merchant.get((account_key(m), merchant), [])
-            if pd < own_month_start
-        ]
-        ev = best_recurrence(d, amount, prior, config.recurrence, own_month_start)
-        return ev is not None and ev.fits
+        return idx.fits_established_payment(r, config.recurrence)
 
     def baseline_for(category: str) -> Optional[CategoryBaseline]:
         rows = history_rows.get(category, [])
         if category in config.percentile_excluded_categories:
             sample: Optional[List[Decimal]] = []  # no percentile adjustment
         elif config.percentile_excludes_expected:
-            sample = [a for m, d, a in rows if not is_expected(m, d, a)]
+            sample = [r.amount for r in rows if r.amount is not None and not is_expected(r)]
         else:
             sample = None  # the full history
         return compute_baseline(history.get(category, []), config, sample)
 
     freq_by_name = {f.name: f for f in config.recurrence.frequencies}
 
-    def regular_charge_also_present(m: Any, d: date, ev: RecurrenceEvidence) -> bool:
+    def regular_charge_also_present(r: _Row, ev: RecurrenceEvidence) -> bool:
         """Another charge from the same account + payee in the same period
         already matches the pattern → this higher one is extra, not a rise."""
         freq = freq_by_name.get(ev.frequency)
-        mid = str(getattr(m, "id", "") or "")
-        for oid, od, oa in in_month_by_merchant.get((account_key(m), merchant_key(m)), []):
-            if oid == mid or abs(oa - ev.reference_amount) > ev.tolerance:
+        for oid, od, oa in in_month_by_merchant.get(r.merchant, []):
+            if oid == r.movement_id or abs(oa - ev.reference_amount) > ev.tolerance:
                 continue
             if freq is None or freq.distinct_months:
                 return True  # same calendar month
-            if abs((od - d).days) < freq.min_gap_days:
+            if abs((od - r.day).days) < freq.min_gap_days:
                 return True
         return False
 
@@ -668,25 +714,21 @@ def evaluate_month(
             )
         )
 
-    for m in in_month:
-        amount = expense_amount(m)
+    for r in in_month:
+        m = r.movement
+        amount = r.amount
         if amount is None:
             decide(m, Outcome.NOT_EXPENSE)
             continue
-        category = movement_category(m)
-        if str(getattr(m, "id", "") or "") in planned:
+        category = r.category
+        if r.movement_id in planned:
             decide(m, Outcome.PLANNED, amount=amount, category=category)
             continue
 
         recurrence: Optional[RecurrenceEvidence] = None
-        merchant = merchant_key(m)
-        d = movement_date(m)
-        if merchant and d is not None:
+        if r.merchant[1]:
             recurrence = best_recurrence(
-                d,
-                amount,
-                prior_by_merchant.get((account_key(m), merchant), []),
-                config.recurrence,
+                r.day, amount, idx.prior(r.merchant, month_start), config.recurrence,
                 month_start,
             )
             if recurrence is not None and recurrence.fits:
@@ -695,7 +737,7 @@ def evaluate_month(
             if (
                 recurrence is not None
                 and recurrence.significant_increase
-                and not regular_charge_also_present(m, d, recurrence)
+                and not regular_charge_also_present(r, recurrence)
             ):
                 decide(
                     m, Outcome.RECURRING_INCREASE, amount=amount, category=category,
@@ -705,6 +747,11 @@ def evaluate_month(
 
         if not category:
             decide(m, Outcome.NO_CATEGORY, amount=amount, category=category, recurrence=recurrence)
+            continue
+        if category in config.unclassified_categories:
+            # No statistical decision: the purpose is not known, so there is no
+            # comparable group. Not a confirmed normal expense.
+            decide(m, Outcome.UNCLASSIFIED, amount=amount, category=category, recurrence=recurrence)
             continue
         if category not in baselines:
             baselines[category] = baseline_for(category)
@@ -734,12 +781,22 @@ def evaluate_month(
     return decisions
 
 
+def outcome_counts(decisions: Iterable[CandidateDecision]) -> Dict[str, int]:
+    """``{outcome: count}`` — e.g. how many expenses received no statistical
+    decision because they are unclassified or lack comparable history."""
+    out: Dict[str, int] = {}
+    for d in decisions:
+        out[str(d.outcome)] = out.get(str(d.outcome), 0) + 1
+    return dict(sorted(out.items()))
+
+
 def detect_unusual_expenses(
     movements: Iterable[Any],
     *,
     evaluated_month: YearMonth,
     planned_movement_ids: Optional[Set[str]] = None,
     config: UnusualExpenseConfig = DEFAULT_CONFIG,
+    index: Optional[DetectionIndex] = None,
 ) -> List[CandidateDecision]:
     """Only the decisions that warrant an alert."""
     return [
@@ -749,6 +806,7 @@ def detect_unusual_expenses(
             evaluated_month=evaluated_month,
             planned_movement_ids=planned_movement_ids,
             config=config,
+            index=index,
         )
         if d.is_alert
     ]

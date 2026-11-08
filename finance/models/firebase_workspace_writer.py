@@ -156,14 +156,49 @@ class FirebaseWorkspaceWriter:
             fields={"id": movement_id, "deleted": True, "source": "desktop"},
         )
 
-    def upsert_categories(self, *, income: List[str], outcome: List[str]) -> None:
+    def upsert_categories(
+        self, *, income: List[str], outcome: List[str], tree: Any = None
+    ) -> None:
+        """Write the category lists. Field-level patch: the hierarchy fields are
+        only written when this client has a tree, so a client without one never
+        erases another client's hierarchy."""
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)
         fs = self._fs(s.project_id)
-        fs.upsert_document(
+        fields: dict = {
+            "income": list(income),
+            "outcome": list(outcome),
+            "version": 1,
+        }
+        if tree:
+            from .category_tree import SCHEMA_VERSION
+
+            fields["outcome_tree"] = tree.nodes_to_list()
+            fields["legacy_aliases"] = dict(tree.legacy_aliases)
+            fields["schema_version"] = SCHEMA_VERSION
+        fs.patch_document_fields(
             document_path=f"workspaces/{wid}/meta/categories",
             id_token=s.id_token,
-            fields={"income": list(income), "outcome": list(outcome), "version": 1},
+            fields=fields,
+        )
+
+    def clear_category_tree(self, *, income: List[str], outcome: List[str]) -> None:
+        """Rollback of the category hierarchy: restore the flat lists and empty
+        the hierarchy fields (an empty tree merges as nothing on other clients)."""
+        s = self._load_session_refresh_if_needed()
+        wid = self._ensure_workspace(s)
+        fs = self._fs(s.project_id)
+        fs.patch_document_fields(
+            document_path=f"workspaces/{wid}/meta/categories",
+            id_token=s.id_token,
+            fields={
+                "income": list(income),
+                "outcome": list(outcome),
+                "outcome_tree": [],
+                "legacy_aliases": {},
+                "schema_version": 1,
+                "version": 1,
+            },
         )
 
     def upsert_event(self, event: OneTimeEvent) -> None:

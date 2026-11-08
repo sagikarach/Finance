@@ -13,6 +13,9 @@ from .bank_movement import BankMovement, MovementType
 from ..utils.app_paths import account_training_dir
 from .firebase_session import current_firebase_uid, current_firebase_workspace_id
 from ..utils.safe import swallow
+from ..utils.logging_setup import get_logger
+
+_log = get_logger("models")
 
 
 # Module-level lock guards the JSON writes from concurrent learn()/set_training_data()
@@ -60,7 +63,9 @@ class SimilarityBasedClassifier:
     SIMILARITY_THRESHOLD: ClassVar[float] = 0.3
     DEFAULT_CATEGORY: ClassVar[str] = "שונות"
     DEFAULT_TYPE: ClassVar[MovementType] = MovementType.MONTHLY
-    DEFAULT_CONFIDENCE: ClassVar[float] = 0.3
+    # Confidence of the "no similar example" fallback: deliberately below any
+    # auto-accept threshold, so such rows are always reviewed by the user.
+    DEFAULT_CONFIDENCE: ClassVar[float] = 0.1
     MAX_SIMILAR_EXPENSES: ClassVar[int] = 5
     _NOISE_WORDS: ClassVar[set[str]] = {
         "בעמ",
@@ -83,6 +88,18 @@ class SimilarityBasedClassifier:
         "מפעולות",
         "ישיר",
     }
+
+    def _default_category(self) -> str:
+        """Fallback label: "טרם סווג" once the category hierarchy exists (the
+        pre-hierarchy "שונות" is retired), else the legacy default."""
+        try:
+            from .category_tree import UNCLASSIFIED_NAME, active_tree
+
+            if active_tree().by_name(UNCLASSIFIED_NAME) is not None:
+                return UNCLASSIFIED_NAME
+        except Exception as exc:  # noqa: BLE001 - classification must not fail here
+            _log.debug("_default_category: %s", type(exc).__name__)
+        return self.DEFAULT_CATEGORY
 
     TYPE_MAPPING: ClassVar[Dict[str, MovementType]] = {
         "חודשית": MovementType.MONTHLY,
@@ -149,7 +166,7 @@ class SimilarityBasedClassifier:
 
         if not self._training_data:
             return (
-                self.DEFAULT_CATEGORY,
+                self._default_category(),
                 self.DEFAULT_TYPE,
                 self.DEFAULT_CONFIDENCE,
             )
@@ -158,7 +175,7 @@ class SimilarityBasedClassifier:
 
         if not similar_expenses:
             return (
-                self.DEFAULT_CATEGORY,
+                self._default_category(),
                 self.DEFAULT_TYPE,
                 self.DEFAULT_CONFIDENCE,
             )
@@ -171,12 +188,12 @@ class SimilarityBasedClassifier:
         is_exact_match = top_similarity > 0.9
 
         if is_exact_match:
-            category = similar_expenses[0].get("category", "") or self.DEFAULT_CATEGORY
+            category = similar_expenses[0].get("category", "") or self._default_category()
             expense_type_str = similar_expenses[0].get("expenseType", "") or "חודשית"
         else:
             category = (
                 self._weighted_pick(similar_expenses, field="category")
-                or self.DEFAULT_CATEGORY
+                or self._default_category()
             )
             expense_type_str = (
                 self._weighted_pick(similar_expenses, field="expenseType") or "חודשית"
@@ -209,7 +226,7 @@ class SimilarityBasedClassifier:
         confidence = min(0.7, max(0.0, confidence))
 
         if allowed_categories and category not in allowed_categories:
-            category = self._match_category_to_allowed(category, allowed_categories) or self.DEFAULT_CATEGORY
+            category = self._match_category_to_allowed(category, allowed_categories) or self._default_category()
 
         return (category, movement_type, confidence)
 
@@ -316,7 +333,10 @@ class SimilarityBasedClassifier:
         except (ValueError, TypeError):
             pass
 
-        return desc_score + amount_score
+        # A close amount only supports a description match, in proportion to
+        # how strong that match is — a shared city name plus a similar amount
+        # must not outrank the exact same description.
+        return desc_score + amount_score * (desc_score / 0.6)
 
     def learn(self, confirmed_expense: Dict[str, Any]) -> None:
         if not self._is_initialized:

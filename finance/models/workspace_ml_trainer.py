@@ -11,6 +11,8 @@ from .firebase_session import FirebaseSessionStore
 from .firebase_client import FirestoreClient
 from .firebase_session_manager import FirebaseSessionManager
 from .movement_classifier import SimilarityBasedClassifier
+from .category_tree import UNCLASSIFIED_NAME, active_tree
+from .category_migration import relabel
 from ..utils.safe import PARSE_ERRORS, swallow
 from ..utils.logging_setup import get_logger
 _log = get_logger("models")
@@ -45,7 +47,7 @@ def _movement_to_training_row(m: BankMovement) -> Optional[Dict[str, Any]]:
         cat = str(m.category or "").strip()
         if not desc or not cat:
             return None
-        if cat in ("שונות", "אחר", "אחרים"):
+        if cat in ("שונות", "אחר", "אחרים", UNCLASSIFIED_NAME):
             return None
         if float(m.amount) >= 0:
             return None
@@ -65,6 +67,10 @@ def _movement_to_training_row(m: BankMovement) -> Optional[Dict[str, Any]]:
         }
     except PARSE_ERRORS:
         return None
+
+
+# Below this many history examples the seed is still used to bootstrap.
+SEED_ONLY_BELOW = 50
 
 
 @dataclass
@@ -145,12 +151,21 @@ class WorkspaceMLTrainer:
     ) -> Tuple[int, int]:
         seed = self._load_seed_cached_or_default()
         seed_rows: List[Dict[str, Any]] = []
+        # Seed examples may still carry pre-hierarchy labels; relabel them once
+        # here (same rules as the category migration) so the classifier only
+        # learns current categories.
+        tree = active_tree()
         for it in seed:
             with swallow(msg="rebuild_training_file"):
                 desc = str(it.get("description", "") or "").strip()
                 cat = str(it.get("category", "") or "").strip()
                 if not desc or not cat:
                     continue
+                if tree:
+                    new_cat = relabel(desc, cat, tree)
+                    if new_cat is None:
+                        continue
+                    cat = new_cat
                 amt = it.get("amount", 0.0)
                 try:
                     amt_f = float(abs(float(amt)))
@@ -173,6 +188,12 @@ class WorkspaceMLTrainer:
             if row is not None:
                 history_rows.append(row)
 
-        combined = seed_rows + history_rows
+        # The seed only bootstraps a budget that has no categorized history of
+        # its own. Once the user's history exists it is the only source: seed
+        # labels predate the category hierarchy (they are relabeled by rules,
+        # not by the user) and measurably add nothing on top of real history.
+        combined = history_rows if len(history_rows) >= SEED_ONLY_BELOW else (
+            history_rows + seed_rows
+        )
         classifier.set_training_data(combined)
         return len(seed_rows), len(history_rows)

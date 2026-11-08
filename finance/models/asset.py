@@ -366,7 +366,10 @@ class CarAsset(Asset):
 
     @property
     def expense_category(self) -> str:
-        return str(getattr(self.record, "expense_category", "") or "").strip() or "רכב"
+        from .category_tree import active_tree
+
+        raw = str(getattr(self.record, "expense_category", "") or "").strip() or "רכב"
+        return active_tree().resolve_reference(raw)
 
     def current_value(
         self,

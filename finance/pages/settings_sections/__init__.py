@@ -3,6 +3,7 @@ from .bank_accounts_card import BankAccountsCard as BankAccountsCard
 from .notifications_card import NotificationsCard as NotificationsCard
 from .firebase_sync_card import FirebaseSyncCard as FirebaseSyncCard
 from .ai_assistant_card import AiAssistantCard as AiAssistantCard
+from .categories_card import CategoriesCard as CategoriesCard
 
 __all__ = [
     "UserDetailsCard",
@@ -10,4 +11,5 @@ __all__ = [
     "NotificationsCard",
     "FirebaseSyncCard",
     "AiAssistantCard",
+    "CategoriesCard",
 ]

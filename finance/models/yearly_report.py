@@ -8,6 +8,7 @@ from .accounts import parse_iso_date
 from .bank_movement import BankMovement
 from .bank_movement import MovementType
 from ..utils.safe import PARSE_ERRORS
+from .category_tree import active_tree, report_group
 
 MonthKey = Tuple[int, int]
 
@@ -102,12 +103,13 @@ class CategoryYearlyBreakdown:
         movements: List[BankMovement], year: int
     ) -> List["CategoryYearlyBreakdown"]:
         data: Dict[Tuple[str, bool], List[float]] = defaultdict(list)
+        tree = active_tree()  # subcategories roll up to their parent once
         for m in movements:
             try:
                 amount = float(m.amount)
             except PARSE_ERRORS:
                 continue
-            category = m.category or "שונות"
+            category = report_group(m.category, tree)
             data[(category, amount > 0)].append(abs(amount))
         out = [
             CategoryYearlyBreakdown(

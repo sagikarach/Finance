@@ -12,6 +12,19 @@ from .mortgage_math import (
     yearly_cost_cycles,
 )
 from ..utils.safe import PARSE_ERRORS
+from .category_tree import active_tree
+
+DEFAULT_CAR_EXPENSE_CATEGORY = "רכב"
+
+
+def expense_category_names(mortgage: Any) -> List[str]:
+    """Movement categories counted for an asset's monthly spend: the configured
+    category (default "רכב"; a retired pre-hierarchy name resolves to its
+    replacement) plus all its subcategories, each exactly once."""
+    tree = active_tree()
+    raw = str(getattr(mortgage, "expense_category", "") or "").strip()
+    name = tree.resolve_reference(raw or DEFAULT_CAR_EXPENSE_CATEGORY)
+    return tree.descendant_names(name)
 
 
 @dataclass(frozen=True)
@@ -118,7 +131,7 @@ class AssetExpenseService:
     def car_expenses(self, mortgage: Any, *, months: int = 12) -> ExpenseSummary:
         """Monthly = the car-category spend EXCLUDING the yearly items (so
         they're not double-counted). Yearly = that × 12 PLUS the yearly items."""
-        category = str(getattr(mortgage, "expense_category", "") or "").strip() or "רכב"
+        names = set(expense_category_names(mortgage))
         movements = self._movements()
         yearly_costs = list(getattr(mortgage, "yearly_costs", None) or [])
         # Movements counted by a yearly item are left out of the monthly spend.
@@ -131,7 +144,7 @@ class AssetExpenseService:
         selected = [
             mv
             for mv in movements
-            if str(getattr(mv, "category", "") or "").strip() == category
+            if str(getattr(mv, "category", "") or "").strip() in names
             and id(mv) not in excluded
         ]
         recurring, n = average_monthly(selected, months=months)
