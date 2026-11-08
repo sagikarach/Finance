@@ -298,8 +298,8 @@ class BankMovementDialog(QDialog):
         layout.addLayout(desc_row)
         layout.addLayout(amount_row)
         layout.addLayout(category_row)
-        layout.addWidget(self._suggestion_label)
         layout.addLayout(type_row)
+        layout.addWidget(self._suggestion_label)  # covers category and type
         layout.addLayout(date_row)
         layout.addLayout(account_row)
         layout.addWidget(self._error_label)
@@ -464,27 +464,38 @@ class BankMovementDialog(QDialog):
             self._suggested_index = None
             self._suggested_type = False
             return
-        parts = []
         if not self._category_user_set:
             self._category_combo.setCurrentIndex(index)
             self._last_category_index = index
             self._suggested_index = index
-            parts.append(str(suggestion))
         if mtype is not None and not self._type_user_set:
             t_index = self._type_combo.findData(mtype)
             if t_index >= 0:
                 self._type_combo.setCurrentIndex(t_index)
                 self._suggested_type = True
-                parts.append(str(getattr(mtype, "value", mtype)))
-        if parts:
-            # The values are already in the fields; just say where they came from.
-            self._suggestion_label.setText("✓ מולא לפי הוצאות קודמות (אפשר לשנות)")
-            self._suggestion_label.setToolTip(" · ".join(parts))
-            self._suggestion_label.show()
+        self._refresh_suggestion_label()
+
+    def _refresh_suggestion_label(self) -> None:
+        """Say which fields were filled from past movements (the values are
+        already in the fields); hidden once the user set both themselves."""
+        category = self._suggested_index is not None and not self._category_user_set
+        mtype = self._suggested_type and not self._type_user_set
+        if category and mtype:
+            text = "✓ הקטגוריה והסוג מולאו לפי תנועות קודמות (אפשר לשנות)"
+        elif category:
+            text = "✓ הקטגוריה מולאה לפי תנועות קודמות (אפשר לשנות)"
+        elif mtype:
+            text = "✓ הסוג מולא לפי תנועות קודמות (אפשר לשנות)"
+        else:
+            self._suggestion_label.hide()
+            return
+        self._suggestion_label.setText(text)
+        self._suggestion_label.show()
 
     def _on_type_activated(self, _index: int) -> None:
         self._type_user_set = True
         self._suggested_type = False
+        self._refresh_suggestion_label()
 
     def _on_category_activated(self, index: int) -> None:
         try:
@@ -514,6 +525,6 @@ class BankMovementDialog(QDialog):
             else:
                 self._last_category_index = index
             self._category_user_set = True
-            self._suggestion_label.hide()
+            self._refresh_suggestion_label()
         except QT_ERRORS:
             pass

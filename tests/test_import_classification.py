@@ -114,3 +114,14 @@ def test_manual_income_suggests_from_past_income_only(tmp_path):
     assert suggest("החזר ביטוח", 300)[0] == "החזר"
     assert suggest("משהו אחר לגמרי", 100) is None
     assert suggest("", 100) is None
+
+
+def test_exact_description_takes_its_most_common_type(tmp_path):
+    # Bought 4 times as monthly (other amounts) and once one-time at exactly
+    # this amount: the type follows the description's history, not the one
+    # row with the closest amount.
+    ct.set_active_tree_override(CategoryTree(default_outcome_nodes()))
+    monthly = {**_row("SHEIN.COM", 400, "סופר ומכולת"), "expenseType": "חודשית"}
+    svc = _service(tmp_path, [monthly] * 4 + [_row("SHEIN.COM", 120, "סופר ומכולת")])
+    found = svc.suggest_for_entry("SHEIN.COM", 120, ALLOWED)
+    assert found == ("סופר ומכולת", MovementType.MONTHLY)

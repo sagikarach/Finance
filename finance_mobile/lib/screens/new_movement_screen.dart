@@ -538,13 +538,15 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
               _accountName.isEmpty ? 'בחר חשבון' : _accountName, _pickAccount),
           _divider(),
           _fieldRow(Icons.repeat_rounded, 'סוג',
-              MovementType.labels[_type] ?? _type, _pickType),
+              MovementType.labels[_type] ?? _type, _pickType,
+              note: _typeSuggested && !_typeUserSet ? '✓ לפי תנועות קודמות' : null),
         ],
       ),
     );
   }
 
-  Widget _fieldRow(IconData icon, String label, String value, VoidCallback onTap) {
+  Widget _fieldRow(IconData icon, String label, String value, VoidCallback onTap,
+      {String? note}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -564,6 +566,14 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
             Text(label,
                 style: const TextStyle(
                     fontSize: 14.5, fontWeight: FontWeight.w700)),
+            if (note != null) ...[
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(note,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+              ),
+            ],
             const Spacer(),
             Text(value,
                 style: const TextStyle(
@@ -601,7 +611,7 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
                 style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w800, color: _accent)),
           ),
-        if (_categorySuggested || _typeSuggested) ...[
+        if (_categorySuggested && !_categoryUserSet) ...[
           const SizedBox(width: 6),
           const Flexible(
             child: Text('✓ מולא לפי תנועות קודמות',

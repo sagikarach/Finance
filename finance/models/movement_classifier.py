@@ -171,7 +171,8 @@ class SimilarityBasedClassifier:
                 self.DEFAULT_CONFIDENCE,
             )
 
-        similar_expenses = self._find_similar_expenses(movement)
+        ranked = self._rank_similar_expenses(movement)
+        similar_expenses = ranked[: self.MAX_SIMILAR_EXPENSES]
 
         if not similar_expenses:
             return (
@@ -189,7 +190,11 @@ class SimilarityBasedClassifier:
 
         if is_exact_match:
             category = similar_expenses[0].get("category", "") or self._default_category()
-            expense_type_str = similar_expenses[0].get("expenseType", "") or "חודשית"
+            expense_type_str = (
+                self._majority_exact_type(ranked)
+                or similar_expenses[0].get("expenseType", "")
+                or "חודשית"
+            )
         else:
             category = (
                 self._weighted_pick(similar_expenses, field="category")
@@ -238,7 +243,26 @@ class SimilarityBasedClassifier:
                 return cat
         return ""
 
+    @staticmethod
+    def _majority_exact_type(ranked: List[Dict[str, Any]]) -> str:
+        """The type most past movements with this exact description had (a
+        description seen as monthly 5 times and one-time once is monthly);
+        a tie goes to the best-ranked one. "" when there is no exact match."""
+        counts: Dict[str, int] = {}
+        for e in ranked:
+            if not e.get("_exact"):
+                break  # exact matches are ranked first
+            t = str(e.get("expenseType", "") or "").strip()
+            if t:
+                counts[t] = counts.get(t, 0) + 1
+        if not counts:
+            return ""
+        return max(counts, key=lambda t: counts[t])  # first-seen wins ties
+
     def _find_similar_expenses(self, movement: BankMovement) -> List[Dict[str, Any]]:
+        return self._rank_similar_expenses(movement)[: self.MAX_SIMILAR_EXPENSES]
+
+    def _rank_similar_expenses(self, movement: BankMovement) -> List[Dict[str, Any]]:
         similar = []
         own = self._normalize_text(str(movement.description or ""))
         for train_expense in self._training_data:
@@ -256,7 +280,7 @@ class SimilarityBasedClassifier:
             key=lambda x: (bool(x.get("_exact")), float(x.get("similarity", 0.0))),
             reverse=True,
         )
-        return similar[: self.MAX_SIMILAR_EXPENSES]
+        return similar
 
     def _normalize_text(self, s: str) -> str:
         s = s.lower()

@@ -71,4 +71,14 @@ void main() {
         isIncome: false, allowedCategories: allowed);
     expect(expense.suggest('משכורת שגיא', 60)?.category, 'תרופות');
   });
+
+  test('an exact description takes the type it had most often', () {
+    // Monthly 4 times (other amounts), one-time once at exactly this amount.
+    final s = CategorySuggester.fromMovements([
+      for (var i = 0; i < 4; i++)
+        mv(-400, 'SHEIN.COM', 'סופר ומכולת', type: MovementType.monthly),
+      mv(-120, 'SHEIN.COM', 'סופר ומכולת'),
+    ], isIncome: false, allowedCategories: allowed);
+    expect(s.suggest('SHEIN.COM', 120)?.type, MovementType.monthly);
+  });
 }
