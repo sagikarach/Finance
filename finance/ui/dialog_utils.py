@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from ..qt import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, Qt, QComboBox, QWidget, QStyledItemDelegate
 from ..utils.safe import QT_ERRORS
+from ..utils.rtl import unwrap_rtl as unwrap_rtl, wrap_hebrew_rtl as wrap_hebrew_rtl
 
 try:
     from PySide6.QtWidgets import QCalendarWidget as _BaseCalendar
@@ -196,24 +197,6 @@ def make_table_danger_button(text: str, parent: QWidget) -> QPushButton:
         }
     """)
     return btn
-
-
-def wrap_hebrew_rtl(text: str) -> str:
-    if not text:
-        return text
-    if any("\u0590" <= char <= "\u05ff" for char in text):
-        RLE = "\u202b"
-        PDF = "\u202c"
-        return RLE + text + PDF
-    return text
-
-
-def unwrap_rtl(text: str) -> str:
-    if not text:
-        return text
-    if text.startswith("\u202b") and text.endswith("\u202c"):
-        return text[1:-1]
-    return text
 
 
 def apply_rtl_alignment(combo: QComboBox) -> None:
