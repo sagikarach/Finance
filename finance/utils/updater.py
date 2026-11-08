@@ -19,33 +19,84 @@ PUBLIC_KEY_ENV = "FINANCE_ED25519_PUBKEY"
 DEFAULT_PUBLIC_KEY = PUBLIC_KEY_B64
 
 
-def _http_get(url: str, timeout: int = 12) -> bytes:
-    """
-    Fetch URL bytes. On macOS uses curl (system certs, never hangs in bundles).
-    Falls back to urllib on other platforms.
-    """
+class _HttpStatusError(RuntimeError):
+    def __init__(self, status: int) -> None:
+        super().__init__(f"HTTP {status}")
+        self.status = status
+
+
+# curl exit codes worth one retry: couldn't connect (7), timeout (28), SSL
+# connect (35), empty reply (52), send/receive failures (55, 56).
+_TRANSIENT_CURL = {7, 28, 35, 52, 55, 56}
+
+
+def _http_get_once(url: str, timeout: int) -> bytes:
+    """Fetch URL bytes. On macOS uses curl (system certs, never hangs in
+    bundles); falls back to urllib on other platforms. Raises
+    ``_HttpStatusError`` for HTTP >= 400 (so a GitHub 504 is not mistaken for
+    "not found")."""
     import sys
     if sys.platform == "darwin":
         import subprocess
+        marker = b"\n__HTTP_STATUS__:"
         result = subprocess.run(
-            ["curl", "-s", "-f", "-L", "--max-time", str(timeout),
-             "-H", "User-Agent: Finance-App-Updater", url],
+            ["curl", "-s", "-L", "--max-time", str(timeout),
+             "-H", "User-Agent: Finance-App-Updater",
+             "-w", marker.decode() + "%{http_code}", url],
             capture_output=True, timeout=timeout + 3,
         )
         if result.returncode != 0:
             stderr = result.stderr.decode(errors="replace").strip()
             raise RuntimeError(f"curl error {result.returncode}: {stderr}")
-        return result.stdout
+        body, _, status_raw = result.stdout.rpartition(marker)
+        try:
+            status = int(status_raw.strip() or b"0")
+        except ValueError:
+            status = 0
+        if status >= 400:
+            raise _HttpStatusError(status)
+        return body
     # Non-macOS fallback
     import ssl as _ssl
+    import urllib.error as _urlerr
     try:
         import certifi
         ctx = _ssl.create_default_context(cafile=certifi.where())
     except (ImportError, OSError):
         ctx = _ssl.create_default_context()
     req = urllib.request.Request(url, headers={"User-Agent": "Finance-App-Updater"})
-    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-        return resp.read()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+            return resp.read()
+    except _urlerr.HTTPError as exc:
+        raise _HttpStatusError(int(exc.code)) from exc
+
+
+def _is_transient(exc: Exception) -> bool:
+    if isinstance(exc, _HttpStatusError):
+        return exc.status >= 500 or exc.status == 429
+    msg = str(exc)
+    if msg.startswith("curl error "):
+        try:
+            return int(msg.split()[2].rstrip(":")) in _TRANSIENT_CURL
+        except (IndexError, ValueError):
+            return False
+    return isinstance(exc, (TimeoutError, OSError))
+
+
+def _http_get(url: str, timeout: int = 20, attempts: int = 2) -> bytes:
+    """``_http_get_once`` with one retry on timeouts, dropped connections and
+    server errors (GitHub is occasionally slow for unauthenticated clients)."""
+    last: Optional[Exception] = None
+    for i in range(max(1, attempts)):
+        try:
+            return _http_get_once(url, timeout)
+        except Exception as exc:  # noqa: BLE001 - classified below
+            last = exc
+            if i + 1 >= attempts or not _is_transient(exc):
+                raise
+    assert last is not None
+    raise last
 
 
 def _ssl_context() -> ssl.SSLContext:
@@ -107,13 +158,12 @@ def _github_latest_release(repo: str) -> dict:
     """The newest *desktop* release. We can't use ``/releases/latest`` because a
     mobile release could be the repo-wide latest — so we list releases (newest
     first) and pick the first desktop one that isn't a draft/prerelease."""
-    url = f"https://api.github.com/repos/{repo}/releases?per_page=30"
+    url = f"https://api.github.com/repos/{repo}/releases?per_page=15"
     try:
         data = _http_get(url)
         releases = json.loads(data)
-    except Exception as exc:  # noqa: BLE001 - classify by message, then re-raise
-        msg = str(exc)
-        if "404" in msg or "Not Found" in msg or "curl error 22" in msg:
+    except _HttpStatusError as exc:
+        if exc.status == 404:
             raise _NoReleaseFound("אין גרסאות פורסמו עדיין.") from exc
         raise
     if not isinstance(releases, list) or not releases:

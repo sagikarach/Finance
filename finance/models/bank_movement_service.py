@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from ..data.action_history_provider import ActionHistoryProvider
 from ..data.bank_movement_provider import BankMovementProvider
@@ -668,6 +668,97 @@ class BankMovementService:
             suggested_type=mtype,
             confidence=confidence,
         )
+
+    def suggest_for_entry(
+        self, description: str, amount: float, allowed_categories: List[str]
+    ) -> Optional[Tuple[str, MovementType]]:
+        """``(category, movement type)`` for a manually entered expense,
+        learned from past expenses (the same local classifier as file imports —
+        no network). ``None`` unless confident enough to fill in automatically,
+        or when the best guess is only "טרם סווג"."""
+        description = str(description or "").strip()
+        if self.classifier is None or not description:
+            return None
+        probe = BankMovement(
+            amount=-abs(float(amount or 0.0)),
+            date="",
+            account_name="",
+            category="",
+            type=MovementType.ONE_TIME,
+            description=description,
+        )
+        classified = self._classify_movement(probe, list(allowed_categories))
+        category = classified.suggested_category
+        if not category or classified.confidence < self.min_confidence:
+            return None
+        if allowed_categories and category not in allowed_categories:
+            return None
+        from .category_tree import UNCLASSIFIED_NAME
+
+        if category == UNCLASSIFIED_NAME:
+            return None
+        return category, classified.suggested_type or MovementType.ONE_TIME
+
+    def income_suggester(self, allowed_categories: List[str]):
+        """A ``(description, amount) -> (category, type) | None`` function for
+        manually entered *income*, learned from past income movements with the
+        same matching as expenses. Built once per call (the add-income window),
+        kept in memory only."""
+        type_names = {
+            MovementType.MONTHLY: "חודשית",
+            MovementType.YEARLY: "שנתית",
+            MovementType.ONE_TIME: "חד פעמי",
+        }
+        allowed = set(allowed_categories)
+        rows = []
+        try:
+            movements = list(self.movement_provider.list_movements())
+        except PARSE_ERRORS:
+            movements = []
+        for m in movements:
+            try:
+                if float(m.amount) <= 0 or counts_as_transfer(m):
+                    continue
+            except PARSE_ERRORS:
+                continue
+            desc = str(m.description or "").strip()
+            cat = str(m.category or "").strip()
+            if not desc or not cat or (allowed and cat not in allowed):
+                continue
+            rows.append({
+                "description": desc,
+                "amount": abs(float(m.amount)),
+                "category": cat,
+                "expenseType": type_names.get(m.type, "חודשית"),
+            })
+        classifier = SimilarityBasedClassifier(training_data_path=Path("/dev/null"))
+        classifier._training_data = rows  # in memory only; never written
+        classifier._is_initialized = True
+        threshold = self.min_confidence
+
+        def suggest(description: str, amount: float) -> Optional[Tuple[str, MovementType]]:
+            description = str(description or "").strip()
+            if not description or not rows:
+                return None
+            probe = BankMovement(
+                amount=abs(float(amount or 0.0)), date="", account_name="",
+                category="", type=MovementType.MONTHLY, description=description,
+            )
+            category, mtype, confidence = classifier.classify_outcome(
+                probe, list(allowed_categories)
+            )
+            if confidence < threshold or not category or (allowed and category not in allowed):
+                return None
+            return category, mtype or MovementType.MONTHLY
+
+        return suggest
+
+    def suggest_category(
+        self, description: str, amount: float, allowed_categories: List[str]
+    ) -> Optional[str]:
+        """Just the category of :meth:`suggest_for_entry`."""
+        found = self.suggest_for_entry(description, amount, allowed_categories)
+        return found[0] if found else None
 
     def _match_category_to_allowed(
         self, category: str, allowed_categories: List[str]

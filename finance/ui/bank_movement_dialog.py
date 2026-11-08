@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date as _date
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from ..qt import (
     QDialog,
@@ -13,6 +13,7 @@ from ..qt import (
     QDateEdit,
     Qt,
     QDate,
+    QTimer,
 )
 from .dialog_utils import (
     setup_standard_rtl_dialog,
@@ -23,6 +24,7 @@ from .dialog_utils import (
 )
 from ..models.accounts import BudgetAccount, MoneyAccount
 from ..models.bank_movement import BankMovement, MovementType
+from ..widgets.category_combo import CategoryComboBox
 from ..utils.safe import QT_ERRORS
 
 
@@ -91,8 +93,16 @@ class BankMovementDialog(QDialog):
         is_income: bool,
         parent: Optional[QDialog] = None,
         on_category_added: Optional[Callable[[str], None]] = None,
+        suggest_category: Optional[Callable[[str, float], Any]] = None,
     ) -> None:
         super().__init__(parent)
+        self._suggest_category = suggest_category
+        # True once the user picks a category themselves — a suggestion never
+        # overrides that choice.
+        self._category_user_set = False
+        self._type_user_set = False
+        self._suggested_index: Optional[int] = None  # index set by a suggestion
+        self._suggested_type = False  # type combo set by a suggestion
         self._accounts = accounts
         self._categories = list(categories)
         self._on_category_added = on_category_added
@@ -176,11 +186,14 @@ class BankMovementDialog(QDialog):
         category_row.setSpacing(8)
         category_label = QLabel("קטגוריה:", self)
         category_label.setMinimumWidth(80)
-        self._category_combo = QComboBox(self)
-        for cat in self._categories:
-            self._category_combo.addItem(cat, cat)
+        # Collapsible list: subcategories appear only after pressing a
+        # category's arrow (expense categories; income stays a flat list).
+        self._category_combo = CategoryComboBox(self, hierarchical=not is_income)
+        self._fill_categories()
         self._add_category_sentinel = "__add_category__"
         self._category_combo.addItem("הוסף קטגוריה חדשה…", self._add_category_sentinel)
+        self._category_combo.setCurrentIndex(self._default_category_index)
+        self._last_category_index = self._default_category_index
         try:
             self._category_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except QT_ERRORS:
@@ -202,6 +215,10 @@ class BankMovementDialog(QDialog):
             pass
         category_row.addWidget(category_label, 0)
         category_row.addWidget(self._category_combo, 1)
+        self._suggestion_label = QLabel("", self)
+        self._suggestion_label.setObjectName("Subtitle")
+        self._suggestion_label.setWordWrap(True)
+        self._suggestion_label.hide()
 
         type_row = QHBoxLayout()
         type_row.setSpacing(8)
@@ -225,6 +242,11 @@ class BankMovementDialog(QDialog):
         for mt in MovementType:
             self._type_combo.addItem(wrap_hebrew_rtl(mt.value), mt)
         apply_rtl_alignment(self._type_combo)
+        self._default_type_index = self._type_combo.currentIndex()
+        try:
+            self._type_combo.activated.connect(self._on_type_activated)
+        except QT_ERRORS:
+            pass
         type_row.addWidget(type_label, 0)
         type_row.addWidget(self._type_combo, 1)
 
@@ -255,6 +277,10 @@ class BankMovementDialog(QDialog):
             pass
         desc_row.addWidget(desc_label, 0)
         desc_row.addWidget(self._description_edit, 1)
+        self._description_edit.setPlaceholderText(
+            "לדוגמה: משכורת" if is_income else "לדוגמה: סופרפארם לוד"
+        )
+        QTimer.singleShot(0, self._description_edit.setFocus)
 
         self._error_label = QLabel("", self)
         self._error_label.setObjectName("ErrorLabel")
@@ -267,12 +293,15 @@ class BankMovementDialog(QDialog):
             self, primary_text="הוסף"
         )
 
+        # What was bought comes first: the category and type are suggested
+        # from it (and the amount), then the remaining details.
+        layout.addLayout(desc_row)
         layout.addLayout(amount_row)
+        layout.addLayout(category_row)
+        layout.addWidget(self._suggestion_label)
+        layout.addLayout(type_row)
         layout.addLayout(date_row)
         layout.addLayout(account_row)
-        layout.addLayout(category_row)
-        layout.addLayout(type_row)
-        layout.addLayout(desc_row)
         layout.addWidget(self._error_label)
         layout.addLayout(buttons_row)
 
@@ -321,8 +350,13 @@ class BankMovementDialog(QDialog):
             except QT_ERRORS:
                 date_str = ""
 
-            category = self._category_combo.currentText().strip()
-            if self._category_combo.currentData() == self._add_category_sentinel:
+            data = self._category_combo.currentData()
+            category = (
+                str(data).strip()
+                if isinstance(data, str) and data != self._add_category_sentinel
+                else self._category_combo.currentText().strip()
+            )
+            if data == self._add_category_sentinel:
                 self._show_error("יש לבחור קטגוריה")
                 return
             type_data = self._type_combo.currentData()
@@ -353,6 +387,15 @@ class BankMovementDialog(QDialog):
         primary_btn.clicked.connect(on_accept)
         cancel_btn.clicked.connect(self.reject)
 
+        if self._suggest_category is not None:
+            # Debounced: classify once typing pauses, not on every keystroke.
+            self._suggest_timer = QTimer(self)
+            self._suggest_timer.setSingleShot(True)
+            self._suggest_timer.setInterval(300)
+            self._suggest_timer.timeout.connect(self._apply_suggestion)
+            self._description_edit.textChanged.connect(self._schedule_suggestion)
+            self._amount_edit.textChanged.connect(self._schedule_suggestion)
+
     def _show_error(self, message: str) -> None:
         self._error_label.setText(message)
         self._error_label.setMinimumHeight(40)
@@ -364,6 +407,84 @@ class BankMovementDialog(QDialog):
 
     def get_movement(self) -> Optional[BankMovement]:
         return self._movement
+
+    def _fill_categories(self) -> None:
+        """Expense categories in hierarchy order (the popup groups them under
+        collapsible parents); default "טרם סווג" so an expense nobody
+        categorized is never silently filed under the first category."""
+        from ..models.category_tree import UNCLASSIFIED_NAME, active_tree
+        from ..models.description_categories import category_choices
+
+        tree = active_tree() if not self._is_income else None
+        choices = category_choices(tree, self._categories) if tree else []
+        seen = {name for _label, name in choices}
+        for cat in self._categories:  # anything else the list offers
+            if cat not in seen and not (tree and cat in tree.legacy_aliases):
+                choices.append((cat, cat))
+                seen.add(cat)
+        for _label, name in choices:
+            # Plain names: the popup shows the hierarchy itself.
+            self._category_combo.addItem(name, name)
+        idx = self._category_combo.findData(UNCLASSIFIED_NAME) if tree else -1
+        self._default_category_index = max(idx, 0)
+
+    def _schedule_suggestion(self, *_args) -> None:
+        if not (self._category_user_set and self._type_user_set):
+            self._suggest_timer.start()
+
+    def _apply_suggestion(self) -> None:
+        """Fill in the category (and type) learned from past expenses with the
+        same description. Never overrides a field the user set themselves."""
+        if self._suggest_category is None:
+            return
+        description = self._description_edit.text().strip()
+        try:
+            amount = float(self._amount_edit.text().strip().replace(",", "") or 0)
+        except ValueError:
+            amount = 0.0
+        found = None
+        if description:
+            try:
+                found = self._suggest_category(description, amount)
+            except QT_ERRORS:
+                found = None
+        if isinstance(found, tuple):
+            suggestion, mtype = found
+        else:
+            suggestion, mtype = found, None
+        index = self._category_combo.findData(suggestion) if suggestion else -1
+        if index < 0:
+            self._suggestion_label.hide()
+            if self._suggested_index is not None and not self._category_user_set:
+                # The earlier suggestion no longer applies: back to the default.
+                self._category_combo.setCurrentIndex(self._default_category_index)
+                self._last_category_index = self._default_category_index
+            if self._suggested_type and not self._type_user_set:
+                self._type_combo.setCurrentIndex(self._default_type_index)
+            self._suggested_index = None
+            self._suggested_type = False
+            return
+        parts = []
+        if not self._category_user_set:
+            self._category_combo.setCurrentIndex(index)
+            self._last_category_index = index
+            self._suggested_index = index
+            parts.append(str(suggestion))
+        if mtype is not None and not self._type_user_set:
+            t_index = self._type_combo.findData(mtype)
+            if t_index >= 0:
+                self._type_combo.setCurrentIndex(t_index)
+                self._suggested_type = True
+                parts.append(str(getattr(mtype, "value", mtype)))
+        if parts:
+            # The values are already in the fields; just say where they came from.
+            self._suggestion_label.setText("✓ מולא לפי הוצאות קודמות (אפשר לשנות)")
+            self._suggestion_label.setToolTip(" · ".join(parts))
+            self._suggestion_label.show()
+
+    def _on_type_activated(self, _index: int) -> None:
+        self._type_user_set = True
+        self._suggested_type = False
 
     def _on_category_activated(self, index: int) -> None:
         try:
@@ -392,5 +513,7 @@ class BankMovementDialog(QDialog):
                     self._last_category_index = insert_index
             else:
                 self._last_category_index = index
+            self._category_user_set = True
+            self._suggestion_label.hide()
         except QT_ERRORS:
             pass

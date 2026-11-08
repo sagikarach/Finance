@@ -239,7 +239,7 @@ class SettingsPage(BasePage):
                 progress.setValue(0)
                 progress.show()
 
-                # Safety: force-close the dialog after 25 seconds if the thread hangs.
+                # Safety: force-close the dialog after 75 seconds if the thread hangs.
                 _deadline = QTimer()
                 _deadline.setSingleShot(True)
                 def _on_deadline() -> None:
@@ -249,7 +249,7 @@ class SettingsPage(BasePage):
                         pass
                     QMessageBox.warning(container, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
                 _deadline.timeout.connect(_on_deadline)
-                _deadline.start(25000)
+                _deadline.start(75000)  # check may retry once (2×20s + appcast)
 
                 def _check_worker() -> None:
                     import socket

@@ -32,6 +32,7 @@ from ..qt import (
     QWidget,
 )
 from .dialog_utils import setup_standard_rtl_dialog
+from ..widgets.category_combo import CategoryComboBox
 from ..utils.safe import QT_ERRORS
 
 _FILTERS = [
@@ -120,9 +121,9 @@ class ExpenseDescriptionsDialog(QDialog):
         # assign
         assign = QHBoxLayout()
         assign.addWidget(QLabel("קטגוריה לשורות המסומנות:", self))
-        self._category = QComboBox(self)
-        for label, name in self._choices:
-            self._category.addItem(label, name)
+        self._category = CategoryComboBox(self)  # collapsible category list
+        for _label, name in self._choices:
+            self._category.addItem(name, name)
         self._category.setMinimumWidth(260)
         assign.addWidget(self._category)
         self._apply_btn = QPushButton("החל", self)

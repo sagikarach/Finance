@@ -53,6 +53,8 @@ QMainWindow = _get(_widgets, "QMainWindow")
 QWidget = _get(_widgets, "QWidget")
 QStackedWidget = _get(_widgets, "QStackedWidget")
 QFrame = _get(_widgets, "QFrame")
+QTreeWidget: Any = _get(_widgets, "QTreeWidget")
+QTreeWidgetItem: Any = _get(_widgets, "QTreeWidgetItem")
 QSizePolicy = _get(_widgets, "QSizePolicy")
 QHBoxLayout = _get(_widgets, "QHBoxLayout")
 QVBoxLayout = _get(_widgets, "QVBoxLayout")
@@ -124,6 +126,8 @@ __all__ = [
     "QWidget",
     "QStackedWidget",
     "QFrame",
+    "QTreeWidget",
+    "QTreeWidgetItem",
     "QSizePolicy",
     "QHBoxLayout",
     "QVBoxLayout",

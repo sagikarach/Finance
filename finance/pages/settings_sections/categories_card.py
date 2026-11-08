@@ -105,10 +105,14 @@ class CategoriesCard(QWidget):
             categories = list(self._categories_getter())
         except QT_ERRORS:
             categories = []
+        # Parent to the top-level window, not this card: the card is a
+        # "ContentPanel", whose stylesheet makes every descendant transparent,
+        # which would let the OS window colour (dark in macOS dark mode) show
+        # through the light theme.
         dlg = ExpenseDescriptionsDialog(
             movement_service=self._service,
             categories=categories,
-            parent=self,
+            parent=self.window(),
             on_saved=saved,
         )
         dlg.exec()
