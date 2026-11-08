@@ -320,7 +320,7 @@ class MainWindow(QMainWindow):
         progress.setValue(0)
         progress.show()
 
-        # Safety: force-close after 25 seconds if the network call hangs.
+        # Safety: force-close after 75 seconds if the network call hangs.
         _deadline = QTimer(self)
         _deadline.setSingleShot(True)
         def _on_deadline() -> None:
@@ -330,7 +330,7 @@ class MainWindow(QMainWindow):
                 pass
             QMessageBox.warning(self, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
         _deadline.timeout.connect(_on_deadline)
-        _deadline.start(25000)
+        _deadline.start(75000)  # check may retry once (2×20s + appcast)
 
         def _check_worker() -> None:
             import socket

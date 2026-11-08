@@ -240,12 +240,22 @@ class SimilarityBasedClassifier:
 
     def _find_similar_expenses(self, movement: BankMovement) -> List[Dict[str, Any]]:
         similar = []
+        own = self._normalize_text(str(movement.description or ""))
         for train_expense in self._training_data:
             similarity = self._calculate_similarity(movement, train_expense)
             if similarity > self.SIMILARITY_THRESHOLD:
-                similar.append({**train_expense, "similarity": similarity})
+                exact = bool(own) and own == self._normalize_text(
+                    str(train_expense.get("description", "") or "")
+                )
+                similar.append({**train_expense, "similarity": similarity, "_exact": exact})
 
-        similar.sort(key=lambda x: x.get("similarity", 0.0), reverse=True)
+        # The same description outranks any partial match, whatever the
+        # amounts ("ועד בית" must not lose to "בית הפיתה" because a bakery
+        # purchase happens to cost about the same); amount breaks ties.
+        similar.sort(
+            key=lambda x: (bool(x.get("_exact")), float(x.get("similarity", 0.0))),
+            reverse=True,
+        )
         return similar[: self.MAX_SIMILAR_EXPENSES]
 
     def _normalize_text(self, s: str) -> str:

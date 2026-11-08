@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Optional, Dict, List
+from typing import Any, Callable, Optional, Dict, List
 
 from ..qt import (
     QWidget,
@@ -787,12 +787,28 @@ class BasePage(QWidget):
         except QT_ERRORS:
             on_category_added = None
 
+        suggest: Optional[Callable[[str, float], Any]] = None
+        service_for_suggest = self._bank_movement_service
+        if not is_income and service_for_suggest is not None:
+            _allowed = list(categories)
+
+            def _suggest(description: str, amount: float) -> Any:
+                return service_for_suggest.suggest_for_entry(description, amount, _allowed)
+
+            suggest = _suggest
+        elif is_income and service_for_suggest is not None:
+            try:
+                suggest = service_for_suggest.income_suggester(list(categories))
+            except QT_ERRORS:
+                suggest = None
+
         dialog = BankMovementDialog(
             bank_accounts,
             categories,
             is_income,
             parent=None,
             on_category_added=on_category_added,
+            suggest_category=suggest,
         )
         result = dialog.exec()
         if not result:

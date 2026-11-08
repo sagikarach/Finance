@@ -131,6 +131,25 @@ _SVG_ICONS: dict[str, str] = {
         '<polyline points="18 15 12 9 6 15"/>'
         "</svg>"
     ),
+    # Bold, round-capped disclosure chevrons (expandable category lists).
+    "disclosure_down": (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        ' stroke="{color}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="miter">'
+        '<polyline points="5 8.5 12 15.5 19 8.5"/>'
+        "</svg>"
+    ),
+    "disclosure_left": (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        ' stroke="{color}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="miter">'
+        '<polyline points="15.5 5 8.5 12 15.5 19"/>'
+        "</svg>"
+    ),
+    "disclosure_right": (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        ' stroke="{color}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="miter">'
+        '<polyline points="8.5 5 15.5 12 8.5 19"/>'
+        "</svg>"
+    ),
 }
 
 # Stroke colours per theme
