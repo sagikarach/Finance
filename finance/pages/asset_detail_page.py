@@ -1293,7 +1293,11 @@ class AssetDetailPage(BasePage):
         root.addWidget(QLabel("קטגוריית הוצאות (לממוצע החודשי)", dlg))
         cat = QComboBox(dlg)
         cat.setEditable(True)
-        cur_cat = str(getattr(m, "expense_category", "") or "").strip() or "רכב"
+        from ..models.category_tree import active_tree
+
+        cur_cat = active_tree().resolve_reference(
+            str(getattr(m, "expense_category", "") or "").strip() or "רכב"
+        )
         cats = self._distinct_categories()
         if cur_cat not in cats:
             cats = [cur_cat] + cats

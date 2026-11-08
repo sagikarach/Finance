@@ -8,6 +8,7 @@ from typing import List, Optional, Union
 import json
 
 from ..models.bank_movement import BankMovement, deserialize_bank_movement
+from ..models.category_tree import SCHEMA_VERSION, CategoryTree
 from ..models.firebase_session import (
     current_firebase_uid,
     current_firebase_workspace_id,
@@ -156,21 +157,66 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         outcome = _ensure_list(data.get("outcome", []))
         return {"income": income, "outcome": outcome}
 
-    def _save_categories_by_type(self, mapping: dict) -> None:
+    def _load_categories_raw(self) -> dict:
         self._ensure_paths()
+        if not self._categories_path.exists():
+            return {}
+        try:
+            with self._categories_path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    def _write_categories_raw(self, data: dict) -> None:
+        self._ensure_paths()
+        target = self._categories_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_suffix(".tmp")
+        try:
+            with tmp.open("w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, target)
+        except Exception:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                _log.debug("could not remove temp file %s", tmp)
+            raise
+
+    def _save_categories_by_type(self, mapping: dict) -> None:
         income = mapping.get("income") or []
         outcome = mapping.get("outcome") or []
-        income_list = [str(x) for x in income if isinstance(x, str)]
-        outcome_list = [str(x) for x in outcome if isinstance(x, str)]
+        data = self._load_categories_raw()  # keep the hierarchy keys
+        data["income"] = [str(x) for x in income if isinstance(x, str)]
+        data["outcome"] = [str(x) for x in outcome if isinstance(x, str)]
+        self._write_categories_raw(data)
 
-        self._categories_path.parent.mkdir(parents=True, exist_ok=True)
-        with self._categories_path.open("w", encoding="utf-8") as f:
-            json.dump(
-                {"income": income_list, "outcome": outcome_list},
-                f,
-                ensure_ascii=False,
-                indent=2,
-            )
+    @property
+    def categories_path(self) -> Path:
+        self._ensure_paths()
+        return self._categories_path
+
+    def load_category_tree(self) -> "CategoryTree":
+        return CategoryTree.from_storage(self._load_categories_raw())
+
+    def save_category_tree(
+        self, tree: "CategoryTree", *, outcome_names: Optional[List[str]] = None
+    ) -> None:
+        """Persist the hierarchy (and, if given, the flat outcome list) in one
+        atomic write."""
+        data = self._load_categories_raw()
+        data.setdefault("income", [])
+        if outcome_names is not None:
+            data["outcome"] = list(outcome_names)
+        else:
+            data.setdefault("outcome", [])
+        data["outcome_tree"] = tree.nodes_to_list()
+        data["legacy_aliases"] = dict(tree.legacy_aliases)
+        data["schema_version"] = SCHEMA_VERSION
+        self._write_categories_raw(data)
 
     def list_categories_for_type(self, is_income: bool) -> List[str]:
         mapping = self._load_categories_by_type()

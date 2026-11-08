@@ -24,6 +24,7 @@ from ..models.firebase_session import FirebaseSessionStore
 from .settings_sections import (
     AiAssistantCard,
     BankAccountsCard,
+    CategoriesCard,
     FirebaseSyncCard,
     NotificationsCard,
     UserDetailsCard,
@@ -146,6 +147,17 @@ class SettingsPage(BasePage):
             notifications_service=self._notifications_service,
             on_refreshed=getattr(self, "_refresh_notifications_badge", None),
         )
+        def _expense_categories() -> List[str]:
+            prov = getattr(self._bank_movement_service, "movement_provider", None)
+            lister = getattr(prov, "list_categories_for_type", None)
+            names = lister(False) if callable(lister) else []
+            return [str(x) for x in names] if isinstance(names, list) else []
+
+        categories_card = CategoriesCard(
+            parent=self,
+            movement_service=self._bank_movement_service,
+            categories_getter=_expense_categories,
+        )
         firebase_card = FirebaseSyncCard(parent=self, store=FirebaseSessionStore())
         ai_card = AiAssistantCard(parent=self)
 
@@ -181,6 +193,7 @@ class SettingsPage(BasePage):
         menu.addItem("התראות")
         menu.addItem("שיתוף וסנכרון")
         menu.addItem("עוזר AI")
+        menu.addItem("קטגוריות")
 
         stack = QStackedWidget(container)
 
@@ -374,6 +387,7 @@ class SettingsPage(BasePage):
         stack.addWidget(_wrap_page(notifications_card))
         stack.addWidget(_wrap_page(firebase_card))
         stack.addWidget(_wrap_page(ai_card))
+        stack.addWidget(_wrap_page(categories_card))
 
         def _save_selected(idx: int) -> None:
             try:

@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 from .accounts import parse_iso_date
 from .bank_movement import BankMovement, MovementType
 from ..utils.safe import PARSE_ERRORS
+from .category_tree import active_tree, report_group
 
 
 def _is_in_month(date_str: str, year: int, month: int) -> bool:
@@ -81,12 +82,13 @@ class CategoryMonthlyBreakdown:
         movements: List[BankMovement], year: int, month: int
     ) -> List["CategoryMonthlyBreakdown"]:
         category_data: Dict[tuple[str, bool], List[float]] = defaultdict(list)
+        tree = active_tree()  # subcategories roll up to their parent once
         for movement in movements:
             try:
                 amount = float(movement.amount)
             except PARSE_ERRORS:
                 continue
-            category = movement.category or "שונות"
+            category = report_group(movement.category, tree)
             category_data[(category, amount > 0)].append(abs(amount))
 
         breakdowns = [

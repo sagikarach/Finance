@@ -404,7 +404,11 @@ class FirebaseMovementsSyncService:
             except PARSE_ERRORS:
                 outcome = []
             with swallow(msg="_push_all_local"):
-                writer.upsert_categories(income=income, outcome=outcome)
+                tree = None
+                loader = getattr(self._provider, "load_category_tree", None)
+                if callable(loader):
+                    tree = loader()
+                writer.upsert_categories(income=income, outcome=outcome, tree=tree)
                 pushed += 1
 
             del_mov = list(getattr(state, "pending_delete_movement_ids", []) or [])

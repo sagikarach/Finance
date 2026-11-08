@@ -8,6 +8,7 @@ import uuid
 from .accounts import parse_iso_date
 from .bank_movement import BankMovement
 from ..utils.safe import PARSE_ERRORS
+from .category_tree import active_tree, report_group
 
 
 class OneTimeEventStatus(StrEnum):
@@ -85,6 +86,7 @@ class OneTimeEvent:
         expenses = 0.0
         income = 0.0
         by_cat: Dict[str, float] = {}
+        tree = active_tree()
         for m in movements:
             if not self.owns(m):
                 continue
@@ -95,7 +97,7 @@ class OneTimeEvent:
             if amt < 0:
                 a = abs(amt)
                 expenses += a
-                cat = (m.category or "אחר").strip() or "אחר"
+                cat = report_group(m.category, tree) if (m.category or "").strip() else "אחר"
                 by_cat[cat] = float(by_cat.get(cat, 0.0) + a)
             elif amt > 0:
                 income += amt

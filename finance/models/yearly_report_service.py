@@ -11,6 +11,7 @@ from .yearly_report import (
     movement_type_to_bucket,
 )
 from ..utils.safe import PARSE_ERRORS
+from .category_tree import active_tree, report_group
 
 
 class YearlyReportService:
@@ -112,6 +113,7 @@ class YearlyReportService:
         )
 
         out: Dict[str, List[float]] = defaultdict(lambda: [0.0] * 12)
+        tree = active_tree()  # subcategories roll up to their parent once
         for m in all_movements:
             try:
                 if account_set is not None and m.account_name not in account_set:
@@ -128,7 +130,7 @@ class YearlyReportService:
                     continue
                 if (not is_income) and amount >= 0:
                     continue
-                category = m.category or "שונות"
+                category = report_group(m.category, tree)
                 idx = max(0, min(11, dt.month - 1))
                 out[category][idx] += abs(amount)
             except PARSE_ERRORS:
@@ -285,6 +287,7 @@ class YearlyReportService:
         )
 
         out: Dict[str, List[float]] = defaultdict(lambda: [0.0] * n)
+        tree = active_tree()  # subcategories roll up to their parent once
         for mv in all_mvs:
             try:
                 if account_set is not None and mv.account_name not in account_set:
@@ -302,7 +305,7 @@ class YearlyReportService:
                     continue
                 if (not is_income) and amount >= 0:
                     continue
-                category = mv.category or "שונות"
+                category = report_group(mv.category, tree)
                 out[category][key_to_idx[key]] += abs(amount)
             except PARSE_ERRORS:
                 continue

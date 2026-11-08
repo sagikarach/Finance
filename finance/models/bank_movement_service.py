@@ -45,7 +45,12 @@ class BankMovementService:
     history_provider: ActionHistoryProvider
     classifier: Optional[SimilarityBasedClassifier] = None
     _pending_reviews: List[ClassifiedExpense] = field(default_factory=list)
-    min_confidence: float = 0.3
+    # Below this the import goes to the review dialog instead of being added
+    # automatically. Measured on replayed monthly imports (01–10/2026): at 0.3
+    # a quarter of auto-added rows had the wrong category (and "no match"
+    # fallbacks, scored exactly 0.3, were auto-added as unclassified); at 0.5
+    # auto-added rows were ~92% right with ~12 rows/month left for review.
+    min_confidence: float = 0.5
     csv_parser: CsvExpenseParser = field(default_factory=CsvExpenseParser)
     _imported_for_last_csv: List[BankMovement] = field(default_factory=list)
 
