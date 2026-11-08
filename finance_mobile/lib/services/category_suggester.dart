@@ -18,7 +18,7 @@ class CategorySuggestion {
 ///   income for an income); transfers never do. Expenses labelled
 ///   "טרם סווג"/"שונות"/"אחר" are not examples of anything.
 /// * The same description always outranks a partial match; the amount only
-///   breaks ties.
+///   breaks ties. Its type is the one that description had most often.
 /// * Below [minConfidence] it suggests nothing (the desktop uses 0.5).
 class CategorySuggester {
   static const double minConfidence = 0.5;
@@ -80,7 +80,7 @@ class CategorySuggester {
     final String type;
     if (isExact) {
       category = top.first.example.category;
-      type = top.first.example.type;
+      type = _majorityExactType(scored) ?? top.first.example.type;
     } else {
       category = _weightedPick(top, (s) => s.example.category);
       type = _weightedPick(top, (s) => s.example.type);
@@ -162,6 +162,26 @@ class CategorySuggester {
       amountScore = 0.2;
     }
     return descScore + amountScore * (descScore / 0.6);
+  }
+
+  /// The type most past movements with this exact description had (seen as
+  /// monthly 5 times and one-time once → monthly); a tie goes to the
+  /// best-ranked one. Null without an exact match. [ranked] is sorted with
+  /// exact matches first.
+  static String? _majorityExactType(List<_Scored> ranked) {
+    final counts = <String, int>{};
+    for (final s in ranked) {
+      if (!s.exact) break;
+      final t = s.example.type;
+      if (t.isEmpty) continue;
+      counts[t] = (counts[t] ?? 0) + 1;
+    }
+    if (counts.isEmpty) return null;
+    String best = counts.keys.first;
+    counts.forEach((t, n) {
+      if (n > counts[best]!) best = t;
+    });
+    return best;
   }
 
   static String _weightedPick(List<_Scored> rows, String Function(_Scored) field) {

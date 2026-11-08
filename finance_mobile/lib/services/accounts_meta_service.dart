@@ -140,7 +140,8 @@ class AccountsMetaService {
         }
       }
     }
-    out.sort();
+    // Keep the user's own order (as on the desktop, "בנק" first) — an
+    // alphabetical sort put "ביט" first and made it the default account.
     return out;
   }
 
