@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from typing import Callable, List, Optional
 import uuid
 
-from ..ui.dialog_utils import unwrap_rtl
+from ..utils.rtl import unwrap_rtl
 from ..data.action_history_provider import ActionHistoryProvider
 from ..data.bank_movement_provider import BankMovementProvider
 from ..data.notifications_provider import (
