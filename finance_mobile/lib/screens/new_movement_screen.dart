@@ -9,7 +9,6 @@ import '../models/movement.dart';
 import '../models/movement_type.dart';
 import '../services/categories_service.dart';
 import '../services/category_suggester.dart';
-import '../services/movements_cache_store.dart';
 import '../services/accounts_meta_service.dart';
 import '../services/bootstrap_service.dart';
 import '../services/movements_service.dart';
@@ -118,18 +117,26 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
     } catch (_) {}
   }
 
-  /// Past movements already cached on the device (no network): the examples
-  /// the category suggestion learns from.
+  /// Past movements — the examples the category suggestion learns from.
+  /// Firestore's on-device cache first (already filled by the other tabs, no
+  /// network); only if that is empty (e.g. first launch, web) one server read.
   Future<void> _loadHistory() async {
+    List<Movement> items = const [];
     try {
-      final items = await const MovementsCacheStore()
-          .loadMovements(workspaceId: widget.workspaceId);
-      if (!mounted) return;
-      setState(() {
-        _history = items;
-        _suggester = null;
-      });
+      items = await _movements.fetch(source: Source.cache);
     } catch (_) {}
+    if (items.isEmpty) {
+      try {
+        items = await _movements.fetch(source: Source.server);
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() {
+      _history = items;
+      _suggester = null;
+    });
+    // The user may already have typed while history was loading.
+    if (_descCtrl.text.trim().isNotEmpty) _scheduleSuggestion();
   }
 
   /// An expense nobody categorized is "טרם סווג", never silently the first
