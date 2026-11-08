@@ -1,16 +1,22 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/category_lists.dart';
 import '../models/movement.dart';
 import '../models/movement_type.dart';
 import '../services/categories_service.dart';
+import '../services/category_suggester.dart';
+import '../services/movements_cache_store.dart';
 import '../services/accounts_meta_service.dart';
 import '../services/bootstrap_service.dart';
 import '../services/movements_service.dart';
 import '../services/action_history_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/category_picker.dart';
 import '../widgets/select_field.dart';
 import '../widgets/ui/cards.dart';
 
@@ -38,6 +44,17 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
   bool _loading = false;
   String? _error;
 
+  // Category hierarchy + suggestions from past movements (on-device only).
+  CategoryLists _lists = const CategoryLists(income: [], outcome: []);
+  List<Movement> _history = const [];
+  CategorySuggester? _suggester;
+  bool? _suggesterIsIncome;
+  Timer? _suggestTimer;
+  bool _categoryUserSet = false; // a suggestion never overrides the user
+  bool _typeUserSet = false;
+  bool _categorySuggested = false;
+  bool _typeSuggested = false;
+
   late final CategoriesService _categoriesService;
   late final AccountsMetaService _accountsMeta;
   late final BootstrapService _bootstrap;
@@ -56,10 +73,12 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
     _actions = ActionHistoryService(workspaceId: widget.workspaceId);
     _loadActiveAccounts();
     _loadCategories();
+    _loadHistory();
   }
 
   @override
   void dispose() {
+    _suggestTimer?.cancel();
     _amountCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
@@ -90,10 +109,74 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
       final lists = await _categoriesService.fetch(source: Source.server);
       if (!mounted) return;
       setState(() {
+        _lists = lists;
         _income = lists.income;
         _outcome = lists.outcome;
+        if (_category.isEmpty && !_categoryUserSet) _category = _defaultCategory;
+        _suggester = null; // categories changed → rebuild on next use
       });
     } catch (_) {}
+  }
+
+  /// Past movements already cached on the device (no network): the examples
+  /// the category suggestion learns from.
+  Future<void> _loadHistory() async {
+    try {
+      final items = await const MovementsCacheStore()
+          .loadMovements(workspaceId: widget.workspaceId);
+      if (!mounted) return;
+      setState(() {
+        _history = items;
+        _suggester = null;
+      });
+    } catch (_) {}
+  }
+
+  /// An expense nobody categorized is "טרם סווג", never silently the first
+  /// category in the list.
+  String get _defaultCategory {
+    if (!_isIncome && _lists.byName(CategoryLists.unclassified) != null) {
+      return CategoryLists.unclassified;
+    }
+    return '';
+  }
+
+  void _scheduleSuggestion() {
+    if (_categoryUserSet && _typeUserSet) return;
+    _suggestTimer?.cancel();
+    _suggestTimer = Timer(const Duration(milliseconds: 300), _applySuggestion);
+  }
+
+  void _applySuggestion() {
+    if (!mounted) return;
+    if (_suggester == null || _suggesterIsIncome != _isIncome) {
+      _suggester = CategorySuggester.fromMovements(
+        _history,
+        isIncome: _isIncome,
+        allowedCategories: _isIncome ? _income : _outcome,
+      );
+      _suggesterIsIncome = _isIncome;
+    }
+    final amount = double.tryParse(_amountCtrl.text.trim()) ?? 0;
+    final s = _suggester!.suggest(_descCtrl.text, amount);
+    setState(() {
+      if (s == null) {
+        // An earlier suggestion no longer applies: back to the defaults.
+        if (_categorySuggested && !_categoryUserSet) _category = _defaultCategory;
+        if (_typeSuggested && !_typeUserSet) _type = 'ONE_TIME';
+        _categorySuggested = false;
+        _typeSuggested = false;
+        return;
+      }
+      if (!_categoryUserSet) {
+        _category = s.category;
+        _categorySuggested = true;
+      }
+      if (!_typeUserSet) {
+        _type = s.type;
+        _typeSuggested = true;
+      }
+    });
   }
 
   Future<void> _pickDate() async {
@@ -131,6 +214,8 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
       selected: MovementType.labels[_type] ?? _type,
     );
     if (picked == null || !mounted) return;
+    _typeUserSet = true;
+    _typeSuggested = false;
     final reverse = MovementType.labels.entries
         .firstWhere((e) => e.value == picked,
             orElse: () => const MapEntry(MovementType.oneTime, 'חד פעמי'))
@@ -170,6 +255,8 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
         if (!_outcome.contains(n)) _outcome = <String>[..._outcome, n]..sort();
       }
       _category = n;
+      _categoryUserSet = true;
+      _categorySuggested = false;
     });
   }
 
@@ -277,18 +364,8 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
                 children: [
                   _toggle(),
                   const SizedBox(height: 16),
-                  _amountHero(),
-                  const SizedBox(height: 16),
-                  _fieldsCard(),
-                  const SizedBox(height: 18),
-                  const Text('קטגוריה',
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.muted)),
-                  const SizedBox(height: 10),
-                  _categoryChips(),
-                  const SizedBox(height: 18),
+                  // What was it? First: the category and type are suggested
+                  // from it (and the amount).
                   const Text('תיאור',
                       style: TextStyle(
                           fontSize: 13,
@@ -296,6 +373,14 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
                           color: AppColors.muted)),
                   const SizedBox(height: 10),
                   _descriptionField(),
+                  const SizedBox(height: 16),
+                  _amountHero(),
+                  const SizedBox(height: 18),
+                  _categoryHeader(),
+                  const SizedBox(height: 10),
+                  _categoryChips(),
+                  const SizedBox(height: 18),
+                  _fieldsCard(),
                   if (_error != null) ...[
                     const SizedBox(height: 14),
                     Text(_error!,
@@ -366,8 +451,12 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
           if (_isIncome == income) return;
           setState(() {
             _isIncome = income;
-            _category = ''; // category lists differ per direction
+            // category lists differ per direction
+            _categoryUserSet = false;
+            _categorySuggested = false;
+            _category = _defaultCategory;
           });
+          _scheduleSuggestion();
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
@@ -407,6 +496,7 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
             textDirection: TextDirection.ltr,
             onChanged: (_) {
               if (_error != null) setState(() => _error = null);
+              _scheduleSuggestion();
             },
             cursorColor: _amountColor,
             style: TextStyle(
@@ -484,16 +574,72 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
   Widget _divider() => const Divider(
       height: 1, thickness: 1, color: AppColors.line, indent: 12, endIndent: 12);
 
-  Widget _categoryChips() {
-    return Wrap(
-      spacing: 9,
-      runSpacing: 9,
+  Widget _categoryHeader() {
+    final parent = _isIncome ? null : _lists.parentOf(_category);
+    final chosen = _category.isEmpty
+        ? ''
+        : (parent != null ? '$parent › $_category' : _category);
+    return Row(
       children: [
-        for (final c in _cats) _chip(c, selected: c == _category, onTap: () {
-          setState(() => _category = c);
-        }),
-        _chip('＋ חדש', selected: false, onTap: _addCategory, dashed: true),
+        const Text('קטגוריה',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColors.muted)),
+        const SizedBox(width: 8),
+        if (chosen.isNotEmpty)
+          Flexible(
+            child: Text(chosen,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w800, color: _accent)),
+          ),
+        if (_categorySuggested || _typeSuggested) ...[
+          const SizedBox(width: 6),
+          const Flexible(
+            child: Text('✓ מולא לפי תנועות קודמות',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: AppColors.muted)),
+          ),
+        ],
       ],
+    );
+  }
+
+  void _chooseCategory(String name) {
+    setState(() {
+      _category = name;
+      _categoryUserSet = true;
+      _categorySuggested = false;
+    });
+  }
+
+  Widget _categoryChips() {
+    if (_isIncome || !_lists.hasTree) {
+      return Wrap(
+        spacing: 9,
+        runSpacing: 9,
+        children: [
+          for (final c in _cats)
+            _chip(c, selected: c == _category, onTap: () => _chooseCategory(c)),
+          _chip('＋ חדש', selected: false, onTap: _addCategory, dashed: true),
+        ],
+      );
+    }
+    // Expense hierarchy: subcategories appear only after pressing a
+    // category's arrow.
+    return CategoryHierarchyPicker(
+      lists: _lists,
+      extraNames: _outcome
+          .where((n) =>
+              _lists.byName(n) == null &&
+              !_lists.legacyAliases.containsKey(n) &&
+              n.trim() != 'העברה')
+          .toList(),
+      selected: _category,
+      accent: _accent,
+      onSelected: _chooseCategory,
+      onAddNew: _addCategory,
     );
   }
 
@@ -538,12 +684,13 @@ class _NewMovementScreenState extends State<NewMovementScreen> {
       ),
       child: TextField(
         controller: _descCtrl,
+        onChanged: (_) => _scheduleSuggestion(),
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        decoration: const InputDecoration(
-          hintText: 'תיאור (אופציונלי)',
-          hintStyle: TextStyle(color: AppColors.muted),
+        decoration: InputDecoration(
+          hintText: _isIncome ? 'לדוגמה: משכורת' : 'לדוגמה: סופרפארם לוד',
+          hintStyle: const TextStyle(color: AppColors.muted),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         ),
       ),
     );
