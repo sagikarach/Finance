@@ -224,15 +224,21 @@ class SettingsPage(BasePage):
             update_btn.setToolTip("בודק אם יש גרסה חדשה להורדה (macOS בלבד)")
 
             def _do_check() -> None:
+                # Update dialogs belong to the main window, not to this page:
+                # the settings page rebuilds itself (e.g. when the startup
+                # sync finishes), and deleting `container` while one of these
+                # modal dialogs is open crashed the app (a deleted dialog
+                # still running exec()).
+                host = container.window() or container
                 if sys.platform != "darwin":
                     QMessageBox.information(
-                        container, "עדכונים",
+                        host, "עדכונים",
                         "בדיקת עדכונים נתמכת רק ב-macOS.",
                     )
                     return
 
                 from ..qt import QProgressDialog  # type: ignore[attr-defined]
-                progress = QProgressDialog("בודק עדכונים...", None, 0, 0, container)
+                progress = QProgressDialog("בודק עדכונים...", None, 0, 0, host)
                 progress.setWindowTitle("עדכון")
                 progress.setMinimumDuration(0)
                 progress.setWindowModality(Qt.WindowModality.WindowModal)
@@ -247,7 +253,7 @@ class SettingsPage(BasePage):
                         progress.close()
                     except QT_ERRORS:
                         pass
-                    QMessageBox.warning(container, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
+                    QMessageBox.warning(host, "עדכון", "בדיקת העדכון לקחה יותר מדי זמן. בדוק את החיבור לאינטרנט.")
                 _deadline.timeout.connect(_on_deadline)
                 _deadline.start(75000)  # check may retry once (2×20s + appcast)
 
@@ -270,18 +276,18 @@ class SettingsPage(BasePage):
                         except QT_ERRORS:
                             pass
                         if error:
-                            QMessageBox.warning(container, "עדכון", f"בדיקת עדכון נכשלה:\n{error}")
+                            QMessageBox.warning(host, "עדכון", f"בדיקת עדכון נכשלה:\n{error}")
                             return
                         from ..__version__ import __version__
                         if not is_newer:
                             QMessageBox.information(
-                                container, "עדכון",
+                                host, "עדכון",
                                 f"הגרסה הנוכחית ({__version__}) היא העדכנית ביותר." if latest
                                 else "לא נמצאה גרסה חדשה יותר.",
                             )
                             return
                         answer = QMessageBox.question(
-                            container, "עדכון זמין",
+                            host, "עדכון זמין",
                             f"גרסה חדשה {latest} זמינה (הגרסה שלך: {__version__}).\n\n"
                             "האם להוריד ולהתקין עכשיו?",
                             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -290,7 +296,7 @@ class SettingsPage(BasePage):
                             return
                         if not zip_url_sig:
                             QMessageBox.warning(
-                                container, "עדכון",
+                                host, "עדכון",
                                 f"גרסה {latest} זמינה אך לא ניתן להוריד אוטומטית.\n"
                                 "יש להוריד ידנית מ-GitHub.",
                             )
@@ -304,7 +310,7 @@ class SettingsPage(BasePage):
                         _after_check()
 
                 def _start_download(version: str, zip_url_sig: str) -> None:
-                    dl_progress = QProgressDialog(f"מוריד גרסה {version}...", None, 0, 0, container)
+                    dl_progress = QProgressDialog(f"מוריד גרסה {version}...", None, 0, 0, host)
                     dl_progress.setWindowTitle("עדכון")
                     dl_progress.setMinimumDuration(0)
                     dl_progress.setWindowModality(Qt.WindowModality.WindowModal)
@@ -321,31 +327,31 @@ class SettingsPage(BasePage):
                                 pass
                             if dl_err or app_path is None:
                                 QMessageBox.warning(
-                                    container, "עדכון",
+                                    host, "עדכון",
                                     f"הורדת העדכון נכשלה:\n{dl_err or 'Finance.app לא נמצא'}",
                                 )
                                 return
                             answer = QMessageBox.question(
-                                container, "התקנת עדכון",
+                                host, "התקנת עדכון",
                                 f"גרסה {version} הורדה בהצלחה.\n\n"
                                 "להתקין ל-/Applications/Finance.app ולהפעיל מחדש?",
                                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                             )
                             if answer != QMessageBox.StandardButton.Yes:
                                 QMessageBox.information(
-                                    container, "עדכון",
+                                    host, "עדכון",
                                     f"הקובץ נמצא ב:\n{app_path}\n\nגרור ל-/Applications/ ידנית.",
                                 )
                                 return
                             inst_err = install_app_to_applications(app_path)
                             if inst_err:
                                 QMessageBox.warning(
-                                    container, "עדכון",
+                                    host, "עדכון",
                                     f"ההתקנה נכשלה:\n{inst_err}\n\nהעתק ידנית מ:\n{app_path}",
                                 )
                                 return
                             QMessageBox.information(
-                                container, "עדכון הותקן",
+                                host, "עדכון הותקן",
                                 f"גרסה {version} הותקנה.\nיש להפעיל מחדש את האפליקציה.",
                             )
                             try:

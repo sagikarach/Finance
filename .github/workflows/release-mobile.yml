@@ -31,6 +31,9 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          # Pinned (same as mobile.yml): newer stable releases require
+          # Gradle 9.3+, which this Android project does not use yet.
+          flutter-version: 3.38.5
           channel: stable
           cache: true
 
