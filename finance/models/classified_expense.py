@@ -28,6 +28,19 @@ class ClassifiedExpense:
             type=self.suggested_type or MovementType.ONE_TIME,
         )
 
+    def to_unclassified_movement(self) -> BankMovement:
+        """The expense kept without a confirmed category ("טרם סווג") — used
+        when the user skips it in the review, so no imported row is lost."""
+        from dataclasses import replace
+
+        from .category_tree import UNCLASSIFIED_NAME
+
+        return replace(
+            self.movement,
+            category=UNCLASSIFIED_NAME,
+            type=self.suggested_type or MovementType.ONE_TIME,
+        )
+
     def to_bank_movement_with_user_input(
         self, category: str, movement_type: MovementType
     ) -> BankMovement:

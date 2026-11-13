@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ..data.action_history_provider import ActionHistoryProvider
 from ..data.bank_movement_provider import BankMovementProvider
@@ -102,6 +102,40 @@ class BankMovementService:
             for m in to_push:
                 with swallow(msg="firebase sync in save_movements"):
                     w.upsert_movement(m)
+
+    _KEEP: Any = object()
+
+    def update_expectation(
+        self,
+        movement_id: str,
+        *,
+        expected: Optional[bool] = None,
+        plan: Any = _KEEP,
+    ) -> Optional[BankMovement]:
+        """Mark/unmark ONE movement as expected and/or link it to a
+        direct-debit plan (``plan=None`` unlinks). Only those fields change;
+        the movement is saved locally and pushed like any edit. Returns the
+        updated movement, or None when it does not exist or nothing changed."""
+        from .plan_links import link_to_plan, set_expected
+
+        movement_id = str(movement_id or "").strip()
+        movements = list(self.movement_provider.list_movements())
+        for i, m in enumerate(movements):
+            if str(m.id) != movement_id:
+                continue
+            new = m
+            if expected is not None:
+                new = set_expected(new, expected)
+            if plan is not BankMovementService._KEEP:
+                same_plan = plan is not None and str(new.plan_id or "") == str(plan.id)
+                if not same_plan:
+                    new = link_to_plan(new, plan)
+            if new == m:
+                return None
+            movements[i] = new
+            self.save_movements(movements, changed_movements=[new])
+            return new
+        return None
 
     def apply_movement(
         self,

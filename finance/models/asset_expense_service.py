@@ -5,7 +5,6 @@ from typing import Any, List
 
 from .mortgage_math import (
     average_monthly,
-    cost_matched_movements,
     cost_monthly_average,
     cost_paid_amount,
     query_paid_amount,
@@ -18,13 +17,12 @@ DEFAULT_CAR_EXPENSE_CATEGORY = "רכב"
 
 
 def expense_category_names(mortgage: Any) -> List[str]:
-    """Movement categories counted for an asset's monthly spend: the configured
-    category (default "רכב"; a retired pre-hierarchy name resolves to its
-    replacement) plus all its subcategories, each exactly once."""
-    tree = active_tree()
-    raw = str(getattr(mortgage, "expense_category", "") or "").strip()
-    name = tree.resolve_reference(raw or DEFAULT_CAR_EXPENSE_CATEGORY)
-    return tree.descendant_names(name)
+    """Movement categories counted for a car's monthly spend: exactly the
+    categories selected for it (an older single-category setting is converted
+    on read — never every descendant of a broad parent; see ``car_costs``)."""
+    from .car_costs import car_category_selection
+
+    return list(car_category_selection(mortgage, active_tree()).categories)
 
 
 @dataclass(frozen=True)
@@ -128,26 +126,24 @@ class AssetExpenseService:
         return max(0.0, float(residual) - self.acquisition_paid(mortgage))
 
     # ── car ──────────────────────────────────────────────────────────────
+    def car_breakdown(self, mortgage: Any):
+        """The car's movements by bucket (monthly / yearly item / excluded /
+        for review) — the single source for the car's figures and lists."""
+        from .car_costs import car_cost_breakdown
+
+        return car_cost_breakdown(mortgage, self._movements(), active_tree())
+
     def car_expenses(self, mortgage: Any, *, months: int = 12) -> ExpenseSummary:
-        """Monthly = the car-category spend EXCLUDING the yearly items (so
-        they're not double-counted). Yearly = that × 12 PLUS the yearly items."""
-        names = set(expense_category_names(mortgage))
+        """Monthly = the spend in the car's selected categories, EXCLUDING the
+        movements a yearly item counts (so they're not double-counted) and the
+        movements the user excluded. Yearly = that × 12 PLUS the yearly items
+        (each item's latest renewal cycle, or its typed amount)."""
         movements = self._movements()
         yearly_costs = list(getattr(mortgage, "yearly_costs", None) or [])
-        # Movements counted by a yearly item are left out of the monthly spend.
-        # A movement the user excluded from a yearly item is not that item's,
-        # so it stays in the monthly spend.
-        excluded = set()
-        for c in yearly_costs:
-            for mm in cost_matched_movements(c, movements):
-                excluded.add(id(mm))
-        selected = [
-            mv
-            for mv in movements
-            if str(getattr(mv, "category", "") or "").strip() in names
-            and id(mv) not in excluded
-        ]
-        recurring, n = average_monthly(selected, months=months)
+        from .car_costs import car_cost_breakdown
+
+        breakdown = car_cost_breakdown(mortgage, movements, active_tree())
+        recurring, n = average_monthly(breakdown.monthly, months=months)
         yearly_total = 0.0
         for c in yearly_costs:
             q = str(getattr(c, "query", "") or "").strip()

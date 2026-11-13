@@ -20,7 +20,16 @@ from ..qt import (
     QVBoxLayout,
     QWidget,
 )
-from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button, FullCellDelegate
+from .dialog_utils import (
+    DETAILS_TIP,
+    FullCellDelegate,
+    expectation_marker,
+    make_table_danger_button,
+    open_details_from_table,
+    setup_standard_rtl_dialog,
+    unwrap_rtl,
+)
+from ..widgets.category_combo import category_value, make_category_combo
 from ..utils.safe import QT_ERRORS
 
 
@@ -71,6 +80,9 @@ class AccountMovementsDialog(QDialog):
         )
         self._table.verticalHeader().setVisible(False)
         self._table.verticalHeader().setDefaultSectionSize(38)
+        self._table.cellDoubleClicked.connect(
+            lambda r, c: open_details_from_table(self._table, r, c, self)
+        )
         self._table.setEditTriggers(QTableWidget.EditTrigger.AllEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setSelectionMode(QTableWidget.SelectionMode.NoSelection)
@@ -170,7 +182,7 @@ class AccountMovementsDialog(QDialog):
                 MovementKind.TRANSFER: "העברה",
             }.get(kind, "הכנסה" if is_income else "הוצאה")
 
-            date_item = QTableWidgetItem(str(m.date))
+            date_item = QTableWidgetItem(f"{m.date}{expectation_marker(m)}")
             amount_item = QTableWidgetItem(str(abs(float(m.amount))))
             direction_item = QTableWidgetItem(direction)
             desc_item = QTableWidgetItem(m.description or "")
@@ -183,6 +195,7 @@ class AccountMovementsDialog(QDialog):
             for it in (date_item, amount_item, direction_item):
                 try:
                     it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    it.setToolTip(DETAILS_TIP)
                 except QT_ERRORS:
                     pass
 
@@ -195,14 +208,11 @@ class AccountMovementsDialog(QDialog):
             except QT_ERRORS:
                 pass
 
-            cat_combo = QComboBox(self._table)
             cats = self._income_categories if is_income else self._outcome_categories
-            if cats:
-                cat_combo.addItems(cats)
-            if m.category and m.category not in cats:
-                cat_combo.addItem(m.category)
-            if m.category:
-                cat_combo.setCurrentText(m.category)
+            # Hierarchical picker; label = full path, data = the stored name.
+            cat_combo = make_category_combo(
+                self._table, cats, m.category, is_income=is_income
+            )
 
             type_combo = QComboBox(self._table)
             type_combo.addItems(type_options)
@@ -236,7 +246,7 @@ class AccountMovementsDialog(QDialog):
         desc: Optional[str] = None
         cat_widget = self._table.cellWidget(row, 3)
         if isinstance(cat_widget, QComboBox):
-            category = str(cat_widget.currentText() or "").strip()
+            category = category_value(cat_widget)
 
         type_widget = self._table.cellWidget(row, 4)
         if isinstance(type_widget, QComboBox):

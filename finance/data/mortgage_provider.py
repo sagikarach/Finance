@@ -183,6 +183,9 @@ def serialize_mortgage(mortgage: Mortgage) -> Dict[str, Any]:
         "kind": str(getattr(mortgage.kind, "value", mortgage.kind)),
         "current_value": float(getattr(mortgage, "current_value", 0.0) or 0.0),
         "expense_category": str(getattr(mortgage, "expense_category", "") or ""),
+        # Written only when set: a missing key means "not chosen yet" (older
+        # record), an empty list means "deliberately none".
+        **_expense_categories_field(mortgage),
         "sold": bool(getattr(mortgage, "sold", False)),
         "sale_price": float(getattr(mortgage, "sale_price", 0.0) or 0.0),
         "sale_date": str(getattr(mortgage, "sale_date", "") or ""),
@@ -190,6 +193,23 @@ def serialize_mortgage(mortgage: Mortgage) -> Dict[str, Any]:
             getattr(mortgage, "prepayment_movement_ids", []) or []
         ),
     }
+
+
+def _expense_categories_field(mortgage: Any) -> dict:
+    """``{"expense_categories": [...]}`` when the car's selection is set (even
+    empty), ``{}`` when it was never chosen — so the key's absence keeps its
+    meaning in local files and in Firestore."""
+    raw = getattr(mortgage, "expense_categories", None)
+    if raw is None:
+        return {}
+    return {"expense_categories": [str(x) for x in raw if str(x).strip()]}
+
+
+def _parse_expense_categories(item: dict) -> Optional[List[str]]:
+    raw = item.get("expense_categories")
+    if not isinstance(raw, list):
+        return None  # missing (older record) — converted on read, see car_costs
+    return [str(x).strip() for x in raw if isinstance(x, str) and str(x).strip()]
 
 
 def deserialize_mortgage(item: Any) -> Optional[Mortgage]:
@@ -227,6 +247,7 @@ def deserialize_mortgage(item: Any) -> Optional[Mortgage]:
             kind=coerce_enum(AssetKind, item.get("kind"), AssetKind.PURCHASE, aliases={"רכישה": AssetKind.PURCHASE}),
             current_value=float(item.get("current_value", 0.0) or 0.0),
             expense_category=str(item.get("expense_category", "") or ""),
+            expense_categories=_parse_expense_categories(item),
             sold=bool(item.get("sold", False)),
             sale_price=float(item.get("sale_price", 0.0) or 0.0),
             sale_date=str(item.get("sale_date", "") or ""),

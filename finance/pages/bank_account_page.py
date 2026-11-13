@@ -452,9 +452,12 @@ class BankAccountPage(BasePage):
             try:
                 if provider is not None and hasattr(provider, "add_category_for_type"):
 
-                    def _on_cat_added(name: str, *, _prov=provider) -> None:
+                    def _on_cat_added(name: str, parent: str = "", *, _prov=provider) -> None:
                         try:
-                            _prov.add_category_for_type(name, False)
+                            if parent and hasattr(_prov, "add_expense_category"):
+                                _prov.add_expense_category(name, parent)
+                            else:
+                                _prov.add_category_for_type(name, False)
                         except QT_ERRORS:
                             pass
                         try:
@@ -472,10 +475,13 @@ class BankAccountPage(BasePage):
             except QT_ERRORS:
                 on_category_added = None
 
+            # Every expense awaiting review is shown (not just a few), and any
+            # the user skips is still saved — as "טרם סווג" — below, so an
+            # imported row is never silently dropped.
             pending_sorted = sorted(pending, key=lambda x: x.confidence)
-            top_3_pending = pending_sorted[:3]
+            declined_ids: set = set()
 
-            if top_3_pending:
+            if pending_sorted:
                 dlg: Any = None
                 try:
                     from ..ui.batch_outcome_review_dialog import (
@@ -483,7 +489,7 @@ class BankAccountPage(BasePage):
                     )
 
                     dlg = BatchOutcomeReviewDialog(
-                        top_3_pending,
+                        pending_sorted,
                         categories,
                         on_category_added=on_category_added,
                         parent=self,
@@ -555,6 +561,8 @@ class BankAccountPage(BasePage):
                                         allow_over_budget=True,
                                     )
                                     from_dialog.append(updated)
+                                else:
+                                    declined_ids.add(updated.id)
                             except QT_ERRORS:
                                 pass
                             continue
@@ -569,6 +577,23 @@ class BankAccountPage(BasePage):
                             except QT_ERRORS:
                                 pass
                             continue
+
+            saved_ids = {m.id for m in from_dialog} | declined_ids
+            for classified in pending_sorted:
+                if classified.movement.id in saved_ids:
+                    continue
+                fallback = classified.to_unclassified_movement()
+                try:
+                    self._accounts = service.apply_movement(
+                        self._accounts,
+                        fallback,
+                        is_income_hint=False,
+                        record_history=False,
+                        allow_over_budget=True,  # skipped, not refused
+                    )
+                    from_dialog.append(fallback)
+                except QT_ERRORS:
+                    continue
 
         try:
             imported_batch = service.pop_imported_for_last_csv()

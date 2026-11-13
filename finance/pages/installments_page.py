@@ -36,6 +36,7 @@ from ..models.installment_plan import (
 )
 from ..models.installments_service import InstallmentsService
 from ..widgets.installments_selector import InstallmentsSelector
+from ..widgets.category_combo import CategoryComboBox, category_value, fill_category_combo
 from .base_page import BasePage
 
 
@@ -179,14 +180,13 @@ class InstallmentPlanDialog(QDialog):
             "בתאריך כל חיוב תיווצר הוצאה בחשבון הבנק (כולל חיובים שכבר עברו)"
         )
         root.addWidget(self._auto_post)
-        self._category = QComboBox(self)
-        cats = [str(c) for c in (categories or []) if str(c).strip()]
-        self._category.addItems(cats or ["הוראת קבע"])
-        try:
-            self._category.setPlaceholderText("בחר קטגוריה")
-            self._category.setCurrentIndex(-1)  # no guess — the user picks
-        except QT_ERRORS:
-            pass
+        # Hierarchical picker (label = full path, data = the stored name).
+        # Starts on "(ללא קטגוריה)" — no guess, the user picks.
+        self._category_names = [str(c) for c in (categories or []) if str(c).strip()] or [
+            "הוראת קבע"
+        ]
+        self._category = CategoryComboBox(self)
+        fill_category_combo(self._category, self._category_names, "")
         self._category_label = QLabel("קטגוריה לתנועות", self)
         root.addWidget(self._category_label)
         root.addWidget(self._category)
@@ -305,9 +305,8 @@ class InstallmentPlanDialog(QDialog):
         self._charge_day.setValue(day)
         self._auto_post.setChecked(bool(getattr(p, "auto_post", True)))
         if str(p.category or "").strip():
-            if self._category.findText(str(p.category)) < 0:
-                self._category.addItem(str(p.category))
-            self._category.setCurrentText(str(p.category))
+            # The plan's own value is kept even when it is not in the list.
+            fill_category_combo(self._category, self._category_names, str(p.category))
         self._archived.setChecked(bool(getattr(p, "archived", False)))
 
     def _on_save(self) -> None:
@@ -359,9 +358,7 @@ class InstallmentPlanDialog(QDialog):
                 return
             monthly_amount = float(monthly)
             charge_day = int(self._charge_day.value())
-            if self._auto_post.isChecked() and not str(
-                self._category.currentText() or ""
-            ).strip():
+            if self._auto_post.isChecked() and not category_value(self._category):
                 QMessageBox.warning(self, "שגיאה", "צריך לבחור קטגוריה לתנועות הבנק")
                 return
             # The total is derived, so the rest of the app (history, tiles)
@@ -386,7 +383,7 @@ class InstallmentPlanDialog(QDialog):
             monthly_amount=monthly_amount,
             charge_day=charge_day,
             auto_post=bool(self._auto_post.isChecked()) if dd else False,
-            category=str(self._category.currentText() or "") if dd else "",
+            category=category_value(self._category) if dd else "",
             posted_count=int(prev.posted_count) if prev else 0,
         )
         self.accept()

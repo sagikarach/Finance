@@ -5,6 +5,11 @@
     (dry run by default; add --apply to write, push the changed records,
     refresh notifications once and rebuild the classifier once)
 
+    python scripts/edit_categories.py --corrections reviewed.json [--apply]
+    (per-movement fixes from a reviewed list: [{"movement_id", "expected",
+    "category", "reason"}]; a record whose category is no longer "expected"
+    is left alone)
+
 Run it with the app closed. ``--data-dir DIR --key WS --no-push`` works on a
 copy. ``--restore BACKUP_DIR`` copies a backup back (then press Sync).
 """
@@ -46,6 +51,7 @@ def main() -> int:
     ap.add_argument("--add", action="append", help="ID=NAME or ID=NAME@PARENT_ID")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--restore", type=Path)
+    ap.add_argument("--corrections", type=Path, help="reviewed per-movement list (JSON)")
     ap.add_argument("--data-dir", type=Path)
     ap.add_argument("--key", default="")
     ap.add_argument("--no-push", action="store_true")
@@ -92,6 +98,26 @@ def main() -> int:
             movements=JsonFileBankMovementProvider(files.movements).list_movements(),
             classifier=SimilarityBasedClassifier(),
         )
+
+    if args.corrections:
+        from finance.models.category_edits import MovementCorrection, apply_movement_corrections
+
+        items = json.loads(args.corrections.read_text(encoding="utf-8"))
+        corrections = [MovementCorrection(**{k: str(v) for k, v in it.items()}) for it in items]
+        rep = apply_movement_corrections(
+            files, corrections, dry_run=not args.apply,
+            pusher=None if (args.no_push or not args.apply) else FirebaseMigrationPusher(),
+            refresh=refresh if args.apply else None,
+            retrain=retrain if (args.apply and not args.data_dir) else None,
+        )
+        print(json.dumps({
+            "mode": rep.mode, "changed": rep.changed, "already": rep.already,
+            "conflicts": rep.conflicts, "missing": rep.missing,
+            "backup_dir": rep.backup_dir,
+            "pushed": vars(rep.pushed) if rep.pushed else None,
+            "notification_refreshes": rep.refreshed, "classifier_rebuilds": rep.retrained,
+        }, ensure_ascii=False, indent=2))
+        return 0
 
     report = apply_category_edit(
         files, edit, dry_run=not args.apply,

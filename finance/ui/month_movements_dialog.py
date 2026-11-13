@@ -20,7 +20,15 @@ from ..qt import (
     QVBoxLayout,
     QWidget,
 )
-from .dialog_utils import setup_standard_rtl_dialog, make_table_danger_button, FullCellDelegate
+from .dialog_utils import (
+    DETAILS_TIP,
+    FullCellDelegate,
+    expectation_marker,
+    make_table_danger_button,
+    open_details_from_table,
+    setup_standard_rtl_dialog,
+)
+from ..widgets.category_combo import category_value, make_category_combo
 from ..utils.safe import QT_ERRORS
 
 
@@ -230,6 +238,9 @@ class MonthMovementsDialog(QDialog):
         t.setRowCount(0)
         headers = ["תאריך", "חשבון", "סכום", "קטגוריה", "סוג", "תיאור", "מחק"]
         t.setHorizontalHeaderLabels(headers)
+        t.cellDoubleClicked.connect(
+            lambda r, c, tbl=t: open_details_from_table(tbl, r, c, self)
+        )
         try:
             t.verticalHeader().setVisible(False)
             t.verticalHeader().setDefaultSectionSize(38)
@@ -359,7 +370,7 @@ class MonthMovementsDialog(QDialog):
             align = None
 
         for row, m in enumerate(movements):
-            date_item = QTableWidgetItem(str(m.date))
+            date_item = QTableWidgetItem(f"{m.date}{expectation_marker(m)}")
             try:
                 date_item.setData(Qt.ItemDataRole.UserRole, m.id)
             except QT_ERRORS:
@@ -369,6 +380,10 @@ class MonthMovementsDialog(QDialog):
             desc_item = QTableWidgetItem(m.description or "")
 
             for it in (date_item, acct_item, amount_item):
+                try:
+                    it.setToolTip(DETAILS_TIP)
+                except QT_ERRORS:
+                    pass
                 try:
                     it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 except QT_ERRORS:
@@ -382,14 +397,9 @@ class MonthMovementsDialog(QDialog):
             except QT_ERRORS:
                 pass
 
-            cat_combo = QComboBox(table)
+            # Hierarchical picker; label = full path, data = the stored name.
+            cat_combo = make_category_combo(table, cats, m.category, is_income=is_income)
             self._make_combo_fit(cat_combo)
-            if cats:
-                cat_combo.addItems(cats)
-            if m.category and m.category not in cats:
-                cat_combo.addItem(m.category)
-            if m.category:
-                cat_combo.setCurrentText(m.category)
 
             type_combo = QComboBox(table)
             self._make_combo_fit(type_combo)
@@ -430,7 +440,7 @@ class MonthMovementsDialog(QDialog):
         try:
             w = table.cellWidget(row, 3)
             if isinstance(w, QComboBox):
-                cat = w.currentText().strip()
+                cat = category_value(w)
         except QT_ERRORS:
             cat = ""
         try:

@@ -244,6 +244,28 @@ class JsonFileBankMovementProvider(BankMovementProvider):
         items.append(name)
         self._save_categories_by_type(mapping)
 
+    def add_expense_category(self, name: str, parent_name: str = "") -> None:
+        """Add an expense category: under ``parent_name`` (a hierarchy node,
+        one atomic write of the tree + flat list) or top-level (flat list)."""
+        from ..models.category_create import add_child_category
+
+        name = str(name or "").strip()
+        parent_name = str(parent_name or "").strip()
+        if not name:
+            return
+        tree = self.load_category_tree()
+        if not parent_name or not tree or tree.by_name(parent_name) is None:
+            self.add_category_for_type(name, False)
+            return
+        if tree.by_name(name) is not None:
+            return
+        new_tree = add_child_category(tree, name, parent_name)
+        outcome = self.list_categories_for_type(False)
+        ordered = new_tree.assignable_names()
+        self.save_category_tree(
+            new_tree, outcome_names=ordered + [n for n in outcome if n not in ordered]
+        )
+
     def add_category(self, name: str) -> None:
         name = name.strip()
         if not name:

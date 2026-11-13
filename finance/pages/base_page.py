@@ -766,10 +766,13 @@ class BasePage(QWidget):
             if hasattr(provider, "add_category_for_type"):
 
                 def _on_cat_added(
-                    name: str, *, _prov=provider, _is_income=is_income
+                    name: str, parent: str = "", *, _prov=provider, _is_income=is_income
                 ) -> None:
                     try:
-                        _prov.add_category_for_type(name, _is_income)
+                        if not _is_income and parent and hasattr(_prov, "add_expense_category"):
+                            _prov.add_expense_category(name, parent)
+                        else:
+                            _prov.add_category_for_type(name, _is_income)
                     except QT_ERRORS:
                         pass
                     try:

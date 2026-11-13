@@ -7,7 +7,15 @@ explicitly tied to a plan/asset/event, and gets back one inspectable
 
 Decision order for an expense in the evaluated calendar month:
 
-1. **Planned** — explicitly linked to an installment plan, direct debit, asset
+0. **Direct-debit link** — a charge explicitly linked to a direct-debit plan
+   (``plan_charges``) is checked against the plan itself: the expected amount
+   (± ``PLAN_AMOUNT_TOLERANCE``), the scheduled date (± ``PLAN_DATE_TOLERANCE_DAYS``),
+   the plan's period (payment number 1…payments_count) and one charge per
+   payment. A match → ``PLANNED``; anything else → ``PLAN_MISMATCH`` (an alert
+   that no recurrence pattern can suppress). Being linked alone never exempts.
+0b. **Marked expected** — the user marked this one movement as expected →
+   ``MARKED_EXPECTED`` (no ordinary alert; duplicate checks run elsewhere).
+1. **Planned** — explicitly linked to an installment plan, asset
    (mortgage, purchase price, cost item) or budgeted event → suppressed. This is
    the strongest evidence and is checked first.
 2. **Recurring** — the same account + the same (conservatively normalized)
@@ -67,7 +75,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import ROUND_CEILING, Decimal, InvalidOperation
 from enum import StrEnum
-from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, FrozenSet, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 from .bank_movement import counts_as_transfer
 from .movement_matching import normalize_text
@@ -188,6 +196,41 @@ DEFAULT_CONFIG = UnusualExpenseConfig()
 # ── result types ──────────────────────────────────────────────────────────
 
 
+# A linked charge matches its direct-debit plan when within these. The amount
+# tolerance only absorbs technical rounding (agorot, card-network rounding);
+# any real price change is reported. The date tolerance covers weekend and
+# holiday shifts of a charge day.
+PLAN_AMOUNT_TOLERANCE = Decimal("1.00")
+PLAN_DATE_TOLERANCE_DAYS = 7
+
+
+@dataclass(frozen=True)
+class PlanCharge:
+    """A movement's explicit link to a direct-debit plan, resolved by the
+    caller (no plan objects in this module)."""
+
+    movement_id: str
+    plan_id: str
+    plan_name: str
+    occurrence: Optional[int]  # scheduled payment number; None = off schedule
+    scheduled_date: Optional[date]
+    expected_amount: Decimal
+    payments_count: int
+
+
+@dataclass(frozen=True)
+class PlanCheck:
+    """Why a linked charge does (not) match its plan. ``problems`` holds codes:
+    amount | date | outside_period | extra | off_schedule."""
+
+    charge: PlanCharge
+    problems: Tuple[str, ...] = ()
+
+    @property
+    def matches(self) -> bool:
+        return not self.problems
+
+
 class Outcome(StrEnum):
     ALERT = "alert"
     NOT_EXPENSE = "not_expense"  # income, refund, transfer, zero/invalid amount
@@ -198,6 +241,8 @@ class Outcome(StrEnum):
     INSUFFICIENT_HISTORY = "insufficient_history"
     UNCLASSIFIED = "unclassified"  # no statistical decision: purpose unknown
     WITHIN_THRESHOLD = "within_threshold"
+    PLAN_MISMATCH = "plan_mismatch"  # alert: a linked charge differs from its plan
+    MARKED_EXPECTED = "marked_expected"  # the user marked this expense expected
 
 
 @dataclass(frozen=True)
@@ -243,6 +288,7 @@ class CandidateDecision:
     percentile_threshold: Optional[Decimal] = None
     threshold: Optional[Decimal] = None
     recurrence: Optional[RecurrenceEvidence] = None
+    plan_check: Optional[PlanCheck] = None
 
     @property
     def eligible(self) -> bool:
@@ -256,7 +302,9 @@ class CandidateDecision:
 
     @property
     def is_alert(self) -> bool:
-        return self.outcome in (Outcome.ALERT, Outcome.RECURRING_INCREASE)
+        return self.outcome in (
+            Outcome.ALERT, Outcome.RECURRING_INCREASE, Outcome.PLAN_MISMATCH
+        )
 
 
 # ── small pure helpers ────────────────────────────────────────────────────
@@ -560,6 +608,49 @@ def best_recurrence(
     return None
 
 
+# ── direct-debit plan checks ──────────────────────────────────────────────
+
+
+def check_plan_charges(
+    charges: Mapping[str, PlanCharge], index: "DetectionIndex"
+) -> Dict[str, PlanCheck]:
+    """Check every linked charge against its plan. Needs all linked charges at
+    once to find a second charge for the same scheduled payment ("extra"):
+    the earliest charge (then lowest id) keeps the payment, later ones are
+    extra. Charges whose movement is not an expense are skipped."""
+    rows = index.rows_by_id
+    by_slot: Dict[Tuple[str, int], List[Tuple[date, str]]] = {}
+    for mid, c in charges.items():
+        r = rows.get(mid)
+        if r is None or r.amount is None or c.occurrence is None:
+            continue
+        by_slot.setdefault((c.plan_id, c.occurrence), []).append((r.day, mid))
+    extra: Set[str] = set()
+    for slot in by_slot.values():
+        for _d, mid in sorted(slot)[1:]:
+            extra.add(mid)
+    out: Dict[str, PlanCheck] = {}
+    for mid, c in charges.items():
+        r = rows.get(mid)
+        if r is None or r.amount is None:
+            continue
+        problems: List[str] = []
+        if c.occurrence is None:
+            problems.append("off_schedule")
+        elif not 1 <= c.occurrence <= max(0, int(c.payments_count)):
+            problems.append("outside_period")
+        if abs(r.amount - c.expected_amount.quantize(_CENT)) > PLAN_AMOUNT_TOLERANCE:
+            problems.append("amount")
+        if c.scheduled_date is not None and (
+            abs((r.day - c.scheduled_date).days) > PLAN_DATE_TOLERANCE_DAYS
+        ) and "outside_period" not in problems:
+            problems.append("date")
+        if mid in extra:
+            problems.append("extra")
+        out[mid] = PlanCheck(charge=c, problems=tuple(problems))
+    return out
+
+
 # ── the detector ──────────────────────────────────────────────────────────
 
 
@@ -586,6 +677,7 @@ class DetectionIndex:
     def __init__(self, movements: Iterable[Any]) -> None:
         self.by_month: Dict[YearMonth, List[_Row]] = {}
         self.by_merchant: Dict[Tuple[str, str], List[_Row]] = {}
+        self.rows_by_id: Dict[str, _Row] = {}
         self._fits_cache: Dict[Tuple[int, str], bool] = {}
         for m in movements:
             d = movement_date(m)
@@ -601,6 +693,8 @@ class DetectionIndex:
                 merchant=(account_key(m), merchant_key(m)),
             )
             self.by_month.setdefault(row.month, []).append(row)
+            if row.movement_id:
+                self.rows_by_id[row.movement_id] = row
             if row.amount is not None and row.merchant[1]:
                 self.by_merchant.setdefault(row.merchant, []).append(row)
 
@@ -633,6 +727,9 @@ def evaluate_month(
     planned_movement_ids: Optional[Set[str]] = None,
     config: UnusualExpenseConfig = DEFAULT_CONFIG,
     index: Optional[DetectionIndex] = None,
+    plan_charges: Optional[Mapping[str, PlanCharge]] = None,
+    expected_movement_ids: Optional[Set[str]] = None,
+    plan_checks: Optional[Mapping[str, PlanCheck]] = None,
 ) -> List[CandidateDecision]:
     """One :class:`CandidateDecision` per movement dated in ``evaluated_month``.
 
@@ -642,7 +739,15 @@ def evaluate_month(
     as ordinary history. Pass a prebuilt ``index`` (over the same movements) to
     evaluate several months without re-parsing."""
     idx = index if index is not None else DetectionIndex(movements)
-    planned = {str(x) for x in (planned_movement_ids or set())}
+    checks: Mapping[str, PlanCheck] = (
+        plan_checks if plan_checks is not None
+        else check_plan_charges(plan_charges or {}, idx)
+    )
+    marked = {str(x) for x in (expected_movement_ids or set())}
+    # A charge matching its plan is expected history (as planned links were).
+    planned = {str(x) for x in (planned_movement_ids or set())} | {
+        mid for mid, chk in checks.items() if chk.matches
+    }
     window = baseline_window(evaluated_month, config.baseline_months)
     month_start = date(evaluated_month[0], evaluated_month[1], 1)
 
@@ -721,6 +826,16 @@ def evaluate_month(
             decide(m, Outcome.NOT_EXPENSE)
             continue
         category = r.category
+        chk = checks.get(r.movement_id)
+        if chk is not None:  # explicit direct-debit link: the plan decides
+            decide(
+                m, Outcome.PLANNED if chk.matches else Outcome.PLAN_MISMATCH,
+                amount=amount, category=category, plan_check=chk,
+            )
+            continue
+        if r.movement_id in marked:
+            decide(m, Outcome.MARKED_EXPECTED, amount=amount, category=category)
+            continue
         if r.movement_id in planned:
             decide(m, Outcome.PLANNED, amount=amount, category=category)
             continue
@@ -797,6 +912,8 @@ def detect_unusual_expenses(
     planned_movement_ids: Optional[Set[str]] = None,
     config: UnusualExpenseConfig = DEFAULT_CONFIG,
     index: Optional[DetectionIndex] = None,
+    plan_charges: Optional[Mapping[str, PlanCharge]] = None,
+    expected_movement_ids: Optional[Set[str]] = None,
 ) -> List[CandidateDecision]:
     """Only the decisions that warrant an alert."""
     return [
@@ -807,6 +924,8 @@ def detect_unusual_expenses(
             planned_movement_ids=planned_movement_ids,
             config=config,
             index=index,
+            plan_charges=plan_charges,
+            expected_movement_ids=expected_movement_ids,
         )
         if d.is_alert
     ]
@@ -830,12 +949,53 @@ _FREQUENCY_HE = {"monthly": "חודשי", "weekly": "שבועי"}
 def decision_title(decision: CandidateDecision) -> str:
     if decision.outcome == Outcome.RECURRING_INCREASE:
         return "עלייה בחיוב קבוע"
+    if decision.outcome == Outcome.PLAN_MISMATCH:
+        return "חיוב שלא תואם הוראת קבע"
     return "הוצאה חריגה"
+
+
+def _fmt_day(d: date) -> str:
+    return f"{d.day:02d}/{d.month:02d}/{d.year:04d}"
+
+
+def format_plan_mismatch_message(decision: CandidateDecision) -> str:
+    """Concise Hebrew: what the plan expected vs what was charged."""
+    assert decision.amount is not None and decision.plan_check is not None
+    chk = decision.plan_check
+    c = chk.charge
+    name = f"״{c.plan_name}״" if c.plan_name else "הוראת הקבע"
+    payment = (
+        f"תשלום {c.occurrence} מתוך {c.payments_count}"
+        if c.occurrence is not None else "ללא תשלום מתאים בלוח"
+    )
+    parts = [
+        f"חיוב של {_fmt_amount(decision.amount)} ש״ח משויך ל{name} ({payment})."
+    ]
+    if "amount" in chk.problems:
+        parts.append(
+            f"הסכום הצפוי {_fmt_amount(c.expected_amount)} ש״ח — "
+            f"בפועל {_fmt_amount(decision.amount)} ש״ח."
+        )
+    if "extra" in chk.problems:
+        parts.append("כבר נרשם חיוב לתשלום הזה — זה חיוב נוסף.")
+    if "outside_period" in chk.problems:
+        parts.append(f"החיוב מחוץ לתקופת ההוראה ({c.payments_count} תשלומים).")
+    if "off_schedule" in chk.problems:
+        parts.append("תאריך החיוב לא מתאים לאף תשלום בלוח ההוראה.")
+    if "date" in chk.problems and c.scheduled_date is not None:
+        when = movement_date(decision)  # the decision carries the date string
+        parts.append(
+            f"התשלום תוכנן ל־{_fmt_day(c.scheduled_date)}, "
+            f"החיוב ב־{_fmt_day(when) if when else decision.date}."
+        )
+    return " ".join(parts)
 
 
 def format_unusual_expense_message(decision: CandidateDecision) -> str:
     """Hebrew, factual explanation built only from the calculated values."""
     assert decision.amount is not None
+    if decision.outcome == Outcome.PLAN_MISMATCH:
+        return format_plan_mismatch_message(decision)
     if decision.outcome == Outcome.RECURRING_INCREASE:
         ev = decision.recurrence
         assert ev is not None
@@ -888,6 +1048,20 @@ def decision_context(decision: CandidateDecision) -> Dict[str, Any]:
         )
     if decision.threshold is not None:
         ctx["threshold"] = str(decision.threshold)
+    chk = decision.plan_check
+    if chk is not None:
+        ctx.update(
+            {
+                "plan_id": chk.charge.plan_id,
+                "plan_occurrence": chk.charge.occurrence,
+                "plan_expected_amount": str(chk.charge.expected_amount),
+                "plan_scheduled_date": (
+                    chk.charge.scheduled_date.isoformat()
+                    if chk.charge.scheduled_date else None
+                ),
+                "plan_problems": list(chk.problems),
+            }
+        )
     ev = decision.recurrence
     if ev is not None and decision.outcome == Outcome.RECURRING_INCREASE:
         ctx.update(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from ..qt import (
     QWidget,
@@ -59,6 +59,8 @@ from ..models.mortgage_math import (
     yearly_cost_cycles,
 )
 from ..models.asset_expense_service import AssetExpenseService
+from ..models.car_costs import selection_label
+from ..widgets.category_combo import CategoryChecklist, category_label
 from .mortgage_page import HousePurchaseDialog
 from .base_page import BasePage
 
@@ -409,16 +411,31 @@ class CostMovementsDialog(QDialog):
         movements: list,
         yearly: bool = False,
         parent: Optional[QWidget] = None,
+        candidates: Optional[list] = None,
+        subtitle: Optional[str] = None,
+        locked: Optional[Dict[str, str]] = None,
+        show_category: bool = False,
     ) -> None:
+        """``candidates`` (instead of the cost's text search) lists the
+        movements to show; ``locked`` maps movement id → a status shown for a
+        row that is not counted here and cannot be toggled (e.g. counted by a
+        yearly item, or waiting for review)."""
         super().__init__(parent)
         self._cost = cost
         self._yearly = bool(yearly)
+        self._locked: Dict[str, str] = dict(locked or {})
+        self._show_category = bool(show_category)
         self._excluded: List[str] = [
             str(x) for x in (cost.excluded_movement_ids or []) if str(x).strip()
         ]
         # Every match, newest first, including excluded ones (shown dimmed).
+        source = (
+            list(candidates)
+            if candidates is not None
+            else cost_matched_movements(cost, movements, apply_exclusions=False)
+        )
         self._all = sorted(
-            cost_matched_movements(cost, movements, apply_exclusions=False),
+            source,
             key=lambda mv: str(getattr(mv, "date", "") or ""),
             reverse=True,
         )
@@ -438,7 +455,7 @@ class CostMovementsDialog(QDialog):
         head = QLabel(title, self)
         head.setObjectName("HeaderTitle")
         root.addWidget(head)
-        sub = QLabel(f"חיפוש: \"{cost.query}\"", self)
+        sub = QLabel(subtitle if subtitle is not None else f"חיפוש: \"{cost.query}\"", self)
         sub.setObjectName("Subtitle")
         root.addWidget(sub)
         self._summary = QLabel("", self)
@@ -448,8 +465,11 @@ class CostMovementsDialog(QDialog):
 
         self._table = QTableWidget(self)
         self._table.setObjectName("ActionHistoryTableWidget")
-        self._table.setColumnCount(4)
-        self._table.setHorizontalHeaderLabels(["תאריך", "סכום", "תיאור", "סטטוס"])
+        headers = ["תאריך", "סכום", "תיאור", "סטטוס"]
+        if self._show_category:
+            headers.insert(2, "קטגוריה")
+        self._table.setColumnCount(len(headers))
+        self._table.setHorizontalHeaderLabels(headers)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         try:
@@ -492,7 +512,7 @@ class CostMovementsDialog(QDialog):
             return str(raw or "")
 
     def _included(self) -> list:
-        ex = set(self._excluded)
+        ex = set(self._excluded) | set(self._locked)
         return [mv for mv in self._all if str(getattr(mv, "id", "")) not in ex]
 
     def _fill(self) -> None:
@@ -505,21 +525,28 @@ class CostMovementsDialog(QDialog):
                 amt = float(getattr(mv, "amount", 0.0) or 0.0)
             except QT_ERRORS:
                 amt = 0.0
-            cells = (
+            lock = self._locked.get(mid)
+            status = lock or ("הוחרג" if is_ex else "נכלל")
+            cells = [
                 QTableWidgetItem(self._date_he(str(getattr(mv, "date", "")))),
                 QTableWidgetItem(f"{_fmt_money(amt)} ₪"),
                 QTableWidgetItem(str(getattr(mv, "description", "") or "")),
-                QTableWidgetItem("הוחרג" if is_ex else "נכלל"),
-            )
+                QTableWidgetItem(status),
+            ]
+            if self._show_category:
+                cells.insert(
+                    2, QTableWidgetItem(category_label(str(getattr(mv, "category", "") or "")))
+                )
+            status_col = len(cells) - 1
             for col, it in enumerate(cells):
                 try:
                     it.setData(Qt.ItemDataRole.UserRole, mid)
                     it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                    if is_ex:
+                    if is_ex or lock:
                         it.setForeground(QColor("#9aa3b2"))
                     elif col == 1:
                         it.setForeground(QColor("#d66a4e"))
-                    elif col == 3:
+                    elif col == status_col:
                         it.setForeground(QColor("#2f9e68"))
                 except QT_ERRORS:
                     pass
@@ -529,7 +556,8 @@ class CostMovementsDialog(QDialog):
 
     def _update_summary(self) -> None:
         inc = self._included()
-        n_ex = len(self._all) - len(inc)
+        n_locked = sum(1 for mv in self._all if str(getattr(mv, "id", "")) in self._locked)
+        n_ex = len(self._all) - len(inc) - n_locked
         total = sum(abs(float(getattr(mv, "amount", 0.0) or 0.0)) for mv in inc)
         avg, months = average_monthly(inc)
         parts = [f"{len(inc)} תנועות נכללות", f"סה״כ {_fmt_money(total)} ₪"]
@@ -537,6 +565,8 @@ class CostMovementsDialog(QDialog):
             parts.append(f"ממוצע חודשי {_fmt_money(avg)} ₪ ({months} חודשים)")
         if n_ex:
             parts.append(f"{n_ex} הוחרגו")
+        if n_locked:
+            parts.append(f"{n_locked} לא נספרות כאן")
         if not self._all:
             parts = ["לא נמצאו תנועות שתואמות את החיפוש"]
         try:
@@ -564,7 +594,7 @@ class CostMovementsDialog(QDialog):
     def _update_toggle_text(self) -> None:
         mid = self._selected_id()
         try:
-            self._toggle_btn.setEnabled(bool(mid))
+            self._toggle_btn.setEnabled(bool(mid) and mid not in self._locked)
             self._toggle_btn.setText(
                 "החזר תנועה" if mid and mid in self._excluded else "החרג תנועה"
             )
@@ -573,7 +603,7 @@ class CostMovementsDialog(QDialog):
 
     def _toggle_selected(self) -> None:
         mid = self._selected_id()
-        if not mid:
+        if not mid or mid in self._locked:
             return
         row = self._selected_row()
         if mid in self._excluded:
@@ -1049,6 +1079,15 @@ class AssetDetailPage(BasePage):
             ),
             1,
         )
+        row.addWidget(
+            _DetailTile(
+                "תנועות הרכב",
+                "מה נספר, מה הוחרג ומה ממתין לבדיקה",
+                self._open_car_movements_dialog,
+                root,
+            ),
+            1,
+        )
         lay.addLayout(row, 0)
         lay.addStretch(1)
 
@@ -1149,6 +1188,7 @@ class AssetDetailPage(BasePage):
         # items are the ones defined on the car's עלויות שנתיות manager.
         m = getattr(a, "record", None)
         _cx = self._expenses.car_expenses(m) if m is not None else None
+        _bd = self._expenses.car_breakdown(m) if m is not None else None
         avg_month = _cx.monthly if _cx else 0.0
         avg_year = _cx.yearly if _cx else 0.0
         # yearly items = the part of the annual figure above the annualized monthly
@@ -1158,14 +1198,19 @@ class AssetDetailPage(BasePage):
         trow.setContentsMargins(4, 2, 4, 0)
         t = QLabel("הוצאות הרכב", wrap)
         t.setStyleSheet("font-size:16px;font-weight:800;color:#1e1e22;background:transparent;")
-        note = QLabel(
-            (
-                f"קטגוריית ״{a.expense_category}״ (חודשי)"
-                + (" + עלויות שנתיות" if yearly_total > 0 else "")
-            )
+        label = a.expense_category  # the selected categories, short
+        note_text = (
+            (f"{label} (חודשי)" + (" + עלויות שנתיות" if yearly_total > 0 else ""))
             if has_data
-            else f"אין תנועות בקטגוריית ״{a.expense_category}״",
-            wrap,
+            else f"אין תנועות בקטגוריות: {label}"
+        )
+        if _bd is not None and _bd.review:
+            names = ", ".join(f"״{n}״" for n in _bd.selection.review)
+            note_text += f"  ·  {len(_bd.review)} תנועות ב{names} ממתינות לבדיקה"
+        note = QLabel(note_text, wrap)
+        note.setToolTip(
+            "נספרות רק הקטגוריות שנבחרו לרכב (פרטי הרכב והמחיר). "
+            "תחבורה ציבורית, מוניות והשכרת רכב לא נספרות אלא אם נבחרו."
         )
         note.setStyleSheet("font-size:12.5px;color:#a8aca1;background:transparent;")
         trow.addWidget(t, 0)
@@ -1193,19 +1238,6 @@ class AssetDetailPage(BasePage):
         )
         wl.addLayout(cards)
         return wrap
-
-    def _distinct_categories(self):
-        try:
-            movements = self._service.list_movements()
-        except QT_ERRORS:
-            return ["רכב"]
-        seen = {}
-        for mv in movements:
-            c = str(getattr(mv, "category", "") or "").strip()
-            if c:
-                seen[c] = seen.get(c, 0) + 1
-        cats = sorted(seen, key=lambda c: -seen[c])
-        return cats or ["רכב"]
 
     def _car_persist(self, updated):
         self._service.upsert_mortgage(updated)
@@ -1288,22 +1320,46 @@ class AssetDetailPage(BasePage):
             dlg, root, "מחיר קנייה (₪)", f"{float(m.property_price or 0.0):.0f}"
         )
         date = self._labeled_date(dlg, root, "תאריך קנייה", m.start_date or "")
-        # קטגוריית ההוצאות — לחישוב הממוצע החודשי. שני רכבים? תן לכל אחד קטגוריה
-        # נפרדת כדי לפצל את ההוצאה.
-        root.addWidget(QLabel("קטגוריית הוצאות (לממוצע החודשי)", dlg))
-        cat = QComboBox(dlg)
-        cat.setEditable(True)
+        # הקטגוריות שנספרות כעלויות אחזקת הרכב — רק מה שמסומן (בלי כל תתי־הקטגוריות
+        # של "רכב ותחבורה" אוטומטית). שני רכבים? סמנו לכל אחד קטגוריות משלו.
+        from ..models.car_costs import car_category_selection
         from ..models.category_tree import active_tree
 
-        cur_cat = active_tree().resolve_reference(
-            str(getattr(m, "expense_category", "") or "").strip() or "רכב"
+        tree = active_tree()
+        sel = car_category_selection(m, tree)
+        root.addWidget(QLabel("קטגוריות שנספרות כעלויות הרכב", dlg))
+        hint = QLabel(
+            "סימון קטגוריה ראשית סופר רק תנועות שסווגו לקטגוריה הראשית עצמה. "
+            "תחבורה ציבורית, מוניות והשכרת רכב אינן עלויות אחזקה ולכן לא מסומנות.",
+            dlg,
         )
-        cats = self._distinct_categories()
-        if cur_cat not in cats:
-            cats = [cur_cat] + cats
-        cat.addItems(cats)
-        cat.setCurrentText(cur_cat)
-        root.addWidget(cat)
+        hint.setObjectName("Subtitle")
+        hint.setWordWrap(True)
+        root.addWidget(hint)
+        if sel.review:
+            review_note = QLabel(
+                "מההגדרה הקודמת: "
+                + ", ".join(f"״{n}״" for n in sel.review)
+                + " — קטגוריה רחבה, ולכן לא נספרת עד שתסמנו אותה. "
+                "אפשר לבדוק את התנועות שלה ב״תנועות הרכב״.",
+                dlg,
+            )
+            review_note.setObjectName("Subtitle")
+            review_note.setWordWrap(True)
+            root.addWidget(review_note)
+        cat = CategoryChecklist(
+            dlg,
+            tree=tree,
+            extra_names=list(sel.review),
+            checked=list(sel.categories),
+            expanded=list(sel.review),
+        )
+        cat.setMinimumHeight(240)
+        root.addWidget(cat, 1)
+        # Word-wrapped hints make the natural height too small; keep room for
+        # the checklist so it never slides under the buttons.
+        dlg.setMinimumSize(500, 760 if sel.review else 700)
+        initial_checked = sorted(cat.checked_names())
         btns = QHBoxLayout()
         btns.addStretch(1)
         save = QPushButton("שמור", dlg)
@@ -1321,19 +1377,55 @@ class AssetDetailPage(BasePage):
                 purchase = date.date().toString("yyyy-MM-dd")
             except QT_ERRORS:
                 purchase = m.start_date
-            self._car_persist(
-                replace(
-                    m,
-                    name=nm,
-                    property_price=float(p),
-                    start_date=purchase,
-                    expense_category=str(cat.currentText() or "").strip(),
-                )
-            )
+            updated = replace(m, name=nm, property_price=float(p), start_date=purchase)
+            checked = cat.checked_names()
+            # Only an actual change of the checkboxes is saved — saving the
+            # other fields never freezes a converted older setting by itself
+            # (which would silently drop its "for review" category).
+            if sorted(checked) != initial_checked:
+                updated = replace(updated, expense_categories=list(checked))
+            if updated != m:
+                self._car_persist(updated)
             dlg.accept()
 
         save.clicked.connect(_save)
         dlg.exec()
+
+    def _open_car_movements_dialog(self):
+        """Every movement behind the car's figures: counted in the monthly
+        spend, excluded by the user, counted by a yearly item, or waiting for
+        review (a broad category from the older setting). Exclusions are saved
+        on the car; categories are never changed here."""
+        m = self._selected_asset()
+        if m is None:
+            return
+        bd = self._expenses.car_breakdown(m)
+        locked = {str(mv.id): "בעלות שנתית" for mv in bd.cost_items}
+        locked.update({str(mv.id): "לבדיקה · לא נספר" for mv in bd.review})
+        by_cat = "  ·  ".join(
+            f"{c} {_fmt_money(total)} ₪" for c, total, _n in bd.monthly_by_category()[:6]
+        )
+        subtitle = f"קטגוריות: {selection_label(bd.selection, limit=8)}"
+        if by_cat:
+            subtitle += f"\nסה״כ לפי קטגוריה (כל התקופה): {by_cat}"
+        pseudo = CostItem(
+            name="הוצאות הרכב",
+            excluded_movement_ids=[str(x) for x in (m.excluded_movement_ids or [])],
+        )
+        dlg = CostMovementsDialog(
+            cost=pseudo,
+            movements=[],
+            candidates=bd.monthly + bd.excluded + bd.cost_items + bd.review,
+            subtitle=subtitle,
+            locked=locked,
+            show_category=True,
+            parent=self,
+        )
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        new_ex = list(dlg.get_cost().excluded_movement_ids)
+        if sorted(new_ex) != sorted(str(x) for x in (m.excluded_movement_ids or [])):
+            self._car_persist(replace(m, excluded_movement_ids=new_ex))
 
     def _open_yearly_costs_dialog(self):
         m = self._selected_asset()

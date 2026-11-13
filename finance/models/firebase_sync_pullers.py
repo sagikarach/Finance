@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from .bank_movement import BankMovement, deserialize_bank_movement
 from .firebase_client import FirestoreClient
@@ -64,6 +64,26 @@ def pull_remote_movements(
     return remote_ids, remote_by_id
 
 
+def keep_local_expectation(remote: BankMovement, fields: dict, local: Any) -> BankMovement:
+    """A document without the ``expected`` / ``plan_id`` keys was rewritten by
+    an older desktop that does not know them; that is not an undo, so the
+    local marker and plan link are kept (the next push writes them back). A
+    present key — even ``False`` / null — is a real value and wins."""
+    if local is None:
+        return remote
+    from dataclasses import replace
+
+    if "expected" not in fields:
+        remote = replace(remote, expected=bool(getattr(local, "expected", False)))
+    if "plan_id" not in fields:
+        remote = replace(
+            remote,
+            plan_id=getattr(local, "plan_id", None),
+            plan_occurrence=getattr(local, "plan_occurrence", None),
+        )
+    return remote
+
+
 def merge_remote_into_local(
     *,
     remote_by_id: Dict[str, dict],
@@ -81,6 +101,7 @@ def merge_remote_into_local(
             mv = deserialize_bank_movement(f, movement_id=mid)
             if mv is None:
                 continue
+            mv = keep_local_expectation(mv, f, local_by_id.get(mid))
             local_by_id[mid] = mv
             pulled += 1
     return pulled

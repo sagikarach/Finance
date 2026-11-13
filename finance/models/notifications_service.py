@@ -44,6 +44,7 @@ from .unusual_expense_detector import (
     YearMonth,
     decision_context,
     DetectionIndex,
+    check_plan_charges,
     decision_title,
     evaluate_month,
     format_unusual_expense_message,
@@ -630,6 +631,13 @@ class NotificationsService:
             planned = self._planned_movement_ids(movements)
             # Parsed once per refresh; every month evaluated below reuses it.
             index = DetectionIndex(movements)
+            charges = self._plan_charges(movements)
+            checks = check_plan_charges(charges, index)  # once, all months
+            marked = {
+                str(getattr(m, "id", "") or "")
+                for m in movements
+                if bool(getattr(m, "expected", False))
+            }
             alerts_by_month: dict[YearMonth, dict[str, CandidateDecision]] = {}
 
             def alerts_for(ym: YearMonth) -> dict[str, CandidateDecision]:
@@ -640,6 +648,8 @@ class NotificationsService:
                         planned_movement_ids=planned,
                         config=self._unusual_config,
                         index=index,
+                        plan_checks=checks,
+                        expected_movement_ids=marked,
                     )
                     if ym == evaluated:
                         self.last_unusual_outcomes = outcome_counts(decisions)
@@ -728,6 +738,12 @@ class NotificationsService:
             )
         return out
 
+    def _plan_charges(self, movements: List[BankMovement]) -> dict:
+        """Charges explicitly linked to a direct-debit plan, resolved."""
+        from .plan_links import plan_charges
+
+        return plan_charges(movements, list(self._installment_provider().list_plans()))
+
     def _planned_movement_ids(self, movements: List[BankMovement]) -> set[str]:
         """Ids of movements explicitly tied to something the user planned:
         installment plans and direct debits, mortgage payments/prepayments,
@@ -739,12 +755,9 @@ class NotificationsService:
 
         plans = list(self._installment_provider().list_plans())
         for plan in plans:
-            if plan.is_direct_debit:
-                prefix = f"dd-{plan.id}-"
-                planned.update(
-                    str(m.id) for m in movements if str(m.id).startswith(prefix)
-                )
-            else:
+            # Direct debits are not blanket-exempt here: their linked charges
+            # are checked against the plan (see _plan_charges).
+            if not plan.is_direct_debit:
                 planned.update(str(m.id) for m in plan.matches(movements))
 
         for asset in list(self._mortgage_provider().list_mortgages()):

@@ -314,7 +314,10 @@ def test_explicitly_planned_expenses_are_suppressed(tmp_path):
         id="p1", name="ספה", vendor_query="רהיטים", account_name="בנק",
         start_date="2026-01-01", payments_count=10,
     )
-    debit = InstallmentPlan(id="dd1", name="ביטוח", kind=KIND_DIRECT_DEBIT, monthly_amount=1500)
+    # A direct debit exempts its charge only after the charge is checked
+    # against the plan: payment 3 of this schedule is 2026-10-02, ₪1,500.
+    debit = InstallmentPlan(id="dd1", name="ביטוח", kind=KIND_DIRECT_DEBIT, monthly_amount=1500,
+                            start_date="2026-08-02", charge_day=2, payments_count=12)
     trip = OneTimeEvent(id="ev1", name="טיול", budget=8000)
     house = Mortgage(
         id="h1", name="דירה", vendor_query="משכנתא", account_name="בנק",
@@ -1101,3 +1104,186 @@ def test_extra_charge_beside_the_regular_one_is_not_an_increase():
     alone = {d.movement_id: d for d in evaluate_month(base + regular + [extra], evaluated_month=EVAL)}
     assert alone["extra"].outcome == Outcome.RECURRING_INCREASE
 
+
+
+# ── expected expenses & direct-debit plan links ──────────────────────────
+
+from finance.models import plan_links  # noqa: E402
+from finance.models.unusual_expense_detector import (  # noqa: E402
+    PLAN_AMOUNT_TOLERANCE,
+    check_plan_charges,
+    format_unusual_expense_message,
+    DetectionIndex,
+)
+
+GAN = InstallmentPlan(id="gan", name="גן", kind=KIND_DIRECT_DEBIT, monthly_amount=4000,
+                      start_date="2026-01-01", charge_day=1, payments_count=12, auto_post=False)
+SMALL = [60, 70, 80]  # the category's ordinary small items (activities)
+
+
+def gan_history():
+    out = history(SMALL, category="גן ומסגרות")
+    for mth in range(4, 10):  # Apr–Sep 2026, each linked to its payment
+        out.append(mv(-4000, f"2026-{mth:02d}-01", "גן ומסגרות", id=f"g{mth}",
+                      description="גן שחר", plan_id="gan", plan_occurrence=mth))
+    return out
+
+
+def decisions(movements, plans=(GAN,), **kw):
+    charges = plan_links.plan_charges(movements, plans)
+    return {d.movement_id: d for d in evaluate_month(
+        movements, evaluated_month=EVAL, plan_charges=charges, **kw)}
+
+
+def test_unlinked_regular_payment_is_an_ordinary_outlier_and_a_link_makes_it_expected():
+    base = gan_history()
+    # another payee name (no own monthly history): judged by the category
+    oct_free = mv(-4000, "2026-10-01", "גן ומסגרות", id="oct", description="תשלום גן")
+    free = decisions(base + [oct_free], plans=())["oct"]
+    assert free.outcome in (Outcome.ALERT, Outcome.WITHIN_THRESHOLD) and free.plan_check is None
+    linked = replace(oct_free, plan_id="gan", plan_occurrence=10)
+    d = decisions(base + [linked])["oct"]
+    assert d.outcome == Outcome.PLANNED and d.plan_check.matches
+
+
+def test_amount_change_extra_charge_and_period_are_reviewable():
+    base = gan_history()
+    changed = mv(-2800, "2026-10-01", "גן ומסגרות", id="low", plan_id="gan", plan_occurrence=10)
+    extra = mv(-5150, "2026-10-08", "גן ומסגרות", id="extra", plan_id="gan", plan_occurrence=10)
+    d = decisions(base + [changed, extra])
+    assert d["low"].outcome == Outcome.PLAN_MISMATCH and d["low"].plan_check.problems == ("amount",)
+    assert d["extra"].outcome == Outcome.PLAN_MISMATCH
+    assert set(d["extra"].plan_check.problems) == {"amount", "extra"}
+    msg = format_unusual_expense_message(d["low"])
+    assert "הסכום הצפוי 4,000 ש״ח" in msg and "בפועל 2,800 ש״ח" in msg and "תשלום 10 מתוך 12" in msg
+    # a charge after the plan's 12 payments
+    late = InstallmentPlan(**{**GAN.__dict__, "payments_count": 6})
+    d2 = decisions(base + [replace(changed, amount=-4000)], plans=(late,))
+    assert d2["low"].plan_check.problems == ("outside_period",)
+
+
+def test_rounding_tolerance_and_date_shift():
+    base = gan_history()
+    cents = mv(-(4000 + float(PLAN_AMOUNT_TOLERANCE)), "2026-10-03", "גן ומסגרות", id="c",
+               plan_id="gan", plan_occurrence=10)
+    late = mv(-4000, "2026-10-12", "גן ומסגרות", id="l", plan_id="gan", plan_occurrence=10)
+    assert decisions(base + [cents])["c"].outcome == Outcome.PLANNED
+    assert decisions(base + [late])["l"].plan_check.problems == ("date",)
+
+
+def test_recurrence_never_hides_a_plan_mismatch():
+    # The charge fits its own monthly history (4,100 every month) — but the
+    # plan says 4,000, so the explicit check wins.
+    hist = [mv(-4100, f"2026-{m:02d}-01", "גן ומסגרות", id=f"r{m}", description="גן שחר")
+            for m in range(4, 10)] + history(SMALL, category="גן ומסגרות")
+    oct_ = mv(-4100, "2026-10-01", "גן ומסגרות", id="oct", description="גן שחר",
+              plan_id="gan", plan_occurrence=10)
+    assert decisions(hist + [oct_], plans=())["oct"].outcome == Outcome.RECURRING  # unlinked view
+    d = decisions(hist + [oct_])["oct"]
+    assert d.outcome == Outcome.PLAN_MISMATCH and "amount" in d.plan_check.problems
+
+
+def test_generated_id_alone_is_not_an_exemption():
+    base = gan_history()
+    unknown = mv(-4000, "2026-10-01", "גן ומסגרות", id=direct_debit_movement_id("gone", 10))
+    wrong_day = mv(-4000, "2026-10-09", "גן ומסגרות", id=direct_debit_movement_id("gan", 10))
+    d = decisions(base + [unknown, wrong_day])
+    assert d[unknown.id].outcome == Outcome.ALERT  # plan does not exist
+    assert d[wrong_day.id].outcome == Outcome.ALERT  # date ≠ the payment's date: not verified
+    good = mv(-4000, "2026-10-01", "גן ומסגרות", id=direct_debit_movement_id("gan", 10))
+    assert decisions(base + [good])[good.id].outcome == Outcome.PLANNED
+
+
+def test_monthly_type_is_not_a_plan_link():
+    oct_ = mv(-4000, "2026-10-01", "גן ומסגרות", id="oct", type=MovementType.MONTHLY)
+    assert decisions(gan_history() + [oct_])["oct"].outcome == Outcome.ALERT
+
+
+def test_marked_expected_suppresses_only_that_movement():
+    fee = mv(-574, "2026-10-09", "עמלות", id="fee", description="עמלת פתיחת חשבון")
+    other = mv(-600, "2026-10-20", "עמלות", id="other", description="עמלת פתיחת חשבון")
+    hist = history([15, 18, 20], category="עמלות")
+    d = decisions(hist + [fee, other], plans=(), expected_movement_ids={"fee"})
+    assert d["fee"].outcome == Outcome.MARKED_EXPECTED
+    assert d["other"].outcome == Outcome.ALERT  # same merchant, not marked
+    assert decisions(hist + [fee, other], plans=())["fee"].outcome == Outcome.ALERT  # undone
+
+
+def test_marking_expected_closes_the_open_alert_and_undo_reopens_it(tmp_path):
+    big = mv(-1200, "2026-10-14", id="big")
+    base = history(NORMAL)
+    svc = service(tmp_path, base + [big])
+    svc.refresh()
+    assert [n.key for n in unusual(svc)] == ["unexpected_expense:big"]
+    svc._movement_provider = ListProvider(base + [replace(big, expected=True)])  # noqa: SLF001
+    svc.refresh()
+    closed = unusual(svc, include_closed=True)[0]
+    assert closed.status == NotificationStatus.RESOLVED and closed.closed_by == CLOSED_BY_SYSTEM
+    svc._movement_provider = ListProvider(base + [big])  # noqa: SLF001  (undo)
+    svc.refresh()
+    assert [n.key for n in unusual(svc)] == ["unexpected_expense:big"]
+
+
+def test_user_handled_alert_is_not_reopened_by_marking_or_undoing(tmp_path):
+    big = mv(-1200, "2026-10-14", id="big")
+    base = history(NORMAL)
+    svc = service(tmp_path, base + [big])
+    svc.refresh()
+    svc.resolve("unexpected_expense:big")
+    for movements in (base + [replace(big, expected=True)], base + [big]):
+        svc._movement_provider = ListProvider(movements)  # noqa: SLF001
+        svc.refresh()
+        n = unusual(svc, include_closed=True)[0]
+        assert n.status == NotificationStatus.RESOLVED and n.closed_by == CLOSED_BY_USER
+
+
+def test_expected_movements_still_get_duplicate_alerts(tmp_path):
+    a = mv(-300, "2026-10-14", id="a", description="חנות", expected=True)
+    b = mv(-300, "2026-10-14", id="b", description="חנות", expected=True)
+    svc = service(tmp_path, history(NORMAL) + [a, b])
+    svc.refresh()
+    dup = [n for n in svc._provider.list_notifications() if ":duplicate:" in n.key]  # noqa: SLF001
+    assert len(dup) == 1
+
+
+def test_plan_mismatch_gets_one_notification_per_movement(tmp_path):
+    base = gan_history()
+    low = mv(-2800, "2026-10-01", "גן ומסגרות", id="low", plan_id="gan", plan_occurrence=10)
+    svc = service(tmp_path, base + [low], plans=[GAN])
+    svc.refresh()
+    svc.refresh()
+    items = unusual(svc)
+    assert [n.key for n in items] == ["unexpected_expense:low"]
+    assert items[0].title == "חיוב שלא תואם הוראת קבע"
+    assert items[0].context["plan_problems"] == ["amount"]
+
+
+def test_linking_places_the_payment_and_backfill_only_verifies():
+    imported = mv(-4000, "2026-10-03", "גן ומסגרות", id="imp")
+    linked = plan_links.link_to_plan(imported, GAN)
+    assert (linked.plan_id, linked.plan_occurrence) == ("gan", 10)
+    assert {k: v for k, v in linked.__dict__.items() if k not in ("plan_id", "plan_occurrence")} == \
+        {k: v for k, v in imported.__dict__.items() if k not in ("plan_id", "plan_occurrence")}
+    assert plan_links.link_to_plan(linked, None).plan_id is None
+    far = plan_links.link_to_plan(mv(-4000, "2026-10-16", id="far"), GAN)
+    assert far.plan_id == "gan" and far.plan_occurrence is None  # off schedule → reported
+    debit = InstallmentPlan(**{**GAN.__dict__, "id": "dd", "auto_post": True})
+    ok = mv(-4000, "2026-02-01", id=direct_debit_movement_id("dd", 2))
+    bad = mv(-4000, "2026-02-05", id=direct_debit_movement_id("dd", 3))
+    filled = plan_links.backfill_generated_links([ok, bad, linked], [debit, GAN])
+    assert [(m.id, m.plan_id, m.plan_occurrence) for m in filled] == [(ok.id, "dd", 2)]
+    assert plan_links.backfill_generated_links([filled[0]], [debit]) == []  # idempotent
+
+
+def test_generated_charges_carry_the_link_and_covered_payments_are_not_generated():
+    debit = InstallmentPlan(**{**GAN.__dict__, "id": "dd", "auto_post": True})
+    due = debit.due_movements(date(2026, 3, 15))
+    assert [(m.plan_id, m.plan_occurrence) for m in due] == [("dd", 1), ("dd", 2), ("dd", 3)]
+    imported = plan_links.link_to_plan(mv(-4000, "2026-02-02", id="imp"), debit)
+    assert ("dd", 2) in plan_links.covered_occurrences([imported])
+
+
+def test_check_runs_once_for_all_months():
+    movements = gan_history()
+    checks = check_plan_charges(plan_links.plan_charges(movements, [GAN]), DetectionIndex(movements))
+    assert all(c.matches for c in checks.values()) and len(checks) == 6
