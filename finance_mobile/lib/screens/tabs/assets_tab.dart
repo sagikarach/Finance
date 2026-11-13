@@ -284,9 +284,10 @@ class _AssetsTabState extends State<AssetsTab> {
   }
 
   Widget _expensesCard(Asset a) {
-    final monthly = _avgMonthlyFor(a.category);
-    final yearly = monthly * 12;
-    final has = monthly > 0;
+    // Prefer the desktop's figures (selected categories + yearly items).
+    final monthly = a.carMonthlyCost ?? _avgMonthlyFor(a.category);
+    final yearly = a.carYearlyCost ?? monthly * 12;
+    final has = monthly > 0 || yearly > 0;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -299,7 +300,10 @@ class _AssetsTabState extends State<AssetsTab> {
                       fontWeight: FontWeight.w800,
                       color: AppColors.muted)),
               const Spacer(),
-              Text('קטגוריית ${a.category}',
+              Text(
+                  a.carMonthlyCost != null
+                      ? 'קטגוריות הרכב · כולל עלויות שנתיות'
+                      : 'קטגוריית ${a.category}',
                   style: const TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
