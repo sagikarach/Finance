@@ -70,6 +70,10 @@ def _action_body(
             acc = str(getattr(m, "account_name", "") or "").strip()
             date = str(getattr(m, "date", "") or "").strip()
             cat = str(getattr(m, "category", "") or "").strip()
+            if cat:
+                from .category_combo import category_label
+
+                cat = category_label(cat)  # read-only: show the full path
             desc = str(getattr(m, "description", "") or "").strip()
             amt = _fmt_money(float(getattr(m, "amount", 0.0) or 0.0))
             parts = [p for p in (acc, date, (amt if amt else ""), cat) if p]

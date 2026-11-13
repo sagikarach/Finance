@@ -194,12 +194,17 @@ class Mortgage:
     funding_sources: list[FundingSource] = field(default_factory=list)  # צד ההכנסות
     kind: AssetKind = AssetKind.PURCHASE  # סוג הנכס
     current_value: float = 0.0  # שווי נוכחי — לנכס מסוג "אחר"
-    expense_category: str = ""  # קטגוריית תנועות לחישוב ממוצע חודשי (רכב)
+    expense_category: str = ""  # קטגוריית תנועות לחישוב ממוצע חודשי (רכב) — ישן
     sold: bool = False  # האם הנכס נמכר
     sale_price: float = 0.0  # מחיר המכירה (השווי שמומש)
     sale_date: str = ""  # תאריך המכירה (YYYY-MM-DD)
     # מזהי תנועות (הוצאות חד-פעמיות) שקושרו כפירעון חלקי לקרן (קיצור תקופה).
     prepayment_movement_ids: list[str] = field(default_factory=list)
+    # (last field: positional construction elsewhere stays valid)
+    # רכב: הקטגוריות שנספרות כעלויות אחזקה (שמות מדויקים, בלי צאצאים אוטומטיים).
+    # None = טרם נבחר (רשומה ישנה) — ``expense_category`` מומרת בקריאה (car_costs.py);
+    # [] = נבחר במכוון "אף קטגוריה".
+    expense_categories: Optional[list[str]] = None
 
     @property
     def original_principal(self) -> float:

@@ -22,7 +22,7 @@ from .action_history import (
     get_current_timestamp,
 )
 from .bank_movement import BankMovement
-from .mortgage import Mortgage
+from .mortgage import AssetKind, Mortgage
 from .mortgage_math import (
     DEFAULT_ASSUMPTIONS,
     MortgageAssumptions,
@@ -388,7 +388,24 @@ class MortgageService:
         except PARSE_ERRORS:
             principal = float(mortgage.original_principal)
         principal = max(0.0, principal - self.prepaid_amount(mortgage))
+        car: dict = {}
+        if getattr(mortgage, "kind", None) == AssetKind.CAR:
+            # The car's ownership costs as the desktop computes them (selected
+            # categories, yearly items, exclusions) — the mobile shows these
+            # instead of re-deriving them from a single category name.
+            try:
+                from .asset_expense_service import AssetExpenseService
+
+                cx = AssetExpenseService(self).car_expenses(mortgage)
+                car = {
+                    "car_monthly_cost": float(cx.monthly),
+                    "car_yearly_cost": float(cx.yearly),
+                    "car_cost_months": int(cx.months_of_data),
+                }
+            except PARSE_ERRORS:
+                car = {}
         return {
+            **car,
             # outstanding_balance = היתרה האמיתית (כולל ריבית עתידית) — מה שהמובייל
             # מציג ומנכה מהשווי; principal_balance = יתרת הקרן בלבד.
             "outstanding_balance": self.remaining_debt(mortgage),

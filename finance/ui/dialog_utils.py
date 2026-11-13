@@ -232,3 +232,35 @@ def apply_rtl_alignment(combo: QComboBox) -> None:
             model.setData(index, align, role)
         except QT_ERRORS:
             continue
+
+
+def expectation_marker(m) -> str:
+    """Short suffix for a movement's date cell: marked expected / plan-linked."""
+    parts = []
+    if bool(getattr(m, "expected", False)):
+        parts.append("צפויה")
+    if getattr(m, "plan_id", None):
+        parts.append("הוראת קבע")
+    return f" · {' · '.join(parts)}" if parts else ""
+
+
+DETAILS_TIP = "לחיצה כפולה: פרטי ההוצאה — סימון כהוצאה צפויה או שיוך להוראת קבע"
+
+
+def open_details_from_table(table, row: int, col: int, parent) -> None:
+    """Double-click on a read-only cell (date / account / amount) of a
+    movements table opens the expense details; the row's marker is updated."""
+    if col not in (0, 1, 2):
+        return
+    item = table.item(row, 0)
+    mid = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+    if not isinstance(mid, str) or not mid:
+        return
+    from .expense_details_dialog import open_expense_details
+
+    if open_expense_details(mid, parent=parent):
+        from ..data.bank_movement_provider import JsonFileBankMovementProvider
+
+        m = next((x for x in JsonFileBankMovementProvider().list_movements() if x.id == mid), None)
+        if m is not None and item is not None:
+            item.setText(f"{m.date}{expectation_marker(m)}")

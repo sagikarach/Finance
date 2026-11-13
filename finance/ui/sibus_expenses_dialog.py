@@ -21,6 +21,7 @@ from ..qt import (
     QWidget,
 )
 from .dialog_utils import setup_standard_rtl_dialog, unwrap_rtl, make_table_danger_button, FullCellDelegate
+from ..widgets.category_combo import category_value, make_category_combo
 from ..utils.safe import QT_ERRORS
 
 
@@ -178,13 +179,8 @@ class SibusExpensesDialog(QDialog):
             except QT_ERRORS:
                 pass
 
-            cat_combo = QComboBox(self._table)
-            if self._categories:
-                cat_combo.addItems(self._categories)
-            if m.category and m.category not in self._categories:
-                cat_combo.addItem(m.category)
-            if m.category:
-                cat_combo.setCurrentText(m.category)
+            # Hierarchical picker; label = full path, data = the stored name.
+            cat_combo = make_category_combo(self._table, self._categories, m.category)
 
             type_combo = QComboBox(self._table)
             type_combo.addItems(type_options)
@@ -217,7 +213,7 @@ class SibusExpensesDialog(QDialog):
         desc: Optional[str] = None
         cat_widget = self._table.cellWidget(row, 2)
         if isinstance(cat_widget, QComboBox):
-            category = str(cat_widget.currentText() or "").strip()
+            category = category_value(cat_widget)
 
         type_widget = self._table.cellWidget(row, 3)
         if isinstance(type_widget, QComboBox):

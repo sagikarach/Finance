@@ -102,6 +102,11 @@ class Asset {
   /// then we fall back to the original principal.
   final double? outstandingBalance;
   final String balanceAsOf; // YYYY-MM-DD the desktop computed it
+  /// The car's ownership costs as the desktop computes them (its selected
+  /// categories, yearly items and exclusions). Null on docs written by an
+  /// older desktop — then the single legacy category is used.
+  final double? carMonthlyCost;
+  final double? carYearlyCost;
 
   Asset({
     required this.id,
@@ -117,6 +122,8 @@ class Asset {
     required this.expenseCategory,
     this.outstandingBalance,
     this.balanceAsOf = '',
+    this.carMonthlyCost,
+    this.carYearlyCost,
   });
 
   /// Kinds mirror the desktop `AssetKind`: נדל״ן (real estate; legacy "רכישה"
@@ -181,6 +188,12 @@ class Asset {
           ? (d['outstanding_balance'] as num).toDouble()
           : null,
       balanceAsOf: _strOf(d, 'balance_as_of'),
+      carMonthlyCost: (d['car_monthly_cost'] is num)
+          ? (d['car_monthly_cost'] as num).toDouble()
+          : null,
+      carYearlyCost: (d['car_yearly_cost'] is num)
+          ? (d['car_yearly_cost'] as num).toDouble()
+          : null,
     );
   }
 }

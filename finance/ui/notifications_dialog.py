@@ -177,44 +177,14 @@ class NotificationsDialog(QDialog):
                 dlg.exec()
                 return True
 
-            dlg = QDialog(self)
-            lay = setup_standard_rtl_dialog(
-                dlg, title="פרטי הוצאה", margins=(24, 20, 24, 20), spacing=10
-            )
+            # Expense details, where this one expense can be marked expected
+            # or linked to a direct-debit plan. Refreshing afterwards runs the
+            # normal alert lifecycle: an open alert that no longer qualifies is
+            # closed automatically; alerts you handled are left as they are.
+            from .expense_details_dialog import open_expense_details
 
-            def add_line(label: str, value: str) -> None:
-                row = QHBoxLayout()
-                row.setSpacing(10)
-                label_widget = QLabel(f"{label}:", dlg)
-                label_widget.setObjectName("Subtitle")
-                v = QLabel(wrap_hebrew_rtl(value), dlg)
-                v.setWordWrap(True)
-                row.addWidget(label_widget, 0)
-                row.addWidget(v, 1)
-                lay.addLayout(row)
-
-            add_line("מזהה", str(getattr(m, "id", "") or ""))
-            add_line("תאריך", str(getattr(m, "date", "") or ""))
-            add_line("חשבון", str(getattr(m, "account_name", "") or ""))
-            add_line("סכום", str(getattr(m, "amount", "") or ""))
-            add_line("קטגוריה", str(getattr(m, "category", "") or ""))
-            try:
-                t = getattr(m, "type", None)
-                t_str = str(getattr(t, "value", t) or "")
-            except QT_ERRORS:
-                t_str = ""
-            add_line("סוג", t_str)
-            add_line("תיאור", str(getattr(m, "description", "") or ""))
-            add_line("העברה", "כן" if bool(getattr(m, "is_transfer", False)) else "לא")
-            add_line("אירוע", str(getattr(m, "event_id", "") or ""))
-
-            close_btn = QPushButton("סגור", dlg)
-            close_btn.clicked.connect(dlg.accept)
-            row = QHBoxLayout()
-            row.addStretch(1)
-            row.addWidget(close_btn)
-            lay.addLayout(row)
-            dlg.exec()
+            if open_expense_details(movement_id, parent=self):
+                self.refresh()
             return True
 
         if n.type == NotificationType.MISSING_MONTHLY_UPLOAD:

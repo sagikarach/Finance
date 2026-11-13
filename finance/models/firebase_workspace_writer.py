@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import asdict, is_dataclass
 from typing import Any, Dict, List, Optional
 
@@ -21,6 +22,19 @@ from ..utils.safe import PARSE_ERRORS, swallow
 from ..utils.logging_setup import get_logger
 _log = get_logger("models")
 
+
+
+def movement_expectation_fields(movement: Any) -> Dict[str, Any]:
+    """Always written (also when unset), so an undo reaches other devices; a
+    document *without* these keys was written by an older client — see
+    ``merge_remote_into_local``."""
+    plan_id = str(getattr(movement, "plan_id", "") or "").strip()
+    occ = getattr(movement, "plan_occurrence", None)
+    return {
+        "expected": bool(getattr(movement, "expected", False)),
+        "plan_id": plan_id or None,
+        "plan_occurrence": int(occ) if (plan_id and occ is not None) else None,
+    }
 
 class FirebaseWorkspaceWriter:
     def __init__(self, session_store: Optional[FirebaseSessionStore] = None) -> None:
@@ -60,6 +74,7 @@ class FirebaseWorkspaceWriter:
                 "event_id": getattr(movement, "event_id", None),
                 "transfer_from": getattr(movement, "transfer_from", None),
                 "transfer_to": getattr(movement, "transfer_to", None),
+                **movement_expectation_fields(movement),
                 "deleted": False,
                 "source": "desktop",
             },
@@ -111,6 +126,7 @@ class FirebaseWorkspaceWriter:
                 "event_id": getattr(m, "event_id", None),
                 "transfer_from": getattr(m, "transfer_from", None),
                 "transfer_to": getattr(m, "transfer_to", None),
+                **movement_expectation_fields(m),
                 "deleted": False,
                 "source": "desktop",
                 "updated_at": now,
@@ -274,6 +290,7 @@ class FirebaseWorkspaceWriter:
 
     def upsert_mortgage(self, mortgage: Mortgage) -> None:
         from ..data.mortgage_provider import (
+            _expense_categories_field,
             serialize_cost,
             serialize_funding,
             serialize_track,
@@ -290,11 +307,18 @@ class FirebaseWorkspaceWriter:
         s = self._load_session_refresh_if_needed()
         wid = self._ensure_workspace(s)
         fs = self._fs(s.project_id)
-        fs.upsert_document(
+        # Field-level update (an explicit field mask): fields this client does
+        # not write — e.g. a car's category selection when it was never chosen
+        # here, or fields added by a newer client — are left untouched on the
+        # server instead of being wiped by a whole-document replace.
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        fs.patch_document_fields(
             document_path=f"workspaces/{wid}/mortgages/{mortgage.id}",
             id_token=s.id_token,
             fields={
                 **balance,
+                "updated_at": now,
+                "updated_at_ms": int(time.time() * 1000),
                 "id": mortgage.id,
                 "name": mortgage.name,
                 "account_name": mortgage.account_name,
@@ -321,6 +345,7 @@ class FirebaseWorkspaceWriter:
                 "expense_category": str(
                     getattr(mortgage, "expense_category", "") or ""
                 ),
+                **_expense_categories_field(mortgage),
                 "yearly_costs": [
                     serialize_cost(c)
                     for c in getattr(mortgage, "yearly_costs", []) or []

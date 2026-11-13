@@ -366,10 +366,11 @@ class CarAsset(Asset):
 
     @property
     def expense_category(self) -> str:
+        """Short label of the categories counted as this car's costs."""
+        from .car_costs import car_category_selection, selection_label
         from .category_tree import active_tree
 
-        raw = str(getattr(self.record, "expense_category", "") or "").strip() or "רכב"
-        return active_tree().resolve_reference(raw)
+        return selection_label(car_category_selection(self.record, active_tree()))
 
     def current_value(
         self,

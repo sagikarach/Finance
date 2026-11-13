@@ -436,46 +436,20 @@ class MortgageDialog(QDialog):
             start_date = ""
 
         prev = self._mortgage
-        existing_id = prev.id if prev is not None else None
-        excluded = list(prev.excluded_movement_ids) if prev is not None else []
-        archived = bool(prev.archived) if prev is not None else False
-        # שמור את נתוני תרחיש הרכישה (אם קיימים) — נערכים בדיאלוג נפרד.
-        property_price = float(prev.property_price) if prev is not None else 0.0
-        price_query = str(prev.price_query) if prev is not None else ""
-        one_time_costs = list(prev.one_time_costs) if prev is not None else []
-        monthly_costs = list(prev.monthly_costs) if prev is not None else []
-        funding_sources = list(prev.funding_sources) if prev is not None else []
-        # נכס שנוצר/נערך במסך המשכנתא הוא תמיד מסוג רכישה.
-        kind = prev.kind if prev is not None else AssetKind.PURCHASE
-        current_value = float(prev.current_value) if prev is not None else 0.0
-        # מצב המכירה נשמר מהרשומה הקודמת — עריכת המשכנתא אינה משנה אותו.
-        sold = bool(prev.sold) if prev is not None else False
-        sale_price = float(prev.sale_price) if prev is not None else 0.0
-        sale_date = str(prev.sale_date) if prev is not None else ""
-        # קישורי פירעון חלקי נשמרים — עריכת המשכנתא אינה מוחקת אותם.
-        prepayment_ids = (
-            list(prev.prepayment_movement_ids) if prev is not None else []
-        )
-        self._mortgage = Mortgage(
-            **({"id": existing_id} if existing_id else {}),
+        vendor_query = str(self._vendor_query.text() or "").strip()
+        # Only the fields this dialog edits change; everything else on an
+        # existing asset (yearly/monthly/one-time costs, funding, car
+        # categories, sale state, prepayment links, exclusions…) is kept as is
+        # — the record used to be rebuilt field by field, which silently
+        # dropped the yearly cost items.
+        base = prev if prev is not None else Mortgage(kind=AssetKind.PURCHASE)
+        self._mortgage = replace(
+            base,
             name=name,
             account_name=_MORTGAGE_ACCOUNT_NAME,
-            vendor_query=str(self._vendor_query.text() or "").strip(),
+            vendor_query=vendor_query,
             start_date=start_date,
             tracks=list(self._tracks),
-            excluded_movement_ids=excluded,
-            archived=archived,
-            property_price=property_price,
-            price_query=price_query,
-            one_time_costs=one_time_costs,
-            monthly_costs=monthly_costs,
-            funding_sources=funding_sources,
-            kind=kind,
-            current_value=current_value,
-            sold=sold,
-            sale_price=sale_price,
-            sale_date=sale_date,
-            prepayment_movement_ids=prepayment_ids,
         )
         self.accept()
 

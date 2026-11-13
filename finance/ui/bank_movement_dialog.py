@@ -29,14 +29,27 @@ from ..utils.safe import QT_ERRORS
 
 
 class NewCategoryDialog(QDialog):
+    """Name a new category. For expenses (when a hierarchy exists) it can be
+    placed under an existing top-level category, or be a new top-level one."""
+
     def __init__(
         self,
         existing_names: List[str],
         parent: Optional[QDialog] = None,
+        *,
+        is_income: bool = False,
+        tree: Optional[Any] = None,
+        default_parent: str = "",
     ) -> None:
         super().__init__(parent)
+        from ..models.category_create import top_level_choices, validate_new_category_name
+        from ..models.category_tree import CategoryTree, active_tree
+
         self._existing = existing_names
         self._name: str = ""
+        self._parent_name: str = ""
+        self._is_income = bool(is_income)
+        self._tree = CategoryTree([]) if is_income else (tree if tree is not None else active_tree())
 
         layout: QVBoxLayout = setup_standard_rtl_dialog(
             self, title="קטגוריה חדשה", margins=(32, 24, 32, 24), spacing=12
@@ -50,6 +63,24 @@ class NewCategoryDialog(QDialog):
         row.addWidget(label, 0)
         row.addWidget(self._edit, 1)
 
+        self._parent_combo: Optional[Any] = None
+        parent_row: Optional[Any] = None
+        if self._tree:
+            prow = QHBoxLayout()
+            prow.setSpacing(8)
+            plabel = QLabel("מתחת ל:", self)
+            plabel.setMinimumWidth(90)
+            pcombo = QComboBox(self)
+            pcombo.addItem("— קטגוריה ראשית חדשה —", "")
+            for p in top_level_choices(self._tree):
+                pcombo.addItem(p, p)
+            idx = pcombo.findData(default_parent)
+            pcombo.setCurrentIndex(idx if idx >= 0 else 0)
+            prow.addWidget(plabel, 0)
+            prow.addWidget(pcombo, 1)
+            self._parent_combo = pcombo
+            parent_row = prow
+
         self._error_label = QLabel("", self)
         self._error_label.setObjectName("ErrorLabel")
         self._error_label.setWordWrap(True)
@@ -60,18 +91,23 @@ class NewCategoryDialog(QDialog):
         )
 
         layout.addLayout(row)
+        if parent_row is not None:
+            layout.addLayout(parent_row)
         layout.addWidget(self._error_label)
         layout.addLayout(buttons_row)
 
         def on_accept() -> None:
             name = self._edit.text().strip()
-            if not name:
-                self._show_error("יש להזין שם קטגוריה")
-                return
-            if name in self._existing:
-                self._show_error("הקטגוריה כבר קיימת")
+            error = validate_new_category_name(
+                name, self._existing, self._tree, is_income=self._is_income
+            )
+            if error:
+                self._show_error(error)
                 return
             self._name = name
+            if self._parent_combo is not None:
+                data = self._parent_combo.currentData()
+                self._parent_name = data.strip() if isinstance(data, str) else ""
             self.accept()
 
         primary_btn.clicked.connect(on_accept)
@@ -83,6 +119,20 @@ class NewCategoryDialog(QDialog):
 
     def get_name(self) -> str:
         return self._name
+
+    def get_parent_name(self) -> str:
+        """The chosen top-level parent, or "" for a new top-level category."""
+        return self._parent_name
+
+
+def notify_category_added(callback: Any, name: str, parent_name: str) -> None:
+    """Call an ``on_category_added`` callback; one that takes a parent gets it."""
+    if callback is None:
+        return
+    try:
+        callback(name, parent_name)
+    except TypeError:
+        callback(name)
 
 
 class BankMovementDialog(QDialog):
@@ -501,7 +551,9 @@ class BankMovementDialog(QDialog):
         try:
             data = self._category_combo.itemData(index)
             if data == self._add_category_sentinel:
-                dialog = NewCategoryDialog(self._categories, parent=self)
+                dialog = NewCategoryDialog(
+                    self._categories, parent=self, is_income=self._is_income
+                )
                 result = dialog.exec()
                 if not result:
                     self._category_combo.setCurrentIndex(self._last_category_index)
@@ -515,11 +567,12 @@ class BankMovementDialog(QDialog):
                     self._categories.append(name)
                     self._category_combo.insertItem(insert_index, name, name)
                     apply_rtl_alignment(self._category_combo)
-                    if self._on_category_added is not None:
-                        try:
-                            self._on_category_added(name)
-                        except QT_ERRORS:
-                            pass
+                    try:
+                        notify_category_added(
+                            self._on_category_added, name, dialog.get_parent_name()
+                        )
+                    except QT_ERRORS:
+                        pass
                     self._category_combo.setCurrentIndex(insert_index)
                     self._last_category_index = insert_index
             else:

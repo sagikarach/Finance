@@ -10,7 +10,7 @@ hierarchy (custom names, "add new…" entries) are listed as top-level rows.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ..models.category_tree import CategoryTree, active_tree
 from ..qt import (
@@ -208,3 +208,156 @@ class CategoryComboBox(QComboBox):
         self.hidePopup()
         self.setCurrentIndex(index)
         self.activated.emit(index)
+
+
+# ── shared helpers for every category selector ──────────────────────────
+
+PATH_SEP = " / "
+NO_CATEGORY_LABEL = "(ללא קטגוריה)"
+
+
+def category_label(name: str, tree: Optional[CategoryTree] = None) -> str:
+    """Display path for a stored category name: "מזון / סופר ומכולת" for a
+    subcategory, the name itself otherwise (custom / unknown names unchanged)."""
+    name = str(name or "").strip()
+    t = active_tree() if tree is None else tree
+    parent = t.parent_of(name) if (t and name) else None
+    return f"{parent.name}{PATH_SEP}{name}" if parent is not None else name
+
+
+def fill_category_combo(
+    combo: Any,
+    names: List[str],
+    current: str,
+    *,
+    tree: Optional[CategoryTree] = None,
+    extra_items: Optional[List[tuple]] = None,
+) -> None:
+    """Fill ``combo`` with ``names`` (label = full path, data = the stored name)
+    and select ``current``. A current value outside the list — a custom name,
+    a retired or unknown legacy value, or no category at all — is kept as its
+    own item so opening and saving never changes it silently. Retired names
+    are not offered otherwise. ``extra_items`` are appended as (label, data)."""
+    t = active_tree() if tree is None else tree
+    current = str(current or "").strip()
+    try:
+        combo.blockSignals(True)
+    except QT_ERRORS:
+        pass
+    combo.clear()
+    seen: set = set()
+    for n in names:
+        n = str(n or "").strip()
+        if not n or n in seen:
+            continue
+        if t and n in t.legacy_aliases and t.by_name(n) is None and n != current:
+            continue
+        seen.add(n)
+        combo.addItem(category_label(n, t), n)
+    if current not in seen:
+        combo.addItem(category_label(current, t) if current else NO_CATEGORY_LABEL, current)
+    for label, data in extra_items or []:
+        combo.addItem(label, data)
+    idx = combo.findData(current)
+    combo.setCurrentIndex(idx if idx >= 0 else 0)
+    try:
+        combo.blockSignals(False)
+    except QT_ERRORS:
+        pass
+
+
+def category_value(combo: Any) -> str:
+    """The stored category name of a combo filled by :func:`fill_category_combo`
+    (its item data); falls back to the visible text for plain combos."""
+    try:
+        data = combo.currentData()
+    except QT_ERRORS:
+        data = None
+    if isinstance(data, str):
+        return data.strip()
+    try:
+        return str(combo.currentText() or "").strip()
+    except QT_ERRORS:
+        return ""
+
+
+def make_category_combo(
+    parent: Any,
+    names: List[str],
+    current: str,
+    *,
+    is_income: bool = False,
+    tree: Optional[CategoryTree] = None,
+) -> "CategoryComboBox":
+    combo = CategoryComboBox(parent, hierarchical=not is_income)
+    fill_category_combo(combo, names, current, tree=None if is_income else tree)
+    return combo
+
+
+class CategoryChecklist(QTreeWidget):
+    """Several categories at once (e.g. the categories counted for a car):
+    the hierarchy with a checkbox per category. Checking a parent selects the
+    parent itself — expenses filed on the parent only — never its
+    subcategories implicitly. Names outside the hierarchy that are already
+    selected (custom / unknown) are listed too, so they are kept."""
+
+    def __init__(
+        self,
+        parent: Any = None,
+        *,
+        tree: Optional[CategoryTree] = None,
+        extra_names: Optional[List[str]] = None,
+        checked: Optional[List[str]] = None,
+        expanded: Optional[List[str]] = None,
+    ) -> None:
+        super().__init__(parent)
+        t = active_tree() if tree is None else tree
+        self.setHeaderHidden(True)
+        self.setIndentation(22)
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.setObjectName("CategoryChecklist")
+        chosen = [str(x).strip() for x in (checked or []) if str(x).strip()]
+        self._items: Dict[str, Any] = {}
+        flags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable
+
+        def add(name: str, parent_item: Any = None) -> Any:
+            item = QTreeWidgetItem(parent_item or self, [name])
+            item.setFlags(flags)
+            item.setData(0, _INDEX_ROLE, name)
+            item.setCheckState(
+                0, Qt.CheckState.Checked if name in chosen else Qt.CheckState.Unchecked
+            )
+            self._items[name] = item
+            return item
+
+        if t:
+            for node in t.nodes:
+                if node.parent_id or t.is_unclassified(node.name):
+                    continue
+                top = add(node.name)
+                children = t.children_of(node.name)
+                if children:
+                    font = top.font(0)
+                    font.setBold(True)
+                    top.setFont(0, font)
+                    for child in children:
+                        add(child.name, top)
+                    top.setExpanded(
+                        node.name in (expanded or [])
+                        or any(c.name in chosen for c in children)
+                    )
+        for name in list(extra_names or []) + chosen:
+            if name not in self._items and not (t and t.by_name(name)):
+                add(name)
+
+    def checked_names(self) -> List[str]:
+        out: List[str] = []
+        for name, item in self._items.items():
+            if item.checkState(0) == Qt.CheckState.Checked:
+                out.append(name)
+        return out
+
+    def set_checked(self, name: str, on: bool) -> None:
+        item = self._items.get(name)
+        if item is not None:
+            item.setCheckState(0, Qt.CheckState.Checked if on else Qt.CheckState.Unchecked)

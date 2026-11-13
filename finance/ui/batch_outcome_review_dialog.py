@@ -19,7 +19,9 @@ from .dialog_utils import (
     wrap_hebrew_rtl,
     unwrap_rtl,
 )
-from .bank_movement_dialog import NewCategoryDialog
+from .bank_movement_dialog import NewCategoryDialog, notify_category_added
+from ..models.category_tree import UNCLASSIFIED_NAME
+from ..widgets.category_combo import CategoryComboBox, category_value, fill_category_combo
 from ..models.bank_movement import BankMovement, MovementType
 from ..models.classified_expense import ClassifiedExpense
 from ..utils.safe import QT_ERRORS
@@ -34,22 +36,27 @@ class BatchOutcomeReviewDialog(QDialog):
         parent: Optional[QDialog] = None,
     ) -> None:
         super().__init__(parent)
-        self._expenses = expenses[:3]
+        self._expenses = list(expenses)
         self._categories = list(categories)
         self._on_category_added = on_category_added
         self._results: List[Optional[BankMovement]] = [None] * len(self._expenses)
 
         self.setMinimumWidth(500)
+        if len(self._expenses) > 3:
+            self.setMinimumHeight(640)
         layout: QVBoxLayout = setup_standard_rtl_dialog(
             self,
-            title="סיווג הוצאות (3 הוצאות עם בטחון נמוך)",
+            title=f"סיווג הוצאות ({len(self._expenses)} הוצאות לבדיקה)",
             margins=(24, 20, 24, 20),
             spacing=12,
         )
 
         info_label = QLabel(
-            f"נמצאו {len(self._expenses)} הוצאות עם בטחון נמוך. אנא סווג אותן:", self
+            f"נמצאו {len(self._expenses)} הוצאות שהסיווג שלהן לא ודאי. אנא סווג אותן. "
+            "הוצאה שתדלגו עליה תישמר בכל זאת, בקטגוריה ״טרם סווג״.",
+            self,
         )
+        info_label.setWordWrap(True)
         info_label.setObjectName("Subtitle")
         layout.addWidget(info_label)
 
@@ -60,6 +67,7 @@ class BatchOutcomeReviewDialog(QDialog):
         scroll_layout.setSpacing(16)
 
         self._category_combos: List[QComboBox] = []
+        self._last_category_data: List[str] = []  # per combo, for cancel
         self._type_combos: List[QComboBox] = []
         self._add_category_sentinel = "__add_category__"
 
@@ -145,11 +153,22 @@ class BatchOutcomeReviewDialog(QDialog):
             cat_row.setSpacing(8)
             cat_label = QLabel("קטגוריה:", expense_container)
             cat_label.setMinimumWidth(80)
-            category_combo = QComboBox(expense_container)
-
-            for cat in self._categories:
-                category_combo.addItem(cat, cat)
-            category_combo.addItem("הוסף קטגוריה חדשה…", self._add_category_sentinel)
+            # Hierarchical picker (label = full path, data = stored name). A
+            # suggestion outside the list is not guessed into another category:
+            # it falls back to "טרם סווג" when that exists.
+            if suggested_cat and suggested_cat in self._categories:
+                initial = suggested_cat
+            elif UNCLASSIFIED_NAME in self._categories:
+                initial = UNCLASSIFIED_NAME
+            else:
+                initial = self._categories[0] if self._categories else ""
+            category_combo = CategoryComboBox(expense_container)
+            fill_category_combo(
+                category_combo,
+                self._categories,
+                initial,
+                extra_items=[("הוסף קטגוריה חדשה…", self._add_category_sentinel)],
+            )
 
             try:
                 category_combo.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -158,11 +177,7 @@ class BatchOutcomeReviewDialog(QDialog):
                     category_combo.setLayoutDirection(Qt.RightToLeft)
                 except QT_ERRORS:
                     pass
-            if suggested_cat and suggested_cat in self._categories:
-                idx_cat = self._categories.index(suggested_cat)
-                category_combo.setCurrentIndex(idx_cat)
-            else:
-                category_combo.setCurrentIndex(0 if self._categories else 0)
+            self._last_category_data.append(initial)
 
             def make_handler(exp_idx: int):
                 def handler(combo_idx: int) -> None:
@@ -211,7 +226,7 @@ class BatchOutcomeReviewDialog(QDialog):
         buttons_row, ok_btn, skip_btn = create_standard_buttons_row(
             self, primary_text="שמור הכל"
         )
-        skip_btn.setText("דלג על הכל")
+        skip_btn.setText("דלג — שמור כ״טרם סווג״")
 
         def on_accept() -> None:
             for idx in range(len(self._expenses)):
@@ -288,29 +303,42 @@ class BatchOutcomeReviewDialog(QDialog):
             return
 
         if data != self._add_category_sentinel:
+            if isinstance(data, str):
+                self._last_category_data[expense_idx] = data
             return
+
+        def restore() -> None:
+            # Cancelling "add category" returns to the previous choice.
+            prev = self._last_category_data[expense_idx]
+            idx = combo.findData(prev)
+            combo.setCurrentIndex(idx if idx >= 0 else 0)
 
         try:
             dialog = NewCategoryDialog(self._categories, parent=self)
             if not dialog.exec():
-                if self._categories:
-                    combo.setCurrentIndex(0)
+                restore()
                 return
             name = dialog.get_name().strip()
             if not name:
-                if self._categories:
-                    combo.setCurrentIndex(0)
+                restore()
                 return
             if name not in self._categories:
-                insert_index = combo.count() - 1
                 self._categories.append(name)
-                combo.insertItem(insert_index, name, name)
-                if self._on_category_added is not None:
-                    try:
-                        self._on_category_added(name)
-                    except QT_ERRORS:
-                        pass
-                combo.setCurrentIndex(insert_index)
+                try:
+                    notify_category_added(
+                        self._on_category_added, name, dialog.get_parent_name()
+                    )
+                except QT_ERRORS:
+                    pass
+                for i, other in enumerate(self._category_combos):
+                    keep = other.currentData() if other is not combo else name
+                    fill_category_combo(
+                        other,
+                        self._categories,
+                        keep if isinstance(keep, str) else "",
+                        extra_items=[("הוסף קטגוריה חדשה…", self._add_category_sentinel)],
+                    )
+                    self._last_category_data[i] = category_value(other)
         except QT_ERRORS:
             return
 

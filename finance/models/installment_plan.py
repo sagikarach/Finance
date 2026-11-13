@@ -86,27 +86,35 @@ class InstallmentPlan:
     def is_direct_debit(self) -> bool:
         return normalize_plan_kind(self.kind) == KIND_DIRECT_DEBIT
 
+    def scheduled_date(self, number: int) -> Optional[date]:
+        """Direct debit: the date of charge ``number`` (1-based) — also past
+        the last payment, so a late charge can be placed. None otherwise."""
+        if not self.is_direct_debit or int(number) < 1:
+            return None
+        try:
+            start = date.fromisoformat(str(self.start_date or "")[:10])
+        except PARSE_ERRORS:
+            return None
+        day = int(self.charge_day or 0)
+        if not 1 <= day <= 31:
+            day = start.day
+        first_offset = 0 if _add_months_on_day(start, 0, day) >= start else 1
+        return _add_months_on_day(start, first_offset + int(number) - 1, day)
+
     def schedule(self, today: Optional[date] = None) -> List[ScheduledPayment]:
         """Direct debit: every charge date and amount. The first charge is the
         first ``charge_day`` on/after ``start_date``. Empty for other kinds."""
         if not self.is_direct_debit:
             return []
         count = int(self.payments_count or 0)
-        if count <= 0:
+        if count <= 0 or self.scheduled_date(1) is None:
             return []
-        try:
-            start = date.fromisoformat(str(self.start_date or "")[:10])
-        except PARSE_ERRORS:
-            return []
-        day = int(self.charge_day or 0)
-        if not 1 <= day <= 31:
-            day = start.day
-        first_offset = 0 if _add_months_on_day(start, 0, day) >= start else 1
         today = today or date.today()
         amount = abs(float(self.monthly_amount or 0.0))
         out: List[ScheduledPayment] = []
         for i in range(count):
-            d = _add_months_on_day(start, first_offset + i, day)
+            d = self.scheduled_date(i + 1)
+            assert d is not None
             out.append(ScheduledPayment(number=i + 1, date=d, amount=amount, done=d <= today))
         return out
 
@@ -129,6 +137,8 @@ class InstallmentPlan:
                     type=MovementType.MONTHLY,
                     description=f"{self.name} · הוראת קבע {p.number}/{self.payments_count}",
                     id=direct_debit_movement_id(self.id, p.number),
+                    plan_id=self.id,
+                    plan_occurrence=p.number,
                 )
             )
         return out

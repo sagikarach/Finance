@@ -89,6 +89,13 @@ def deserialize_bank_movement(
 
         transfer_from = _acct("transfer_from")
         transfer_to = _acct("transfer_to")
+        plan_id = _acct("plan_id")
+        occ_raw = raw.get("plan_occurrence")
+        plan_occurrence: int | None = None
+        if isinstance(occ_raw, (int, float)) and not isinstance(occ_raw, bool):
+            plan_occurrence = int(occ_raw)
+        elif isinstance(occ_raw, str) and occ_raw.strip().isdigit():
+            plan_occurrence = int(occ_raw.strip())
         mid = movement_id
         if mid is None:
             rid = raw.get("id")
@@ -107,6 +114,9 @@ def deserialize_bank_movement(
             transfer_from=transfer_from,
             transfer_to=transfer_to,
             id=mid,
+            expected=bool(raw.get("expected", False)),
+            plan_id=plan_id,
+            plan_occurrence=plan_occurrence if plan_id else None,
         )
     except PARSE_ERRORS:
         return None
@@ -130,6 +140,15 @@ class BankMovement:
     transfer_from: str | None = None
     transfer_to: str | None = None
     id: str = field(default_factory=generate_movement_id)
+    # The user marked THIS expense as expected (not every charge from the
+    # merchant or category): it gets no ordinary unusual-expense alert.
+    # Independent of handling an alert, and of duplicate-charge checks.
+    expected: bool = False
+    # Explicit link to a direct-debit plan ("הוראת קבע"): the plan's id and the
+    # scheduled payment number. A "monthly" type alone is never a link. The
+    # detector checks a linked charge against the plan (amount, date, period).
+    plan_id: str | None = None
+    plan_occurrence: int | None = None
 
     def __post_init__(self) -> None:
         # Canonicalize on construction so every stored movement date is ISO,

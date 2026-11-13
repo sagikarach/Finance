@@ -218,20 +218,34 @@ class InstallmentsService:
             existing = self._movements_provider.list_movements()
         except PARSE_ERRORS:
             return 0
+        from .plan_links import backfill_generated_links, covered_occurrences
+
+        # Charges generated before plan links were stored get their link,
+        # only where id, plan and scheduled date agree (idempotent).
+        backfilled = {m.id: m for m in backfill_generated_links(existing, plans)}
+        if backfilled:
+            existing = [backfilled.get(m.id, m) for m in existing]
         existing_ids = {str(m.id) for m in existing}
+        # A payment already covered by an expense the user linked to the plan
+        # (e.g. imported from the bank) is not generated a second time.
+        covered = covered_occurrences(existing)
         new_movements: List[BankMovement] = []
         advanced: List[InstallmentPlan] = []
         for plan in plans:
             due = plan.due_movements(today)
             if not due:
                 continue
-            new_movements.extend(m for m in due if str(m.id) not in existing_ids)
+            new_movements.extend(
+                m for m in due
+                if str(m.id) not in existing_ids
+                and (plan.id, int(m.plan_occurrence or 0)) not in covered
+            )
             last = max(int(m.id.rsplit("-", 1)[-1]) for m in due)
             advanced.append(replace(plan, posted_count=last))
-        if not new_movements and not advanced:
+        if not new_movements and not advanced and not backfilled:
             return 0
 
-        if new_movements:
+        if new_movements or backfilled:
             self._movements_provider.save_movements(list(existing) + new_movements)
         for plan in advanced:
             self._plans_provider.upsert_plan(plan)
@@ -243,7 +257,7 @@ class InstallmentsService:
                 from ..models.firebase_workspace_writer import FirebaseWorkspaceWriter
 
                 w = FirebaseWorkspaceWriter()
-                for m in new_movements:
+                for m in new_movements + list(backfilled.values()):
                     with swallow(msg="push direct debit movement"):
                         w.upsert_movement(m)
                 for plan in advanced:

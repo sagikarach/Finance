@@ -25,6 +25,7 @@ from ..models.action_history import (
 from ..models.bank_movement import MovementType
 from ..models.bank_movement_service import BankMovementService
 from .dialog_utils import wrap_hebrew_rtl, unwrap_rtl
+from ..widgets.category_combo import category_label, category_value, make_category_combo
 from ..utils.safe import QT_ERRORS
 
 
@@ -198,16 +199,10 @@ class ActionHistoryDetailsDialog(QDialog):
                             is_income
                         )
 
-                        category_combo = QComboBox(self)
-                        category_combo.addItems(
-                            filtered_categories if filtered_categories else [category]
+                        # Hierarchical picker; label = full path, data = name.
+                        category_combo = make_category_combo(
+                            self, filtered_categories, category, is_income=is_income
                         )
-                        if category in filtered_categories:
-                            category_combo.setCurrentText(category)
-                        elif category:
-                            category_combo.addItem(category)
-                            category_combo.setCurrentText(category)
-                        category_combo.setEditable(False)
                         try:
                             category_combo.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
@@ -331,18 +326,13 @@ class ActionHistoryDetailsDialog(QDialog):
                             is_income
                         )
 
-                        category_combo = QComboBox(self)
-                        category_combo.addItems(
-                            filtered_categories
-                            if filtered_categories
-                            else [movement.category]
+                        # Hierarchical picker; label = full path, data = name.
+                        category_combo = make_category_combo(
+                            self,
+                            filtered_categories,
+                            movement.category,
+                            is_income=is_income,
                         )
-                        if movement.category in filtered_categories:
-                            category_combo.setCurrentText(movement.category)
-                        elif movement.category:
-                            category_combo.addItem(movement.category)
-                            category_combo.setCurrentText(movement.category)
-                        category_combo.setEditable(False)
                         try:
                             category_combo.setLayoutDirection(
                                 Qt.LayoutDirection.RightToLeft
@@ -485,6 +475,8 @@ class ActionHistoryDetailsDialog(QDialog):
                 if value is None:
                     continue
                 label_text = field_labels.get(name, name)
+                if name == "category" and isinstance(value, str):
+                    value = category_label(value)  # read-only: show the full path
                 details_label = QLabel(f"{label_text}: {value}", self)
                 details_layout.addWidget(details_label)
 
@@ -559,7 +551,7 @@ class ActionHistoryDetailsDialog(QDialog):
                 ):
                     return
 
-                new_category = category_widget.currentText()
+                new_category = category_value(category_widget)
                 new_type_str = unwrap_rtl(type_widget.currentText())
 
                 try:
@@ -632,7 +624,7 @@ class ActionHistoryDetailsDialog(QDialog):
                 category_combo = category_widget
                 type_combo = type_widget
 
-                new_category = category_combo.currentText()
+                new_category = category_value(category_combo)
                 new_type_str = unwrap_rtl(type_combo.currentText())
 
                 try:

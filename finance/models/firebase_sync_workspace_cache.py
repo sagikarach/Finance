@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 
+from typing import Any
+
 from .firebase_client import FirestoreClient
 from ..utils.safe import PARSE_ERRORS, swallow
 from ..utils.logging_setup import get_logger
@@ -177,8 +179,25 @@ def pull_mortgages_to_local_cache(
                 parsed.setdefault("id", mid)
                 mortgage = deserialize_mortgage(parsed)
                 if mortgage is not None:
+                    mortgage = _keep_local_only_fields(mortgage, parsed, local_by_id.get(mid))
                     local_by_id[mid] = mortgage
         provider.save_mortgages(list(local_by_id.values()))
+
+
+def _keep_local_only_fields(remote: Any, parsed: dict, local: Any) -> Any:
+    """A server record without ``expense_categories`` was last written by a
+    client that predates the field (an older desktop replaces the whole
+    document). That is not a decision to clear the car's selection, so the
+    local selection is kept — and the next push writes it back. A present key
+    (even an empty list) is a real value and wins as usual."""
+    if local is None or "expense_categories" in parsed:
+        return remote
+    keep = getattr(local, "expense_categories", None)
+    if keep is None:
+        return remote
+    from dataclasses import replace
+
+    return replace(remote, expense_categories=list(keep))
 
 
 def pull_notifications_to_local_cache(

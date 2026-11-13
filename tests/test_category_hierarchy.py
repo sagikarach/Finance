@@ -481,12 +481,16 @@ def test_reports_roll_descendants_into_parent_exactly_once():
     assert report_group("שם לא מוכר", tree) == "שם לא מוכר"
 
 
-def test_asset_expense_category_resolves_retired_name_and_descendants():
+def test_asset_expense_category_resolves_retired_name_to_ownership_subcategories():
     from finance.models.asset_expense_service import expense_category_names
 
     ct.set_active_tree_override(CategoryTree(default_outcome_nodes(), {"רכב": "רכב ותחבורה"}))
     names = expense_category_names(Mortgage(id="c", name="car", expense_category=""))
-    assert names[0] == "רכב ותחבורה" and "דלק" in names and len(names) == len(set(names))
+    # The retired "רכב" resolves to the transport parent, which becomes its
+    # car-ownership subcategories only — never public transport / taxis / rental.
+    assert "דלק" in names and len(names) == len(set(names))
+    assert "תחבורה ציבורית ומוניות" not in names and "השכרת רכב" not in names
+    assert "רכב ותחבורה" not in names  # the broad parent is kept for review
 
 
 # ── detector on the hierarchy ─────────────────────────────────────────────
@@ -675,3 +679,90 @@ def test_apply_category_edit_moves_movements_once_and_is_idempotent(tmp_path):
     again = apply_category_edit(files, _user_edit(), pusher=RecordingPusher())
     assert again.mode == "noop"
     assert {p: p.stat().st_mtime_ns for p in files.accounts_dir.glob("*.json")} == stamps
+
+
+def test_structure_edit_maps_selected_car_categories(tmp_path):
+    from finance.data.mortgage_provider import serialize_mortgage
+    from finance.models.category_edits import apply_category_edit
+    from finance.models.mortgage import AssetKind
+
+    files = write_workspace(tmp_path, [mv(-30, "2026-05-01", "בתי קפה", "קפה")])
+    tree = _old_structure_tree()
+    files.categories.write_text(json.dumps({
+        "income": [], "outcome": tree.assignable_names(),
+        "outcome_tree": tree.nodes_to_list(), "legacy_aliases": tree.legacy_aliases,
+        "schema_version": 2}, ensure_ascii=False), encoding="utf-8")
+    car = Mortgage(id="car", name="car", kind=AssetKind.CAR,
+                   expense_categories=["בתי קפה", "מסעדות ומשלוחים", "דלק"])
+    files.mortgages.write_text(json.dumps([serialize_mortgage(car)], ensure_ascii=False),
+                               encoding="utf-8")
+    apply_category_edit(files, _user_edit(), pusher=RecordingPusher())
+    saved = json.loads(files.mortgages.read_text(encoding="utf-8"))[0]
+    # two merged names become one entry; the untouched name stays
+    assert saved["expense_categories"] == ["אוכל בחוץ", "דלק"]
+
+
+# ── reviewed per-movement corrections ─────────────────────────────────────
+
+
+def _review_workspace(tmp_path):
+    ms = [mv(-329.52, "2025-06-04", "רכב ותחבורה", "אושר עד לוד", id="osher"),
+          mv(-18, "2026-05-29", "רכב ותחבורה", "הקפה של משה", id="cafe"),
+          mv(-290.08, "2025-07-19", "רכב ותחבורה", "פז YELLOW רמלה", id="yellow"),
+          mv(-31500, "2024-10-20", "רכב ותחבורה", "קניית רכב", id="purchase"),
+          mv(-50, "2026-05-01", "סופר ומכולת", "שופרסל", id="other")]
+    files = write_workspace(tmp_path, ms)
+    tree = CategoryTree(default_outcome_nodes(), {"בתי קפה": "אוכל בחוץ"})
+    files.categories.write_text(json.dumps({
+        "income": [], "outcome": tree.assignable_names(),
+        "outcome_tree": tree.nodes_to_list(), "legacy_aliases": tree.legacy_aliases,
+        "schema_version": 2}, ensure_ascii=False), encoding="utf-8")
+    return files
+
+
+def _fixes():
+    from finance.models.category_edits import MovementCorrection
+
+    return [MovementCorrection("osher", "רכב ותחבורה", "סופר ומכולת", "supermarket"),
+            MovementCorrection("cafe", "רכב ותחבורה", "אוכל בחוץ", "café")]
+
+
+def test_corrections_change_only_listed_categories_and_are_idempotent(tmp_path):
+    from finance.models.category_edits import apply_movement_corrections
+
+    files = _review_workspace(tmp_path)
+    before = {r["id"]: r for r in json.loads(files.movements.read_text(encoding="utf-8"))}
+    pusher, refreshes = RecordingPusher(), []
+    rep = apply_movement_corrections(files, _fixes(), pusher=pusher,
+                                     refresh=lambda: refreshes.append(1))
+    after = {r["id"]: r for r in json.loads(files.movements.read_text(encoding="utf-8"))}
+    assert rep.changed == ["osher", "cafe"] and refreshes == [1]
+    assert after["osher"]["category"] == "סופר ומכולת" and after["cafe"]["category"] == "אוכל בחוץ"
+    for mid in before:  # nothing else on any record changed
+        diff = {k for k in before[mid] if before[mid][k] != after[mid].get(k)}
+        assert diff <= ({"category"} if mid in ("osher", "cafe") else set())
+    assert after["yellow"]["category"] == "רכב ותחבורה"  # ambiguous: untouched
+    assert after["purchase"]["category"] == "רכב ותחבורה"
+    assert {m.id for m in pusher.calls[0]["movements"]} == {"osher", "cafe"}
+    assert rep.backup_dir and (Path(rep.backup_dir) / files.movements.name).exists()
+    stamps = {p: p.stat().st_mtime_ns for p in files.accounts_dir.glob("*.json")}
+    again = apply_movement_corrections(files, _fixes(), pusher=RecordingPusher())
+    assert again.mode == "noop" and set(again.already) == {"osher", "cafe"}
+    assert {p: p.stat().st_mtime_ns for p in files.accounts_dir.glob("*.json")} == stamps
+
+
+def test_corrections_skip_records_changed_since_review_and_refuse_bad_targets(tmp_path):
+    from finance.models.category_edits import MovementCorrection, apply_movement_corrections
+
+    files = _review_workspace(tmp_path)
+    rows = json.loads(files.movements.read_text(encoding="utf-8"))
+    for r in rows:
+        if r["id"] == "osher":
+            r["category"] = "מתנות"  # the user changed it after the review
+    files.movements.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+    rep = apply_movement_corrections(files, _fixes(), pusher=RecordingPusher())
+    assert rep.conflicts == {"osher": "מתנות"} and rep.changed == ["cafe"]
+    with pytest.raises(ValueError):  # a retired name is never written
+        apply_movement_corrections(files, [MovementCorrection("cafe", "אוכל בחוץ", "בתי קפה")])
+    with pytest.raises(ValueError):
+        apply_movement_corrections(files, [MovementCorrection("cafe", "אוכל בחוץ", "לא קיים")])

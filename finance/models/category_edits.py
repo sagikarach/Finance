@@ -11,6 +11,7 @@ older client's category list cannot resurrect them on sync.
 
 from __future__ import annotations
 
+import json
 import shutil
 import time
 from dataclasses import dataclass, field
@@ -139,8 +140,11 @@ def apply_category_edit(
             report.moved[key] = report.moved.get(key, 0) + 1
             changed_ids.append(str(r.get("id")))
     changed_plans = [r for r in plan_rows if str(r.get("category") or "") in name_map]
-    changed_mortgages = [r for r in mortgage_rows
-                         if str(r.get("expense_category") or "") in name_map]
+    changed_mortgages = [
+        r for r in mortgage_rows
+        if str(r.get("expense_category") or "") in name_map
+        or any(str(x) in name_map for x in (r.get("expense_categories") or []))
+    ]
     outcome = list(cats.get("outcome") or [])
     ordered = new_tree.assignable_names()
     new_outcome = filter_retired_names(
@@ -182,7 +186,16 @@ def apply_category_edit(
         _atomic_write_json(files.plans, plan_rows)
     if changed_mortgages:
         for r in changed_mortgages:
-            r["expense_category"] = name_map[str(r["expense_category"])]
+            old_single = str(r.get("expense_category") or "")
+            if old_single in name_map:
+                r["expense_category"] = name_map[old_single]
+            if r.get("expense_categories"):
+                mapped: list = []
+                for x in r["expense_categories"]:
+                    y = name_map.get(str(x), str(x))
+                    if y not in mapped:  # two merged names count once
+                        mapped.append(y)
+                r["expense_categories"] = mapped
         _atomic_write_json(files.mortgages, mortgage_rows)
     cats = dict(cats)
     cats["outcome"] = new_outcome
@@ -230,3 +243,115 @@ def restore_backup(files: WorkspaceFiles, backup_dir: Path) -> List[str]:
             shutil.copy2(src, files.accounts_dir / name)
             restored.append(name)
     return restored
+
+
+# ── per-movement category corrections (a reviewed list, not a rule) ───────
+
+
+@dataclass(frozen=True)
+class MovementCorrection:
+    """Set ``movement_id``'s category to ``category`` — only while it still
+    has ``expected`` (a record the user changed since the review is left
+    alone). ``reason`` is kept in the report for the audit trail."""
+
+    movement_id: str
+    expected: str
+    category: str
+    reason: str = ""
+
+
+@dataclass
+class CorrectionReport:
+    mode: str  # dry_run | apply | noop
+    changed: List[str] = field(default_factory=list)  # movement ids
+    already: List[str] = field(default_factory=list)  # already had the target
+    conflicts: Dict[str, str] = field(default_factory=dict)  # id → current category
+    missing: List[str] = field(default_factory=list)
+    backup_dir: Optional[str] = None
+    pushed: Optional[Pushed] = None
+    refreshed: int = 0
+    retrained: int = 0
+
+
+def apply_movement_corrections(
+    files: WorkspaceFiles,
+    corrections: List[MovementCorrection],
+    *,
+    dry_run: bool = False,
+    pusher: Optional[MigrationPusher] = None,
+    refresh: Optional[Callable[[], Any]] = None,
+    retrain: Optional[Callable[[], Any]] = None,
+    clock: Callable[[], float] = time.time,
+) -> CorrectionReport:
+    """Change only the ``category`` of the listed expense movements, after a
+    backup, in one atomic write; push only the changed movements; refresh and
+    retrain once. Targets must be current (non-retired) category names.
+    Re-running is a no-op (each record already has its target)."""
+    rows = _read_json(files.movements, [])
+    cats = _read_json(files.categories, {})
+    tree = CategoryTree.from_storage(cats)
+    allowed = set(cats.get("outcome") or []) | {n.name for n in tree.nodes}
+    for c in corrections:
+        target = str(c.category or "").strip()
+        if not target or target not in allowed:
+            raise ValueError(f"unknown target category: {target!r}")
+        if tree and target in tree.legacy_aliases and tree.by_name(target) is None:
+            raise ValueError(f"retired target category: {target!r}")
+    by_id = {str(r.get("id")): r for r in rows}
+    report = CorrectionReport(mode="dry_run" if dry_run else "apply")
+    todo: Dict[str, str] = {}
+    for c in corrections:
+        r = by_id.get(c.movement_id)
+        if r is None:
+            report.missing.append(c.movement_id)
+            continue
+        current = str(r.get("category") or "")
+        try:
+            is_expense = float(r.get("amount") or 0) < 0 and not r.get("is_transfer")
+        except (TypeError, ValueError):
+            is_expense = False
+        if current == c.category:
+            report.already.append(c.movement_id)
+        elif current != c.expected or not is_expense:
+            report.conflicts[c.movement_id] = current
+        else:
+            todo[c.movement_id] = c.category
+    report.changed = list(todo)
+    if dry_run:
+        return report
+    if not todo:
+        report.mode = "noop"
+        return report
+
+    stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(clock()))
+    backup = files.backups / f"category_fix_{files.key}_{stamp}"
+    backup.mkdir(parents=True, exist_ok=False)
+    for src in (files.movements, files.categories):
+        if src.exists():
+            shutil.copy2(src, backup / src.name)
+    (backup / "corrections.json").write_text(
+        json.dumps([vars(c) for c in corrections], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    report.backup_dir = str(backup)
+    for mid, cat in todo.items():
+        by_id[mid]["category"] = cat
+    _atomic_write_json(files.movements, rows)
+
+    if pusher is not None:
+        from .bank_movement import deserialize_bank_movement
+
+        report.pushed = pusher.push(
+            movements=[m for m in (deserialize_bank_movement(by_id[i]) for i in todo) if m],
+            plans=[], mortgages=[],
+            income=list(cats.get("income") or []),
+            outcome=list(cats.get("outcome") or []),
+            tree=tree or None,
+        )
+    if refresh is not None:
+        refresh()
+        report.refreshed = 1
+    if retrain is not None:
+        retrain()
+        report.retrained = 1
+    return report
