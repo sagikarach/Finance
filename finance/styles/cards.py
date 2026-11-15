@@ -116,6 +116,22 @@ def load_cards_light_styles() -> str:
     QWidget#ContentPanel * {
         background: transparent;
     }
+    /* The category picker's popup is a child of its combo, so the
+       "transparent inside cards" rules above would leave it see-through
+       (showing the OS window colour). Same look as a normal dropdown list. */
+    QFrame#CategoryPopup,
+    QWidget#ContentPanel QFrame#CategoryPopup,
+    QWidget#PageCard QFrame#CategoryPopup,
+    QWidget#AssetTablePanel QFrame#CategoryPopup,
+    QFrame#CategoryPopup QTreeWidget,
+    QWidget#ContentPanel QFrame#CategoryPopup QTreeWidget,
+    QWidget#PageCard QFrame#CategoryPopup QTreeWidget,
+    QWidget#AssetTablePanel QFrame#CategoryPopup QTreeWidget {
+        background: #ffffff;
+        color: #0f172a;
+        border: 1px solid #dcdad0;
+        border-radius: 8px;
+    }
     QWidget#AssetTablePanel {
         background: #ffffff;
         border: 1px solid #ecece2;
@@ -344,6 +360,19 @@ def load_cards_dark_styles() -> str:
     }
     QWidget#ContentPanel * {
         background: transparent;
+    }
+    QFrame#CategoryPopup,
+    QWidget#ContentPanel QFrame#CategoryPopup,
+    QWidget#PageCard QFrame#CategoryPopup,
+    QWidget#AssetTablePanel QFrame#CategoryPopup,
+    QFrame#CategoryPopup QTreeWidget,
+    QWidget#ContentPanel QFrame#CategoryPopup QTreeWidget,
+    QWidget#PageCard QFrame#CategoryPopup QTreeWidget,
+    QWidget#AssetTablePanel QFrame#CategoryPopup QTreeWidget {
+        background: #0f172a;
+        color: #e5e7eb;
+        border: 1px solid #1e3a5f;
+        border-radius: 8px;
     }
     QWidget#AssetTablePanel {
         background: #111827;
