@@ -19,6 +19,7 @@ from ..qt import (
 )
 from ..utils.formatting import format_currency
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class SeparatorItemDelegate(QStyledItemDelegate):
@@ -257,9 +258,9 @@ class YearlyMonthsTableCard(QWidget):
                 pass
             try:
                 if overall_balance >= 0:
-                    net_item.setForeground(Qt.GlobalColor.darkGreen)
+                    net_item.setForeground(QColor(_tone.money_pos()))
                 else:
-                    net_item.setForeground(Qt.GlobalColor.darkRed)
+                    net_item.setForeground(QColor(_tone.money_neg()))
             except QT_ERRORS:
                 pass
             try:

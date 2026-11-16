@@ -14,6 +14,7 @@ from ..qt import (
     Qt,
 )
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 MonthKey = Tuple[int, int]
@@ -23,11 +24,26 @@ _MONTH_NAMES = [
     "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
 ]
 
-_ARROW_STYLE = (
-    "QPushButton{background:#eceadf;border:none;border-radius:10px;}"
-    "QPushButton:hover{background:#ddd9c9;}"
-    "QPushButton:disabled{background:#f5f3ec;}"
-)
+def _arrow_style() -> str:
+    bg, hover, off = _tone.tc(("#eceadf", "#ddd9c9", "#f5f3ec"), ("#273449", "#334155", "#1a2233"))
+    return (
+        "QPushButton{background:%s;border:none;border-radius:10px;}"
+        "QPushButton:hover{background:%s;}"
+        "QPushButton:disabled{background:%s;}" % (bg, hover, off)
+    )
+
+
+def picker_style() -> str:
+    """The pill around a month / year picker."""
+    bg, border = _tone.tc(("#ffffff", "#ecece2"), ("#111827", "#1e293b"))
+    return (
+        "QWidget#MonthPicker{background:%s;border:1px solid %s;border-radius:14px;}"
+        % (bg, border)
+    )
+
+
+def picker_label_style() -> str:
+    return "font-size:15px;font-weight:800;color:%s;background:transparent;" % _tone.ink()
 
 
 class _ArrowButton(QPushButton):
@@ -37,7 +53,7 @@ class _ArrowButton(QPushButton):
     def __init__(self, direction: int, parent: Optional[QWidget] = None) -> None:
         super().__init__("", parent)
         self._dir = -1 if direction < 0 else 1  # -1 = points left, +1 = right
-        self.setStyleSheet(_ARROW_STYLE)
+        self.setStyleSheet(_arrow_style())
         try:
             self.setFixedSize(30, 30)
             self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -49,7 +65,9 @@ class _ArrowButton(QPushButton):
         try:
             p = QPainter(self)
             p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-            color = QColor("#2c2f28") if self.isEnabled() else QColor("#c4c2b6")
+            color = QColor(
+                _tone.tc("#2c2f28", "#e5e7eb") if self.isEnabled() else _tone.tc("#c4c2b6", "#4b5563")
+            )
             pen = QPen(color)
             pen.setWidthF(2.2)
             try:
@@ -91,10 +109,7 @@ class MonthPickerWidget(QWidget):
             self.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except QT_ERRORS:
             pass
-        self.setStyleSheet(
-            "QWidget#MonthPicker{background:#ffffff;border:1px solid #ecece2;"
-            "border-radius:14px;}"
-        )
+        self.setStyleSheet(picker_style())
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 5, 6, 5)
@@ -108,9 +123,7 @@ class MonthPickerWidget(QWidget):
         self._right_btn.clicked.connect(lambda: self._step(-1))
 
         self._label = QLabel("", self)
-        self._label.setStyleSheet(
-            "font-size:15px;font-weight:800;color:#1e1e22;background:transparent;"
-        )
+        self._label.setStyleSheet(picker_label_style())
         try:
             self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._label.setMinimumWidth(118)

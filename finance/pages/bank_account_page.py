@@ -32,6 +32,7 @@ from ..ui.sibus_expenses_dialog import SibusExpensesDialog
 from ..ui.account_movements_dialog import AccountMovementsDialog
 from .base_page import BasePage
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class BankAccountPage(BasePage):
@@ -93,20 +94,15 @@ class BankAccountPage(BasePage):
         top_layout.setContentsMargins(22, 20, 22, 20)
         top_layout.setSpacing(16)
 
-        # Dark pill buttons that read on the yellow hero.
-        pill_style = (
-            "QPushButton{background:rgba(44,38,18,0.16);color:#3f3616;border:none;"
-            "border-radius:12px;padding:9px 16px;font-weight:700;font-size:13px;}"
-            "QPushButton:hover{background:rgba(44,38,18,0.26);}"
-            "QPushButton:disabled{color:rgba(63,54,22,0.4);}"
-        )
+        # Pill buttons that read on the butter hero (light and dark).
+        pill_style = _tone.hero_pill_style()
 
         summary_col = QVBoxLayout()
         summary_col.setSpacing(4)
 
         name_label = QLabel(target.name, top_card)
         name_label.setStyleSheet(
-            "font-size:18px;font-weight:800;color:#5c4d15;background:transparent;"
+            "font-size:18px;font-weight:800;color:%s;background:transparent;" % _tone.hero_title()
         )
         main_value = float(getattr(target, "total_amount", 0.0) or 0.0)
         total_label = QLabel(format_currency(main_value), top_card)
@@ -131,7 +127,7 @@ class BankAccountPage(BasePage):
                 top_card,
             )
             meta_label.setStyleSheet(
-                "font-size:12px;font-weight:600;color:#7a6420;background:transparent;"
+                "font-size:12px;font-weight:600;color:%s;background:transparent;" % _tone.hero_caption()
             )
             meta_label.setAlignment(Qt.AlignmentFlag.AlignRight)
             summary_col.addWidget(meta_label, 0, Qt.AlignmentFlag.AlignRight)

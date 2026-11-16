@@ -29,6 +29,7 @@ from ..models.mortgage_math import (
     track_end_milestones,
 )
 from ..utils.safe import QT_ERRORS
+from . import chart_palette as _pal
 
 if charts_available:
     from ..qt import (
@@ -123,9 +124,9 @@ class _MilestoneChartView(QChartView if charts_available else object):  # type: 
         painter.restore()
 
 
-_LINE_COLOR = "#6366f1"  # אינדיגו — עקומת היתרה
-_TODAY_COLOR = "#f59e0b"  # ענבר — קו "היום"
-_MILESTONE_COLOR = "#94a3b8"  # אפור — סיום מסלול (התשלום יורד)
+_LINE_COLOR = _pal.ACCENT  # לבנדר — עקומת היתרה
+_TODAY_COLOR = _pal.TODAY  # צהוב חמאה — קו "היום"
+_MILESTONE_COLOR = _pal.MILESTONE  # אפור חם — סיום מסלול (התשלום יורד)
 
 
 class MortgageBalanceChart(QWidget):

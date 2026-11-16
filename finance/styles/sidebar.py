@@ -219,6 +219,16 @@ def load_sidebar_light_styles() -> str:
 
 def load_sidebar_dark_styles() -> str:
     return """
+    QWidget#SidebarActions QPushButton#SidebarIncomeButton {
+        background: #1f4d36; color: #d1f0dc; font-weight: 800;
+        border: 1px solid #2a6448; border-radius: 14px; padding: 12px 14px;
+    }
+    QWidget#SidebarActions QPushButton#SidebarIncomeButton:hover { background: #255a40; }
+    QWidget#SidebarActions QPushButton#SidebarOutcomeButton {
+        background: #4d2a20; color: #f8d9cf; font-weight: 800;
+        border: 1px solid #6b3a2d; border-radius: 14px; padding: 12px 14px;
+    }
+    QWidget#SidebarActions QPushButton#SidebarOutcomeButton:hover { background: #5a3226; }
     QWidget#Sidebar {
         background: #111827;
         border-radius: 12px;

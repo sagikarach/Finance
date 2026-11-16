@@ -26,6 +26,7 @@ from ..widgets.savings_history_chart import SavingsHistoryChartCard
 from ..utils.formatting import format_currency
 from .base_page import BasePage
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class SavingsAccountPage(BasePage):
@@ -85,27 +86,20 @@ class SavingsAccountPage(BasePage):
         top_layout.setContentsMargins(22, 20, 22, 20)
         top_layout.setSpacing(16)
 
-        pill_style = (
-            "QPushButton{background:rgba(44,38,18,0.16);color:#3f3616;border:none;"
-            "border-radius:12px;padding:9px 16px;font-weight:700;font-size:13px;}"
-            "QPushButton:hover{background:rgba(44,38,18,0.26);}"
-        )
+        pill_style = _tone.hero_pill_style()
 
         summary_col = QVBoxLayout()
         summary_col.setSpacing(4)
 
         name_label = QLabel(target.name, top_card)
         name_label.setStyleSheet(
-            "font-size:18px;font-weight:800;color:#5c4d15;background:transparent;"
+            "font-size:18px;font-weight:800;color:%s;background:transparent;" % _tone.hero_title()
         )
         total_label = QLabel(format_currency(target.total_amount), top_card)
         total_label.setObjectName("StatValueLarge")
         liquid_text = "נזיל" if target.is_liquid else "לא נזיל"
         liquid_label = QLabel(liquid_text, top_card)
-        liquid_label.setStyleSheet(
-            "font-size:12px;font-weight:700;color:#7a6420;background:rgba(44,38,18,0.12);"
-            "border-radius:9px;padding:3px 10px;"
-        )
+        liquid_label.setStyleSheet(_tone.hero_chip_style())
 
         name_liquid_row = QHBoxLayout()
         name_liquid_row.setSpacing(8)

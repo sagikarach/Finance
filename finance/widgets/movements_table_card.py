@@ -5,6 +5,7 @@ from typing import List, Optional
 from ..models.bank_movement import BankMovement
 from ..utils.formatting import format_currency
 from ..qt import (
+    QColor,
     QApplication,
     QLabel,
     QHeaderView,
@@ -16,6 +17,7 @@ from ..qt import (
     Qt,
 )
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class MovementsTableCard(QWidget):
@@ -120,9 +122,9 @@ class MovementsTableCard(QWidget):
 
             try:
                 if movement.amount > 0:
-                    amount_item.setForeground(Qt.GlobalColor.darkGreen)
+                    amount_item.setForeground(QColor(_tone.money_pos()))
                 else:
-                    amount_item.setForeground(Qt.GlobalColor.darkRed)
+                    amount_item.setForeground(QColor(_tone.money_neg()))
             except QT_ERRORS:
                 pass
 

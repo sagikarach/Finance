@@ -921,11 +921,12 @@ class MortgagePage(BasePage):
 
     def _on_theme_changed(self, is_dark: bool) -> None:
         super()._on_theme_changed(is_dark)
-        if self._chart is not None:
-            try:
-                self._chart.refresh_theme()
-            except QT_ERRORS:
-                pass
+        for chart in (self._chart, getattr(self, "_split_chart", None)):
+            if chart is not None:
+                try:
+                    chart.refresh_theme()
+                except QT_ERRORS:
+                    pass
 
     def _build_content(self, content_col: QVBoxLayout) -> None:
         self._clear_content_layout(content_col)

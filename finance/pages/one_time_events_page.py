@@ -31,6 +31,7 @@ from ..widgets.one_time_event_stat_cards import OneTimeEventStatCards
 from ..widgets.one_time_events_selector import OneTimeEventsSelector
 from .base_page import BasePage
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class OneTimeEventsPage(BasePage):
@@ -458,29 +459,17 @@ class OneTimeEventsPage(BasePage):
                 self._budget_rem.setText(
                     f"חריגה {format_currency(abs(remaining), use_compact=True)}"
                 )
-                self._budget_rem.setStyleSheet("color:#d66a4e;font-weight:800;")
+                self._budget_rem.setStyleSheet("color:%s;font-weight:800;" % _tone.money_neg())
             else:
                 self._budget_rem.setText(
                     f"נותרו {format_currency(remaining, use_compact=True)}"
                 )
-                self._budget_rem.setStyleSheet("color:#2f9e68;font-weight:800;")
+                self._budget_rem.setStyleSheet("color:%s;font-weight:800;" % _tone.money_pos())
         if self._budget_max_lbl is not None:
             self._budget_max_lbl.setText(f"תקציב {budget_s}")
         if self._budget_bar is not None:
             self._budget_bar.setValue(pct_int)
-            chunk = (
-                "qlineargradient(x1:0,y1:0,x2:1,y2:0,"
-                "stop:0 #e9a491,stop:1 #d66a4e)"
-                if over
-                else "qlineargradient(x1:0,y1:0,x2:1,y2:0,"
-                "stop:0 #8FBF9F,stop:1 #2f9e68)"
-            )
-            self._budget_bar.setStyleSheet(
-                "QProgressBar#BudgetBar{background:#eef1ea;border:none;"
-                "border-radius:7px;}"
-                "QProgressBar#BudgetBar::chunk{border-radius:7px;background:"
-                f"{chunk};}}"
-            )
+            self._budget_bar.setStyleSheet(_tone.budget_bar_style(bool(over)))
 
     def _rebuild_legend(self, by_category: Dict[str, float], total: float) -> None:
         layout = self._legend_layout
@@ -524,13 +513,7 @@ class OneTimeEventsPage(BasePage):
 
     @staticmethod
     def _badge_style(status_text: str) -> str:
-        palette = {
-            "פעיל": ("#eaf5ef", "#2f9e68"),
-            "מתוכנן": ("#ecebfb", "#4a3f9e"),
-            "הסתיים": ("#eef1ea", "#5b5f57"),
-            "בארכיון": ("#f0eee6", "#8a8d83"),
-        }
-        bg, fg = palette.get(status_text, ("#eef1ea", "#5b5f57"))
+        bg, fg = _tone.status_badge_colors(status_text)
         return (
             f"QLabel#EventBadge{{background:{bg};color:{fg};font-size:12px;"
             "font-weight:800;padding:4px 12px;border-radius:999px;}"

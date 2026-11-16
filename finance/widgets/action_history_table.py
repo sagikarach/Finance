@@ -257,20 +257,22 @@ def _action_body(
 
 
 def _stripe_color_for_action(action_name: str, *, is_dark: bool) -> str:
+    # The app's pastel palette (donut_utils.PASTEL_HEX); a deeper tone of the
+    # same hue in dark mode so the stripe still reads on navy.
     key = str(action_name or "").strip()
     if key in ("add_income_movement",):
-        return "#6fbd58" if is_dark else "#97f57c"  # green
+        return "#5fae84" if is_dark else "#8FBF9F"  # sage green
     if key in ("add_outcome_movement", "delete_movement"):
-        return "#c76868" if is_dark else "#fe8383"  # red
+        return "#d6866f" if is_dark else "#E9A491"  # coral
     if key in ("upload_outcome_file",):
-        return "#789bbf" if is_dark else "#96c7f8"  # blue
+        return "#7f9bd6" if is_dark else "#9BB4E6"  # periwinkle
     if key in ("transfer",):
-        return "#9670ba" if is_dark else "#ca98fa"  # purple
+        return "#9b91e0" if is_dark else "#B9B6F0"  # lavender
     if key.startswith("add_") or key.startswith("edit_"):
-        return "#9feffd" if is_dark else "#4fc3f7"  # cyan/sky
+        return "#c48fbd" if is_dark else "#E0B0D8"  # orchid
     if key.startswith("delete_") or key.startswith("deactivate_"):
-        return "#a3aebf"  # slate
-    return "#f7c167"  # amber
+        return "#8b8e86" if is_dark else "#c4bfa8"  # warm grey
+    return "#d9b44a" if is_dark else "#F2D06B"  # butter
 
 
 class ActionHistoryTable(QWidget):

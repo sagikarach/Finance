@@ -42,6 +42,7 @@ from .base_page import BasePage
 
 from ..utils.formatting import fmt_money
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 def _fmt_money(value: float) -> str:
@@ -829,8 +830,8 @@ class InstallmentsPage(BasePage):
                 QTableWidgetItem("ירד" if p.done else "עתידי"),
             )
             try:
-                cells[1].setForeground(QColor("#d66a4e"))
-                cells[3].setForeground(QColor("#2f9e68" if p.done else "#8a94a6"))
+                cells[1].setForeground(QColor(_tone.money_neg()))
+                cells[3].setForeground(QColor(_tone.money_pos() if p.done else "#8a94a6"))
             except QT_ERRORS:
                 pass
             for col, it in enumerate(cells):
@@ -873,12 +874,12 @@ class InstallmentsPage(BasePage):
                 self._prog_left.setText(
                     f"חריגה {format_currency(float(stats.overpaid), use_compact=True)}"
                 )
-                self._prog_left.setStyleSheet("color:#d66a4e;font-weight:800;")
+                self._prog_left.setStyleSheet("color:%s;font-weight:800;" % _tone.money_neg())
             elif original > 0:
                 self._prog_left.setText(
                     f"נותרו {format_currency(remaining, use_compact=True)}"
                 )
-                self._prog_left.setStyleSheet("color:#2f9e68;font-weight:800;")
+                self._prog_left.setStyleSheet("color:%s;font-weight:800;" % _tone.money_pos())
             else:
                 self._prog_left.setText("")
         if self._tick_first is not None:
@@ -891,19 +892,7 @@ class InstallmentsPage(BasePage):
             )
         if self._prog_bar is not None:
             self._prog_bar.setValue(int(round(pct * 100)))
-            chunk = (
-                "qlineargradient(x1:0,y1:0,x2:1,y2:0,"
-                "stop:0 #e9a491,stop:1 #d66a4e)"
-                if over
-                else "qlineargradient(x1:0,y1:0,x2:1,y2:0,"
-                "stop:0 #8FBF9F,stop:1 #2f9e68)"
-            )
-            self._prog_bar.setStyleSheet(
-                "QProgressBar#BudgetBar{background:#eef1ea;border:none;"
-                "border-radius:7px;}"
-                "QProgressBar#BudgetBar::chunk{border-radius:7px;background:"
-                f"{chunk};}}"
-            )
+            self._prog_bar.setStyleSheet(_tone.budget_bar_style(bool(over)))
 
     def _fill_table(self, movements) -> None:
         if self._table is None:
@@ -917,7 +906,7 @@ class InstallmentsPage(BasePage):
                 amt = 0.0
             amt_item = QTableWidgetItem(format_currency(amt, use_compact=True))
             try:
-                amt_item.setForeground(QColor("#d66a4e" if amt < 0 else "#2f9e68"))
+                amt_item.setForeground(QColor(_tone.money_neg() if amt < 0 else _tone.money_pos()))
             except QT_ERRORS:
                 pass
             cat_item = QTableWidgetItem(str(m.category or ""))

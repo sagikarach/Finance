@@ -32,6 +32,7 @@ from ..ui.dialog_utils import setup_standard_rtl_dialog, create_standard_buttons
 from ..utils.formatting import format_currency
 from .base_page import BasePage
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class SavingsPage(BasePage):
@@ -92,12 +93,16 @@ class SavingsPage(BasePage):
             b.setFixedSize(34, 34)
         except QT_ERRORS:
             pass
-        color = "#d66a4e" if danger else "#6b6f66"
-        border = "#f0d9d2" if danger else "#ecece2"
+        color = _tone.money_neg() if danger else _tone.ink_soft()
+        border = (
+            _tone.tc("#f0d9d2", "#4d2a20") if danger else _tone.tc("#ecece2", "#334155")
+        )
+        bg = _tone.tc("#ffffff", "#1e293b")
+        hover = _tone.tc("#f7f5ef", "#273449")
         b.setStyleSheet(
-            "QPushButton{background:#ffffff;border:1px solid %s;border-radius:10px;"
+            "QPushButton{background:%s;border:1px solid %s;border-radius:10px;"
             "font-size:14px;font-weight:400;color:%s;padding:0;}"
-            "QPushButton:hover{background:#f7f5ef;}" % (border, color)
+            "QPushButton:hover{background:%s;}" % (bg, border, color, hover)
         )
         return b
 
@@ -109,7 +114,9 @@ class SavingsPage(BasePage):
                 row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
             except QT_ERRORS:
                 pass
-            row.setStyleSheet("QWidget#SavRow{border-top:1px solid #ecece2;}")
+            row.setStyleSheet(
+                "QWidget#SavRow{border-top:1px solid %s;}" % _tone.tc("#ecece2", "#1e293b")
+            )
         rl = QHBoxLayout(row)
         rl.setContentsMargins(2, 10, 2, 10)
         rl.setSpacing(10)
@@ -127,13 +134,13 @@ class SavingsPage(BasePage):
         info.setSpacing(1)
         name = QLabel(str(acc.name), row)
         name.setStyleSheet(
-            "font-size:14.5px;font-weight:700;color:#26251f;background:transparent;"
+            "font-size:14.5px;font-weight:700;color:%s;background:transparent;" % _tone.ink()
         )
         status = QLabel(
             "נזיל" if bool(getattr(acc, "is_liquid", False)) else "לא נזיל", row
         )
         status.setStyleSheet(
-            "font-size:11.5px;color:#8b8e86;background:transparent;"
+            "font-size:11.5px;color:%s;background:transparent;" % _tone.ink_soft()
         )
         info.addWidget(name)
         info.addWidget(status)
@@ -142,7 +149,7 @@ class SavingsPage(BasePage):
             format_currency(float(getattr(acc, "total_amount", 0.0) or 0.0)), row
         )
         amt.setStyleSheet(
-            "font-size:15px;font-weight:800;color:#2f9e68;background:transparent;"
+            "font-size:15px;font-weight:800;color:%s;background:transparent;" % _tone.money_pos()
         )
 
         edit_btn = self._icon_button("✎")

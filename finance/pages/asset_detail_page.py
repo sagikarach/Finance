@@ -119,6 +119,7 @@ from ..utils.formatting import fmt_money as _fmt_money
 
 from ..utils.formatting import parse_float as _parse_float
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class FundingSourceDialog(QDialog):
@@ -545,9 +546,9 @@ class CostMovementsDialog(QDialog):
                     if is_ex or lock:
                         it.setForeground(QColor("#9aa3b2"))
                     elif col == 1:
-                        it.setForeground(QColor("#d66a4e"))
+                        it.setForeground(QColor(_tone.money_neg()))
                     elif col == status_col:
-                        it.setForeground(QColor("#2f9e68"))
+                        it.setForeground(QColor(_tone.money_pos()))
                 except QT_ERRORS:
                     pass
                 self._table.setItem(row, col, it)
@@ -1109,13 +1110,13 @@ class AssetDetailPage(BasePage):
         retained = max(0.0, min(1.0, (current / initial) if has_initial else 1.0))
         loss = max(0.0, initial - current) if has_initial else 0.0
         pct_txt = (
-            f"  <span style='font-size:14px;font-weight:800;color:#2f9e68;'>"
+            f"  <span style='font-size:14px;font-weight:800;color:{_tone.money_pos()};'>"
             f"{retained * 100:.0f}% מהמחיר המקורי</span>"
             if has_initial
             else ""
         )
         big = QLabel(f"{_fmt_money(current)} ₪{pct_txt}", panel)
-        big.setStyleSheet("font-size:30px;font-weight:900;color:#1e1e22;")
+        big.setStyleSheet("font-size:30px;font-weight:900;color:%s;" % _tone.ink())
         pl.addWidget(big)
 
         if has_initial:
@@ -1131,9 +1132,9 @@ class AssetDetailPage(BasePage):
                 pass
             bar.setValue(int(round(retained * 100)))
             pl.addWidget(bar)
-            pl.addWidget(self._legend_row(panel, "#2f9e68", "שווי נוכחי", current))
-            pl.addWidget(self._legend_row(panel, "#d66a4e", "ירידת ערך", loss))
-            pl.addWidget(self._legend_row(panel, "#e6e2d4", "מחיר קנייה", initial))
+            pl.addWidget(self._legend_row(panel, _tone.money_pos(), "שווי נוכחי", current))
+            pl.addWidget(self._legend_row(panel, _tone.money_neg(), "ירידת ערך", loss))
+            pl.addWidget(self._legend_row(panel, _tone.tc("#e6e2d4", "#4b5563"), "מחיר קנייה", initial))
         return panel
 
     def _car_stat_card(self, parent, label, value_txt, per, foot, tone):
@@ -1143,9 +1144,15 @@ class AssetDetailPage(BasePage):
         except QT_ERRORS:
             pass
         if tone == "green":
-            bg, lbl_c, num_c, dot, foot_c = "#eaf5ef", "#5b7a68", "#2f9e68", "#2f9e68", "#5b7a68"
+            bg, lbl_c, num_c, dot, foot_c = _tone.tc(
+                ("#eaf5ef", "#5b7a68", "#2f9e68", "#2f9e68", "#5b7a68"),
+                ("#14241c", "#8fbf9f", "#5fc28c", "#5fc28c", "#8fbf9f"),
+            )
         else:
-            bg, lbl_c, num_c, dot, foot_c = "#faf1d4", "#7a6420", "#2c2612", "#d9b64a", "#8a7c52"
+            bg, lbl_c, num_c, dot, foot_c = _tone.tc(
+                ("#faf1d4", "#7a6420", "#2c2612", "#d9b64a", "#8a7c52"),
+                ("#2a2515", "#e8c766", "#fdf6dc", "#d9b44a", "#b8a46a"),
+            )
         card.setStyleSheet("QWidget{background:%s;border-radius:20px;}" % bg)
         cl = QVBoxLayout(card)
         cl.setContentsMargins(20, 18, 20, 18)
@@ -1197,7 +1204,7 @@ class AssetDetailPage(BasePage):
         trow = QHBoxLayout()
         trow.setContentsMargins(4, 2, 4, 0)
         t = QLabel("הוצאות הרכב", wrap)
-        t.setStyleSheet("font-size:16px;font-weight:800;color:#1e1e22;background:transparent;")
+        t.setStyleSheet("font-size:16px;font-weight:800;color:%s;background:transparent;" % _tone.ink())
         label = a.expense_category  # the selected categories, short
         note_text = (
             (f"{label} (חודשי)" + (" + עלויות שנתיות" if yearly_total > 0 else ""))
@@ -1212,7 +1219,7 @@ class AssetDetailPage(BasePage):
             "נספרות רק הקטגוריות שנבחרו לרכב (פרטי הרכב והמחיר). "
             "תחבורה ציבורית, מוניות והשכרת רכב לא נספרות אלא אם נבחרו."
         )
-        note.setStyleSheet("font-size:12.5px;color:#a8aca1;background:transparent;")
+        note.setStyleSheet("font-size:12.5px;color:%s;background:transparent;" % _tone.ink_faint())
         trow.addWidget(t, 0)
         trow.addStretch(1)
         trow.addWidget(note, 0)
@@ -1642,11 +1649,11 @@ class AssetDetailPage(BasePage):
         pl.addWidget(title)
         big = QLabel(
             f"{_fmt_money(equity)} ₪  "
-            f"<span style='font-size:14px;font-weight:800;color:#2f9e68;'>"
+            f"<span style='font-size:14px;font-weight:800;color:{_tone.money_pos()};'>"
             f"{eq_frac * 100:.1f}% מהשווי</span>",
             panel,
         )
-        big.setStyleSheet("font-size:30px;font-weight:900;color:#1e1e22;")
+        big.setStyleSheet("font-size:30px;font-weight:900;color:%s;" % _tone.ink())
         pl.addWidget(big)
         bar = QProgressBar(panel)
         bar.setObjectName("EquityBar")
@@ -1659,9 +1666,9 @@ class AssetDetailPage(BasePage):
             pass
         bar.setValue(int(round(max(0.0, min(1.0, eq_frac)) * 100)))
         pl.addWidget(bar)
-        pl.addWidget(self._legend_row(panel, "#2f9e68", "הון עצמי", equity))
-        pl.addWidget(self._legend_row(panel, "#d66a4e", debt_label, outstanding))
-        pl.addWidget(self._legend_row(panel, "#e6e2d4", value_label, value))
+        pl.addWidget(self._legend_row(panel, _tone.money_pos(), "הון עצמי", equity))
+        pl.addWidget(self._legend_row(panel, _tone.money_neg(), debt_label, outstanding))
+        pl.addWidget(self._legend_row(panel, _tone.tc("#e6e2d4", "#4b5563"), value_label, value))
         return panel
 
     def _legend_row(self, parent, color, name, amount):
@@ -1673,9 +1680,9 @@ class AssetDetailPage(BasePage):
         sw.setFixedSize(11, 11)
         sw.setStyleSheet(f"background:{color};border-radius:3px;")
         nm = QLabel(str(name), row)
-        nm.setStyleSheet("font-size:13.5px;color:#6b6f66;")
+        nm.setStyleSheet("font-size:13.5px;color:%s;" % _tone.ink_soft())
         val = QLabel(f"{_fmt_money(amount)} ₪", row)
-        val.setStyleSheet("font-size:13.5px;font-weight:800;color:#1e1e22;")
+        val.setStyleSheet("font-size:13.5px;font-weight:800;color:%s;" % _tone.ink())
         rl.addWidget(sw, 0)
         rl.addWidget(nm, 0)
         rl.addStretch(1)
@@ -1685,22 +1692,22 @@ class AssetDetailPage(BasePage):
     def _mini_stat(self, parent, key, value, sub=None, green=False):
         frame = QFrame(parent)
         frame.setStyleSheet(
-            "QFrame{background:#faf9f4;border:1px solid #ecece2;"
-            "border-radius:14px;}"
+            "QFrame{background:%s;border:1px solid %s;border-radius:14px;}"
+            % _tone.tc(("#faf9f4", "#ecece2"), ("#111827", "#1e293b"))
         )
         fl = QVBoxLayout(frame)
         fl.setContentsMargins(14, 12, 14, 12)
         fl.setSpacing(3)
         k = QLabel(str(key), frame)
-        k.setStyleSheet("font-size:12px;color:#6b6f66;font-weight:600;")
+        k.setStyleSheet("font-size:12px;color:%s;font-weight:600;" % _tone.ink_soft())
         v = QLabel(str(value), frame)
-        vcolor = "#2f9e68" if green else "#1e1e22"
+        vcolor = _tone.money_pos() if green else _tone.ink()
         v.setStyleSheet(f"font-size:19px;font-weight:900;color:{vcolor};")
         fl.addWidget(k)
         fl.addWidget(v)
         if sub:
             sb = QLabel(str(sub), frame)
-            sb.setStyleSheet("font-size:11px;color:#a8aca1;")
+            sb.setStyleSheet("font-size:11px;color:%s;" % _tone.ink_faint())
             fl.addWidget(sb)
         return frame
 
@@ -1789,14 +1796,14 @@ class AssetDetailPage(BasePage):
         trow.setContentsMargins(4, 2, 4, 0)
         t = QLabel("הוצאות על הבית", wrap)
         t.setStyleSheet(
-            "font-size:16px;font-weight:800;color:#1e1e22;background:transparent;"
+            "font-size:16px;font-weight:800;color:%s;background:transparent;" % _tone.ink()
         )
         note = QLabel(
             f"משכנתא {_fmt_money(mortgage_month)} ₪ + "
             f"הוצאות הבית {_fmt_money(house_month)} ₪",
             wrap,
         )
-        note.setStyleSheet("font-size:12.5px;color:#a8aca1;background:transparent;")
+        note.setStyleSheet("font-size:12.5px;color:%s;background:transparent;" % _tone.ink_faint())
         trow.addWidget(t, 0)
         trow.addStretch(1)
         trow.addWidget(note, 0)

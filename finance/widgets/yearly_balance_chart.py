@@ -22,6 +22,7 @@ from ..models.charts import catmull_rom_spline_samples
 from ..utils.formatting import format_currency
 from .savings_history_chart import ShadowChartView
 from ..utils.safe import QT_ERRORS
+from . import chart_palette as _pal
 
 
 class YearlyBalanceChart(QWidget):
@@ -66,8 +67,8 @@ class YearlyBalanceChart(QWidget):
         chart.setBackgroundBrush(Qt.GlobalColor.transparent)
         chart.setPlotAreaBackgroundVisible(False)
 
-        positive_color = QColor("#22c55e")
-        negative_color = QColor("#ef4444")
+        positive_color = QColor(_pal.POSITIVE)
+        negative_color = QColor(_pal.NEGATIVE)
 
         segments_pos: List[List[tuple[float, float]]] = []
         segments_neg: List[List[tuple[float, float]]] = []
@@ -173,7 +174,7 @@ class YearlyBalanceChart(QWidget):
                 pass
             try:
                 pen = proj_series.pen()
-                pen.setColor(QColor("#f59e0b"))
+                pen.setColor(QColor(_pal.TODAY))
                 try:
                     pen.setWidthF(2.5)
                 except QT_ERRORS:
@@ -241,7 +242,7 @@ class YearlyBalanceChart(QWidget):
             sep.append(float(n - 1), y0_max)
             try:
                 sep_pen = sep.pen()
-                sep_pen.setColor(QColor("#f59e0b"))
+                sep_pen.setColor(QColor(_pal.TODAY))
                 try:
                     sep_pen.setWidthF(1.5)
                 except QT_ERRORS:
@@ -305,7 +306,7 @@ class YearlyBalanceChart(QWidget):
             is_dark = False
             if app is not None:
                 is_dark = str(app.property("theme") or "light") == "dark"
-            zero_col = QColor("#475569" if is_dark else "#d4eafc")
+            zero_col = QColor("#475569" if is_dark else "#c4bfa8")
             if not is_dark:
                 try:
                     zero_col.setAlpha(140)

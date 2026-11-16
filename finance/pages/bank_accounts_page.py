@@ -18,6 +18,7 @@ from ..widgets.accounts_pie_chart import AccountsPieChart
 from ..utils.formatting import format_currency
 from .base_page import BasePage
 from ..utils.safe import QT_ERRORS
+from ..styles import tone as _tone
 
 
 class BankAccountsPage(BasePage):
@@ -90,18 +91,23 @@ class BankAccountsPage(BasePage):
             )
             name = QLabel(str(acc.name), row)
             name.setStyleSheet(
-                "font-size:14px; font-weight:600; color:#40433c; background:transparent;"
+                "font-size:14px; font-weight:600; color:%s; background:transparent;" % _tone.ink()
             )
             val = QLabel(format_currency(acc.total_amount), row)
             val.setStyleSheet(
-                "font-size:14px; font-weight:800; color:#2f9e68; background:transparent;"
+                "font-size:14px; font-weight:800; color:%s; background:transparent;" % _tone.money_pos()
             )
             rl.addWidget(dot)
             rl.addWidget(name)
             rl.addStretch(1)
             rl.addWidget(val)
             if idx > 0:
-                row.setStyleSheet("border-top:1px solid #ecece2;")
+                # Scoped to the row: an unscoped rule also drew a line over
+                # every label inside it.
+                row.setObjectName("AccRow")
+                row.setStyleSheet(
+                    "QWidget#AccRow{border-top:1px solid %s;}" % _tone.tc("#ecece2", "#1e293b")
+                )
                 try:
                     row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
                 except QT_ERRORS:

@@ -117,6 +117,13 @@ class CategoryComboBox(QComboBox):
         popup = QFrame(self, Qt.WindowType.Popup)
         popup.setObjectName("CategoryPopup")
         try:
+            # Only the stylesheet's rounded panel is painted — no dark square
+            # window corners around it.
+            popup.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+            popup.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        except QT_ERRORS:
+            pass
+        try:
             popup.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         except QT_ERRORS:
             pass

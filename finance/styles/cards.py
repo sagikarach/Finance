@@ -3,9 +3,15 @@ from __future__ import annotations
 
 def load_cards_light_styles() -> str:
     return """
-    QWidget#ChartCard, QWidget#TotalsCard, QWidget#StatCard {
+    QWidget#TotalsCard, QWidget#StatCard {
         background: #e8f3fd;
         border: 1px solid #c7dffe;
+        border-radius: 12px;
+    }
+    /* Charts sit on the neutral card, like the dashboard's pastel cards. */
+    QWidget#ChartCard {
+        background: #ffffff;
+        border: 1px solid #ecece2;
         border-radius: 12px;
     }
     /* כרטיסי סטטיסטיקה — עיצוב אחיד בסגנון "hero": כרטיס ניטרלי, כותרת
@@ -323,8 +329,82 @@ def _redesign_card_metrics() -> str:
     """
 
 
+def _redesign_cards_dark() -> str:
+    """Dark versions of the pastel redesign cards: a deep tint of the same
+    hue as the light card, with light text in that hue. (Before, these cards
+    lost their background in dark mode but kept the light theme's dark text,
+    which disappeared on navy.)"""
+    return """
+    QWidget#DashHeroYellow { background: #2a2515; border: 1px solid #3a3320;
+                             border-radius: 22px; }
+    QWidget#DashHeroYellow * { background: transparent; }
+    QWidget#DashHeroYellow QLabel#StatTitle { color: #e8c766; }
+    QWidget#DashHeroYellow QLabel#StatValueLarge { color: #fdf6dc; }
+    QWidget#DashHeroYellow QLabel#StatSubtle { color: #b8a46a; }
+    QWidget#DashCard, QWidget#DashCardGreen { background: #111827;
+        border: 1px solid #1e293b; border-radius: 22px; }
+    QWidget#DashCard *, QWidget#DashCardGreen * { background: transparent; }
+    QWidget#DashCard QLabel#StatTitle, QWidget#DashCardGreen QLabel#StatTitle { color: #9ca3af; }
+    QWidget#DashCard QLabel#StatValueLarge { color: #cfcbf7; }
+    QWidget#DashCardGreen QLabel#StatValueLarge { color: #5fc28c; }
+    QLabel#PanelSubtitle { color: #9ca3af; background: transparent; }
+    QLabel#PanelTitle { color: #e5e7eb; background: transparent; }
+    QWidget#MonthIncomeCard { background: #14241c; border: 1px solid #1f3a2c; border-radius: 20px; }
+    QWidget#MonthIncomeCard * { background: transparent; }
+    QWidget#MonthIncomeCard QLabel#StatTitle, QWidget#MonthIncomeCard QLabel#Subtitle { color: #8fbf9f; }
+    QWidget#MonthIncomeCard QLabel#StatValueCard,
+    QWidget#MonthIncomeCard QLabel#StatValueLarge { color: #5fc28c; }
+    QWidget#MonthExpenseCard { background: #2a1c18; border: 1px solid #3d2822; border-radius: 20px; }
+    QWidget#MonthExpenseCard * { background: transparent; }
+    QWidget#MonthExpenseCard QLabel#StatTitle, QWidget#MonthExpenseCard QLabel#Subtitle { color: #d9a08f; }
+    QWidget#MonthExpenseCard QLabel#StatValueCard,
+    QWidget#MonthExpenseCard QLabel#StatValueLarge { color: #e9a491; }
+    QWidget#MonthNetCard { background: #2a2515; border: 1px solid #3a3320; border-radius: 20px; }
+    QWidget#MonthNetCard * { background: transparent; }
+    QWidget#MonthNetCard QLabel#StatTitle, QWidget#MonthNetCard QLabel#Subtitle { color: #e8c766; }
+    QWidget#MonthNetCard QLabel#StatValueCard,
+    QWidget#MonthNetCard QLabel#StatValueLarge { color: #fdf6dc; }
+    QWidget#MonthInfoCard { background: #1d1c33; border: 1px solid #2c2a4a; border-radius: 20px; }
+    QWidget#MonthInfoCard * { background: transparent; }
+    QWidget#MonthInfoCard QLabel#StatTitle, QWidget#MonthInfoCard QLabel#Subtitle { color: #b9b6f0; }
+    QWidget#MonthInfoCard QLabel#StatValueCard,
+    QWidget#MonthInfoCard QLabel#StatValueLarge { color: #cfcbf7; }
+    QWidget#ChartCard { background: #111827; border: 1px solid #1e293b; border-radius: 12px; }
+    QWidget#TotalsCard, QWidget#StatCard { background: #111827; border: 1px solid #1e293b;
+                                           border-radius: 12px; }
+    QLabel#EventName { color: #e5e7eb; }
+    QLabel#EventBadge { border-radius: 999px; background: #1f2a22; color: #8fbf9f; }
+    QLabel#PlanBadge { border-radius: 999px; background: #1d1c33; color: #b9b6f0; }
+    QLabel#MetaDot { color: #4b5563; }
+    QWidget#PayoffStrip { background: #14241c; border: 1px solid #1f3a2c; border-radius: 16px; }
+    QWidget#PayoffStrip * { background: transparent; }
+    QLabel#PayoffText { color: #a7d3b8; }
+    QLabel#PayoffText b { color: #d1f0dc; }
+    QProgressBar#EquityBar { background: #6b3a2d; border: none; border-radius: 8px; }
+    QProgressBar#EquityBar::chunk { border-radius: 8px;
+        background: qlineargradient(x1:0,y1:0,x2:1,y2:0, stop:0 #3f7a58, stop:1 #5fc28c); }
+    QWidget#AllInStrip { background: #2a2515; border: 1px solid #3a3320; border-radius: 20px; }
+    QWidget#AllInStrip * { background: transparent; }
+    QLabel#AllInKey { color: #e8c766; }
+    QLabel#AllInSub { color: #b8a46a; }
+    QLabel#AllInVal { color: #fdf6dc; }
+    QFrame#DetailTile { background: #111827; border: 1px solid #1e293b; border-radius: 16px; }
+    QFrame#DetailTile * { background: transparent; }
+    QFrame#DetailTile:hover { background: #1a2233; }
+    QLabel#TileName { color: #e5e7eb; }
+    QLabel#TileSub { color: #9ca3af; }
+    QLabel#TileChev { color: #6b7280; }
+    QLabel#BudgetRemain { color: #5fc28c; }
+    QLabel#TickLabel { color: #6b7280; }
+    QProgressBar#BudgetBar { background: #1e293b; border: none; border-radius: 7px; }
+    QProgressBar#BudgetBar::chunk { border-radius: 7px; background: #5fc28c; }
+    QLabel#LegendName { color: #e5e7eb; }
+    QLabel#LegendVal { color: #9ca3af; }
+    """
+
+
 def load_cards_dark_styles() -> str:
-    return _redesign_card_metrics() + """
+    return _redesign_card_metrics() + _redesign_cards_dark() + """
     QWidget#StatCardGreen, QWidget#StatCardRed,
     QWidget#StatCardPurple, QWidget#StatCardYellow {
         background: #1e293b;

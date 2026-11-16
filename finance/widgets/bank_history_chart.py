@@ -33,6 +33,7 @@ from .savings_history_chart import (
 )
 from .time_range_bar import TimeRangeBar
 from ..utils.safe import QT_ERRORS
+from . import chart_palette as _pal
 
 
 def _build_x_axis_labeled(
@@ -88,7 +89,7 @@ class BankHistoryChartCard(QWidget):
         # budget / history: parallel month_keys + base_values
         self._month_keys: List[tuple[int, int]] = []
         self._base_values: List[float] = []
-        self._series_color = QColor("#2f9e68")
+        self._series_color = QColor(_pal.POSITIVE)
         self._series_name: str = ""
         # bank movements: month_keys + full balance series (incl. start/today)
         self._bv_bank: List[float] = []         # [start, m1..mN, today]
@@ -158,6 +159,7 @@ class BankHistoryChartCard(QWidget):
         if not (charts_available and bs.month_keys):
             return False
         self._chart_type = "budget"
+        self._series_color = QColor(_pal.NEGATIVE)  # spending, not a balance
         self._month_keys = bs.month_keys
         self._base_values = bs.spent
         self._series_name = "הוצאות לפי חודש"

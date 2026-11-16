@@ -26,6 +26,7 @@ from ..utils.formatting import format_currency
 from .savings_history_chart import ShadowChartView
 from .time_range_bar import TimeRangeBar
 from ..utils.safe import QT_ERRORS
+from . import chart_palette as _pal
 
 
 @dataclass(frozen=True)
@@ -87,7 +88,7 @@ class OneTimeEventExpensesOverTimeChart(QWidget):
         self._all_values = list(values)
         self._all_labels = list(labels)
 
-        line_color = QColor("#ef4444")
+        line_color = QColor(_pal.NEGATIVE)
         try:
             pen = QPen(line_color)
             pen.setWidthF(3.0)

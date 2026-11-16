@@ -34,6 +34,7 @@ from ..models.charts import (
 )
 from .time_range_bar import TimeRangeBar
 from ..utils.safe import QT_ERRORS
+from . import chart_palette as _pal
 
 
 # ─────────────────────────────────────────────────────────────── helpers ──
@@ -191,7 +192,7 @@ class ShadowChartView(QChartView):
                     frac = (self._forecast_start_x - x_min) / x_span
                     left_px = plot_rect.left() + frac * plot_rect.width()
                     right_px = plot_rect.right()
-                    shade_color = QColor(245, 158, 11, 28)  # amber, ~11% opacity
+                    shade_color = _pal.today_shade(30)  # butter, ~12% opacity
                     try:
                         painter.save()
                         painter.fillRect(
@@ -519,17 +520,15 @@ class SavingsHistoryChartCard(QWidget):
         )()
         self._all_month_keys = list(axis_keys)
 
-        total_savings = max(1, len(account.savings))
         for idx, s in enumerate(account.savings):
             latest = latest_by_saving.get(str(s.name), {}) or {}
             base_values, _ = build_base_values(
                 axis=axis_obj, latest_by_month=latest, fallback_amount=s.amount
             )
             try:
-                hue = int((360.0 * idx) / float(total_savings))
-                color = QColor.fromHsl(hue, 180, 140)
+                color = _pal.series_color(idx)
             except QT_ERRORS:
-                color = QColor("#2f9e68")
+                color = QColor(_pal.POSITIVE)
             self._all_series_data.append((str(s.name), list(base_values), color))
 
         # ── create chart + view (initially empty) ────────────────────────
@@ -697,7 +696,7 @@ class SavingsHistoryChartCard(QWidget):
             sep.append(float(n_vis - 1), y_top)
             try:
                 sep_pen = sep.pen()
-                sep_pen.setColor(QColor("#f59e0b"))
+                sep_pen.setColor(QColor(_pal.TODAY))
                 try:
                     sep_pen.setWidthF(1.5)
                 except QT_ERRORS:

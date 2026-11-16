@@ -4,7 +4,7 @@ from typing import Callable, List, Optional
 
 from ..qt import QHBoxLayout, QLabel, QWidget, Qt
 
-from .month_picker import _ArrowButton
+from .month_picker import _ArrowButton, picker_label_style, picker_style
 from ..utils.safe import QT_ERRORS
 
 
@@ -36,10 +36,7 @@ class YearPickerWidget(QWidget):
             self.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
         except QT_ERRORS:
             pass
-        self.setStyleSheet(
-            "QWidget#MonthPicker{background:#ffffff;border:1px solid #ecece2;"
-            "border-radius:14px;}"
-        )
+        self.setStyleSheet(picker_style())
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 5, 6, 5)
@@ -53,9 +50,7 @@ class YearPickerWidget(QWidget):
         self._right_btn.clicked.connect(lambda: self._step(-1))
 
         self._label = QLabel("", self)
-        self._label.setStyleSheet(
-            "font-size:15px;font-weight:800;color:#1e1e22;background:transparent;"
-        )
+        self._label.setStyleSheet(picker_label_style())
         try:
             self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._label.setMinimumWidth(84)

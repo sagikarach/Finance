@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, cast
 import math
-import zlib
 import importlib
 
 from ..qt import (
@@ -24,6 +23,7 @@ from ..utils.formatting import format_currency
 from ..models.charts import catmull_rom_spline_samples
 from .savings_history_chart import ShadowChartView
 from ..utils.safe import QT_ERRORS
+from . import chart_palette as _pal
 
 
 class CategoryTrendsChart(QWidget):
@@ -286,11 +286,9 @@ class CategoryTrendsChart(QWidget):
                     key = key[len(exp) :]
             except QT_ERRORS:
                 pass
-            h = zlib.crc32(str(key).encode("utf-8")) & 0xFFFFFFFF
-            hue = int(h % 360)
-            return QColor.fromHsl(hue, 180, 140)
+            return _pal.color_for_key(key)
         except QT_ERRORS:
-            return QColor("#2563eb")
+            return QColor(_pal.ACCENT)
 
     def set_empty_state(self, text: str) -> None:
         if not charts_available:
@@ -867,7 +865,7 @@ class CategoryTrendsChart(QWidget):
             sep.append(float(n - 1), float(top))
             try:
                 sep_pen = sep.pen()
-                sep_pen.setColor(QColor("#f59e0b"))
+                sep_pen.setColor(QColor(_pal.TODAY))
                 try:
                     sep_pen.setWidthF(1.5)
                 except QT_ERRORS:

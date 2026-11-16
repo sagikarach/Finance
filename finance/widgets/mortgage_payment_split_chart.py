@@ -23,6 +23,7 @@ from ..models.mortgage_math import (
     payment_split_projection,
 )
 from ..utils.safe import QT_ERRORS
+from . import chart_palette as _pal
 
 if charts_available:
     from ..qt import (
@@ -34,9 +35,9 @@ if charts_available:
     )
 
 
-_INTEREST_COLOR = "#ef4444"  # אדום — מרכיב הריבית
-_PRINCIPAL_COLOR = "#16a34a"  # ירוק — מרכיב הקרן
-_TODAY_COLOR = "#f59e0b"  # ענבר — קו "היום"
+_INTEREST_COLOR = _pal.NEGATIVE  # אלמוג — מרכיב הריבית
+_PRINCIPAL_COLOR = _pal.POSITIVE  # ירוק — מרכיב הקרן
+_TODAY_COLOR = _pal.TODAY  # צהוב חמאה — קו "היום"
 
 
 class MortgagePaymentSplitChart(QWidget):
@@ -81,6 +82,8 @@ class MortgagePaymentSplitChart(QWidget):
         try:
             chart.legend().setVisible(True)
             chart.legend().setAlignment(Qt.AlignmentFlag.AlignTop)
+            # Qt's default legend text is dark grey — unreadable in dark mode.
+            chart.legend().setLabelColor(_label_color())
             chart.setBackgroundRoundness(0)
             chart.setBackgroundBrush(Qt.GlobalColor.transparent)
             chart.setPlotAreaBackgroundVisible(False)
